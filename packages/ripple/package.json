@@ -1,0 +1,48 @@
+{
+  "name": "ripple",
+  "description": "Ripple is a TypeScript UI framework for the web",
+  "license": "MIT",
+  "version": "0.0.1",
+  "type": "module",
+  "module": "src/runtime/index.js",
+  "main": "src/runtime/index.js",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "worker": "./src/runtime/index.js",
+      "browser": "./src/runtime/index.js",
+      "default": "./src/runtime/index.js"
+    },
+    "./package.json": "./package.json",
+    "./compiler": {
+      "types": "./types/index.d.ts",
+      "require": "./compiler/index.js",
+      "default": "./src/compiler/index.js"
+    },
+    "./validator": {
+      "types": "./types/index.d.ts",
+      "require": "./validator/index.js",
+      "default": "./src/validator/index.js"
+    },
+    "./internal/client": {
+      "default": "./src/runtime/internal/client/index.js"
+    },
+    "./jsx-runtime": {
+      "types": "./src/jsx-runtime.d.ts",
+      "import": "./src/jsx-runtime.js",
+      "default": "./src/jsx-runtime.js"
+    }
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.5",
+    "@jridgewell/sourcemap-codec": "^1.5.5",
+    "@types/estree": "^1.0.8",
+    "acorn": "^8.15.0",
+    "acorn-typescript": "^1.4.13",
+    "esrap": "^2.1.0",
+    "is-reference": "^3.0.3",
+    "magic-string": "^0.30.17",
+    "muggle-string": "^0.4.1",
+    "zimmerframe": "^1.1.2"
+  }
+}

@@ -1,0 +1,13 @@
+{
+    "name": "vite-plugin-ripple",
+    "description": "Vite plugin for Ripple",
+    "license": "MIT",
+    "version": "0.0.1",
+    "type": "module",
+    "module": "src/index.js",
+    "main": "src/index.js",
+    "devDependencies": {
+        "ripple": "workspace:*",
+        "vite": "^5.4.14"
+    }
+}

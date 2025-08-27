@@ -1,0 +1,55 @@
+{
+  "name": "ripple-vscode-plugin",
+  "displayName": "Ripple for VS Code",
+  "description": "Ripple JavaScript/TypeScript language support",
+  "version": "0.0.1",
+  "author": "Dominic Gannaway",
+  "engines": {
+    "vscode": "^1.97.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "src/extension.js",
+  "dependencies": {
+    "@jridgewell/sourcemap-codec": "^1.5.5",
+    "@volar/language-core": "~2.4.23",
+    "@volar/language-server": "~2.4.23",
+    "@volar/typescript": "~2.4.23",
+    "@volar/vscode": "~2.4.23",
+    "volar-service-typescript": "0.0.65",
+    "vscode-languageclient": "^9.0.1"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "ripple",
+        "aliases": [
+          "Ripple",
+          "ripple"
+        ],
+        "extensions": [
+          ".ripple"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ripple",
+        "scopeName": "source.ripple",
+        "path": "./syntaxes/ripple.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.tag.js": "jsx-tags",
+          "meta.tag.without-attributes.js": "jsx-tags",
+          "meta.tag.attributes.js.jsx": "javascriptreact",
+          "meta.embedded.expression.js": "javascriptreact",
+          "source.js.embedded.ripple": "javascript",
+          "source.js.embedded.jsx-children.ripple": "javascript",
+          "source.js.embedded.ripple-isolated": "javascript",
+          "source.css": "css"
+        }
+      }
+    ]
+  }
+}

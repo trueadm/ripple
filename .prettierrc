@@ -1,0 +1,21 @@
+{
+	"useTabs": true,
+	"singleQuote": true,
+	"trailingComma": "none",
+	"printWidth": 100,
+	"overrides": [
+		{
+			"files": ["*.ripple"],
+			"options": {
+				"bracketSameLine": false
+			}
+		},
+		{
+			"files": ["README.md", "packages/*/README.md", "**/package.json"],
+			"options": {
+				"useTabs": false,
+				"tabWidth": 2
+			}
+		}
+	]
+}

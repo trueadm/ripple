@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link href="/demo.css" rel="stylesheet" />
+		<link href="https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap" rel="stylesheet">
+	</head>
+	<body>
+		<noscript>You need to enable JavaScript to run this app.</noscript>
+		<div id="root"></div>
+
+		<script type="module">
+			import { mount } from 'ripple';
+			import { App } from '/src/App.ripple';
+
+			mount(App, {
+                props: {
+                    title: 'Hello world!'
+                },
+                target: document.getElementById('root')
+            });
+		</script>
+	</body>
+</html>

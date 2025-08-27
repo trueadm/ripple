@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "ripple",
+    "baseUrl": ".",
+    "paths": {
+      "ripple/*": ["../packages/ripple/src/*"],
+      "ripple": ["../packages/ripple/src/index"],
+      "ripple/jsx-runtime": ["../packages/ripple/src/jsx-runtime"]
+    },
+    "typeRoots": ["../packages/ripple/types", "./node_modules/@types"]
+  },
+  "include": [
+    "src/**/*",
+    "debug/**/*",
+    "../packages/ripple/types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
