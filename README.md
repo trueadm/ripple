@@ -35,6 +35,30 @@ Right now, there will be plenty of bugs, things just won't work either and you'l
 pnpm i --save ripple
 ```
 
+You'll also need Vite and Ripple's Vite plugin to compile Ripple:
+
+```bash
+pnpm i --save-dev vite-plugin-ripple
+```
+
+### Mounting your app
+
+You can use the `mount` API from the `ripple` package to render your Ripple component, using the `target`
+option to specify what DOM element you want to render the component.
+
+```ts
+// index.ts
+import { mount } from 'ripple';
+import { App } from '/App.ripple';
+
+mount(App, {
+  props: {
+    title: 'Hello world!'
+  },
+  target: document.getElementById('root')
+});
+```
+
 ## Key Concepts
 
 ### Components
