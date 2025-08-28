@@ -41,6 +41,8 @@ You'll also need Vite and Ripple's Vite plugin to compile Ripple:
 pnpm i --save-dev vite-plugin-ripple
 ```
 
+You can see a working example in the [playground demo app](https://github.com/trueadm/ripple/tree/main/playground).
+
 ### Mounting your app
 
 You can use the `mount` API from the `ripple` package to render your Ripple component, using the `target`
