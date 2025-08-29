@@ -36,19 +36,14 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 
 ## Quick Start
 
-### Installation
+### Try Ripple
 
 ```bash
-pnpm i --save ripple
+npx degit trueadm/ripple/templates/basic my-app
+cd my-app
+npm i # or yarn or pnpm
+npm run dev # or yarn or pnpm
 ```
-
-You'll also need Vite and Ripple's Vite plugin to compile Ripple:
-
-```bash
-pnpm i --save-dev vite-plugin-ripple
-```
-
-You can see a working example in the [playground demo app](https://github.com/trueadm/ripple/tree/main/playground).
 
 ### Mounting your app
 
