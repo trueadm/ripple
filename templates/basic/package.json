@@ -1,0 +1,21 @@
+{
+  "name": "vite-template-ripple",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0",
+    "vite-plugin-ripple": "^0.2.3"
+  },
+  "dependencies": {
+    "ripple": "^0.2.3"
+  }
+}

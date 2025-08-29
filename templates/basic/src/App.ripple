@@ -1,0 +1,56 @@
+
+export component App() {
+  <div class="container">
+    <h1>{"Welcome to Ripple!"}</h1>
+
+    <div class="counter">
+      let $count = 0;
+
+      <button onClick={() => $count--}>{"-"}</button>
+      <span class="count">{$count}</span>
+      <button onClick={() => $count++}>{"+"}</button>
+    </div>
+
+    <div>
+      <p>{"This is a basic Ripple application template."}</p>
+      <p>{"Edit "}<code>{"src/App.ripple"}</code>{" to get started."}</p>
+    </div>
+  </div>
+
+  <style>
+    .container {
+      text-align: center;
+      font-family: "Arial", sans-serif;
+    }
+
+    p {
+      margin: 12px 0;
+      font-family: "Arial", sans-serif;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "Courier New", monospace;
+    }
+
+    button {
+      font-size: 1.5em;
+      padding: 6px 12px;
+      margin: 0 6px;
+      cursor: pointer;
+      border: none;
+      font-family: "Courier New", monospace;
+    }
+
+    button:hover {
+      background-color: #e0e0e0;
+    }
+
+    .count {
+      margin: 0 12px;
+      font-size: 1.5em;
+    }
+  </style>
+}

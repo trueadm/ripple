@@ -15,21 +15,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "ripple",
-    "baseUrl": ".",
-    "paths": {
-      "ripple/*": ["../packages/ripple/src/*"],
-      "ripple": ["../packages/ripple/src/index"],
-      "ripple/jsx-runtime": ["../packages/ripple/src/jsx-runtime"]
-    },
-    "typeRoots": ["../packages/ripple/types", "./node_modules/@types"]
+    "jsx": "preserve",
+    "jsxImportSource": "ripple"
   },
-  "include": [
-    "src/**/*",
-    "debug/**/*",
-    "../packages/ripple/types/**/*.d.ts"
-  ],
   "exclude": [
     "node_modules",
     "dist"
