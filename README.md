@@ -19,6 +19,8 @@ TypeScript and JSX, but with a few interesting touches. In my experience, this h
 
 Right now, there will be plenty of bugs, things just won't work either and you'll find TODOs everywhere. At this stage, Ripple is more of an early alpha version of something that _might_ be, rather than something you should try and adopt. If anything, maybe some of the ideas can be shared and incubated back into other frameworks. There's also a lot of similarities with Svelte 5, and that's not by accident, that's because of my recent time working on Svelte 5.
 
+If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySrh2W).
+
 ## Features
 
 - **Reactive State Management**: Built-in reactivity with `$` prefixed variables
