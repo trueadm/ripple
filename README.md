@@ -196,7 +196,7 @@ component Truthy({ x }) {
       </span>
     } else {
       <span>
-        {"x is truthy"}
+        {"x is falsy"}
       </span>
     }
   </div>
