@@ -345,11 +345,9 @@ const visitors = {
 			);
 
 			if (is_spreading) {
-				if (spread_attributes.length === 0) {
-					state.template.push(attr_value);
-				} else {
-					spread_attributes.push(b.prop('init', b.literal(name), attr_value));
-				}
+				spread_attributes.push(b.prop('init', b.literal(name), attr_value));
+			} else {
+				state.template.push(attr_value);
 			}
 		};
 
