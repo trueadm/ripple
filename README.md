@@ -82,8 +82,27 @@ component Button(props: { text: string, onClick: () => void }) {
 }
 
 // Usage
-<Button text="Click me" onClick={() => console.log("Clicked!")} />
+component App() {
+  <Button text="Click me" onClick={() => console.log("Clicked!")} />
+}
 ```
+
+![iamge for the sourcecode above](assets/readme-1.png)
+
+Ripple's templating language also supports shorthands and object spreads too:
+
+```ripple
+// you can do a normal prop
+<div onClick={onClick}>{text}</div>
+
+// or using the shorthand prop
+<div {onClick}>{text}</div>
+
+// and you can spread props
+<div {...properties}>{text}</div>
+```
+
+![iamge for the sourcecode above](assets/readme-2.png)
 
 ### Reactive Variables
 
