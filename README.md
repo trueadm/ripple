@@ -220,6 +220,8 @@ component Truthy({ x }) {
 }
 ```
 
+![iamge for the sourcecode above](assets/readme-2.png)
+
 ### For statements
 
 You can render collections using a `for...of` block, and you don't need to specify a `key` prop like
