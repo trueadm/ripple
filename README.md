@@ -194,6 +194,8 @@ can only occur _inside_ a `component` body – you can't create JSX inside funct
 </div>
 ```
 
+![iamge for the sourcecode above](assets/readme-5.png)
+
 Note that strings inside the template need to be inside `{"string"}`, you can't do `<div>hello</div>` as Ripple
 has no idea if `hello` is a string or maybe some JavaScript code that needs evaluating, so just ensure you wrap them
 in curly braces. This shouldn't be an issue in the real-world anyway, as you'll likely use an i18n library that means
