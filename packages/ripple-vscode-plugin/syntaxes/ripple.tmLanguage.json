@@ -6349,7 +6349,12 @@
 				"0": {
 					"name": "punctuation.section.embedded.end.js"
 				}
-			}
+			},
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
 		},
 		"jsx-entities": {
 			"patterns": [

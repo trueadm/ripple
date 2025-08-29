@@ -1,4 +1,4 @@
-export type Component<T> = (props: T) => void;
+export type Component<T = Record<string, any>> = (props: T) => void;
 
 export declare function mount(
 	component: () => void,
