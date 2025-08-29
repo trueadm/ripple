@@ -91,7 +91,7 @@ component App() {
 
 Ripple's templating language also supports shorthands and object spreads too:
 
-```ripple
+```tsx
 // you can do a normal prop
 <div onClick={onClick}>{text}</div>
 
@@ -101,8 +101,6 @@ Ripple's templating language also supports shorthands and object spreads too:
 // and you can spread props
 <div {...properties}>{text}</div>
 ```
-
-![iamge for the sourcecode above](assets/readme-2.png)
 
 ### Reactive Variables
 
@@ -215,7 +213,7 @@ component Truthy({ x }) {
       </span>
     } else {
       <span>
-        {"x is truthy"}
+        {"x is falsy"}
       </span>
     }
   </div>
