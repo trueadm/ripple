@@ -4,6 +4,17 @@ import { parse_style } from './style.js';
 
 const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
 
+function convert_from_jsx(node) {
+	if (node.type === 'JSXIdentifier') {
+		node.type = 'Identifier';
+	} else if (node.type === 'JSXMemberExpression') {
+		node.type = 'MemberExpression';
+		node.object = convert_from_jsx(node.object)
+		node.property = convert_from_jsx(node.property)
+	}
+	return node;
+}
+
 function RipplePlugin(config) {
 	return (Parser) => {
 		const original = acorn.Parser.prototype;
@@ -17,7 +28,7 @@ function RipplePlugin(config) {
 				if (super.shouldParseExportStatement()) {
 					return true;
 				}
-				if (this.value === 'component' || this.value === 'fragment') {
+				if (this.value === 'component') {
 					return true;
 				}
 				return this.type.keyword === 'var';
@@ -27,17 +38,6 @@ function RipplePlugin(config) {
 				const tok = this.acornTypeScript.tokTypes;
 				let node = this.startNode();
 				this.next();
-
-				if (this.type === tok.at) {
-					this.next();
-
-					if (this.value === 'fragment') {
-						node.decorator = 'fragment';
-						this.next();
-					} else {
-						throw new Error(`Invalid syntax @` + this.value);
-					}
-				}
 
 				node.expression =
 					this.type === tt.braceR ? this.jsx_parseEmptyExpression() : this.parseExpression();
@@ -59,7 +59,12 @@ function RipplePlugin(config) {
 			jsx_parseAttribute() {
 				let node = this.startNode();
 				if (this.eat(tt.braceL)) {
-					if (this.lookahead().type === tt.ellipsis) {
+					if (this.type === tt.ellipsis) {
+						this.expect(tt.ellipsis);
+						node.argument = this.parseMaybeAssign();
+						this.expect(tt.braceR);
+						return this.finishNode(node, 'SpreadAttribute');
+					} else if (this.lookahead().type === tt.ellipsis) {
 						this.expect(tt.ellipsis);
 						node.argument = this.parseMaybeAssign();
 						this.expect(tt.braceR);
@@ -250,7 +255,7 @@ function RipplePlugin(config) {
 							// '}'
 							if (
 								ch === 125 &&
-								(this.#path.at(-1).type === 'Component' || this.#path.at(-1).type === 'Fragment')
+								(this.#path.at(-1).type === 'Component')
 							) {
 								return original.readToken.call(this, ch);
 							}
@@ -313,8 +318,8 @@ function RipplePlugin(config) {
 				if (open.name.type === 'JSXIdentifier') {
 					open.name.type = 'Identifier';
 				}
-				element.id = open.name;
-				element.id.type = 'Identifier';
+				
+				element.id = convert_from_jsx(open.name);
 				element.attributes = open.attributes;
 				element.selfClosing = open.selfClosing;
 				element.metadata = {};
@@ -377,10 +382,7 @@ function RipplePlugin(config) {
 
 				if (this.type.label === '{') {
 					const node = this.jsx_parseExpressionContainer();
-					node.type = node.decorator === 'fragment' ? 'RenderFragment' : 'Text';
-					if (node.decorator === 'fragment' && node.expression.type !== 'CallExpression') {
-						throw new Error('{@fragment} must be a function call');
-					}
+					node.type = 'Text';
 					body.push(node);
 				} else if (this.type.label === '}') {
 					return;
@@ -448,29 +450,6 @@ function RipplePlugin(config) {
 					return node;
 				}
 
-				if (this.value === 'fragment') {
-					const node = this.startNode();
-					node.type = 'Fragment';
-					this.next();
-					this.enterScope(0);
-					node.id = this.parseIdent();
-					this.parseFunctionParams(node);
-					this.eat(tt.braceL);
-					node.body = [];
-					this.#path.push(node);
-
-					this.parseTemplateBody(node.body);
-
-					this.#path.pop();
-					this.exitScope();
-
-					this.finishNode(node, 'Fragment');
-					this.next();
-					this.awaitPos = 0;
-
-					return node;
-				}
-
 				return super.parseStatement(context, topLevel, exports);
 			}
 
@@ -479,7 +458,6 @@ function RipplePlugin(config) {
 
 				if (
 					parent?.type === 'Component' ||
-					parent?.type === 'Fragment' ||
 					parent?.type === 'Element'
 				) {
 					if (createNewLexicalScope === void 0) createNewLexicalScope = true;

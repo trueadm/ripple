@@ -348,8 +348,10 @@ const visitors = {
 	},
 
 	Element(node, { state, visit }) {
-		const type = node.id.name;
-		const is_dom_element = type[0].toLowerCase() === type[0];
+		const is_dom_element =
+			node.id.type === 'Identifier' &&
+			node.id.name[0].toLowerCase() === node.id.name[0] &&
+			node.id.name[0] !== '$';
 		const attribute_names = new Set();
 
 		if (is_dom_element) {
@@ -396,7 +398,7 @@ const visitors = {
 			let explicit_children = false;
 
 			for (const child of node.children) {
-				if (child.type === 'Fragment') {
+				if (child.type === 'Component') {
 					if (child.id.name === '$children') {
 						explicit_children = true;
 						if (implicit_children) {

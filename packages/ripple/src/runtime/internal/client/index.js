@@ -10,7 +10,7 @@ export {
 	set_ref
 } from './render.js';
 
-export { render, async } from './blocks.js';
+export { render, render_spread, async } from './blocks.js';
 
 export { event, delegate } from './events.js';
 

@@ -60,6 +60,18 @@ export function set_attribute(element, attribute, value) {
 	}
 }
 
+export function set_attributes(element, attributes) {
+	for (const key in attributes) {
+		let value = attributes[key];
+
+		if (key === 'class') {
+			set_class(element, value);
+		} else {
+			set_attribute(element, key, value);
+		}
+	}
+}
+
 /**
  * @template V
  * @param {V} value
@@ -153,4 +165,10 @@ export function set_ref(dom, fn) {
 			fn(null);
 		};
 	});
+}
+
+export function apply_element_spread(element, fn) {
+	return () => {
+		set_attributes(element, fn());
+	};
 }

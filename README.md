@@ -70,7 +70,7 @@ they allow for a JSX-like syntax to be defined alongside standard TypeScript. Th
 but you instead use it like a JavaScript statement, as shown:
 
 ```ripple
-component Button(props: {text: string, onClick: () => void}) {
+component Button(props: { text: string, onClick: () => void }) {
   <button onClick={props.onClick}>
     {props.text}
   </button>
@@ -157,7 +157,7 @@ component App() {
 ### Template
 
 The JSX-like syntax might take some time to get used to if you're coming from another framework. For one, templating in Ripple
-can only occur _inside_ a `component` or `fragment` body – you can't create JSX inside functions, or assign it to variables as an expression.
+can only occur _inside_ a `component` body – you can't create JSX inside functions, or assign it to variables as an expression.
 
 Furthermore, Ripple's templating language allows for native JS control flow:
 
@@ -194,7 +194,7 @@ using JavaScript expressions regardless.
 If you want a prop to be reactive, you should also give it a `$` prefix.
 
 ```ripple
-component Button(props: {$text: string, onClick: () => void}) {
+component Button(props: { $text: string, onClick: () => void }) {
   <button onClick={props.onClick}>
     {props.$text}
   </button>
@@ -204,38 +204,18 @@ component Button(props: {$text: string, onClick: () => void}) {
 <Button $text={some_text} onClick={() => console.log("Clicked!")} />
 ```
 
-### Fragments
-
-As mentioned before, you can only create Ripple JSX-like templating in two places – `component` or `fragment`. You can think
-of a `fragment` as a JavaScript function that has arguments and generates output, it does not return anything! They can be used 
-with the `fragment` keyword:
-
-```ripple
-fragment Logo() {
-  <svg>{...}</svg>
-}
-```
-
-You can render the `Logo` fragment using the `{@fragment ...}` directive:
-
-```ripple
-component SomeComponent() {
-  <div>{@fragment Logo()}</div>
-}
-```
-
 ### Children
 
-Use `$children` prop and the `{@fragment ...}` directive for component composition.
+Use `$children` prop and the `<$component />` directive for component composition.
 
-When you pass in children to a component, it gets implicitly passed as the `$children` prop, in the form of a fragment.
+When you pass in children to a component, it gets implicitly passed as the `$children` prop, in the form of a component.
 
 ```ripple
-import type {Fragment} from 'ripple';
+import type { Component } from 'ripple';
 
-component Card(props: {$children: Fragment}) {
+component Card(props: { $children: Component }) {
   <div class="card">
-    {@fragment props.$children()}
+    <$component />
   </div>
 }
 
@@ -248,17 +228,17 @@ component Card(props: {$children: Fragment}) {
 You could also explicitly write the same code as shown:
 
 ```ripple
-import type {Fragment} from 'ripple';
+import type { Component } from 'ripple';
 
-component Card(props: {$children: Fragment}) {
+component Card(props: { $children: Component }) {
   <div class="card">
-    {@fragment props.$children()}
+    <$component />
   </div>
 }
 
-// Usage with explicit fragment
+// Usage with explicit component
 <Card>
-  fragment $children() {
+  component $children() {
     <p>{"Card content here"}</p>
   }
 </Card>
@@ -288,7 +268,7 @@ component MyComponent() {
 }
 ```
 
-> Note: the `<style>` element must be top-level within a `component` and cannot be used inside a `fragment`.
+> Note: the `<style>` element must be top-level within a `component`.
 
 ## VSCode Extension
 

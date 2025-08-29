@@ -328,25 +328,35 @@ const visitors = {
 	Element(node, context) {
 		const { state, visit } = context;
 
-		const type = node.id.name;
-		const is_dom_element = type[0].toLowerCase() === type[0];
+		const is_dom_element =
+			node.id.type === 'Identifier' &&
+			node.id.name[0].toLowerCase() === node.id.name[0] &&
+			node.id.name[0] !== '$';
+		const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
+		const spread_attributes = is_spreading ? [] : null;
 
 		const handle_static_attr = (name, value) => {
-			state.template.push(
-				b.literal(
-					` ${name}${
-						is_boolean_attribute(name) && value === true
-							? ''
-							: `="${value === true ? '' : escape_html(value, true)}"`
-					}`
-				)
+			const attr_value = b.literal(
+				` ${name}${
+					is_boolean_attribute(name) && value === true
+						? ''
+						: `="${value === true ? '' : escape_html(value, true)}"`
+				}`
 			);
+
+			if (is_spreading) {
+				if (spread_attributes.length === 0) {
+					state.template.push(attr_value);
+				} else {
+					spread_attributes.push(b.prop('init', b.literal(name), attr_value));
+				}
+			}
 		};
 
 		if (is_dom_element) {
 			let class_attribute = null;
 
-			state.template.push(`<${type}`);
+			state.template.push(`<${node.id.name}`);
 
 			for (const attr of node.attributes) {
 				if (attr.type === 'Attribute') {
@@ -493,6 +503,8 @@ const visitors = {
 							}
 						}
 					}
+				} else if (attr.type === 'SpreadAttribute') {
+					spread_attributes.push(b.spread(b.call('$.spread_object', visit(attr.argument, state))));
 				}
 			}
 
@@ -527,13 +539,17 @@ const visitors = {
 
 			state.template.push('>');
 
+			if (spread_attributes !== null && spread_attributes.length > 0) {
+				const id = state.flush_node();
+				state.init.push(
+					b.stmt(b.call('$.render_spread', id, b.thunk(b.object(spread_attributes))))
+				);
+			}
+
 			transform_children(node.children, { visit, state, root: false });
 
-			state.template.push(`</${type}>`);
+			state.template.push(`</${node.id.name}>`);
 		} else {
-			if (node.id.type !== 'Identifier') {
-				throw new Error('TODO');
-			}
 			const id = state.flush_node();
 
 			state.template.push('<!>');
@@ -571,7 +587,7 @@ const visitors = {
 			if (node.children.length > 0) {
 				const component_scope = context.state.scopes.get(node);
 				const children = b.arrow(
-					[b.id('__anchor')],
+					[b.id('__anchor'), b.id('__props'), b.id('__block')],
 					b.block(
 						transform_body(node.children, {
 							...context,
@@ -598,7 +614,9 @@ const visitors = {
 					)
 				);
 			} else {
-				state.init.push(b.stmt(b.call(node.id, id, b.object(props), b.id('$.active_block'))));
+				state.init.push(
+					b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('$.active_block')))
+				);
 			}
 		}
 	},
@@ -1007,67 +1025,8 @@ const visitors = {
 		return b.call(b.await(b.call('$.resume_context', context.visit(node.argument))));
 	},
 
-	JSXText(node) {
-		const text = node.value;
-		if (text.trim() === '') {
-			return b.empty;
-		}
-		return b.literal(text);
-	},
-
-	JSXExpressionContainer(node, context) {
-		const expression = context.visit(node.expression);
-		if (expression.type === b.empty) {
-			return b.empty;
-		}
-		return expression;
-	},
-
-	JSXIdentifier(node, context) {
-		return context.visit(b.id(node.name));
-	},
-
-	JSXMemberExpression(node, context) {
-		return b.member(context.visit(node.object), context.visit(node.property));
-	},
-
 	BinaryExpression(node, context) {
 		return b.binary(node.operator, context.visit(node.left), context.visit(node.right));
-	},
-
-	JSXElement(node, context) {
-		if (
-			!context.state.imports.has(`import { jsx as _jsx, jsxs as _jsxs } from 'react/jsx-runtime'`)
-		) {
-			context.state.imports.add(`import { jsx as _jsx, jsxs as _jsxs } from 'react/jsx-runtime'`);
-		}
-
-		const openingElement = node.openingElement;
-		const name = openingElement.name;
-		const props = b.object([]);
-		const children = node.children
-			.map((child) => context.visit(child, context.state))
-			.filter((child) => child !== b.empty);
-
-		if (children.length > 0) {
-			props.properties.push(b.prop('init', b.id('children'), b.array(children)));
-		}
-
-		for (const attr of openingElement.attributes) {
-			if (attr.type === 'JSXAttribute') {
-				props.properties.push(
-					b.prop('init', b.id(attr.name.name), context.visit(attr.value, context.state))
-				);
-			}
-		}
-
-		return b.call(
-			children.length > 0 ? '_jsxs' : '_jsx',
-			name.type === 'JSXIdentifier' && name.name[0] === name.name[0].toLowerCase()
-				? b.literal(name.name)
-				: context.visit(name),
-			props
-		);
 	},
 
 	RenderFragment(node, context) {
@@ -1231,7 +1190,7 @@ function transform_ts_child(node, context) {
 		});
 
 		if (!node.selfClosing && !has_children_props && node.children.length > 0) {
-			const is_dom_element = type[0].toLowerCase() === type[0];
+			const is_dom_element = type[0].toLowerCase() === type[0] && type[0] !== '$';
 
 			const component_scope = context.state.scopes.get(node);
 			const thunk = b.thunk(
@@ -1246,7 +1205,7 @@ function transform_ts_child(node, context) {
 			if (is_dom_element) {
 				children.push(b.jsx_expression_container(b.call(thunk)));
 			} else {
-				const children_name = context.state.scope.generate('fragment');
+				const children_name = context.state.scope.generate('component');
 				const children_id = b.id(children_name);
 				const jsx_id = b.jsx_id('$children');
 				jsx_id.loc = node.id.loc;
@@ -1343,7 +1302,10 @@ function transform_children(children, { visit, state, root }) {
 				node.type === 'TryStatement' ||
 				node.type === 'ForOfStatement' ||
 				node.type === 'RenderFragment' ||
-				(node.type === 'Element' && node.id.name[0].toLowerCase() !== node.id.name[0])
+				(node.type === 'Element' &&
+					(node.id.type !== 'Identifier' ||
+						node.id.name[0].toLowerCase() !== node.id.name[0] ||
+						node.id.name[0] === '$'))
 		) ||
 		normalized.filter(
 			(node) => node.type !== 'VariableDeclaration' && node.type !== 'EmptyStatement'
@@ -1354,7 +1316,10 @@ function transform_children(children, { visit, state, root }) {
 
 	const get_id = (node) => {
 		return b.id(
-			node.type == 'Element' && node.id.name[0].toLowerCase() === node.id.name[0]
+			node.type == 'Element' &&
+				node.id.type === 'Identifier' &&
+				node.id.name[0].toLowerCase() === node.id.name[0] &&
+				node.id.name[0] !== '$'
 				? state.scope.generate(node.id.name)
 				: node.type == 'Text'
 				? state.scope.generate('text')

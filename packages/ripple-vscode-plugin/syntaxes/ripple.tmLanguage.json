@@ -6349,20 +6349,7 @@
 				"0": {
 					"name": "punctuation.section.embedded.end.js"
 				}
-			},
-			"patterns": [
-				{
-					"match": "(\\@fragment)\\b\\s*",
-					"captures": {
-					  "1": {
-						"name": "storage.modifier.js"
-					  }
-					}
-				},
-				{
-					"include": "#expression"
-				}
-			]
+			}
 		},
 		"jsx-entities": {
 			"patterns": [

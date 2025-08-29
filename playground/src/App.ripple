@@ -1,8 +1,8 @@
-import type { Fragment } from "ripple"
+import type { Component } from "ripple"
 
-component Child(props: { $children: Fragment }) {
+component Child({ $children }: { $children: Component }) {
   <div>
-    {@fragment props.$children()}
+    <$children />
   </div>
 }
 

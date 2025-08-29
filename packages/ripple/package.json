@@ -48,7 +48,6 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.5",
     "@jridgewell/sourcemap-codec": "^1.5.5",
     "@types/estree": "^1.0.8",
     "acorn": "^8.15.0",

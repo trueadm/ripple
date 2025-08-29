@@ -11,6 +11,7 @@ import {
 	TRY_BLOCK
 } from './constants';
 import { next_sibling } from './operations';
+import { apply_element_spread } from './render';
 import {
 	active_block,
 	active_component,
@@ -47,6 +48,10 @@ export function effect(fn) {
 
 export function render(fn, flags = 0) {
 	return block(RENDER_BLOCK | flags, fn);
+}
+
+export function render_spread(element, fn, flags = 0) {
+	return block(RENDER_BLOCK | flags, apply_element_spread(element, fn));
 }
 
 export function branch(fn, flags = 0) {

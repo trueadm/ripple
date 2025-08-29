@@ -1,4 +1,4 @@
-export type Fragment<T extends any[] = []> = (...args: T) => void;
+export type Component<T> = (props: T) => void;
 
 export declare function mount(
 	component: () => void,
@@ -6,3 +6,7 @@ export declare function mount(
 ): () => void;
 
 export declare function untrack<T>(fn: () => T): T;
+
+export declare function flushSync<T>(fn: () => T): T;
+
+export declare function effect(fn: (() => void) | (() => () => void)): void;

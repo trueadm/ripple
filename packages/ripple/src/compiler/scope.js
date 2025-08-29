@@ -70,21 +70,9 @@ export function create_scopes(ast, root, parent) {
 			next({ scope });
 		},
 
-		Fragment(node, { state, next }) {
-			const scope = state.scope.child();
-			scopes.set(node, scope);
-
-			if (node.id) scope.declare(node.id, 'normal', 'fragment');
-
-			add_params(scope, node.params);
-			next({ scope });
-		},
-
 		Element(node, { state, next }) {
 			const scope = state.scope.child();
 			scopes.set(node, scope);
-
-			scope.declare(node, 'normal', 'element');
 
 			next({ scope });
 		},
@@ -305,7 +293,6 @@ export class Scope {
 			kind,
 			declaration_kind,
 			is_called: false,
-			prop_alias: null,
 			metadata: null
 		};
 
