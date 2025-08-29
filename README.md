@@ -367,14 +367,14 @@ component MyComponent() {
 
 ## VSCode Extension
 
-The Ripple VSCode extension provides:
+The [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin) provides:
 
 - **Syntax Highlighting** for `.ripple` files
 - **Real-time Diagnostics** for compilation errors
 - **TypeScript Integration** for type checking
 - **IntelliSense** for autocompletion
 
-You can find the extension on the VS Code Marketplace as `Ripple for VS Code`.
+You can find the extension on the VS Code Marketplace as [`Ripple for VS Code`](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin).
 
 ## Playground
 
