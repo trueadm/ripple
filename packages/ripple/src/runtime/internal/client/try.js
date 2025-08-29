@@ -109,13 +109,13 @@ export function capture() {
 	var previous_tracking = tracking;
 	var previous_block = active_block;
 	var previous_reaction = active_reaction;
-    var previous_component = active_component;
+	var previous_component = active_component;
 
 	return () => {
 		set_tracking(previous_tracking);
 		set_active_block(previous_block);
 		set_active_reaction(previous_reaction);
-        set_active_component(previous_component);
+		set_active_component(previous_component);
 
 		queue_microtask(exit);
 	};

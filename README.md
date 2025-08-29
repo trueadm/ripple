@@ -1,4 +1,9 @@
-# Ripple
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-dark.png">
+  <img src="assets/ripple-light.png" alt="Ripple - the elegant UI framework for the web" />
+</picture>
+
+# What is Ripple?
 
 > Currently, this project is still in early development, and should not be used in production.
 
