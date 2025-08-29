@@ -38,6 +38,10 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 
 ### Try Ripple
 
+> We're working hard on getting an online playgroud available. Watch this space!
+
+You can try Ripple now by using our basic Vite template by running these commands in your terminal:
+
 ```bash
 npx degit trueadm/ripple/templates/basic my-app
 cd my-app
