@@ -284,7 +284,7 @@ component Button(props: { $text: string, onClick: () => void }) {
 
 ### Children
 
-Use `$children` prop and the `<$component />` directive for component composition.
+Use `$children` prop and then use it in the form of `<$children />` for component composition.
 
 When you pass in children to a component, it gets implicitly passed as the `$children` prop, in the form of a component.
 
@@ -293,7 +293,7 @@ import type { Component } from 'ripple';
 
 component Card(props: { $children: Component }) {
   <div class="card">
-    <$component />
+    <$children />
   </div>
 }
 
