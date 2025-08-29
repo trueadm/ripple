@@ -89,7 +89,7 @@ component Button(props: { text: string, onClick: () => void }) {
 
 Variables prefixed with `$` are automatically reactive:
 
-```ripple
+```ts
 let $name = "World";
 let $count = 0;
 
@@ -99,7 +99,7 @@ $count++;
 
 Object properties prefixed with `$` are also automatically reactive:
 
-```ripple
+```ts
 let counter = { $current: 0 };
 
 // Updates automatically trigger re-renders
@@ -108,7 +108,7 @@ counter.$current++;
 
 Derived values are simply `$` variables that combined different parts of state:
 
-```ripple
+```ts
 let $count = 0;
 let $double = $count * 2;
 let $quadruple = $double * 2;
