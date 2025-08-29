@@ -91,7 +91,7 @@ component App() {
 
 Ripple's templating language also supports shorthands and object spreads too:
 
-```tsx
+```svelte
 // you can do a normal prop
 <div onClick={onClick}>{text}</div>
 
