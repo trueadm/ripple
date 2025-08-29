@@ -1,9 +1,11 @@
 {
   "name": "ripple-vscode-plugin",
   "displayName": "Ripple for VS Code",
+  "publisher": "ripplejs",
   "description": "Ripple JavaScript/TypeScript language support",
   "version": "0.0.1",
   "author": "Dominic Gannaway",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.97.0"
   },
@@ -11,6 +13,12 @@
     "Programming Languages"
   ],
   "main": "src/extension.js",
+  "icon": "icons/logo.png",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "ripple-vscode-plugin"
+  },
   "dependencies": {
     "@jridgewell/sourcemap-codec": "^1.5.5",
     "@volar/language-core": "~2.4.23",

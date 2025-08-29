@@ -1,9 +1,3 @@
-# Change Log
+# Changelog
 
-All notable changes to the "ripple" extension will be documented in this file.
-
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-
-## [Unreleased]
-
-- Initial release
+See https://github.com/trueadm/ripple/releases

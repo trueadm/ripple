@@ -1,3 +1,3 @@
-# Ripple Language Tools
+# Ripple for VS Code
 
-TODO
+Provides syntax highlighting and rich intellisense for Ripple components in VS Code, using the Ripple language server.
