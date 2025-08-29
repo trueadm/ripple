@@ -157,16 +157,6 @@ export function set_selected(element, selected) {
 	}
 }
 
-export function set_ref(dom, fn) {
-	effect(() => {
-		fn(dom);
-
-		return () => {
-			fn(null);
-		};
-	});
-}
-
 export function apply_element_spread(element, fn) {
 	return () => {
 		set_attributes(element, fn());

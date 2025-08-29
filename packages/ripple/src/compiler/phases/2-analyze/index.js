@@ -439,20 +439,6 @@ const visitors = {
 						attribute
 					);
 				}
-			} else if (name === 'ref') {
-				if (is_dom_element) {
-					error(
-						'Cannot have a `ref` prop on an element, did you mean `$ref`?',
-						state.analysis.module.filename,
-						attribute
-					);
-				} else {
-					error(
-						'Cannot have a `ref` prop on a component, did you mean `$ref`?',
-						state.analysis.module.filename,
-						attribute
-					);
-				}
 			}
 
 			if (is_tracked_name(name)) {

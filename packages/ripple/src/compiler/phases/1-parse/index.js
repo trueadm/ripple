@@ -9,8 +9,8 @@ function convert_from_jsx(node) {
 		node.type = 'Identifier';
 	} else if (node.type === 'JSXMemberExpression') {
 		node.type = 'MemberExpression';
-		node.object = convert_from_jsx(node.object)
-		node.property = convert_from_jsx(node.property)
+		node.object = convert_from_jsx(node.object);
+		node.property = convert_from_jsx(node.property);
 	}
 	return node;
 }
@@ -253,10 +253,7 @@ function RipplePlugin(config) {
 						case 62: // '>'
 						case 125: {
 							// '}'
-							if (
-								ch === 125 &&
-								(this.#path.at(-1).type === 'Component')
-							) {
+							if (ch === 125 && this.#path.at(-1).type === 'Component') {
 								return original.readToken.call(this, ch);
 							}
 							this.raise(
@@ -318,7 +315,7 @@ function RipplePlugin(config) {
 				if (open.name.type === 'JSXIdentifier') {
 					open.name.type = 'Identifier';
 				}
-				
+
 				element.id = convert_from_jsx(open.name);
 				element.attributes = open.attributes;
 				element.selfClosing = open.selfClosing;
@@ -362,6 +359,37 @@ function RipplePlugin(config) {
 
 				this.finishNode(element, 'Element');
 				return element;
+			}
+
+			parseSubscript(base, startPos, startLoc, noCalls, maybeAsyncArrow, optionalChained, forInit) {
+				if (this.value === '<' && this.#path.findLast((n) => n.type === 'Component')) {
+					// Check if this looks like JSX by looking ahead
+					const ahead = this.lookahead();
+					if (ahead.type.label === 'name' || ahead.value === '/' || ahead.value === '>') {
+						// This is JSX, rewind to the end of the object expression
+						// and let ASI handle the semicolon insertion naturally
+						this.pos = base.end;
+						this.type = tt.braceR;
+						this.value = '}';
+						this.start = base.end - 1;
+						this.end = base.end;
+						const position = this.curPosition();
+						this.startLoc = position;
+						this.endLoc = position;
+						this.next();
+
+						return base;
+					}
+				}
+				return super.parseSubscript(
+					base,
+					startPos,
+					startLoc,
+					noCalls,
+					maybeAsyncArrow,
+					optionalChained,
+					forInit
+				);
 			}
 
 			parseTemplateBody(body) {
@@ -456,10 +484,7 @@ function RipplePlugin(config) {
 			parseBlock(createNewLexicalScope, node, exitStrict) {
 				const parent = this.#path.at(-1);
 
-				if (
-					parent?.type === 'Component' ||
-					parent?.type === 'Element'
-				) {
+				if (parent?.type === 'Component' || parent?.type === 'Element') {
 					if (createNewLexicalScope === void 0) createNewLexicalScope = true;
 					if (node === void 0) node = this.startNode();
 

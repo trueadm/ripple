@@ -409,18 +409,10 @@ const visitors = {
 							continue;
 						}
 
-						if (name === '$ref') {
-							const id = state.flush_node();
-							const value = attr.value;
-
-							state.init.push(b.stmt(b.call('$.set_ref', id, visit(value, state))));
-							continue;
-						}
-
 						if (is_event_attribute(name)) {
-							const event_name = name.slice(2).toLowerCase();
+							let capture = name.endsWith('Capture');
+							let event_name = capture ? name.slice(2, -7).toLowerCase() : name.slice(2).toLowerCase();
 							let handler = visit(attr.value, state);
-							let capture = false; // TODO
 
 							if (attr.metadata?.delegated) {
 								let delegated_assignment;
@@ -577,6 +569,8 @@ const visitors = {
 					} else {
 						props.push(b.prop('init', attr.name, visit(attr.value, state)));
 					}
+				} else if (attr.type === 'SpreadAttribute') {
+					props.push(b.spread(visit(attr.argument, state)));
 				} else {
 					throw new Error('TODO');
 				}

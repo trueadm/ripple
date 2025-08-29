@@ -7,7 +7,6 @@ export {
 	set_value,
 	set_checked,
 	set_selected,
-	set_ref
 } from './render.js';
 
 export { render, render_spread, async } from './blocks.js';
