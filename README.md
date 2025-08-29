@@ -238,6 +238,8 @@ component ListView({ title, items }) {
 }
 ```
 
+![iamge for the sourcecode above](assets/readme-3.png)
+
 ### Try statements
 
 Try blocks work to building the foundation for **error boundaries**, when the runtime encounters
@@ -258,6 +260,8 @@ component ErrorBoundary() {
   </div>
 }
 ```
+
+![iamge for the sourcecode above](assets/readme-4.png)
 
 ### Props
 
