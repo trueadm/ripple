@@ -374,7 +374,7 @@ The Ripple VSCode extension provides:
 - **TypeScript Integration** for type checking
 - **IntelliSense** for autocompletion
 
-Clone the repository, and manually install the extension from the `packages/ripple-vscode-plugin/` directory.
+You can find the extension on the VS Code Marketplace as `Ripple for VS Code`.
 
 ## Playground
 
