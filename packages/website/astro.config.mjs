@@ -20,6 +20,9 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Ripple',
+			expressiveCode: {
+				themes: ['tokyo-night', 'catppuccin-latte']
+			},
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/trueadm/ripple' }],
 			sidebar: [
 				{
@@ -56,7 +59,11 @@ export default defineConfig({
 	],
 	markdown: {
 		shikiConfig: {
-			langs: [{ ...rippleGrammar, name: 'ripple' }]
+			langs: [{ ...rippleGrammar, name: 'ripple' }, 'css', 'javascript', 'typescript'],
+			themes: {
+				light: 'catppuccin-latte',
+				dark: 'tokyo-night'
+			}
 		}
 	}
 });
