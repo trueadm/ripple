@@ -290,6 +290,8 @@ This also applies to DOM elements, if you want an attribute or property to be re
 <div $class={props.$someClass} $id={$someId}>{$someText}</div>
 ```
 
+Otherwise changes to the attribute or property will not be reactively updated.
+
 ### Children
 
 Use `$children` prop and then use it in the form of `<$children />` for component composition.
