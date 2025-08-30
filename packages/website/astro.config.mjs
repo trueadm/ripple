@@ -25,9 +25,16 @@ export default defineConfig({
 				{
 					label: 'Introduction',
 					items: [
-						// Each item here is one entry in the navigation menu.
 						{ label: 'Overview', slug: 'intro/overview' },
 						{ label: 'Getting started', slug: 'intro/getting-started' }
+					]
+				},
+				{
+					label: 'Template syntax',
+					items: [
+						{ label: 'Ripple components', slug: 'template-syntax/ripple-components' },
+						{ label: 'Templating', slug: 'template-syntax' },
+						{ label: 'If block', slug: 'template-syntax/if-block' }
 					]
 				}
 				// {

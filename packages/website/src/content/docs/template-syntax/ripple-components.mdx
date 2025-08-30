@@ -1,0 +1,34 @@
+---
+title: Ripple components
+description: Learn about defining reusable single-file Ripple components
+---
+
+Ripple uses a JSX-like syntax for its templates. This means that if you know React, Preact, or similar libraries, you'll feel right at home.
+
+Define reusable components with the `component` keyword. These are similar to functions in that they have `props`, but crucially, they allow for a JSX-like syntax to be defined alongside standard TypeScript. That means you do not _return JSX_ like in other frameworks, but you instead use it like a JavaScript statement, as shown:
+
+```ripple
+component Button(props: { text: string, onClick: () => void }) {
+  <button onClick={props.onClick}>
+    {props.text}
+  </button>
+}
+
+// Usage
+component App() {
+  <Button text="Click me" onClick={() => console.log("Clicked!")} />
+}
+```
+
+Ripple's templating language also supports shorthands and object spreads too:
+
+```svelte
+// you can do a normal prop
+<div onClick={onClick}>{text}</div>
+
+// or using the shorthand prop
+<div {onClick}>{text}</div>
+
+// and you can spread props
+<div {...properties}>{text}</div>
+```
