@@ -4,6 +4,7 @@
 </picture>
 
 [![CI](https://github.com/trueadm/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/trueadm/ripple/actions/workflows/ci.yml)
+[![Discord](https://img.shields.io/discord/1310624914493100082?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/JBF2ySrh2W)
 
 # What is Ripple?
 
