@@ -30,6 +30,13 @@ export default defineConfig({
 					]
 				},
 				{
+					label: 'Reactivity',
+					items: [
+						{ label: "Ripple's reactivity model", slug: 'reactivity' },
+						{ label: 'Effects', slug: 'reactivity/effects' }
+					]
+				},
+				{
 					label: 'Template syntax',
 					items: [
 						{ label: 'Ripple components', slug: 'template-syntax/ripple-components' },

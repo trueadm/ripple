@@ -1,0 +1,23 @@
+---
+title: Effects
+description: Learn about effects in Ripple
+---
+
+### Effects
+
+When dealing with reactive state, you might want to be able to create side-effects based upon changes that happen upon updates.
+To do this, you can use `effect`:
+
+```ripple
+import { effect } from 'ripple';
+
+component App() {
+  let $count = 0;
+
+  effect(() => {
+    console.log($count);
+  });
+
+  <button onClick={() => $count++}>Increment</button>
+}
+```
