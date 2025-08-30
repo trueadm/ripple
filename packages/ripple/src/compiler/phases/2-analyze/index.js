@@ -71,7 +71,13 @@ function mark_as_tracked(path) {
 }
 
 const visitors = {
-	_(node, { state, next }) {
+	_(node, { state, next, path }) {
+		// Set up metadata.path for each node (needed for CSS pruning)
+		if (!node.metadata) {
+			node.metadata = {};
+		}
+		node.metadata.path = [...path];
+
 		const scope = state.scopes.get(node);
 		next(scope !== undefined && scope !== state.scope ? { ...state, scope } : state);
 	},

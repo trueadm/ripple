@@ -49,5 +49,9 @@ export component App({ name }: { name: string }) {
       padding: 1rem;
       font-size: 1.2rem;
     }
+
+    .container button {
+      display: none;
+    }
   </style>
 }
