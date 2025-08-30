@@ -8,7 +8,7 @@ component Child(props: { $children: Component }) {
   </div>
 }
 
-export default component App({ name }: { name: string }) {
+export component App({ name }: { name: string }) {
   <div class="container">
     let $count = 0;
 

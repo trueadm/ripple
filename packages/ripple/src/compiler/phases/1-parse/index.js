@@ -24,6 +24,38 @@ function RipplePlugin(config) {
 		class RippleParser extends Parser {
 			#path = [];
 
+			parseExportDefaultDeclaration() {
+				// Check if this is "export default component"
+				if (this.value === 'component') {
+					const node = this.startNode();
+					node.type = 'Component';
+					node.css = null;
+					node.default = true;
+					this.next();
+					this.enterScope(0);
+					
+					node.id = this.type.label === 'name' ? this.parseIdent() : null;
+					
+					this.parseFunctionParams(node);
+					this.eat(tt.braceL);
+					node.body = [];
+					this.#path.push(node);
+
+					this.parseTemplateBody(node.body);
+
+					this.#path.pop();
+					this.exitScope();
+
+					this.next();
+					this.finishNode(node, 'Component');
+					this.awaitPos = 0;
+
+					return node;
+				}
+				
+				return super.parseExportDefaultDeclaration();
+			}
+
 			shouldParseExportStatement() {
 				if (super.shouldParseExportStatement()) {
 					return true;
