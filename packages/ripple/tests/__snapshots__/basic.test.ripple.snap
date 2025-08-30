@@ -1,5 +1,61 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`basic > render dynamic text 1`] = `
+<div>
+  <button>
+    Change Text
+  </button>
+  <div>
+    Hello World
+  </div>
+  
+</div>
+`;
+
+exports[`basic > render semi-dynamic text 1`] = `
+<div>
+  <div>
+    Hello World
+  </div>
+  
+</div>
+`;
+
+exports[`basic > render static attributes 1`] = `
+<div>
+  <div
+    class="foo"
+    id="bar"
+    style="color: red;"
+  >
+    Hello World
+  </div>
+  
+</div>
+`;
+
+exports[`basic > render static elements 1`] = `
+<div>
+  <div
+    class="foo"
+    id="bar"
+    style="color: red;"
+  >
+    Hello World
+  </div>
+  
+</div>
+`;
+
+exports[`basic > render static text 1`] = `
+<div>
+  <div>
+    Hello World
+  </div>
+  
+</div>
+`;
+
 exports[`basic > renders correctly 1`] = `
 <div>
   <div>
