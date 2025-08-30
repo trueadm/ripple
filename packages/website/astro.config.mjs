@@ -34,7 +34,9 @@ export default defineConfig({
 					items: [
 						{ label: 'Ripple components', slug: 'template-syntax/ripple-components' },
 						{ label: 'Templating', slug: 'template-syntax' },
-						{ label: 'If block', slug: 'template-syntax/if-block' }
+						{ label: 'If block', slug: 'template-syntax/if-block' },
+						{ label: 'For block', slug: 'template-syntax/for-block' },
+						{ label: 'Try, catch block', slug: 'template-syntax/try-catch-block' }
 					]
 				}
 				// {

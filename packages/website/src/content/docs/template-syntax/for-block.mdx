@@ -1,0 +1,18 @@
+---
+title: For blocks
+description: Learn how to loop over collections with for blocks in Ripple
+---
+
+You can render collections using a `for...of` block, and you don't need to specify a `key` prop like
+other frameworks.
+
+```ripple
+component ListView({ title, items }) {
+  <h2>{title}</h2>
+  <ul>
+    for (const item of items) {
+      <li>{item.text}</li>
+    }
+  </ul>
+}
+```
