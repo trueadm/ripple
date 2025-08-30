@@ -1,6 +1,6 @@
 import { decode } from '@jridgewell/sourcemap-codec';
 
-export const defaultMappingData = {
+export const mapping_data = {
 	verification: true,
 	completion: true,
 	semantic: true,
@@ -8,12 +8,11 @@ export const defaultMappingData = {
 };
 
 /**
- * Convert esrap SourceMap to Volar mappings using Svelte's approach
- * Based on: https://github.com/volarjs/svelte-language-tools/blob/master/packages/language-server/src/language.ts#L45-L88
- * @param {object} source_map - esrap SourceMap object
- * @param {string} source - Original Ripple source
- * @param {string} generated_code - Generated TypeScript code
- * @returns {object} Object with code and mappings for Volar
+ * Convert esrap SourceMap to Volar mappings
+ * @param {object} source_map
+ * @param {string} source
+ * @param {string} generated_code
+ * @returns {object}
  */
 export function convert_source_map_to_mappings(source_map, source, generated_code) {
 	const mappings = [];
@@ -57,6 +56,11 @@ export function convert_source_map_to_mappings(source_map, source, generated_cod
 			const generated_content = generated_code.substring(current_generated_offset, current_generated_offset + segment_length);
 			const source_content = source.substring(source_offset, source_offset + segment_length);
 			
+			// Skip mappings for UseAttribute syntax to avoid overlapping sourcemaps
+			if (source_content.includes('{@use ') || source_content.match(/\{\s*@use\s+/)) {
+				continue;
+			}
+			
 			// Fix for $children mapping: when generated content is "$children", 
 			// it should only map to the component name in the source, not include attributes
 			if (generated_content === '$children') {
@@ -68,12 +72,11 @@ export function convert_source_map_to_mappings(source_map, source, generated_cod
 				}
 			}
 			
-			// Create Volar mapping with default mapping data
 			mappings.push({
 				sourceOffsets: [source_offset],
 				generatedOffsets: [current_generated_offset],
 				lengths: [segment_length],
-				data: defaultMappingData
+				data: mapping_data
 			});
 		}
 		
