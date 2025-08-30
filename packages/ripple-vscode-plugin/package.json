@@ -3,7 +3,7 @@
   "displayName": "Ripple for VS Code",
   "publisher": "ripplejs",
   "description": "Ripple JavaScript/TypeScript language support",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Dominic Gannaway",
   "license": "MIT",
   "engines": {
