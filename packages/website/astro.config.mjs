@@ -36,7 +36,8 @@ export default defineConfig({
 						{ label: 'Templating', slug: 'template-syntax' },
 						{ label: 'If block', slug: 'template-syntax/if-block' },
 						{ label: 'For block', slug: 'template-syntax/for-block' },
-						{ label: 'Try, catch block', slug: 'template-syntax/try-catch-block' }
+						{ label: 'Try, catch block', slug: 'template-syntax/try-catch-block' },
+						{ label: 'Event handling', slug: 'template-syntax/event-handling' }
 					]
 				}
 				// {
