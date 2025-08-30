@@ -46,6 +46,33 @@ You can use `//` for single-line comments, and `/* ... */` for multi-line commen
 </div>
 ```
 
+### Styling
+
+Ripple supports native CSS styling that is localized to the given component using the `<style>` element.
+
+```ripple
+component MyComponent() {
+  <div class="container">
+    <h1>{"Hello World"}</h1>
+  </div>
+  
+  <style>
+    .container {
+      background: blue;
+      padding: 1rem;
+    }
+    
+    h1 {
+      color: white;
+      font-size: 2rem;
+    }
+  </style>
+}
+```
+
+> Note: the `<style>` element must be top-level within a `component`.
+
+
 ### Props
 
 If you want a prop to be reactive, you should also give it a `$` prefix.
