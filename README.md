@@ -3,6 +3,8 @@
   <img src="assets/ripple-light.png" alt="Ripple - the elegant UI framework for the web" />
 </picture>
 
+[![CI](https://github.com/trueadm/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/trueadm/ripple/actions/workflows/ci.yml)
+
 # What is Ripple?
 
 > Currently, this project is still in early development, and should not be used in production.

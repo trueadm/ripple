@@ -1,0 +1,30 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount } from 'ripple';
+
+describe('basic', () => {
+  
+  component Basic() {
+    <div>{"Hello World"}</div>
+  }
+
+  let container;
+
+  function render(component) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    mount(component, { target: container });
+  }
+
+  beforeEach(() => {
+    render(Basic);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+    container = null;
+  });
+
+  it('renders correctly', () => {
+    expect(container).toMatchSnapshot();
+  });
+});

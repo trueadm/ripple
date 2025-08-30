@@ -49,7 +49,6 @@
   },
   "dependencies": {
     "@jridgewell/sourcemap-codec": "^1.5.5",
-    "@types/estree": "^1.0.8",
     "acorn": "^8.15.0",
     "acorn-typescript": "^1.4.13",
     "esrap": "^2.1.0",
@@ -57,5 +56,9 @@
     "magic-string": "^0.30.17",
     "muggle-string": "^0.4.1",
     "zimmerframe": "^1.1.2"
+  },
+  "devDependencies": {
+    "@types/estree": "^1.0.8",
+    "typescript": "^5.9.2"
   }
 }

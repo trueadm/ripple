@@ -1,0 +1,11 @@
+import { configDefaults, defineConfig } from 'vitest/config';
+import { ripple } from 'vite-plugin-ripple';
+
+export default defineConfig({
+	plugins: [ripple()],
+	test: {
+		include: ['packages/ripple/tests/*.test.ts', 'packages/ripple/tests/*.test.ripple'],
+		environment: 'jsdom',
+		...configDefaults.test
+	}
+});

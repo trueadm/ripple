@@ -4,5 +4,13 @@
   "type": "module",
   "description": "",
   "author": "Dominic Gannaway",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vite-plugin-ripple": "workspace:*",
+    "jsdom": "^26.1.0",
+    "vitest": "^2.1.9"
+  }
 }
