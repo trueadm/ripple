@@ -44,7 +44,7 @@ function visit_function(node, context) {
 
 	let body = context.visit(node.body, state);
 
-	if (metadata.tracked === true) {
+	if (metadata?.tracked === true) {
 		return /** @type {FunctionExpression} */ ({
 			...node,
 			params: node.params.map((param) => context.visit(param, state)),
