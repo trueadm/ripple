@@ -13,9 +13,9 @@
   "devDependencies": {
     "typescript": "5.7.2",
     "vite": "6.0.0",
-    "vite-plugin-ripple": "0.2.4"
+    "vite-plugin-ripple": "0.2.5"
   },
   "dependencies": {
-    "ripple": "0.2.4"
+    "ripple": "0.2.5"
   }
 }
