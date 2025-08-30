@@ -1,0 +1,48 @@
+---
+title: Overview
+description: A guide into how the ripple framework works
+---
+import { Aside } from '@astrojs/starlight/components';
+
+## What is Ripple?
+
+Ripple is a TypeScript UI framework for the web written by Dominic Gannaway ([@trueadm](https://github.com/trueadm))
+
+```ripple
+export component App() {
+  <div class="container">
+    <h1>{"Welcome to Ripple!"}</h1>
+
+    <div>
+      let $count = 0;
+
+      <button onClick={() => $count--}>{"-"}</button>
+      <span class="count">{$count}</span>
+      <button onClick={() => $count++}>{"+"}</button>
+    </div>
+  </div>
+
+  <style>
+    .container {
+      text-align: center;
+      font-family: "Arial", sans-serif;
+    }
+  </style>
+}
+```
+
+Ripple was designed to be a JS/TS-first framework, rather than HTML-first. Ripple modules have their own `.ripple` extension and these modules fully support TypeScript. By introducing a new extension, it affords Ripple to invent its own superset language, that plays really nicely with TypeScript and JSX, but with a few interesting touches.
+
+Ripple uses internally a compiler to convert `.ripple` files into standard JavaScript and HTML that can be run in any modern browser.
+
+## Features
+
+- Reactive State Management: Built-in reactivity with `$` prefixed variables
+- Component-Based Architecture: Clean, reusable components with props and children
+- JSX-like Syntax: Familiar templating with Ripple-specific enhancements
+- TypeScript Support: Full TypeScript integration with type checking
+- VSCode Integration: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
+
+<Aside type="caution">
+  Ripple is still in early development, and should not be used in production.
+</Aside>
