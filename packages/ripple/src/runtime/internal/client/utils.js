@@ -7,6 +7,7 @@ export var get_prototype_of = Object.getPrototypeOf;
 export var object_values = Object.values;
 export var object_entries = Object.entries;
 export var object_keys = Object.keys;
+export var get_own_property_symbols = Object.getOwnPropertySymbols;
 export var structured_clone = structuredClone;
 
 export function create_anchor() {

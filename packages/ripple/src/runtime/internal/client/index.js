@@ -9,7 +9,7 @@ export {
 	set_selected,
 } from './render.js';
 
-export { render, render_spread, async } from './blocks.js';
+export { render, render_spread, async, use } from './blocks.js';
 
 export { event, delegate } from './events.js';
 
@@ -39,7 +39,8 @@ export {
 	structured_clone,
 	push_component,
 	pop_component,
-	untrack
+	untrack,
+	use_prop,
 } from './runtime.js';
 
 export { for_block as for } from './for.js';
@@ -49,5 +50,3 @@ export { if_block as if } from './if.js';
 export { try_block as try, resume_context, aborted } from './try.js';
 
 export { template, append } from './template.js';
-
-

@@ -1,5 +1,6 @@
-import { effect } from './blocks';
-import { get_descriptors, get_prototype_of } from './utils';
+import { destroy_block, use } from './blocks';
+import { USE_PROP } from './constants';
+import { get_descriptors, get_own_property_symbols, get_prototype_of } from './utils';
 
 export function set_text(text, value) {
 	// For objects, we apply string coercion (which might make things like $state array references in the template reactive) before diffing
@@ -62,6 +63,8 @@ export function set_attribute(element, attribute, value) {
 
 export function set_attributes(element, attributes) {
 	for (const key in attributes) {
+		if (key === '$children') continue;
+
 		let value = attributes[key];
 
 		if (key === 'class') {
@@ -158,7 +161,33 @@ export function set_selected(element, selected) {
 }
 
 export function apply_element_spread(element, fn) {
+	var prev;
+	var effects = {};
+
 	return () => {
-		set_attributes(element, fn());
+		var next = fn();
+
+		for (let symbol of get_own_property_symbols(effects)) {
+			if (!next[symbol]) {
+				destroy_block(effects[symbol]);
+			}
+		}
+
+		for (const symbol of get_own_property_symbols(next)) {
+			var use_fn = next[symbol];
+
+			if (symbol.description === USE_PROP && (!prev || use_fn !== prev[symbol])) {
+				if (effects[symbol]) {
+					destroy_block(effects[symbol]);
+				}
+				effects[symbol] = use(element, use_fn);
+			}
+
+			next[symbol] = use_fn;
+		}
+
+		set_attributes(element, next);
+
+		prev = next;
 	};
 }

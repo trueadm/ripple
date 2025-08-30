@@ -22,7 +22,8 @@ import {
 	TRACKED,
 	TRACKED_OBJECT,
 	TRY_BLOCK,
-	UNINITIALIZED
+	UNINITIALIZED,
+	USE_PROP
 } from './constants';
 import { capture, suspend } from './try.js';
 import { define_property, is_array } from './utils';
@@ -922,4 +923,8 @@ export function pop_component() {
 		}
 	}
 	active_component = component.p;
+}
+
+export function use_prop() {
+	return Symbol(USE_PROP);
 }

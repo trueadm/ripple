@@ -6358,6 +6358,14 @@
 			},
 			"patterns": [
 				{
+					"match": "(\\@use)\\b\\s*",
+					"captures": {
+					  "1": {
+						"name": "storage.modifier.js"
+					  }
+					}
+				},
+				{
 					"include": "#expression"
 				}
 			]

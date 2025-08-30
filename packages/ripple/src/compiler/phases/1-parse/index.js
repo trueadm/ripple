@@ -33,9 +33,9 @@ function RipplePlugin(config) {
 					node.default = true;
 					this.next();
 					this.enterScope(0);
-					
+
 					node.id = this.type.label === 'name' ? this.parseIdent() : null;
-					
+
 					this.parseFunctionParams(node);
 					this.eat(tt.braceL);
 					node.body = [];
@@ -52,7 +52,7 @@ function RipplePlugin(config) {
 
 					return node;
 				}
-				
+
 				return super.parseExportDefaultDeclaration();
 			}
 
@@ -91,7 +91,16 @@ function RipplePlugin(config) {
 			jsx_parseAttribute() {
 				let node = this.startNode();
 				if (this.eat(tt.braceL)) {
-					if (this.type === tt.ellipsis) {
+					if (this.type.label === '@') {
+						this.next();
+						if (this.value !== 'use') {
+							this.unexpected();
+						}
+						this.next();
+						node.argument = this.parseMaybeAssign();
+						this.expect(tt.braceR);
+						return this.finishNode(node, 'UseAttribute');
+					} else if (this.type === tt.ellipsis) {
 						this.expect(tt.ellipsis);
 						node.argument = this.parseMaybeAssign();
 						this.expect(tt.braceR);

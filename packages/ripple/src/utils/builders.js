@@ -716,6 +716,17 @@ export function jsx_id(name) {
 	};
 }
 
+/**
+ * @param {ESTree.Expression} argument
+ * @returns {ESTree.JSXSpreadAttribute}
+ */
+export function jsx_spread_attribute(argument) {
+	return {
+		type: 'JSXSpreadAttribute',
+		argument
+	};
+}
+
 export {
 	await_builder as await,
 	let_builder as let,

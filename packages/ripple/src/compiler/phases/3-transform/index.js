@@ -503,6 +503,9 @@ const visitors = {
 					}
 				} else if (attr.type === 'SpreadAttribute') {
 					spread_attributes.push(b.spread(b.call('$.spread_object', visit(attr.argument, state))));
+				} else if (attr.type === 'UseAttribute') {
+					const id = state.flush_node();
+					state.init.push(b.stmt(b.call('$.use', id, b.thunk(visit(attr.argument, state)))));
 				}
 			}
 
@@ -587,6 +590,8 @@ const visitors = {
 							)
 						)
 					);
+				} else if (attr.type === 'UseAttribute') {
+					props.push(b.prop('init', b.call('$.use_prop'), visit(attr.argument, state), true));
 				} else {
 					throw new Error('TODO');
 				}
@@ -1190,23 +1195,42 @@ function transform_ts_child(node, context) {
 		const type = node.id.name;
 		const children = [];
 		let has_children_props = false;
-
-		const attributes = node.attributes.map((attr) => {
-			if (attr.type === 'Attribute') {
-				const metadata = { await: false };
-				const name = visit(attr.name, { ...state, metadata });
-				const value = visit(attr.value, { ...state, metadata });
-				const jsx_name = b.jsx_id(name.name);
-				if (name.name === '$children') {
-					has_children_props = true;
+		
+		// Filter out UseAttributes and handle them separately
+		const use_attributes = [];
+		const attributes = node.attributes
+			.filter((attr) => {
+				if (attr.type === 'UseAttribute') {
+					use_attributes.push(attr);
+					return false; // Filter out from JSX attributes
 				}
-				jsx_name.loc = name.loc;
+				return true;
+			})
+			.map((attr) => {
+				if (attr.type === 'Attribute') {
+					const metadata = { await: false };
+					const name = visit(attr.name, { ...state, metadata });
+					const value = visit(attr.value, { ...state, metadata });
+					const jsx_name = b.jsx_id(name.name);
+					if (name.name === '$children') {
+						has_children_props = true;
+					}
+					jsx_name.loc = name.loc;
 
-				return b.jsx_attribute(jsx_name, b.jsx_expression_container(value));
-			} else {
-				debugger;
-			}
-		});
+					return b.jsx_attribute(jsx_name, b.jsx_expression_container(value));
+				} else if (attr.type === 'SpreadAttribute') {
+					const metadata = { await: false };
+					const argument = visit(attr.argument, { ...state, metadata });
+					return b.jsx_spread_attribute(argument);
+				}
+			});
+
+		// Add UseAttribute references separately for sourcemap purposes
+		for (const use_attr of use_attributes) {
+			const metadata = { await: false };
+			const argument = visit(use_attr.argument, { ...state, metadata });
+			state.init.push(b.stmt(argument));
+		}
 
 		if (!node.selfClosing && !has_children_props && node.children.length > 0) {
 			const is_dom_element = type[0].toLowerCase() === type[0] && type[0] !== '$';

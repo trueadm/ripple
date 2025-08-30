@@ -8,7 +8,7 @@ import {
 	PAUSED,
 	RENDER_BLOCK,
 	ROOT_BLOCK,
-	TRY_BLOCK
+	TRY_BLOCK,
 } from './constants';
 import { next_sibling } from './operations';
 import { apply_element_spread } from './render';
@@ -18,13 +18,15 @@ import {
 	active_reaction,
 	run_block,
 	run_teardown,
-	schedule_update
+	schedule_update,
 } from './runtime';
 import { suspend } from './try';
 
 export function user_effect(fn) {
 	if (active_block === null) {
-		throw new Error('effect() must be called within an active context, such as a component or effect');
+		throw new Error(
+			'effect() must be called within an active context, such as a component or effect'
+		);
 	}
 
 	var component = active_component;
@@ -33,7 +35,7 @@ export function user_effect(fn) {
 		e.push({
 			b: active_block,
 			fn,
-			r: active_reaction
+			r: active_reaction,
 		});
 
 		return;
@@ -63,6 +65,26 @@ export function async(fn) {
 		const unsuspend = suspend();
 		await fn();
 		unsuspend();
+	});
+}
+
+export function use(element, get_fn) {
+	var fn = undefined;
+	var e;
+
+	return block(RENDER_BLOCK, () => {
+		if (fn !== (fn = get_fn())) {
+			if (e) {
+				destroy_block(e);
+				e = null;
+			}
+
+			if (fn) {
+				e = branch(() => {
+					effect(() => fn(element));
+				});
+			}
+		}
 	});
 }
 
@@ -97,7 +119,7 @@ export function block(flags, fn, state = null) {
 		p: active_block,
 		prev: null,
 		s: state,
-		t: null
+		t: null,
 	};
 
 	if (active_reaction !== null && (active_reaction.f & COMPUTED) !== 0) {
