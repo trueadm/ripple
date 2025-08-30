@@ -284,6 +284,12 @@ component Button(props: { $text: string, onClick: () => void }) {
 <Button $text={some_text} onClick={() => console.log("Clicked!")} />
 ```
 
+This also applies to DOM elements, if you want an attribute or property to be reactive, it needs to have a `$` prefix.
+
+```tsx
+<div $class={props.$someClass} $id={$someId}>{$someText}</div>
+```
+
 ### Children
 
 Use `$children` prop and then use it in the form of `<$children />` for component composition.
