@@ -2,6 +2,41 @@ import { walk } from 'zimmerframe';
 
 const seen = new Set();
 const regex_backslash_and_following_character = /\\(.)/g;
+const FORWARD = 0;
+const BACKWARD = 1;
+
+// CSS selector constants
+const descendant_combinator = { name: ' ', type: 'Combinator' };
+const nesting_selector = { 
+	type: 'NestingSelector', 
+	name: '&',
+	selectors: [],
+	metadata: { scoped: false }
+};
+const any_selector = {
+	type: 'RelativeSelector',
+	selectors: [{ type: 'TypeSelector', name: '*' }],
+	combinator: null,
+	metadata: { scoped: false }
+};
+
+// Whitelist for attribute selectors on specific elements
+const whitelist_attribute_selector = new Map([
+	['details', ['open']],
+	['dialog', ['open']],
+	['form', ['novalidate']],
+	['iframe', ['allow', 'allowfullscreen', 'allowpaymentrequest', 'loading', 'referrerpolicy']],
+	['img', ['loading']],
+	['input', ['accept', 'autocomplete', 'capture', 'checked', 'disabled', 'max', 'maxlength', 'min', 'minlength', 'multiple', 'pattern', 'placeholder', 'readonly', 'required', 'size', 'step']],
+	['object', ['typemustmatch']],
+	['ol', ['reversed', 'start', 'type']],
+	['optgroup', ['disabled']],
+	['option', ['disabled', 'selected']],
+	['script', ['async', 'defer', 'nomodule', 'type']],
+	['select', ['disabled', 'multiple', 'required', 'size']],
+	['textarea', ['autocomplete', 'disabled', 'maxlength', 'minlength', 'placeholder', 'readonly', 'required', 'rows', 'wrap']],
+	['video', ['autoplay', 'controls', 'loop', 'muted', 'playsinline']]
+]);
 
 function get_relative_selectors(node) {
 	const selectors = truncate(node);
@@ -62,14 +97,14 @@ function truncate(node) {
 	});
 }
 
-function apply_selector(relative_selectors, rule, element) {
-	const parent_selectors = relative_selectors.slice();
-	const relative_selector = parent_selectors.pop();
+function apply_selector(relative_selectors, rule, element, direction) {
+	const rest_selectors = relative_selectors.slice();
+	const relative_selector = direction === FORWARD ? rest_selectors.shift() : rest_selectors.pop();
 
 	const matched =
 		!!relative_selector &&
-		relative_selector_might_apply_to_node(relative_selector, rule, element) &&
-		apply_combinator(relative_selector, parent_selectors, rule, element);
+		relative_selector_might_apply_to_node(relative_selector, rule, element, direction) &&
+		apply_combinator(relative_selector, rest_selectors, rule, element, direction);
 
 	if (matched) {
 		if (!is_outer_global(relative_selector)) {
@@ -82,55 +117,163 @@ function apply_selector(relative_selectors, rule, element) {
 	return matched;
 }
 
-function apply_combinator(relative_selector, parent_selectors, rule, node) {
-	if (!relative_selector.combinator) return true;
+function get_ancestor_elements(node, adjacent_only, seen = new Set()) {
+	const ancestors = [];
 
-	const name = relative_selector.combinator.name;
+	const path = node.metadata.path;
+	let i = path.length;
 
-	switch (name) {
+	while (i--) {
+		const parent = path[i];
+
+		if (parent.type === 'Element') {
+			ancestors.push(parent);
+			if (adjacent_only) {
+				break;
+			}
+		}
+	}
+
+	return ancestors;
+}
+
+function get_descendant_elements(node, adjacent_only) {
+	const descendants = [];
+
+	function visit(current_node, depth = 0) {
+		if (current_node.type === 'Element' && current_node !== node) {
+			descendants.push(current_node);
+			if (adjacent_only) return; // Only direct children for '>' combinator
+		}
+
+		// Visit children based on Ripple's AST structure
+		if (current_node.children) {
+			for (const child of current_node.children) {
+				visit(child, depth + 1);
+			}
+		}
+
+		if (current_node.body) {
+			for (const child of current_node.body) {
+				visit(child, depth + 1);
+			}
+		}
+
+		// For template nodes and text interpolations
+		if (current_node.expression && typeof current_node.expression === 'object') {
+			visit(current_node.expression, depth + 1);
+		}
+	}
+
+	// Start from node's children
+	if (node.children) {
+		for (const child of node.children) {
+			visit(child);
+		}
+	}
+
+	if (node.body) {
+		for (const child of node.body) {
+			visit(child);
+		}
+	}
+
+	return descendants;
+}
+
+function get_possible_element_siblings(node, direction, adjacent_only) {
+	const siblings = new Map();
+	const parent = get_element_parent(node);
+	
+	if (!parent) {
+		return siblings;
+	}
+
+	// Get the container that holds the siblings
+	const container = parent.children || parent.body || [];
+	const node_index = container.indexOf(node);
+
+	if (node_index === -1) return siblings;
+
+	// Determine which siblings to check based on direction
+	let start, end, step;
+	if (direction === FORWARD) {
+		start = node_index + 1;
+		end = container.length;
+		step = 1;
+	} else {
+		start = node_index - 1;
+		end = -1;
+		step = -1;
+	}
+
+	// Collect siblings
+	for (let i = start; i !== end; i += step) {
+		const sibling = container[i];
+		
+		if (sibling.type === 'Element' || sibling.type === 'Component') {
+			siblings.set(sibling, true);
+			if (adjacent_only) break; // Only immediate sibling for '+' combinator
+		}
+		// Stop at non-whitespace text nodes for adjacent selectors
+		else if (adjacent_only && sibling.type === 'Text' && sibling.value?.trim()) {
+			break;
+		}
+	}
+
+	return siblings;
+}
+
+function apply_combinator(relative_selector, rest_selectors, rule, node, direction) {
+	const combinator =
+		direction == FORWARD ? rest_selectors[0]?.combinator : relative_selector.combinator;
+	if (!combinator) return true;
+
+	switch (combinator.name) {
 		case ' ':
 		case '>': {
+			const is_adjacent = combinator.name === '>';
+			const parents =
+				direction === FORWARD
+					? get_descendant_elements(node, is_adjacent)
+					: get_ancestor_elements(node, is_adjacent);
 			let parent_matched = false;
 
-			const path = node.metadata.path;
-			let i = path.length;
-
-			while (i--) {
-				const parent = path[i];
-
-				if (parent.type === 'Element') {
-					if (apply_selector(parent_selectors, rule, parent)) {
-						parent_matched = true;
-					}
-
-					if (name === '>') return parent_matched;
+			for (const parent of parents) {
+				if (apply_selector(rest_selectors, rule, parent, direction)) {
+					parent_matched = true;
 				}
 			}
 
-			return parent_matched || parent_selectors.every((selector) => is_global(selector, rule));
+			return (
+				parent_matched ||
+				(direction === BACKWARD &&
+					(!is_adjacent || parents.length === 0) &&
+					rest_selectors.every((selector) => is_global(selector, rule)))
+			);
 		}
 
 		case '+':
 		case '~': {
-			const siblings = get_possible_element_siblings(node, name === '+');
+			const siblings = get_possible_element_siblings(node, direction, combinator.name === '+');
 
 			let sibling_matched = false;
 
 			for (const possible_sibling of siblings.keys()) {
-				if (possible_sibling.type === 'RenderTag' || possible_sibling.type === 'SlotElement') {
-					// `{@render foo()}<p>foo</p>` with `:global(.x) + p` is a match
-					if (parent_selectors.length === 1 && parent_selectors[0].metadata.is_global) {
+				if (possible_sibling.type === 'Component') {
+					if (rest_selectors.length === 1 && rest_selectors[0].metadata.is_global) {
 						sibling_matched = true;
 					}
-				} else if (apply_selector(parent_selectors, rule, possible_sibling)) {
+				} else if (apply_selector(rest_selectors, rule, possible_sibling, direction)) {
 					sibling_matched = true;
 				}
 			}
 
 			return (
 				sibling_matched ||
-				(get_element_parent(node) === null &&
-					parent_selectors.every((selector) => is_global(selector, rule)))
+				(direction === BACKWARD &&
+					get_element_parent(node) === null &&
+					rest_selectors.every((selector) => is_global(selector, rule)))
 			);
 		}
 
@@ -147,7 +290,7 @@ function get_element_parent(node) {
 	while (i--) {
 		const parent = path[i];
 
-		if (parent.type === 'RegularElement' || parent.type === 'SvelteElement') {
+		if (parent.type === 'Element') {
 			return parent;
 		}
 	}
@@ -252,7 +395,7 @@ function is_outer_global(relative_selector) {
 	);
 }
 
-function relative_selector_might_apply_to_node(relative_selector, rule, element) {
+function relative_selector_might_apply_to_node(relative_selector, rule, element, direction) {
 	// Sort :has(...) selectors in one bucket and everything else into another
 	const has_selectors = [];
 	const other_selectors = [];
@@ -268,13 +411,6 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 	// If we're called recursively from a :has(...) selector, we're on the way of checking if the other selectors match.
 	// In that case ignore this check (because we just came from this) to avoid an infinite loop.
 	if (has_selectors.length > 0) {
-		/** @type {Array<Compiler.AST.RegularElement | Compiler.AST.SvelteElement>} */
-		const child_elements = [];
-		/** @type {Array<Compiler.AST.RegularElement | Compiler.AST.SvelteElement>} */
-		const descendant_elements = [];
-		/** @type {Array<Compiler.AST.RegularElement | Compiler.AST.SvelteElement>} */
-		let sibling_elements; // do them lazy because it's rarely used and expensive to calculate
-
 		// If this is a :has inside a global selector, we gotta include the element itself, too,
 		// because the global selector might be for an element that's outside the component,
 		// e.g. :root:has(.scoped), :global(.foo):has(.scoped), or :root { &:has(.scoped) {} }
@@ -290,37 +426,6 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 					)
 				)
 			);
-		if (include_self) {
-			child_elements.push(element);
-			descendant_elements.push(element);
-		}
-
-		/**
-		 * @param {Compiler.AST.SvelteNode} node
-		 * @param {{ is_child: boolean }} state
-		 */
-		function walk_children(node, state) {
-			walk(node, state, {
-				_(node, context) {
-					if (node.type === 'Element') {
-						descendant_elements.push(node);
-
-						if (context.state.is_child) {
-							child_elements.push(node);
-							context.state.is_child = false;
-							context.next();
-							context.state.is_child = true;
-						} else {
-							context.next();
-						}
-					} else {
-						context.next();
-					}
-				}
-			});
-		}
-
-		walk_children(element.fragment, { is_child: true });
 
 		// :has(...) is special in that it means "look downwards in the CSS tree". Since our matching algorithm goes
 		// upwards and back-to-front, we need to first check the selectors inside :has(...), then check the rest of the
@@ -331,36 +436,33 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 			let matched = false;
 
 			for (const complex_selector of complex_selectors) {
-				const selectors = truncate(complex_selector);
-				const left_most_combinator = selectors[0]?.combinator ?? descendant_combinator;
-				// In .x:has(> y), we want to search for y, ignoring the left-most combinator
-				// (else it would try to walk further up and fail because there are no selectors left)
-				if (selectors.length > 0) {
-					selectors[0] = {
-						...selectors[0],
-						combinator: null
-					};
+				const [first, ...rest] = truncate(complex_selector);
+				// if it was just a :global(...)
+				if (!first) {
+					complex_selector.metadata.used = true;
+					matched = true;
+					continue;
 				}
 
-				const descendants =
-					left_most_combinator.name === '+' || left_most_combinator.name === '~'
-						? (sibling_elements ??= get_following_sibling_elements(element, include_self))
-						: left_most_combinator.name === '>'
-						? child_elements
-						: descendant_elements;
-
-				let selector_matched = false;
-
-				// Iterate over all descendant elements and check if the selector inside :has matches
-				for (const element of descendants) {
-					if (
-						selectors.length === 0 /* is :global(...) */ ||
-						(element.metadata.scoped && selector_matched) ||
-						apply_selector(selectors, rule, element)
-					) {
+				if (include_self) {
+					const selector_including_self = [
+						first.combinator ? { ...first, combinator: null } : first,
+						...rest
+					];
+					if (apply_selector(selector_including_self, rule, element, FORWARD)) {
 						complex_selector.metadata.used = true;
-						selector_matched = matched = true;
+						matched = true;
 					}
+				}
+
+				const selector_excluding_self = [
+					any_selector,
+					first.combinator ? first : { ...first, combinator: descendant_combinator },
+					...rest
+				];
+				if (apply_selector(selector_excluding_self, rule, element, FORWARD)) {
+					complex_selector.metadata.used = true;
+					matched = true;
 				}
 			}
 
@@ -386,7 +488,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 				) {
 					const args = selector.args;
 					const complex_selector = args.children[0];
-					return apply_selector(complex_selector.children, rule, element);
+					return apply_selector(complex_selector.children, rule, element, BACKWARD);
 				}
 
 				// We came across a :global, everything beyond it is global and therefore a potential match
@@ -413,7 +515,6 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 								selector.metadata.scoped = true;
 							}
 
-							/** @type {Compiler.AST.RegularElement | Compiler.AST.SvelteElement | null} */
 							let el = element;
 							while (el) {
 								el.metadata.scoped = true;
@@ -435,7 +536,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 						if (is_global) {
 							complex_selector.metadata.used = true;
 							matched = true;
-						} else if (apply_selector(relative, rule, element)) {
+						} else if (apply_selector(relative, rule, element, BACKWARD)) {
 							complex_selector.metadata.used = true;
 							matched = true;
 						} else if (complex_selector.children.length > 1 && (name == 'is' || name == 'where')) {
@@ -465,7 +566,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 			case 'AttributeSelector': {
 				const whitelisted = whitelist_attribute_selector.get(element.id.name.toLowerCase());
 				if (
-					!whitelisted?.includes(selector.id.name.toLowerCase()) &&
+					!whitelisted?.includes(selector.name.toLowerCase()) &&
 					!attribute_matches(
 						element,
 						selector.name,
@@ -480,12 +581,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 			}
 
 			case 'ClassSelector': {
-				if (
-					!attribute_matches(element, 'class', name, '~=', false) &&
-					!element.attributes.some(
-						(attribute) => attribute.type === 'ClassDirective' && attribute.name === name
-					)
-				) {
+				if (!attribute_matches(element, 'class', name, '~=', false)) {
 					return false;
 				}
 
@@ -502,9 +598,9 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 
 			case 'TypeSelector': {
 				if (
+					element.id.type === 'Identifier' &&
 					element.id.name.toLowerCase() !== name.toLowerCase() &&
-					name !== '*' &&
-					element.id.name[0].toLowerCase() === element.id.name[0]
+					name !== '*'
 				) {
 					return false;
 				}
@@ -519,7 +615,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 
 				for (const complex_selector of parent.prelude.children) {
 					if (
-						apply_selector(get_relative_selectors(complex_selector), parent, element) ||
+						apply_selector(get_relative_selectors(complex_selector), parent, element, direction) ||
 						complex_selector.children.every((s) => is_global(s, parent))
 					) {
 						complex_selector.metadata.used = true;
@@ -540,6 +636,27 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element)
 	return true;
 }
 
+// Utility functions for parsing CSS values
+function unquote(str) {
+	if ((str[0] === '"' && str[str.length - 1] === '"') || 
+		(str[0] === "'" && str[str.length - 1] === "'")) {
+		return str.slice(1, -1);
+	}
+	return str;
+}
+
+function get_parent_rules(rule) {
+	const rules = [rule];
+	let current = rule;
+	
+	while (current.metadata.parent_rule) {
+		current = current.metadata.parent_rule;
+		rules.unshift(current);
+	}
+	
+	return rules;
+}
+
 export function prune_css(css, element) {
 	walk(css, null, {
 		Rule(node, context) {
@@ -558,7 +675,8 @@ export function prune_css(css, element) {
 				apply_selector(
 					selectors,
 					/** @type {Compiler.AST.CSS.Rule} */ (node.metadata.rule),
-					element
+					element,
+					BACKWARD
 				)
 			) {
 				node.metadata.used = true;

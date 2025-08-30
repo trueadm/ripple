@@ -32,6 +32,12 @@ function visit_function(node, context) {
 	const metadata = node.metadata;
 	const state = context.state;
 
+	delete node.returnType;
+
+	for (const param of node.params) {
+		delete param.typeAnnotation;
+	}
+
 	if (metadata?.hoisted === true) {
 		const params = build_hoisted_params(node, context);
 
