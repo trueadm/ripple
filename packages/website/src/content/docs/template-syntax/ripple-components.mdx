@@ -32,3 +32,71 @@ Ripple's templating language also supports shorthands and object spreads too:
 // and you can spread props
 <div {...properties}>{text}</div>
 ```
+
+### Comments
+You can use `//` for single-line comments, and `/* ... */` for multi-line comments.
+
+```ripple
+<div>
+  // This is a single-line comment
+  /*
+    This is a multi-line comment
+  */
+  {"Hello, world!"}
+</div>
+```
+
+### Props
+
+If you want a prop to be reactive, you should also give it a `$` prefix.
+
+```ripple
+component Button(props: { $text: string, onClick: () => void }) {
+  <button onClick={props.onClick}>
+    {props.$text}
+  </button>
+}
+
+// Usage
+<Button $text={some_text} onClick={() => console.log("Clicked!")} />
+```
+
+### Children
+
+Use `$children` prop and then use it in the form of `<$children />` for component composition.
+
+When you pass in children to a component, it gets implicitly passed as the `$children` prop, in the form of a component.
+
+```ripple
+import type { Component } from 'ripple';
+
+component Card(props: { $children: Component }) {
+  <div class="card">
+    <$children />
+  </div>
+}
+
+// Usage
+<Card>
+  <p>{"Card content here"}</p>
+</Card>
+```
+
+You could also explicitly write the same code as shown:
+
+```ripple
+import type { Component } from 'ripple';
+
+component Card(props: { $children: Component }) {
+  <div class="card">
+    <$children />
+  </div>
+}
+
+// Usage with explicit component
+<Card>
+  component $children() {
+    <p>{"Card content here"}</p>
+  }
+</Card>
+```
