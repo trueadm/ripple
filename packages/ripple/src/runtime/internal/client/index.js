@@ -24,6 +24,7 @@ export {
 	async_computed,
 	tracked,
 	tracked_object,
+	tracked_spread_object,
 	computed_property,
 	get_property,
 	set_property,

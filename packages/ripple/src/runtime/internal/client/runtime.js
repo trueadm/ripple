@@ -18,6 +18,7 @@ import {
 	EFFECT_BLOCK,
 	PAUSED,
 	ROOT_BLOCK,
+	SPREAD_OBJECT,
 	TRACKED,
 	TRACKED_OBJECT,
 	TRY_BLOCK,
@@ -217,9 +218,9 @@ export function tracked(v, b) {
 	};
 }
 
-export function computed(fn, b) {
+export function computed(fn, block) {
 	return {
-		b,
+		b: block,
 		blocks: null,
 		c: 0,
 		d: null,
@@ -644,7 +645,7 @@ export function flush_sync(fn) {
 	var previous_queued_root_blocks = queued_root_blocks;
 
 	try {
-		const root_blocks = [];
+		var root_blocks = [];
 
 		scheduler_mode = FLUSH_SYNC;
 		queued_root_blocks = root_blocks;
@@ -665,6 +666,17 @@ export function flush_sync(fn) {
 		scheduler_mode = previous_scheduler_mode;
 		queued_root_blocks = previous_queued_root_blocks;
 	}
+}
+
+export function tracked_spread_object(fn) {
+	var obj = fn();
+
+	define_property(obj, SPREAD_OBJECT, {
+		value: fn,
+		enumerable: false
+	});
+
+	return obj;
 }
 
 export function tracked_object(obj, properties, block) {
@@ -719,6 +731,10 @@ export function get_property(obj, property, chain = false) {
 
 	if (tracked_property !== undefined) {
 		value = obj[property] = get(tracked_property);
+	} else if (SPREAD_OBJECT in obj) {
+		var spread_fn = obj[SPREAD_OBJECT];
+		var properties = spread_fn();
+		return get_property(properties, property, chain);
 	}
 
 	return value;
@@ -851,11 +867,11 @@ export function spread_object(obj) {
 		return { ...obj };
 	}
 	var keys = original_object_keys(obj);
-	const values = {};
+	var values = {};
 
 	for (var i = 0; i < keys.length; i++) {
 		var key = keys[i];
-		values[key] = get_property_computed(obj, key);
+		values[key] = get_property(obj, key);
 	}
 
 	return values;

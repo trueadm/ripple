@@ -66,7 +66,7 @@ function build_getter(node, context) {
 
 		// don't transform the declaration itself
 		if (node !== binding?.node && binding?.transform) {
-			return binding.transform.read(node);
+			return binding.transform.read(node, context.state?.metadata?.spread);
 		}
 	}
 
@@ -411,7 +411,9 @@ const visitors = {
 
 						if (is_event_attribute(name)) {
 							let capture = name.endsWith('Capture');
-							let event_name = capture ? name.slice(2, -7).toLowerCase() : name.slice(2).toLowerCase();
+							let event_name = capture
+								? name.slice(2, -7).toLowerCase()
+								: name.slice(2).toLowerCase();
 							let handler = visit(attr.value, state);
 
 							if (attr.metadata?.delegated) {
@@ -544,8 +546,9 @@ const visitors = {
 
 			state.template.push('<!>');
 
+			const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
 			const tracked = [];
-			let props = [];
+			const props = [];
 			let children_prop = null;
 
 			for (const attr of node.attributes) {
@@ -570,7 +573,14 @@ const visitors = {
 						props.push(b.prop('init', attr.name, visit(attr.value, state)));
 					}
 				} else if (attr.type === 'SpreadAttribute') {
-					props.push(b.spread(visit(attr.argument, state)));
+					props.push(
+						b.spread(
+							b.call(
+								'$.spread_object',
+								visit(attr.argument, { ...state, metadata: { ...state.metadata, spread: true } })
+							)
+						)
+					);
 				} else {
 					throw new Error('TODO');
 				}
@@ -594,7 +604,18 @@ const visitors = {
 				}
 			}
 
-			if (tracked.length > 0) {
+			if (is_spreading) {
+				state.init.push(
+					b.stmt(
+						b.call(
+							node.id,
+							id,
+							b.call('$.tracked_spread_object', b.thunk(b.object(props))),
+							b.id('$.active_block')
+						)
+					)
+				);
+			} else if (tracked.length > 0) {
 				state.init.push(
 					b.stmt(
 						b.call(

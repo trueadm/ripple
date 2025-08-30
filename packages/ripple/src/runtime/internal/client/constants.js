@@ -20,4 +20,5 @@ export var LOGIC_BLOCK = FOR_BLOCK | IF_BLOCK | TRY_BLOCK;
 
 export var UNINITIALIZED = Symbol();
 export var TRACKED_OBJECT = Symbol();
+export var SPREAD_OBJECT = Symbol();
 export var COMPUTED_PROPERTY = Symbol();

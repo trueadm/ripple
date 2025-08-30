@@ -4,7 +4,7 @@ component Child(props: { $children: Component }) {
   console.log(props);
 
   <div>
-    <props.$children />
+    {props.$count}
   </div>
 }
 
@@ -20,7 +20,7 @@ export component App({ name }: { name: string }) {
     <button onClick={() => $count++}>{"Increment count"}</button>
 
     <Child {...obj}>
-      <div>{'Child Component'}</div>
+      <div>{'Child Component ' + $count}</div>
     </Child>
   </div>
 
