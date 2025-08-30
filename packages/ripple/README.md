@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-dark.png">
-  <img src="assets/ripple-light.png" alt="Ripple - the elegant UI framework for the web" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/trueadm/ripple/master/assets/ripple-dark.png">
+  <img src="https://raw.githubusercontent.com/trueadm/ripple/master/assets/ripple-light.png" alt="Ripple - the elegant UI framework for the web" />
 </picture>
 
 # What is Ripple?
