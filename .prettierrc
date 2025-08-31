@@ -2,7 +2,7 @@
 	"useTabs": true,
 	"singleQuote": true,
 	"printWidth": 100,
-	"plugins": ["./packages/prettier-plugin-ripple/src/index.js"],
+	"plugins": ["prettier-plugin-ripple"],
 	"overrides": [
 		{
 			"files": ["*.ripple"],
