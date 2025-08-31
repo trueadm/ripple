@@ -806,10 +806,12 @@ const visitors = {
 		const binding = context.state.scope.get(left.name);
 		const transformers = left && binding?.transform;
 
-		if (left === argument && transformers?.update) {
-			// we don't need to worry about ownership_invalid_mutation here, because
-			// we're not mutating but reassigning
-			return transformers.update(node);
+		if (left === argument ) {
+			if (transformers?.update) {
+				return transformers.update(node);
+			} else if (binding.kind === 'prop') {
+				throw new Error('Cannot update component prop property, component props are not writable');
+			}
 		}
 
 		context.next();
