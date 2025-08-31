@@ -126,6 +126,36 @@ function printRippleNode(node, path, options, print) {
 		case 'UnaryExpression':
 			return printUnaryExpression(node, path, options, print);
 
+		case 'YieldExpression':
+			return printYieldExpression(node, path, options, print);
+
+		case 'NewExpression':
+			return printNewExpression(node, path, options, print);
+
+		case 'TemplateLiteral':
+			return printTemplateLiteral(node, path, options, print);
+
+		case 'TaggedTemplateExpression':
+			return printTaggedTemplateExpression(node, path, options, print);
+
+		case 'ThrowStatement':
+			return printThrowStatement(node, path, options, print);
+
+		case 'SwitchStatement':
+			return printSwitchStatement(node, path, options, print);
+
+		case 'SwitchCase':
+			return printSwitchCase(node, path, options, print);
+
+		case 'BreakStatement':
+			return printBreakStatement(node, path, options, print);
+
+		case 'ContinueStatement':
+			return printContinueStatement(node, path, options, print);
+
+		case 'SequenceExpression':
+			return printSequenceExpression(node, path, options, print);
+
 		case 'SpreadElement':
 			return '...' + path.call(print, 'argument');
 
@@ -505,7 +535,14 @@ function printFunctionDeclaration(node, path, options, print) {
 		result += 'async ';
 	}
 	
-	result += 'function ' + node.id.name + '(';
+	result += 'function';
+	
+	// Handle generator functions
+	if (node.generator) {
+		result += '*';
+	}
+	
+	result += ' ' + node.id.name + '(';
 
 	if (node.params && node.params.length > 0) {
 		result += path.map(print, 'params').join(', ');
@@ -735,6 +772,109 @@ function printUnaryExpression(node, path, options, print) {
 	} else {
 		return path.call(print, 'argument') + node.operator;
 	}
+}
+
+function printYieldExpression(node, path, options, print) {
+	let result = 'yield';
+	
+	if (node.delegate) {
+		result += '*';
+	}
+	
+	if (node.argument) {
+		result += ' ' + path.call(print, 'argument');
+	}
+	
+	return result;
+}
+
+function printNewExpression(node, path, options, print) {
+	let result = 'new ' + path.call(print, 'callee');
+	
+	if (node.arguments && node.arguments.length > 0) {
+		result += '(' + path.map(print, 'arguments').join(', ') + ')';
+	} else {
+		result += '()';
+	}
+	
+	return result;
+}
+
+function printTemplateLiteral(node, path, options, print) {
+	let result = '`';
+	
+	for (let i = 0; i < node.quasis.length; i++) {
+		result += node.quasis[i].value.raw;
+		
+		if (i < node.expressions.length) {
+			result += '${' + path.call(print, 'expressions', i) + '}';
+		}
+	}
+	
+	result += '`';
+	return result;
+}
+
+function printTaggedTemplateExpression(node, path, options, print) {
+	return path.call(print, 'tag') + path.call(print, 'quasi');
+}
+
+function printThrowStatement(node, path, options, print) {
+	return 'throw ' + path.call(print, 'argument') + ';';
+}
+
+function printSwitchStatement(node, path, options, print) {
+	let result = 'switch (' + path.call(print, 'discriminant') + ') {\n';
+	
+	for (let i = 0; i < node.cases.length; i++) {
+		result += path.call(print, 'cases', i);
+		if (i < node.cases.length - 1) {
+			result += '\n';
+		}
+	}
+	
+	result += '\n}';
+	return result;
+}
+
+function printSwitchCase(node, path, options, print) {
+	let result = '';
+	
+	if (node.test) {
+		result += 'case ' + path.call(print, 'test') + ':';
+	} else {
+		result += 'default:';
+	}
+	
+	if (node.consequent && node.consequent.length > 0) {
+		result += '\n';
+		for (let i = 0; i < node.consequent.length; i++) {
+			result += '  ' + path.call(print, 'consequent', i);
+			if (i < node.consequent.length - 1) {
+				result += '\n';
+			}
+		}
+	}
+	
+	return result;
+}
+
+function printBreakStatement(node, path, options, print) {
+	if (node.label) {
+		return 'break ' + path.call(print, 'label') + ';';
+	}
+	return 'break;';
+}
+
+function printContinueStatement(node, path, options, print) {
+	if (node.label) {
+		return 'continue ' + path.call(print, 'label') + ';';
+	}
+	return 'continue;';
+}
+
+function printSequenceExpression(node, path, options, print) {
+	return '(' + path.map(print, 'expressions').join(', ') + ')';
 }
 
 function shouldAddBlankLine(currentNode, nextNode) {
