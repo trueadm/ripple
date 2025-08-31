@@ -1,0 +1,6 @@
+{
+  "prettier.documentSelectors": ["**/*.ripple"],
+  "[ripple]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
