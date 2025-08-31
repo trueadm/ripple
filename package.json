@@ -9,8 +9,9 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "vite-plugin-ripple": "workspace:*",
     "jsdom": "^26.1.0",
+    "prettier": "^3.6.2",
+    "vite-plugin-ripple": "workspace:*",
     "vitest": "^2.1.9"
   }
 }

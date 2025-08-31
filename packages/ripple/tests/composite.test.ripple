@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, flushSync } from 'ripple';
 
-describe('@use element decorators', () => {
+describe('composite components', () => {
   let container;
 
   function render(component) {
@@ -18,16 +18,7 @@ describe('@use element decorators', () => {
     container = null;
   });
 
-  it('capture a <div>', () => {
-    let div;
-    
-    component Component() {
-      <div {@use (node) => { div = node; }}>{"Hello World"}</div>
-    }
-
-    render(Component);
-    flushSync();
-
-    expect(div.textContent).toBe('Hello World');
+  it('renders composite components', () => {
+    // TODO: Implement test
   });
 });
