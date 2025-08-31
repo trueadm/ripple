@@ -21,6 +21,32 @@ describe('composite components', () => {
 		container = null;
 	});
 
+	it('renders composite components', () => {
+		component Button({ $count }) {
+			<div>{$count}</div>
+		}
+
+		component App() {
+			let $count = 0;
+			<button onClick={() => $count++}>{'Increment'}</button>
+			<Button $count={$count} />
+		}
+
+		render(App);
+
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('div').textContent).toBe('1');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('div').textContent).toBe('2');
+	});
+
 	it('renders composite components with object state', () => {
 		component Button({ obj }) {
 			<button class='count2' onClick={() => {
