@@ -618,12 +618,6 @@ export function set(tracked, value, block) {
 
 		tracked.v = value;
 		tracked.c = increment_clock();
-
-		if (tracked_block !== block) {
-			throw new Error(
-				'Tracked state can only be updated within the same component context that it was created in (that includes effects or event handler within that component).',
-			);
-		}
 		schedule_update(tracked_block);
 	}
 }

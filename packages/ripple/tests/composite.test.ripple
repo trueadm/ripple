@@ -51,4 +51,45 @@ describe('composite components', () => {
 		expect(container.querySelector('.count').textContent).toBe('1');
 		expect(container.querySelector('.count2').textContent).toBe('1');
 	});
+
+	it('renders composite components with object state wrapped in an if statement', () => {
+		component Button({ obj }) {
+			<button class='count2' onClick={() => {
+				obj.$count++;
+			}}>{obj.$count}</button>
+		}
+
+    component OtherComponent({ obj }) {
+			<div class="count3">{obj.$count}</div>
+		}
+
+		component App() {
+			<div>
+				let obj = {
+					$count: 0
+				};
+				let $button = true;
+
+				<span class='count'>{obj.$count}</span>
+				<span>{' '}</span>
+				if (obj) {
+					<Button obj={obj} />
+				}
+        if (obj) {
+					<OtherComponent obj={obj} />
+				}
+			</div>
+		}
+
+		render(App);
+
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('.count').textContent).toBe('1');
+		expect(container.querySelector('.count2').textContent).toBe('1');
+    expect(container.querySelector('.count3').textContent).toBe('1');
+	});
 });
