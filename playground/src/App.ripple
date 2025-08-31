@@ -1,50 +1,47 @@
-
 component Foo() {
 
 }
 
 export component App({ name }: { name: string }) {
-  <div class="container">
-    let $count = 0;
-    let void_thing = void 0;
-    let a = null ?? 1;
-    let y = a ? 1 : 2 || 3;
+	<div class='container'>
+		let $count = 0;
+		let void_thing = void 0;
+		let a = null ?? 1;
+		let y = a ? 1 : 2 || 3;
 
-    console.log($count);
+		console.log($count);
 
-    <button onClick={() => {
-      $count++;
-    }}>{"Increment count"}</button>
-    if ($count > 0) {
-      <span>{"Count is " + $count}</span>
-    } else {
-      <span>{"Count is zero"}</span>
-    }
+		<button onClick={() => {
+			$count++;
+		}}>{'Increment count'}</button>
+		if ($count > 0) {
+			<span>{'Count is ' + $count}</span>
+		} else {
+			<span>{'Count is zero'}</span>
+		}
 
-    const items: Array = [1, 2, 3, ...[]];
-    const thing = {};
-    const obj = {
-      a: 1,
-      b: 2,
-      c: 3,
-      ...thing
-    };
-    const obj2 = {};
+		const items: Array = [1, 2, 3, ...[]];
+		const thing = {};
+		const obj = {
+			a: 1,
+			b: 2,
+			c: 3,
+			...thing
+		};
+		const obj2 = {};
 
-    <div {...obj2} />
+		<div {...obj2} />
 
-        try {
-      <Foo />
-    } catch (e) {
-      <div>{e.message}</div>
-    }
+		try {
+			<Foo />
+		} catch (e) {
+			<div>{e.message}</div>
+		}
 
-    for (const item of items) {
-      <span>{item}</span>
-    }
-
-
-  </div>
+		for (const item of items) {
+			<span>{item}</span>
+		}
+	</div>
 
   <style>
     .container {

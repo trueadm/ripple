@@ -1315,6 +1315,39 @@ function transform_ts_child(node, context) {
 		);
 
 		state.init.push(b.for_of(visit(node.left), visit(node.right), body, node.await));
+	} else if (node.type === 'TryStatement') {
+		const try_scope = context.state.scopes.get(node.block);
+		const try_body = b.block(
+			transform_body(node.block.body, {
+				...context,
+				state: { ...context.state, scope: try_scope },
+			}),
+		);
+
+		let catch_handler = null;
+		if (node.handler) {
+			const catch_scope = context.state.scopes.get(node.handler.body);
+			const catch_body = b.block(
+				transform_body(node.handler.body.body, {
+					...context,
+					state: { ...context.state, scope: catch_scope },
+				}),
+			);
+			catch_handler = b.catch_clause(node.handler.param || null, catch_body);
+		}
+
+		let finally_block = null;
+		if (node.finalizer) {
+			const finally_scope = context.state.scopes.get(node.finalizer);
+			finally_block = b.block(
+				transform_body(node.finalizer.body, {
+					...context,
+					state: { ...context.state, scope: finally_scope },
+				}),
+			);
+		}
+
+		state.init.push(b.try(try_body, catch_handler, finally_block));
 	} else if (node.type === 'RenderFragment') {
 		const identifer = node.expression.callee;
 

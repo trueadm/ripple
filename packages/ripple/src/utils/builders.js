@@ -645,6 +645,36 @@ export function throw_error(str) {
 }
 
 /**
+ * @param {ESTree.BlockStatement} block
+ * @param {ESTree.CatchClause | null} handler
+ * @param {ESTree.BlockStatement | null} finalizer
+ * @returns {ESTree.TryStatement}
+ */
+export function try_builder(block, handler = null, finalizer = null) {
+	return {
+		type: 'TryStatement',
+		block,
+		handler,
+		finalizer
+	};
+}
+
+/**
+ * @param {ESTree.Pattern | null} param
+ * @param {ESTree.BlockStatement} body
+ * @returns {ESTree.CatchClause}
+ */
+export function catch_clause_builder(param, body) {
+	return {
+		type: 'CatchClause',
+		param,
+		body
+	};
+}
+
+export { catch_clause_builder as catch_clause };
+
+/**
  * @param {string} name
  * @returns {ESTree.Expression}
  */
@@ -748,4 +778,5 @@ export {
 	this_instance as this,
 	null_instane as null,
 	debugger_builder as debugger,
+	try_builder as try,
 };
