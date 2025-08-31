@@ -1,268 +1,268 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { mount, flushSync } from 'ripple';
 
 describe('basic', () => {
-  let container;
+	let container;
 
-  function render(component) {
-    mount(component, { target: container });
-  }
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
 
-  beforeEach(() => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-  });
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
 
-  afterEach(() => {
-    document.body.removeChild(container);
-    container = null;
-  });
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
 
-  it('render static text', () => {
-    component Basic() {
-      <div>{"Hello World"}</div>
-    }
+	it('render static text', () => {
+		component Basic() {
+			<div>{'Hello World'}</div>
+		}
 
-    render(Basic);
-    expect(container).toMatchSnapshot();
-  });
+		render(Basic);
+		expect(container).toMatchSnapshot();
+	});
 
-  it('render static attributes', () => {
-    component Basic() {
-      <div class="foo" id="bar" style="color: red;">{"Hello World"}</div>
-    }
+	it('render static attributes', () => {
+		component Basic() {
+			<div class='foo' id='bar' style='color: red;'>{'Hello World'}</div>
+		}
 
-    render(Basic);
+		render(Basic);
 
-    expect(container).toMatchSnapshot();
-  });
+		expect(container).toMatchSnapshot();
+	});
 
-  it('render semi-dynamic text', () => {
-    component Basic() {
-      let text = 'Hello World';
-      <div>{text}</div>
-    }
+	it('render semi-dynamic text', () => {
+		component Basic() {
+			let text = 'Hello World';
+			<div>{text}</div>
+		}
 
-    render(Basic);
+		render(Basic);
 
-    expect(container).toMatchSnapshot();
-  });
+		expect(container).toMatchSnapshot();
+	});
 
-  it('render dynamic text', () => {
-    component Basic() {
-      let $text = 'Hello World';
+	it('render dynamic text', () => {
+		component Basic() {
+			let $text = 'Hello World';
+			<button onClick={() => $text = 'Hello Ripple'}>{'Change Text'}</button>
+			<div>{$text}</div>
+		}
 
-      <button onClick={() => $text = 'Hello Ripple'}>{"Change Text"}</button>
-      <div>{$text}</div>
-    }
+		render(Basic);
 
-    render(Basic);
+		const button = container.querySelector('button');
 
-    const button = container.querySelector('button');
-    
-    button.click();
-    flushSync();
+		button.click();
+		flushSync();
 
-    expect(container.querySelector('div').textContent).toEqual('Hello Ripple');
-  });
+		expect(container.querySelector('div').textContent).toEqual('Hello Ripple');
+	});
 
-  it('render dynamic class attribute', () => {
-    component Basic() {
-      let $active = false;
+	it('render dynamic class attribute', () => {
+		component Basic() {
+			let $active = false;
+			<button onClick={() => $active = !$active}>{'Toggle'}</button>
+			<div $class={$active ? 'active' : 'inactive'}>{'Dynamic Class'}</div>
+		}
 
-      <button onClick={() => $active = !$active}>{"Toggle"}</button>
+		render(Basic);
 
-      <div $class={$active ? 'active' : 'inactive'}>{"Dynamic Class"}</div>
-    }
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
 
-    render(Basic);
+		expect(div.className).toBe('inactive');
 
-    const button = container.querySelector('button');
-    const div = container.querySelector('div');
-    
-    expect(div.className).toBe('inactive');
-    
-    button.click();
-    flushSync();
-    
-    expect(div.className).toBe('active');
-    
-    button.click();
-    flushSync();
-    
-    expect(div.className).toBe('inactive');
-  });
+		button.click();
+		flushSync();
 
-  it('render dynamic id attribute', () => {
-    component Basic() {
-      let $count = 0;
+		expect(div.className).toBe('active');
 
-      <button onClick={() => $count++}>{"Increment"}</button>
-      <div $id={`item-${$count}`}>{"Dynamic ID"}</div>
-    }
+		button.click();
+		flushSync();
 
-    render(Basic);
+		expect(div.className).toBe('inactive');
+	});
 
-    const button = container.querySelector('button');
-    const div = container.querySelector('div');
-    
-    expect(div.id).toBe('item-0');
-    
-    button.click();
-    flushSync();
-    
-    expect(div.id).toBe('item-1');
-    
-    button.click();
-    flushSync();
-    
-    expect(div.id).toBe('item-2');
-  });
+	it('render dynamic id attribute', () => {
+		component Basic() {
+			let $count = 0;
+			<button onClick={() => $count++}>{'Increment'}</button>
+			<div $id={`item-${$count}`}>{'Dynamic ID'}</div>
+		}
 
-  it('render dynamic style attribute', () => {
-    component Basic() {
-      let $color = 'red';
+		render(Basic);
 
-      <button onClick={() => $color = $color === 'red' ? 'blue' : 'red'}>{"Change Color"}</button>
-      <div $style={`color: ${$color}; font-weight: bold;`}>{"Dynamic Style"}</div>
-    }
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
 
-    render(Basic);
+		expect(div.id).toBe('item-0');
 
-    const button = container.querySelector('button');
-    const div = container.querySelector('div');
-    
-    expect(div.style.color).toBe('red');
-    expect(div.style.fontWeight).toBe('bold');
-    
-    button.click();
-    flushSync();
-    
-    expect(div.style.color).toBe('blue');
-    expect(div.style.fontWeight).toBe('bold');
-  });
+		button.click();
+		flushSync();
 
-  it('render dynamic boolean attributes', () => {
-    component Basic() {
-      let $disabled = false;
-      let $checked = false;
+		expect(div.id).toBe('item-1');
 
-      <button onClick={() => { $disabled = !$disabled; $checked = !$checked; }}>{"Toggle"}</button>
-      <input type="checkbox" $disabled={$disabled} $checked={$checked} />
-    }
+		button.click();
+		flushSync();
 
-    render(Basic);
+		expect(div.id).toBe('item-2');
+	});
 
-    const button = container.querySelector('button');
-    const input = container.querySelector('input');
-    
-    expect(input.disabled).toBe(false);
-    expect(input.checked).toBe(false);
-    
-    button.click();
-    flushSync();
-    
-    expect(input.disabled).toBe(true);
-    expect(input.checked).toBe(true);
-  });
+	it('render dynamic style attribute', () => {
+		component Basic() {
+			let $color = 'red';
+			<button onClick={() => $color = $color === 'red' ? 'blue' : 'red'}>{'Change Color'}</button>
+			<div $style={`color: ${$color}; font-weight: bold;`}>{'Dynamic Style'}</div>
+		}
 
-  it('render multiple dynamic attributes', () => {
-    component Basic() {
-      let $theme = 'light';
-      let $size = 'medium';
+		render(Basic);
 
-      <button onClick={() => {
-        $theme = $theme === 'light' ? 'dark' : 'light';
-        $size = $size === 'medium' ? 'large' : 'medium';
-      }}>{"Toggle Theme & Size"}</button>
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
 
-      <div 
-        $class={`theme-${$theme} size-${$size}`}
-        $data-theme={$theme}
-        $data-size={$size}
-      >
-        {"Multiple Dynamic Attributes"}
-      </div>
-    }
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
 
-    render(Basic);
+		button.click();
+		flushSync();
 
-    const button = container.querySelector('button');
-    const div = container.querySelector('div');
-    
-    expect(div.className).toBe('theme-light size-medium');
-    expect(div.getAttribute('data-theme')).toBe('light');
-    expect(div.getAttribute('data-size')).toBe('medium');
-    
-    button.click();
-    flushSync();
-    
-    expect(div.className).toBe('theme-dark size-large');
-    expect(div.getAttribute('data-theme')).toBe('dark');
-    expect(div.getAttribute('data-size')).toBe('large');
-  });
+		expect(div.style.color).toBe('blue');
+		expect(div.style.fontWeight).toBe('bold');
+	});
 
-  it('render conditional attributes', () => {
-    component Basic() {
-      let $showTitle = false;
-      let $showAria = false;
+	it('render dynamic boolean attributes', () => {
+		component Basic() {
+			let $disabled = false;
+			let $checked = false;
+			<button onClick={() => {
+				$disabled = !$disabled;
+				$checked = !$checked;
+			}}>{'Toggle'}</button>
+			<input type='checkbox' $disabled={$disabled} $checked={$checked} />
+		}
 
-      <button onClick={() => { $showTitle = !$showTitle; $showAria = !$showAria; }}>{"Toggle Attributes"}</button>
+		render(Basic);
 
-      <div 
-        $title={$showTitle ? 'This is a title' : null}
-        $aria-label={$showAria ? 'Accessible label' : null}
-      >
-        {"Conditional Attributes"}
-      </div>
-    }
+		const button = container.querySelector('button');
+		const input = container.querySelector('input');
 
-    render(Basic);
+		expect(input.disabled).toBe(false);
+		expect(input.checked).toBe(false);
 
-    const button = container.querySelector('button');
-    const div = container.querySelector('div');
-    
-    expect(div.hasAttribute('title')).toBe(false);
-    expect(div.hasAttribute('aria-label')).toBe(false);
-    
-    button.click();
-    flushSync();
-    
-    expect(div.getAttribute('title')).toBe('This is a title');
-    expect(div.getAttribute('aria-label')).toBe('Accessible label');
-    
-    button.click();
-    flushSync();
-    
-    expect(div.hasAttribute('title')).toBe(false);
-    expect(div.hasAttribute('aria-label')).toBe(false);
-  });
+		button.click();
+		flushSync();
 
-  it('render spread attributes', () => {
-    component Basic() {
-      let $attrs = { class: 'initial', id: 'test-1' };
+		expect(input.disabled).toBe(true);
+		expect(input.checked).toBe(true);
+	});
 
-      <button onClick={() => {
-        $attrs = { class: 'updated', id: 'test-2', 'data-extra': 'value' };
-      }}>{"Update Attributes"}</button>
+	it('render multiple dynamic attributes', () => {
+		component Basic() {
+			let $theme = 'light';
+			let $size = 'medium';
+			<button
+				onClick={() => {
+				$theme = $theme === 'light' ? 'dark' : 'light';
+				$size = $size === 'medium' ? 'large' : 'medium';
+			}}
+			>{'Toggle Theme & Size'}</button>
+			<div $class={`theme-${$theme} size-${$size}`} $data-theme={$theme} $data-size={$size}>{'Multiple Dynamic Attributes'}</div>
+		}
 
-      <div {...$attrs}>{"Spread Attributes"}</div>
-    }
+		render(Basic);
 
-    render(Basic);
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
 
-    const button = container.querySelector('button');
-    const div = container.querySelector('div');
-    
-    expect(div.className).toBe('initial');
-    expect(div.id).toBe('test-1');
-    expect(div.hasAttribute('data-extra')).toBe(false);
-    
-    button.click();
-    flushSync();
-    
-    expect(div.className).toBe('updated');
-    expect(div.id).toBe('test-2');
-    expect(div.getAttribute('data-extra')).toBe('value');
-  });
+		expect(div.className).toBe('theme-light size-medium');
+		expect(div.getAttribute('data-theme')).toBe('light');
+		expect(div.getAttribute('data-size')).toBe('medium');
+
+		button.click();
+		flushSync();
+
+		expect(div.className).toBe('theme-dark size-large');
+		expect(div.getAttribute('data-theme')).toBe('dark');
+		expect(div.getAttribute('data-size')).toBe('large');
+	});
+
+	it('render conditional attributes', () => {
+		component Basic() {
+			let $showTitle = false;
+			let $showAria = false;
+			<button onClick={() => {
+				$showTitle = !$showTitle;
+				$showAria = !$showAria;
+			}}>{'Toggle Attributes'}</button>
+			<div
+				$title={$showTitle ? 'This is a title' : null}
+				$aria-label={$showAria ? 'Accessible label' : null}
+			>{'Conditional Attributes'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.hasAttribute('title')).toBe(false);
+		expect(div.hasAttribute('aria-label')).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(div.getAttribute('title')).toBe('This is a title');
+		expect(div.getAttribute('aria-label')).toBe('Accessible label');
+
+		button.click();
+		flushSync();
+
+		expect(div.hasAttribute('title')).toBe(false);
+		expect(div.hasAttribute('aria-label')).toBe(false);
+	});
+
+	it('render spread attributes', () => {
+		component Basic() {
+			let $attrs = {
+				class: 'initial',
+				id: 'test-1'
+			};
+			<button
+				onClick={() => {
+				$attrs = {
+					class: 'updated',
+					id: 'test-2',
+					'data-extra': 'value'
+				};
+			}}
+			>{'Update Attributes'}</button>
+			<div {...$attrs}>{'Spread Attributes'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.className).toBe('initial');
+		expect(div.id).toBe('test-1');
+		expect(div.hasAttribute('data-extra')).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(div.className).toBe('updated');
+		expect(div.id).toBe('test-2');
+		expect(div.getAttribute('data-extra')).toBe('value');
+	});
 });

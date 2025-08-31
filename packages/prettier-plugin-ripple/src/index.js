@@ -42,6 +42,32 @@ export const printers = {
 	},
 };
 
+// Helper function to format string literals according to Prettier options
+function formatStringLiteral(value, options) {
+	if (typeof value !== 'string') {
+		return JSON.stringify(value);
+	}
+	
+	const quote = options.singleQuote ? "'" : '"';
+	const escapedValue = value
+		.replace(/\\/g, '\\\\')
+		.replace(new RegExp(quote, 'g'), '\\' + quote)
+		.replace(/\n/g, '\\n')
+		.replace(/\r/g, '\\r')
+		.replace(/\t/g, '\\t');
+	
+	return quote + escapedValue + quote;
+}
+
+// Helper function to create indentation according to Prettier options
+function createIndent(options, level = 1) {
+	if (options.useTabs) {
+		return '\t'.repeat(level);
+	} else {
+		return ' '.repeat((options.tabWidth || 2) * level);
+	}
+}
+
 function printRippleNode(node, path, options, print) {
 	if (!node || typeof node !== 'object') {
 		return String(node || '');
@@ -198,7 +224,7 @@ function printRippleNode(node, path, options, print) {
 			return result;
 
 		case 'Literal':
-			return JSON.stringify(node.value);
+			return formatStringLiteral(node.value, options);
 
 		case 'ArrowFunctionExpression':
 			return printArrowFunction(node, path, options, print);
@@ -206,17 +232,23 @@ function printRippleNode(node, path, options, print) {
 		case 'BlockStatement':
 			const statements = path.map(print, 'body');
 			
-			// Add intelligent spacing between statements
+			// Preserve existing blank lines by checking source line differences
 			const spacedStatements = [];
 			for (let i = 0; i < statements.length; i++) {
 				spacedStatements.push(statements[i]);
 				
-				// Add blank lines between logical groups
+				// Add blank lines between logical groups OR preserve existing ones
 				if (i < statements.length - 1 && node.body && node.body[i] && node.body[i + 1]) {
 					const currentStmt = node.body[i];
 					const nextStmt = node.body[i + 1];
 					
-					if (shouldAddBlankLine(currentStmt, nextStmt)) {
+					// Check if there was originally a blank line between these statements
+					const currentEndLine = currentStmt.loc?.end?.line;
+					const nextStartLine = nextStmt.loc?.start?.line;
+					const hasOriginalBlankLine = nextStartLine && currentEndLine && (nextStartLine - currentEndLine > 1);
+					
+					// Preserve original blank lines OR add new ones based on logic
+					if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
 						spacedStatements.push('');
 					}
 				}
@@ -227,7 +259,7 @@ function printRippleNode(node, path, options, print) {
 				.split('\n')
 				.map((line) => {
 					if (line.trim() === '') return '';
-					return '  ' + line;
+					return createIndent(options) + line;
 				})
 				.join('\n');
 			return '{\n' + indentedStatements + '\n}';
@@ -341,7 +373,7 @@ function printImportDeclaration(node, path, options, print) {
 		result += ' from ';
 	}
 
-	result += JSON.stringify(node.source.value) + ';';
+	result += formatStringLiteral(node.source.value, options) + ';';
 	return result;
 }
 
@@ -361,7 +393,7 @@ function printExportNamedDeclaration(node, path, options, print) {
 		result += '{ ' + specifiers.join(', ') + ' }';
 
 		if (node.source) {
-			result += ' from ' + JSON.stringify(node.source.value);
+			result += ' from ' + formatStringLiteral(node.source.value, options);
 		}
 		result += ';';
 	}
@@ -394,7 +426,7 @@ function printComponent(node, path, options, print) {
 		.split('\n')
 		.map((line) => {
 			if (line.trim() === '') return '';
-			return '  ' + line;
+			return createIndent(options) + line;
 		})
 		.join('\n');
 	result += indentedBody;
@@ -487,7 +519,7 @@ function printJSXElement(node, path, options, print) {
 	}
 
 	return (
-		openingElement + '\n' + children.map((child) => '  ' + child).join('\n') + '\n' + closingElement
+		openingElement + '\n' + children.map((child) => createIndent(options) + child).join('\n') + '\n' + closingElement
 	);
 }
 
@@ -540,7 +572,19 @@ function printJSXOpeningElement(node, path, options, print) {
 			})
 			.filter((attr) => attr !== '');
 
-		result += ' ' + attrs.join(' ');
+		// Check if the line would be too long and needs wrapping
+		const singleLineResult = result + ' ' + attrs.join(' ') + '>';
+		
+		if (singleLineResult.length <= options.printWidth) {
+			// Single line fits within print width
+			result += ' ' + attrs.join(' ');
+		} else {
+			// Multi-line: each attribute on its own line
+			result += '\n' + attrs.map(attr => createIndent(options) + attr).join('\n');
+			if (!options.bracketSameLine) {
+				result += '\n';
+			}
+		}
 	}
 
 	result += '>';
@@ -552,7 +596,7 @@ function printJSXAttribute(node, path, options, print) {
 
 	if (node.value) {
 		if (node.value.type === 'Literal') {
-			result += '=' + JSON.stringify(node.value.value);
+			result += '=' + formatStringLiteral(node.value.value, options);
 		} else if (node.value.type === 'JSXExpressionContainer') {
 			result += '={' + node.value.expression.name + '}';
 		}
@@ -698,7 +742,7 @@ function printObjectExpression(node, path, options, print) {
 		.split('\n')
 		.map((line) => {
 			if (line.trim() === '') return '';
-			return '  ' + line;
+			return createIndent(options) + line;
 		})
 		.join('\n');
 
@@ -748,7 +792,7 @@ function printClassBody(node, path, options, print) {
 		.split('\n')
 		.map((line) => {
 			if (line.trim() === '') return '';
-			return '  ' + line;
+			return createIndent(options) + line;
 		})
 		.join('\n');
 
@@ -914,7 +958,7 @@ function printSwitchCase(node, path, options, print) {
 	if (node.consequent && node.consequent.length > 0) {
 		result += '\n';
 		for (let i = 0; i < node.consequent.length; i++) {
-			result += '  ' + path.call(print, 'consequent', i);
+			result += createIndent(options) + path.call(print, 'consequent', i);
 			if (i < node.consequent.length - 1) {
 				result += '\n';
 			}
@@ -1127,7 +1171,20 @@ function printElement(node, path, options, print) {
 				return attrPath.call(print);
 			}
 		}, 'attributes');
-		result += ' ' + attrs.join(' ');
+		
+		// Check if the line would be too long and needs wrapping
+		const singleLineResult = result + ' ' + attrs.join(' ') + (node.selfClosing || !node.children || node.children.length === 0 ? ' />' : '>');
+		
+		if (singleLineResult.length <= options.printWidth) {
+			// Single line fits within print width
+			result += ' ' + attrs.join(' ');
+		} else {
+			// Multi-line: each attribute on its own line
+			result += '\n' + attrs.map(attr => createIndent(options) + attr).join('\n');
+			if (!options.bracketSameLine) {
+				result += '\n';
+			}
+		}
 	}
 
 	if (node.selfClosing || !node.children || node.children.length === 0) {
@@ -1153,9 +1210,9 @@ function printElement(node, path, options, print) {
 				typeof child === 'string'
 					? child
 							.split('\n')
-							.map((line) => (line ? '  ' + line : line))
+							.map((line) => (line ? createIndent(options) + line : line))
 							.join('\n')
-					: '  ' + child,
+					: createIndent(options) + child,
 			);
 
 			// Add blank lines between logical groups
@@ -1184,7 +1241,7 @@ function printAttribute(node, path, options, print) {
 
 	if (node.value) {
 		if (node.value.type === 'Literal') {
-			result += '=' + JSON.stringify(node.value.value);
+			result += '=' + formatStringLiteral(node.value.value, options);
 		} else {
 			result += '={' + path.call(print, 'value') + '}';
 		}
