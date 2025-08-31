@@ -1,15 +1,4 @@
 
-
-component Button({$count}) {
-  <button onClick={() => { $count++; } }>{"child: "}{$count}</button>
-}
-
 export component App() {
-  <div>
-    let $count = 0;
 
-    <span>{"parent: "} {$count}</span>
-    <span>{" "}</span>
-    <Button {$count} />
-  </div>
 }
