@@ -1,24 +1,54 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { mount, flushSync } from 'ripple';
 
 describe('composite components', () => {
-  let container;
+	let container;
 
-  function render(component) {
-    mount(component, { target: container });
-  }
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
 
-  beforeEach(() => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-  });
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
 
-  afterEach(() => {
-    document.body.removeChild(container);
-    container = null;
-  });
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
 
-  it('renders composite components', () => {
-    // TODO: Implement test
-  });
+	it('renders composite components with object state', () => {
+		component Button({ obj }) {
+			<button class='count2' onClick={() => {
+				obj.$count++;
+			}}>{obj.$count}</button>
+		}
+
+		component App() {
+			<div>
+				let obj = {
+					$count: 0
+				};
+				let $button = true;
+
+				<span class='count'>{obj.$count}</span>
+				<span>{' '}</span>
+				<Button obj={obj} />
+			</div>
+		}
+
+		render(App);
+
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('.count').textContent).toBe('1');
+		expect(container.querySelector('.count2').textContent).toBe('1');
+	});
 });
