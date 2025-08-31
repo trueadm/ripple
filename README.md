@@ -354,7 +354,8 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 
 Ripple provides a consistent way to capture the underlying DOM element – element hooks. Specifically, using
 the syntax `{@use fn}` where `fn` is a function that captures the DOM element. If you're familiar with other frameworks, then
-this identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React.
+this identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React. The hook function will receive
+the reference to the underlying DOM element.
 
 ```ripple
 component App() {
