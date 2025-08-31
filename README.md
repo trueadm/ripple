@@ -350,6 +350,62 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 
 > Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
 
+### Element Hooks
+
+Ripple provides a consistent way to capture the underlying DOM element – element hooks. Specifically, using
+the syntax `{@use fn}` where `fn` is a function that captures the DOM element. If you're familiar with other frameworks, then
+this identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React.
+
+```ripple
+component App() {
+  let $node;
+
+  const ref = (node) => {
+    $node = node;
+    console.log('mounted', node);
+
+    return () => {
+      $node = undefined;
+      console.log('unmounted', node);
+    }
+  };
+
+  <div {@use ref}>{"Hello world"}</div>
+}
+```
+
+You can also create `{@use}` functions inline.
+
+```ripple
+component App() {
+  let $node;
+
+  <div {@use (node) => {
+    $node = node;
+    return () => $node = null;
+  }}>{"Hello world"}</div>
+}
+```
+
+You can also use function factories to define properties, these are functions that return functions that do the same
+thing. However, you can use this pattern to pass reactive properties.
+
+```ripple
+import { fadeIn } from 'some-library';
+
+component App({ $ms }) {
+  <div {@use fadeIn({ $ms })}>{"Hello world"}</div>
+}
+```
+
+Lastly, you can use element hooks on composite components.
+
+```ripple
+<Image {@use (node) => console.log(node)} {...props} />
+```
+
+When passing element hooks to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that can be spread to HTML template elements later on, and still work.
+
 ### Styling
 
 Ripple supports native CSS styling that is localized to the given component using the `<style>` element.
