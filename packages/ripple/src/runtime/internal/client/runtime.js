@@ -766,6 +766,10 @@ export function increment(tracked, block) {
 	set(tracked, tracked.v + 1, block);
 }
 
+export function decrement(tracked, block) {
+	set(tracked, tracked.v - 1, block);
+}
+
 export function update_pre(tracked, block, d = 1) {
 	var value = get(tracked);
 
@@ -783,7 +787,12 @@ export function update_property(obj, property, block, d = 1) {
 	var value = get(tracked);
 	var result = d === 1 ? value++ : value--;
 
-	increment(tracked, block);
+	if (d === 1) {
+		increment(tracked, block);
+	} else {
+		decrement(tracked, block);
+	}
+
 	return result;
 }
 
@@ -798,7 +807,12 @@ export function update_pre_property(obj, property, block, d = 1) {
 	var value = get(tracked);
 	var result = d === 1 ? ++value : --value;
 
-	increment(tracked, block);
+	if (d === 1) {
+		increment(tracked, block);
+	} else {
+		decrement(tracked, block);
+	}
+
 	return result;
 }
 
