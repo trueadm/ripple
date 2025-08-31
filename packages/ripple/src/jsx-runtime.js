@@ -13,26 +13,26 @@
  * @returns {void} Ripple components don't return anything
  */
 export function jsx(type, props, key) {
-  // Ripple components are imperative - they don't return JSX elements
-  // This is a placeholder for the actual Ripple rendering logic
-  if (typeof type === 'function') {
-    // Call the Ripple component function
-    type(props);
-  } else {
-    // Handle DOM elements
-    console.warn('DOM element rendering not implemented in jsx runtime:', type, props);
-  }
+	// Ripple components are imperative - they don't return JSX elements
+	// This is a placeholder for the actual Ripple rendering logic
+	if (typeof type === 'function') {
+		// Call the Ripple component function
+		type(props);
+	} else {
+		// Handle DOM elements
+		console.warn('DOM element rendering not implemented in jsx runtime:', type, props);
+	}
 }
 
 /**
  * Create a JSX element with static children (optimization for multiple children)
- * @param {string | Function} type - Element type (tag name or component function) 
+ * @param {string | Function} type - Element type (tag name or component function)
  * @param {object} props - Element properties
  * @param {string} key - Element key (optional)
  * @returns {void} Ripple components don't return anything
  */
 export function jsxs(type, props, key) {
-  return jsx(type, props, key);
+	return jsx(type, props, key);
 }
 
 /**
@@ -41,6 +41,6 @@ export function jsxs(type, props, key) {
  * @returns {void} Ripple fragments don't return anything
  */
 export function Fragment(props) {
-  // Ripple fragments are imperative
-  console.warn('Fragment rendering not implemented in jsx runtime:', props);
+	// Ripple fragments are imperative
+	console.warn('Fragment rendering not implemented in jsx runtime:', props);
 }

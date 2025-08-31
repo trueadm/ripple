@@ -7,7 +7,7 @@
   "type": "module",
   "module": "src/runtime/index.js",
   "main": "src/runtime/index.js",
-    "repository": {
+  "repository": {
     "type": "git",
     "url": "git+https://github.com/trueadm/ripple.git",
     "directory": "packages/ripple"

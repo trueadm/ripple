@@ -30,7 +30,7 @@ const introspect_methods = [
 	'toString',
 	symbol_iterator,
 	'values',
-	'with'
+	'with',
 ];
 
 let init = false;
@@ -172,25 +172,25 @@ class RippleArray extends Array {
 		return get(this.#tracked_index);
 	}
 
-    set $length(length) {
-        var block = scope();
-        var tracked_elements = this.#tracked_elements;
+	set $length(length) {
+		var block = scope();
+		var tracked_elements = this.#tracked_elements;
 
-        if (length !== this.$length) {
-            for (var i = 0; i < tracked_elements.length; i++) {
-                increment(tracked_elements[i], block);
-            }
-            this.length = length;
-            tracked_elements.length = length;
+		if (length !== this.$length) {
+			for (var i = 0; i < tracked_elements.length; i++) {
+				increment(tracked_elements[i], block);
+			}
+			this.length = length;
+			tracked_elements.length = length;
 
-            return true;
-        }
+			return true;
+		}
 		return false;
 	}
 
-    set length(_) {
-        throw new Error('Cannot set length on RippleArray, use $length instead');
-    }
+	set length(_) {
+		throw new Error('Cannot set length on RippleArray, use $length instead');
+	}
 
 	toJSON() {
 		this.$length;

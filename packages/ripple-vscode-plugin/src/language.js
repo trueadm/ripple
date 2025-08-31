@@ -23,13 +23,13 @@ function getRippleLanguagePlugin(ripple) {
 						return {
 							code,
 							extension: '.ts',
-							scriptKind: 4
+							scriptKind: 4,
 						};
 					}
 				}
 				return null;
-			}
-		}
+			},
+		},
 	};
 }
 
@@ -68,7 +68,7 @@ class RippleVirtualCode {
 			this.snapshot = {
 				getText: (start, end) => this.generatedCode.substring(start, end),
 				getLength: () => this.generatedCode.length,
-				getChangeRange: () => undefined
+				getChangeRange: () => undefined,
 			};
 		} else {
 			// When compilation fails, use the original code as-is
@@ -83,15 +83,15 @@ class RippleVirtualCode {
 					generatedOffsets: [0],
 					lengths: [this.originalCode.length],
 					data: {
-						verification: true
-					}
-				}
+						verification: true,
+					},
+				},
 			];
 
 			this.snapshot = {
 				getText: (start, end) => this.generatedCode.substring(start, end),
 				getLength: () => this.generatedCode.length,
-				getChangeRange: () => undefined
+				getChangeRange: () => undefined,
 			};
 		}
 	}
@@ -113,8 +113,8 @@ function createRippleDiagnosticPlugin() {
 		capabilities: {
 			diagnosticProvider: {
 				interFileDependencies: false,
-				workspaceDiagnostics: false
-			}
+				workspaceDiagnostics: false,
+			},
 		},
 		create(context) {
 			return {
@@ -130,13 +130,13 @@ function createRippleDiagnosticPlugin() {
 							// Use the actual snapshot text that Volar is working with
 							const snapshotText = virtualCode.snapshot.getText(
 								0,
-								virtualCode.snapshot.getLength()
+								virtualCode.snapshot.getLength(),
 							);
 							const diagnostic = parseCompilationErrorWithDocument(
 								error,
 								virtualCode.fileName,
 								snapshotText,
-								document
+								document,
 							);
 							diagnostics.push(diagnostic);
 						}
@@ -144,9 +144,9 @@ function createRippleDiagnosticPlugin() {
 					}
 
 					return [];
-				}
+				},
 			};
-		}
+		},
 	};
 }
 
@@ -175,11 +175,11 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 			severity: 1, // DiagnosticSeverity.Error
 			range: {
 				start: { line: zeroBasedStartLine, character: zeroBasedStartColumn },
-				end: { line: zeroBasedEndLine, character: zeroBasedEndColumn }
+				end: { line: zeroBasedEndLine, character: zeroBasedEndColumn },
 			},
 			message: message.replace(/\s*\([^#]+#L\d+C\d+-L\d+C\d+\)/, '').trim(), // Remove the range part from message
 			source: 'Ripple',
-			code: 'ripple-compile-error'
+			code: 'ripple-compile-error',
 		};
 	}
 
@@ -209,11 +209,11 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 			severity: 1, // DiagnosticSeverity.Error
 			range: {
 				start: { line: zeroBasedLine, character: actualColumn },
-				end: { line: zeroBasedLine, character: actualColumn + length }
+				end: { line: zeroBasedLine, character: actualColumn + length },
 			},
 			message: cleanMessage,
 			source: 'Ripple',
-			code: 'ripple-compile-error'
+			code: 'ripple-compile-error',
 		};
 	} else {
 		// Fallback for errors without location information
@@ -224,11 +224,11 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 			severity: 1, // DiagnosticSeverity.Error
 			range: {
 				start: startPosition,
-				end: endPosition
+				end: endPosition,
 			},
 			message: `Ripple compilation error: ${message}`,
 			source: 'Ripple',
-			code: 'ripple-compile-error'
+			code: 'ripple-compile-error',
 		};
 	}
 }
@@ -254,12 +254,12 @@ function getEmbeddedInfo(context, document) {
 
 	return {
 		sourceScript: sourceScript,
-		virtualCode
+		virtualCode,
 	};
 }
 
 module.exports = {
 	getRippleLanguagePlugin,
 	createRippleDiagnosticPlugin,
-	RippleVirtualCode
+	RippleVirtualCode,
 };

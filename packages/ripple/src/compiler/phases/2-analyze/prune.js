@@ -7,17 +7,17 @@ const BACKWARD = 1;
 
 // CSS selector constants
 const descendant_combinator = { name: ' ', type: 'Combinator' };
-const nesting_selector = { 
-	type: 'NestingSelector', 
+const nesting_selector = {
+	type: 'NestingSelector',
 	name: '&',
 	selectors: [],
-	metadata: { scoped: false }
+	metadata: { scoped: false },
 };
 const any_selector = {
 	type: 'RelativeSelector',
 	selectors: [{ type: 'TypeSelector', name: '*' }],
 	combinator: null,
-	metadata: { scoped: false }
+	metadata: { scoped: false },
 };
 
 // Whitelist for attribute selectors on specific elements
@@ -27,15 +27,48 @@ const whitelist_attribute_selector = new Map([
 	['form', ['novalidate']],
 	['iframe', ['allow', 'allowfullscreen', 'allowpaymentrequest', 'loading', 'referrerpolicy']],
 	['img', ['loading']],
-	['input', ['accept', 'autocomplete', 'capture', 'checked', 'disabled', 'max', 'maxlength', 'min', 'minlength', 'multiple', 'pattern', 'placeholder', 'readonly', 'required', 'size', 'step']],
+	[
+		'input',
+		[
+			'accept',
+			'autocomplete',
+			'capture',
+			'checked',
+			'disabled',
+			'max',
+			'maxlength',
+			'min',
+			'minlength',
+			'multiple',
+			'pattern',
+			'placeholder',
+			'readonly',
+			'required',
+			'size',
+			'step',
+		],
+	],
 	['object', ['typemustmatch']],
 	['ol', ['reversed', 'start', 'type']],
 	['optgroup', ['disabled']],
 	['option', ['disabled', 'selected']],
 	['script', ['async', 'defer', 'nomodule', 'type']],
 	['select', ['disabled', 'multiple', 'required', 'size']],
-	['textarea', ['autocomplete', 'disabled', 'maxlength', 'minlength', 'placeholder', 'readonly', 'required', 'rows', 'wrap']],
-	['video', ['autoplay', 'controls', 'loop', 'muted', 'playsinline']]
+	[
+		'textarea',
+		[
+			'autocomplete',
+			'disabled',
+			'maxlength',
+			'minlength',
+			'placeholder',
+			'readonly',
+			'required',
+			'rows',
+			'wrap',
+		],
+	],
+	['video', ['autoplay', 'controls', 'loop', 'muted', 'playsinline']],
 ]);
 
 function get_relative_selectors(node) {
@@ -50,7 +83,7 @@ function get_relative_selectors(node) {
 				// @ts-ignore
 				NestingSelector() {
 					has_explicit_nesting_selector = true;
-				}
+				},
 			});
 
 			// if we found one we can break from the others
@@ -61,7 +94,7 @@ function get_relative_selectors(node) {
 			if (selectors[0].combinator === null) {
 				selectors[0] = {
 					...selectors[0],
-					combinator: descendant_combinator
+					combinator: descendant_combinator,
 				};
 			}
 
@@ -92,7 +125,9 @@ function truncate(node) {
 
 		return {
 			...child,
-			selectors: child.selectors.filter((s) => s.type === 'PseudoClassSelector' && s.name === 'has')
+			selectors: child.selectors.filter(
+				(s) => s.type === 'PseudoClassSelector' && s.name === 'has',
+			),
 		};
 	});
 }
@@ -184,7 +219,7 @@ function get_descendant_elements(node, adjacent_only) {
 function get_possible_element_siblings(node, direction, adjacent_only) {
 	const siblings = new Map();
 	const parent = get_element_parent(node);
-	
+
 	if (!parent) {
 		return siblings;
 	}
@@ -210,7 +245,7 @@ function get_possible_element_siblings(node, direction, adjacent_only) {
 	// Collect siblings
 	for (let i = start; i !== end; i += step) {
 		const sibling = container[i];
-		
+
 		if (sibling.type === 'Element' || sibling.type === 'Component') {
 			siblings.set(sibling, true);
 			if (adjacent_only) break; // Only immediate sibling for '+' combinator
@@ -326,7 +361,7 @@ function is_global(selector, rule) {
 
 		const has_global_selectors = selector_list?.children.some((complex_selector) => {
 			return complex_selector.children.every((relative_selector) =>
-				is_global(relative_selector, owner)
+				is_global(relative_selector, owner),
 			);
 		});
 
@@ -395,7 +430,7 @@ function is_outer_global(relative_selector) {
 			// :global(button).x means that the selector is still scoped because of the .x
 			relative_selector.selectors.every(
 				(selector) =>
-					selector.type === 'PseudoClassSelector' || selector.type === 'PseudoElementSelector'
+					selector.type === 'PseudoClassSelector' || selector.type === 'PseudoElementSelector',
 			))
 	);
 }
@@ -427,9 +462,9 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 					r.selectors.some(
 						(s) =>
 							s.type === 'PseudoClassSelector' &&
-							(s.name === 'root' || (s.name === 'global' && s.args))
-					)
-				)
+							(s.name === 'root' || (s.name === 'global' && s.args)),
+					),
+				),
 			);
 
 		// :has(...) is special in that it means "look downwards in the CSS tree". Since our matching algorithm goes
@@ -452,7 +487,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 				if (include_self) {
 					const selector_including_self = [
 						first.combinator ? { ...first, combinator: null } : first,
-						...rest
+						...rest,
 					];
 					if (apply_selector(selector_including_self, rule, element, FORWARD)) {
 						complex_selector.metadata.used = true;
@@ -463,7 +498,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 				const selector_excluding_self = [
 					any_selector,
 					first.combinator ? first : { ...first, combinator: descendant_combinator },
-					...rest
+					...rest,
 				];
 				if (apply_selector(selector_excluding_self, rule, element, FORWARD)) {
 					complex_selector.metadata.used = true;
@@ -508,7 +543,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 							ComplexSelector(node, context) {
 								node.metadata.used = true;
 								context.next();
-							}
+							},
 						});
 						const relative = truncate(complex_selector);
 
@@ -577,7 +612,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 						selector.name,
 						selector.value && unquote(selector.value),
 						selector.matcher,
-						selector.flags?.includes('i') ?? false
+						selector.flags?.includes('i') ?? false,
 					)
 				) {
 					return false;
@@ -643,8 +678,10 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 
 // Utility functions for parsing CSS values
 function unquote(str) {
-	if ((str[0] === '"' && str[str.length - 1] === '"') || 
-		(str[0] === "'" && str[str.length - 1] === "'")) {
+	if (
+		(str[0] === '"' && str[str.length - 1] === '"') ||
+		(str[0] === "'" && str[str.length - 1] === "'")
+	) {
 		return str.slice(1, -1);
 	}
 	return str;
@@ -653,12 +690,12 @@ function unquote(str) {
 function get_parent_rules(rule) {
 	const rules = [rule];
 	let current = rule;
-	
+
 	while (current.metadata.parent_rule) {
 		current = current.metadata.parent_rule;
 		rules.unshift(current);
 	}
-	
+
 	return rules;
 }
 
@@ -681,7 +718,7 @@ export function prune_css(css, element) {
 					selectors,
 					/** @type {Compiler.AST.CSS.Rule} */ (node.metadata.rule),
 					element,
-					BACKWARD
+					BACKWARD,
 				)
 			) {
 				node.metadata.used = true;
@@ -690,6 +727,6 @@ export function prune_css(css, element) {
 			// note: we don't call context.next() here, we only recurse into
 			// selectors that don't belong to rules (i.e. inside `:is(...)` etc)
 			// when we encounter them below
-		}
+		},
 	});
 }

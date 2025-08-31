@@ -10,7 +10,7 @@ import {
 	set_active_component,
 	set_active_reaction,
 	set_tracking,
-	tracking
+	tracking,
 } from './runtime';
 
 export function try_block(node, fn, catch_fn, pending_fn = null) {
@@ -74,7 +74,7 @@ export function try_block(node, fn, catch_fn, pending_fn = null) {
 
 	var state = {
 		a: pending_fn !== null ? handle_await : null,
-		c: catch_fn !== null ? handle_error : null
+		c: catch_fn !== null ? handle_error : null,
 	};
 
 	create_try_block(() => {

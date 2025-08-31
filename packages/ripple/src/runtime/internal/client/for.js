@@ -42,8 +42,8 @@ export function for_block(node, get_collection, render_fn, flags) {
 		var array = is_array(collection)
 			? collection
 			: collection == null
-			? []
-			: array_from(collection);
+				? []
+				: array_from(collection);
 
 		if (array[TRACKED_OBJECT] !== undefined) {
 			// TODO we previously assigned array to this, but why?
@@ -71,7 +71,7 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
 	if (state === null) {
 		state = block.s = {
 			array: [],
-			blocks: []
+			blocks: [],
 		};
 	}
 
@@ -365,8 +365,8 @@ export function keyed(collection, key_fn) {
 	var b_array = is_array(collection)
 		? collection
 		: collection == null
-		? []
-		: array_from(collection);
+			? []
+			: array_from(collection);
 	var b_keys = b_array.map(key_fn);
 
 	// We only need to do this in DEV

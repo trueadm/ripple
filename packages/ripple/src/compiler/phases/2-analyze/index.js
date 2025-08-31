@@ -6,7 +6,7 @@ import {
 	is_event_attribute,
 	is_inside_component,
 	is_svelte_import,
-	is_tracked_name
+	is_tracked_name,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
 import is_reference from 'is-reference';
@@ -18,7 +18,7 @@ function visit_function(node, context) {
 		hoisted: false,
 		hoisted_params: [],
 		scope: context.state.scope,
-		tracked: false
+		tracked: false,
 	};
 
 	if (node.params.length > 0) {
@@ -37,7 +37,7 @@ function visit_function(node, context) {
 						binding.kind = 'prop';
 
 						binding.transform = {
-							read: (_) => b.call('$.get_property', b.id(id), b.literal(name))
+							read: (_) => b.call('$.get_property', b.id(id), b.literal(name)),
 						};
 					}
 				}
@@ -48,7 +48,7 @@ function visit_function(node, context) {
 	context.next({
 		...context.state,
 		function_depth: context.state.function_depth + 1,
-		expression: null
+		expression: null,
 	});
 }
 
@@ -192,9 +192,9 @@ const visitors = {
 								node.prefix ? '$.update_pre' : '$.update',
 								node.argument,
 								b.id('__block'),
-								node.operator === '--' && b.literal(-1)
+								node.operator === '--' && b.literal(-1),
 							);
-						}
+						},
 					};
 				} else {
 					visit(declarator, state);
@@ -202,7 +202,7 @@ const visitors = {
 			} else {
 				const paths = extract_paths(declarator.id);
 				const has_tracked = paths.some(
-					(path) => path.node.type === 'Identifier' && is_tracked_name(path.node.name)
+					(path) => path.node.type === 'Identifier' && is_tracked_name(path.node.name),
 				);
 
 				if (has_tracked) {
@@ -234,7 +234,7 @@ const visitors = {
 											b.call('$.get_computed', value.object),
 											value.property.type === 'Identifier'
 												? b.literal(value.property.name)
-												: value.property
+												: value.property,
 										);
 									}
 
@@ -246,7 +246,7 @@ const visitors = {
 									return b.member(
 										b.call('$.get_computed', value.object),
 										key,
-										key.type === 'Literal'
+										key.type === 'Literal',
 									);
 								}
 
@@ -256,12 +256,12 @@ const visitors = {
 										value.object,
 										value.property.type === 'Identifier'
 											? b.literal(value.property.name)
-											: value.property
+											: value.property,
 									);
 								}
 
 								return value;
-							}
+							},
 						};
 					}
 				} else {
@@ -300,7 +300,7 @@ const visitors = {
 						binding.kind = 'prop';
 
 						binding.transform = {
-							read: (_) => b.call('$.get_property', b.id('__props'), b.literal(name))
+							read: (_) => b.call('$.get_property', b.id('__props'), b.literal(name)),
 						};
 					}
 				}
@@ -324,7 +324,7 @@ const visitors = {
 			error(
 				'For loops are not supported in components. Use for...of instead.',
 				context.state.analysis.module.filename,
-				node
+				node,
 			);
 		}
 
@@ -336,7 +336,7 @@ const visitors = {
 			error(
 				'For...in loops are not supported in components. Use for...of instead.',
 				context.state.analysis.module.filename,
-				node
+				node,
 			);
 		}
 
@@ -348,7 +348,7 @@ const visitors = {
 			error(
 				'Elements cannot be used as generic expressions, only as statements within a component',
 				context.state.analysis.module.filename,
-				node
+				node,
 			);
 		}
 	},
@@ -411,7 +411,7 @@ const visitors = {
 							error(
 								'Cannot have both implicit and explicit children',
 								context.state.analysis.module.filename,
-								node
+								node,
 							);
 						}
 					}
@@ -421,7 +421,7 @@ const visitors = {
 						error(
 							'Cannot have both implicit and explicit children',
 							context.state.analysis.module.filename,
-							node
+							node,
 						);
 					}
 				}
@@ -436,13 +436,13 @@ const visitors = {
 					error(
 						'Cannot have a `children` prop on an element',
 						state.analysis.module.filename,
-						attribute
+						attribute,
 					);
 				} else {
 					error(
 						'Cannot have a `children` prop on a component, did you mean `$children`?',
 						state.analysis.module.filename,
-						attribute
+						attribute,
 					);
 				}
 			}
@@ -453,7 +453,7 @@ const visitors = {
 						error(
 							`Cannot have both ${name} and ${name.slice(1)} on the same element`,
 							state.analysis.module.filename,
-							n
+							n,
 						);
 					}
 				});
@@ -462,7 +462,7 @@ const visitors = {
 
 		return {
 			...node,
-			children: node.children.map((child) => visit(child))
+			children: node.children.map((child) => visit(child)),
 		};
 	},
 
@@ -474,7 +474,7 @@ const visitors = {
 		}
 
 		context.next();
-	}
+	},
 };
 
 export function analyze(ast, filename) {
@@ -486,7 +486,7 @@ export function analyze(ast, filename) {
 		module: { ast, scope, scopes, filename },
 		ast,
 		scope,
-		scopes
+		scopes,
 	};
 
 	walk(
@@ -494,9 +494,9 @@ export function analyze(ast, filename) {
 		{
 			scope,
 			scopes,
-			analysis
+			analysis,
 		},
-		visitors
+		visitors,
 	);
 
 	return analysis;

@@ -64,7 +64,7 @@ export function extract_paths(param) {
 		param,
 		(node) => /** @type {ESTree.Identifier | ESTree.MemberExpression} */ (node),
 		(node) => /** @type {ESTree.Identifier | ESTree.MemberExpression} */ (node),
-		false
+		false,
 	);
 }
 
@@ -77,7 +77,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 				is_rest: false,
 				has_default_value,
 				expression,
-				update_expression
+				update_expression,
 			});
 			break;
 
@@ -110,7 +110,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 							is_rest: true,
 							has_default_value,
 							expression: rest_expression,
-							update_expression: rest_expression
+							update_expression: rest_expression,
 						});
 					} else {
 						_extract_paths(
@@ -118,7 +118,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 							prop.argument,
 							rest_expression,
 							rest_expression,
-							has_default_value
+							has_default_value,
 						);
 					}
 				} else {
@@ -130,7 +130,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 						prop.value,
 						object_expression,
 						object_expression,
-						has_default_value
+						has_default_value,
 					);
 				}
 			}
@@ -151,7 +151,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 								is_rest: true,
 								has_default_value,
 								expression: rest_expression,
-								update_expression: rest_expression
+								update_expression: rest_expression,
 							});
 						} else {
 							_extract_paths(
@@ -159,7 +159,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 								element.argument,
 								rest_expression,
 								rest_expression,
-								has_default_value
+								has_default_value,
 							);
 						}
 					} else {
@@ -170,7 +170,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 							element,
 							array_expression,
 							array_expression,
-							has_default_value
+							has_default_value,
 						);
 					}
 				}
@@ -188,7 +188,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 					is_rest: false,
 					has_default_value: true,
 					expression: fallback_expression,
-					update_expression
+					update_expression,
 				});
 			} else {
 				_extract_paths(assignments, param.left, fallback_expression, update_expression, true);

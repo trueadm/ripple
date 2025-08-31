@@ -1,33 +1,29 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync } from 'ripple';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
-describe('@use element decorators', () => {
+import { mount, flushSync } from "ripple";
+
+describe("@use element decorators", () => {
   let container;
-
   function render(component) {
-    mount(component, { target: container });
+    mount(component, {
+      target: container
+    });
   }
-
   beforeEach(() => {
-    container = document.createElement('div');
+    /* Unknown: AssignmentExpression */;
     document.body.appendChild(container);
   });
-
   afterEach(() => {
     document.body.removeChild(container);
-    container = null;
+    /* Unknown: AssignmentExpression */;
   });
-
-  it('capture a <div>', () => {
+  it("capture a <div>", () => {
     let div;
-    
     component Component() {
-      <div {@use (node) => { div = node; }}>{"Hello World"}</div>
+      <div {@use undefined}>{"Hello World"}</div>
     }
-
     render(Component);
     flushSync();
-
-    expect(div.textContent).toBe('Hello World');
+    expect(div.textContent).toBe("Hello World");
   });
 });

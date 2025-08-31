@@ -2,7 +2,7 @@ const {
 	createConnection,
 	createServer,
 	createTypeScriptProject,
-	loadTsdkByPath
+	loadTsdkByPath,
 } = require('@volar/language-server/node');
 const { createTypeScriptPlugins } = require('./ts.js');
 const { getRippleLanguagePlugin, createRippleDiagnosticPlugin } = require('./language.js');
@@ -20,7 +20,7 @@ connection.onInitialize(async (params) => {
 
 	if (!tsdk) {
 		throw new Error(
-			'The `typescript.tsdk` init option is required. It should point to a directory containing a `typescript.js` or `tsserverlibrary.js` file, such as `node_modules/typescript/lib`.'
+			'The `typescript.tsdk` init option is required. It should point to a directory containing a `typescript.js` or `tsserverlibrary.js` file, such as `node_modules/typescript/lib`.',
 		);
 	}
 
@@ -35,10 +35,10 @@ connection.onInitialize(async (params) => {
 				languagePlugins: [getRippleLanguagePlugin(ripple)],
 				setup({ project }) {
 					const { languageServiceHost, configFileName } = project.typescript;
-				}
+				},
 			};
 		}),
-		[...createTypeScriptPlugins(typescript), createRippleDiagnosticPlugin()]
+		[...createTypeScriptPlugins(typescript), createRippleDiagnosticPlugin()],
 	);
 });
 

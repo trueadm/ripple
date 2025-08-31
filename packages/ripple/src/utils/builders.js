@@ -40,7 +40,7 @@ export function arrow(params, body, async = false) {
 		expression: body.type !== 'BlockStatement',
 		generator: false,
 		async,
-		metadata: /** @type {any} */ (null) // should not be used by codegen
+		metadata: /** @type {any} */ (null), // should not be used by codegen
 	};
 }
 
@@ -126,7 +126,7 @@ export function call(callee, ...args) {
 		type: 'CallExpression',
 		callee,
 		arguments: /** @type {Array<ESTree.Expression | ESTree.SpreadElement>} */ (args),
-		optional: false
+		optional: false,
 	};
 }
 
@@ -141,7 +141,7 @@ export function maybe_call(callee, ...args) {
 
 	return {
 		type: 'ChainExpression',
-		expression
+		expression,
 	};
 }
 
@@ -183,7 +183,7 @@ export function declaration(kind, declarations) {
 	return {
 		type: 'VariableDeclaration',
 		kind,
-		declarations
+		declarations,
 	};
 }
 
@@ -199,7 +199,7 @@ export function declarator(pattern, init) {
 
 /** @type {ESTree.EmptyStatement} */
 export const empty = {
-	type: 'EmptyStatement'
+	type: 'EmptyStatement',
 };
 
 /**
@@ -224,7 +224,7 @@ export function function_declaration(id, params, body) {
 		body,
 		generator: false,
 		async: false,
-		metadata: /** @type {any} */ (null) // should not be used by codegen
+		metadata: /** @type {any} */ (null), // should not be used by codegen
 	};
 }
 
@@ -260,7 +260,7 @@ export function private_id(name) {
 function import_namespace(local) {
 	return {
 		type: 'ImportNamespaceSpecifier',
-		local: id(local)
+		local: id(local),
 	};
 }
 
@@ -458,7 +458,7 @@ function new_builder(expression, ...args) {
 	return {
 		callee: expression,
 		arguments: args,
-		type: 'NewExpression'
+		type: 'NewExpression',
 	};
 }
 
@@ -487,12 +487,12 @@ const null_instane = literal(null);
 
 /** @type {ESTree.DebuggerStatement} */
 const debugger_builder = {
-	type: 'DebuggerStatement'
+	type: 'DebuggerStatement',
 };
 
 /** @type {ESTree.ThisExpression} */
 const this_instance = {
-	type: 'ThisExpression'
+	type: 'ThisExpression',
 };
 
 /**
@@ -562,7 +562,7 @@ export function method(kind, key, params, body, computed = false, is_static = fa
 		kind,
 		value: function_builder(null, params, block(body)),
 		computed,
-		static: is_static
+		static: is_static,
 	};
 }
 
@@ -581,7 +581,7 @@ function function_builder(id, params, body) {
 		body,
 		generator: false,
 		async: false,
-		metadata: /** @type {any} */ (null) // should not be used by codegen
+		metadata: /** @type {any} */ (null), // should not be used by codegen
 	};
 }
 
@@ -604,7 +604,7 @@ export function import_all(as, source) {
 	return {
 		type: 'ImportDeclaration',
 		source: literal(source),
-		specifiers: [import_namespace(as)]
+		specifiers: [import_namespace(as)],
 	};
 }
 
@@ -620,8 +620,8 @@ export function imports(parts, source) {
 		specifiers: parts.map((p) => ({
 			type: 'ImportSpecifier',
 			imported: id(p[0]),
-			local: id(p[1])
-		}))
+			local: id(p[1]),
+		})),
 	};
 }
 
@@ -640,10 +640,9 @@ function return_builder(argument = null) {
 export function throw_error(str) {
 	return {
 		type: 'ThrowStatement',
-		argument: new_builder('Error', literal(str))
+		argument: new_builder('Error', literal(str)),
 	};
 }
-
 
 /**
  * @param {string} name
@@ -662,7 +661,7 @@ export function jsx_attribute(name, value = null) {
 	return {
 		type: 'JSXAttribute',
 		name,
-		value
+		value,
 	};
 }
 
@@ -673,22 +672,30 @@ export function jsx_attribute(name, value = null) {
  * @param {boolean} self_closing
  * @returns {{ element: ESTree.JSXElement, opening_element: ESTree.JSXOpeningElement }}
  */
-export function jsx_element(name, attributes = [], children = [], self_closing = false, closing_name = name) {
+export function jsx_element(
+	name,
+	attributes = [],
+	children = [],
+	self_closing = false,
+	closing_name = name,
+) {
 	const opening_element = {
 		type: 'JSXOpeningElement',
 		name,
 		attributes,
-		selfClosing: self_closing
+		selfClosing: self_closing,
 	};
 
 	const element = {
 		type: 'JSXElement',
 		openingElement: opening_element,
-		closingElement: self_closing ? null : {
-			type: 'JSXClosingElement',
-			name: closing_name
-		},
-		children
+		closingElement: self_closing
+			? null
+			: {
+					type: 'JSXClosingElement',
+					name: closing_name,
+				},
+		children,
 	};
 
 	return element;
@@ -701,7 +708,7 @@ export function jsx_element(name, attributes = [], children = [], self_closing =
 export function jsx_expression_container(expression) {
 	return {
 		type: 'JSXExpressionContainer',
-		expression
+		expression,
 	};
 }
 
@@ -712,7 +719,7 @@ export function jsx_expression_container(expression) {
 export function jsx_id(name) {
 	return {
 		type: 'JSXIdentifier',
-		name
+		name,
 	};
 }
 
@@ -723,7 +730,7 @@ export function jsx_id(name) {
 export function jsx_spread_attribute(argument) {
 	return {
 		type: 'JSXSpreadAttribute',
-		argument
+		argument,
 	};
 }
 
@@ -740,5 +747,5 @@ export {
 	if_builder as if,
 	this_instance as this,
 	null_instane as null,
-	debugger_builder as debugger
+	debugger_builder as debugger,
 };

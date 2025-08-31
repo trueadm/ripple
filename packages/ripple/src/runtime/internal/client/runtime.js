@@ -3,7 +3,7 @@ import {
 	destroy_non_branch_children,
 	effect,
 	is_destroyed,
-	render
+	render,
 } from './blocks.js';
 import {
 	ASYNC_BLOCK,
@@ -23,7 +23,7 @@ import {
 	TRACKED_OBJECT,
 	TRY_BLOCK,
 	UNINITIALIZED,
-	USE_PROP
+	USE_PROP,
 } from './constants';
 import { capture, suspend } from './try.js';
 import { define_property, is_array } from './utils';
@@ -31,7 +31,7 @@ import {
 	object_keys as original_object_keys,
 	object_values as original_object_values,
 	object_entries as original_object_entries,
-	structured_clone as original_structured_clone
+	structured_clone as original_structured_clone,
 } from './utils.js';
 
 const FLUSH_MICROTASK = 0;
@@ -215,7 +215,7 @@ export function tracked(v, b) {
 		b,
 		c: 0,
 		f: TRACKED,
-		v
+		v,
 	};
 }
 
@@ -227,7 +227,7 @@ export function computed(fn, block) {
 		d: null,
 		f: TRACKED | COMPUTED,
 		fn,
-		v: UNINITIALIZED
+		v: UNINITIALIZED,
 	};
 }
 
@@ -246,7 +246,7 @@ function create_dependency(tracked) {
 	return {
 		c: tracked.c,
 		t: tracked,
-		n: null
+		n: null,
 	};
 }
 
@@ -351,7 +351,7 @@ export function deferred(fn) {
 
 	define_property(res, TRACKED_OBJECT, {
 		value: tracked_properties,
-		enumerable: false
+		enumerable: false,
 	});
 
 	render(() => {
@@ -621,7 +621,7 @@ export function set(tracked, value, block) {
 
 		if (tracked_block !== block) {
 			throw new Error(
-				'Tracked state can only be updated within the same component context that it was created in (that includes effects or event handler within that component).'
+				'Tracked state can only be updated within the same component context that it was created in (that includes effects or event handler within that component).',
 			);
 		}
 		schedule_update(tracked_block);
@@ -674,7 +674,7 @@ export function tracked_spread_object(fn) {
 
 	define_property(obj, SPREAD_OBJECT, {
 		value: fn,
-		enumerable: false
+		enumerable: false,
 	});
 
 	return obj;
@@ -687,7 +687,7 @@ export function tracked_object(obj, properties, block) {
 		tracked_properties = {};
 		define_property(obj, TRACKED_OBJECT, {
 			value: tracked_properties,
-			enumerable: false
+			enumerable: false,
 		});
 	}
 
@@ -717,7 +717,7 @@ export function tracked_object(obj, properties, block) {
 export function computed_property(fn) {
 	define_property(fn, COMPUTED_PROPERTY, {
 		value: true,
-		enumerable: false
+		enumerable: false,
 	});
 	return fn;
 }
@@ -896,7 +896,7 @@ export function push_component() {
 	var component = {
 		e: null,
 		m: false,
-		p: active_component
+		p: active_component,
 	};
 	active_component = component;
 }

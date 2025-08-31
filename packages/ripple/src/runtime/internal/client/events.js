@@ -5,7 +5,7 @@ import {
 	set_active_block,
 	set_active_reaction,
 	set_tracking,
-	tracking
+	tracking,
 } from './runtime';
 import { array_from, define_property, is_array } from './utils';
 
@@ -73,7 +73,7 @@ export function handle_event_propagation(event) {
 		configurable: true,
 		get() {
 			return current_target || owner_document;
-		}
+		},
 	});
 
 	var previous_block = active_block;

@@ -167,7 +167,7 @@ export function create_scopes(ast, root, parent) {
 			} else {
 				next();
 			}
-		}
+		},
 	});
 
 	for (const [scope, { node, path }] of references) {
@@ -193,7 +193,7 @@ export function create_scopes(ast, root, parent) {
 
 	return {
 		scope,
-		scopes
+		scopes,
 	};
 }
 
@@ -293,7 +293,7 @@ export class Scope {
 			kind,
 			declaration_kind,
 			is_called: false,
-			metadata: null
+			metadata: null,
 		};
 
 		this.declarations.set(node.name, binding);

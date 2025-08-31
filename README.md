@@ -64,9 +64,9 @@ import { App } from '/App.ripple';
 
 mount(App, {
   props: {
-    title: 'Hello world!'
+    title: 'Hello world!',
   },
-  target: document.getElementById('root')
+  target: document.getElementById('root'),
 });
 ```
 
@@ -111,7 +111,7 @@ Ripple's templating language also supports shorthands and object spreads too:
 Variables prefixed with `$` are automatically reactive:
 
 ```ts
-let $name = "World";
+let $name = 'World';
 let $count = 0;
 
 // Updates automatically trigger re-renders
@@ -148,7 +148,7 @@ component Counter({ $startingCount }) {
 Now given `$startingCount` is reactive, it would mean that `$count` might reset each time an incoming change to `$startingCount` occurs. That might not be desirable, so Ripple provides a way to `untrack` reactivity in those cases:
 
 ```ripple
-import { untrack } from 'ripple';
+import { untrack } from "ripple";
 
 component Counter({ $startingCount }) {
   let $count = untrack(() => $startingCount);
@@ -214,13 +214,9 @@ statements, making control-flow far easier to read and reason with.
 component Truthy({ x }) {
   <div>
     if (x) {
-      <span>
-        {"x is truthy"}
-      </span>
+      <span>{"x is truthy"}</span>
     } else {
-      <span>
-        {"x is falsy"}
-      </span>
+      <span>{"x is falsy"}</span>
     }
   </div>
 }
@@ -237,7 +233,7 @@ other frameworks.
 component ListView({ title, items }) {
   <h2>{title}</h2>
   <ul>
-    for (const item of items) {
+    for (const item; of items) {
       <li>{item.text}</li>
     }
   </ul>
@@ -252,7 +248,7 @@ Try blocks work to building the foundation for **error boundaries**, when the ru
 an error in the `try` block, you can easily render a fallback in the `catch` block.
 
 ```ripple
-import { reportError } from 'some-library';
+import { reportError } from "some-library";
 
 component ErrorBoundary() {
   <div>
@@ -260,7 +256,6 @@ component ErrorBoundary() {
       <ComponentThatFails />
     } catch (e) {
       reportError(e);
-
       <div>{"An error occured! " + e.message}</div>
     }
   </div>
@@ -287,7 +282,9 @@ component Button(props: { $text: string, onClick: () => void }) {
 This also applies to DOM elements, if you want an attribute or property to be reactive, it needs to have a `$` prefix.
 
 ```tsx
-<div $class={props.$someClass} $id={$someId}>{$someText}</div>
+<div $class={props.$someClass} $id={$someId}>
+  {$someText}
+</div>
 ```
 
 Otherwise changes to the attribute or property will not be reactively updated.
@@ -360,17 +357,14 @@ the reference to the underlying DOM element.
 ```ripple
 component App() {
   let $node;
-
   const ref = (node) => {
-    $node = node;
-    console.log('mounted', node);
-
+    /* Unknown: AssignmentExpression */;
+    console.log("mounted", node);
     return () => {
-      $node = undefined;
-      console.log('unmounted', node);
-    }
+      /* Unknown: AssignmentExpression */;
+      console.log("unmounted", node);
+    };
   };
-
   <div {@use ref}>{"Hello world"}</div>
 }
 ```
@@ -380,11 +374,7 @@ You can also create `{@use}` functions inline.
 ```ripple
 component App() {
   let $node;
-
-  <div {@use (node) => {
-    $node = node;
-    return () => $node = null;
-  }}>{"Hello world"}</div>
+  <div {@use undefined}>{"Hello world"}</div>
 }
 ```
 
@@ -392,17 +382,17 @@ You can also use function factories to define properties, these are functions th
 thing. However, you can use this pattern to pass reactive properties.
 
 ```ripple
-import { fadeIn } from 'some-library';
+import { fadeIn } from "some-library";
 
 component App({ $ms }) {
-  <div {@use fadeIn({ $ms })}>{"Hello world"}</div>
+  <div {@use undefined}>{"Hello world"}</div>
 }
 ```
 
 Lastly, you can use element hooks on composite components.
 
 ```ripple
-<Image {@use (node) => console.log(node)} {...props} />
+<Image {@use undefined} {...props} />;
 ```
 
 When passing element hooks to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that can be spread to HTML template elements later on, and still work.
@@ -413,16 +403,14 @@ Ripple supports native CSS styling that is localized to the given component usin
 
 ```ripple
 component MyComponent() {
-  <div class="container">
-    <h1>{"Hello World"}</h1>
-  </div>
-  
+  <div class="container"><h1>{"Hello World"}</h1></div>
+
   <style>
     .container {
       background: blue;
       padding: 1rem;
     }
-    
+
     h1 {
       color: white;
       font-size: 2rem;

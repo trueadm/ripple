@@ -6,6 +6,6 @@ export default defineConfig({
 	test: {
 		include: ['packages/ripple/tests/*.test.ts', 'packages/ripple/tests/*.test.ripple'],
 		environment: 'jsdom',
-		...configDefaults.test
-	}
+		...configDefaults.test,
+	},
 });

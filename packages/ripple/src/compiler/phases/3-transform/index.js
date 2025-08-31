@@ -18,7 +18,7 @@ import {
 	is_dom_property,
 	is_svelte_import,
 	is_declared_within_component,
-	is_inside_call_expression
+	is_inside_call_expression,
 } from '../../utils.js';
 import is_reference from 'is-reference';
 import { extract_paths, object } from '../../../utils/ast.js';
@@ -44,7 +44,7 @@ function visit_function(node, context) {
 		return /** @type {FunctionExpression} */ ({
 			...node,
 			params,
-			body: context.visit(node.body, state)
+			body: context.visit(node.body, state),
 		});
 	}
 
@@ -57,7 +57,7 @@ function visit_function(node, context) {
 			body:
 				body.type === 'BlockStatement'
 					? { ...body, body: [b.var('__block', b.call('$.scope')), ...body.body] }
-					: body
+					: body,
 		});
 	}
 
@@ -145,8 +145,8 @@ const visitors = {
 			b.thunk({
 				...node,
 				callee: context.visit(callee),
-				arguments: node.arguments.map((arg) => context.visit(arg))
-			})
+				arguments: node.arguments.map((arg) => context.visit(arg)),
+			}),
 		);
 	},
 
@@ -172,14 +172,14 @@ const visitors = {
 						'$.get_property',
 						context.visit(object),
 						property.type === 'Identifier' ? b.literal(property.name) : property,
-						node.optional ? b.true : undefined
+						node.optional ? b.true : undefined,
 					);
 				} else {
 					return b.call(
 						'$.get_property',
 						context.visit(object),
 						context.visit(property),
-						node.optional ? b.true : undefined
+						node.optional ? b.true : undefined,
 					);
 				}
 			}
@@ -213,7 +213,7 @@ const visitors = {
 					...node,
 					optional: true,
 					object,
-					property: context.visit(node.property)
+					property: context.visit(node.property),
 				};
 			}
 			if (metadata.await) {
@@ -260,22 +260,22 @@ const visitors = {
 									b.call(
 										'$.async_computed',
 										b.thunk(context.visit(declarator.init), true),
-										b.id('__block')
-									)
-								)
-							)
+										b.id('__block'),
+									),
+								),
+							),
 						);
 					} else if (metadata.tracking && !metadata.await) {
 						expression = b.call(
 							'$.computed',
 							b.thunk(context.visit(declarator.init)),
-							b.id('__block')
+							b.id('__block'),
 						);
 					} else {
 						expression = b.call(
 							'$.tracked',
 							declarator.init === null ? undefined : context.visit(declarator.init),
-							b.id('__block')
+							b.id('__block'),
 						);
 					}
 
@@ -286,7 +286,7 @@ const visitors = {
 			} else {
 				const paths = extract_paths(declarator.id);
 				const has_tracked = paths.some(
-					(path) => path.node.type === 'Identifier' && is_tracked_name(path.node.name)
+					(path) => path.node.type === 'Identifier' && is_tracked_name(path.node.name),
 				);
 
 				if (!context.state.to_ts) {
@@ -308,7 +308,7 @@ const visitors = {
 					expression = b.call(
 						'$.computed',
 						b.thunk(context.visit(declarator.init)),
-						b.id('__block')
+						b.id('__block'),
 					);
 				} else {
 					expression = context.visit(declarator.init);
@@ -347,7 +347,7 @@ const visitors = {
 					is_boolean_attribute(name) && value === true
 						? ''
 						: `="${value === true ? '' : escape_html(value, true)}"`
-				}`
+				}`,
 			);
 
 			if (is_spreading) {
@@ -454,7 +454,7 @@ const visitors = {
 								const id = state.flush_node();
 
 								state.init.push(
-									b.stmt(b.assignment('=', b.member(id, '__' + event_name), delegated_assignment))
+									b.stmt(b.assignment('=', b.member(id, '__' + event_name), delegated_assignment)),
 								);
 							} else {
 								const passive = is_passive_event(event_name);
@@ -468,9 +468,9 @@ const visitors = {
 											id,
 											handler,
 											capture && b.true,
-											passive === undefined ? undefined : b.literal(passive)
-										)
-									)
+											passive === undefined ? undefined : b.literal(passive),
+										),
+									),
 								);
 							}
 
@@ -487,7 +487,7 @@ const visitors = {
 								state.update.push(b.stmt(b.assignment('=', b.member(id, attribute), expression)));
 							} else {
 								state.update.push(
-									b.stmt(b.call('$.set_attribute', id, b.literal(attribute), expression))
+									b.stmt(b.call('$.set_attribute', id, b.literal(attribute), expression)),
 								);
 							}
 						} else {
@@ -543,7 +543,7 @@ const visitors = {
 			if (spread_attributes !== null && spread_attributes.length > 0) {
 				const id = state.flush_node();
 				state.init.push(
-					b.stmt(b.call('$.render_spread', id, b.thunk(b.object(spread_attributes))))
+					b.stmt(b.call('$.render_spread', id, b.thunk(b.object(spread_attributes)))),
 				);
 			}
 
@@ -586,9 +586,9 @@ const visitors = {
 						b.spread(
 							b.call(
 								'$.spread_object',
-								visit(attr.argument, { ...state, metadata: { ...state.metadata, spread: true } })
-							)
-						)
+								visit(attr.argument, { ...state, metadata: { ...state.metadata, spread: true } }),
+							),
+						),
 					);
 				} else if (attr.type === 'UseAttribute') {
 					props.push(b.prop('init', b.call('$.use_prop'), visit(attr.argument, state), true));
@@ -604,9 +604,9 @@ const visitors = {
 					b.block(
 						transform_body(node.children, {
 							...context,
-							state: { ...context.state, scope: component_scope }
-						})
-					)
+							state: { ...context.state, scope: component_scope },
+						}),
+					),
 				);
 				if (children_prop) {
 					children_prop.body = b.logical('??', children_prop.body, children);
@@ -622,9 +622,9 @@ const visitors = {
 							node.id,
 							id,
 							b.call('$.tracked_spread_object', b.thunk(b.object(props))),
-							b.id('$.active_block')
-						)
-					)
+							b.id('$.active_block'),
+						),
+					),
 				);
 			} else if (tracked.length > 0) {
 				state.init.push(
@@ -633,13 +633,13 @@ const visitors = {
 							node.id,
 							id,
 							b.call('$.tracked_object', b.object(props), b.array(tracked), b.id('__block')),
-							b.id('$.active_block')
-						)
-					)
+							b.id('$.active_block'),
+						),
+					),
 				);
 			} else {
 				state.init.push(
-					b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('$.active_block')))
+					b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('$.active_block'))),
 				);
 			}
 		}
@@ -656,7 +656,7 @@ const visitors = {
 
 		const body_statements = transform_body(node.body, {
 			...context,
-			state: { ...context.state, component: node, metadata }
+			state: { ...context.state, component: node, metadata },
 		});
 
 		return b.function(
@@ -665,8 +665,8 @@ const visitors = {
 			b.block(
 				metadata.await
 					? [b.stmt(b.call('$.async', b.thunk(b.block(body_statements), true)))]
-					: body_statements
-			)
+					: body_statements,
+			),
 		);
 	},
 
@@ -685,8 +685,8 @@ const visitors = {
 			const body_statements = [
 				...transform_body(node.body, {
 					...context,
-					state: { ...context.state, component: node, metadata }
-				})
+					state: { ...context.state, component: node, metadata },
+				}),
 			];
 
 			return b.function(node.id, node.params, b.block(body_statements));
@@ -719,9 +719,9 @@ const visitors = {
 			b.stmt(b.call('$.push_component')),
 			...transform_body(node.body, {
 				...context,
-				state: { ...context.state, component: node, metadata }
+				state: { ...context.state, component: node, metadata },
 			}),
-			b.stmt(b.call('$.pop_component'))
+			b.stmt(b.call('$.pop_component')),
 		];
 
 		if (node.css !== null) {
@@ -734,15 +734,15 @@ const visitors = {
 				? [
 						b.id('__anchor'),
 						node.params[0].type === 'Identifier' ? node.params[0] : b.id('__props'),
-						b.id('__block')
-				  ]
+						b.id('__block'),
+					]
 				: [b.id('__anchor'), b.id('_'), b.id('__block')],
 			b.block([
 				...(prop_statements ?? []),
 				...(metadata.await
 					? [b.stmt(b.call('$.async', b.thunk(b.block(body_statements), true)))]
-					: body_statements)
-			])
+					: body_statements),
+			]),
 		);
 	},
 
@@ -763,7 +763,7 @@ const visitors = {
 				context.visit(left.object),
 				left.computed ? context.visit(left.property) : b.literal(left.property.name),
 				visit_assignment_expression(node, context, build_assignment) ?? context.next(),
-				b.id('__block')
+				b.id('__block'),
 			);
 		}
 
@@ -798,7 +798,7 @@ const visitors = {
 				context.visit(argument.object),
 				argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
 				b.id('__block'),
-				node.operator === '--' ? b.literal(-1) : undefined
+				node.operator === '--' ? b.literal(-1) : undefined,
 			);
 		}
 
@@ -834,7 +834,7 @@ const visitors = {
 				if (metadata.tracking) {
 					properties.push({
 						...tracked_property,
-						value: b.call('$.computed_property', b.thunk(tracked_property.value), b.id('__block'))
+						value: b.call('$.computed_property', b.thunk(tracked_property.value), b.id('__block')),
 					});
 				} else {
 					properties.push(tracked_property);
@@ -920,13 +920,13 @@ const visitors = {
 						b.block(
 							transform_body(node.body.body, {
 								...context,
-								state: { ...context.state, scope: body_scope }
-							})
-						)
+								state: { ...context.state, scope: body_scope },
+							}),
+						),
 					),
-					b.literal(is_controlled ? IS_CONTROLLED : 0)
-				)
-			)
+					b.literal(is_controlled ? IS_CONTROLLED : 0),
+				),
+			),
 		);
 	},
 
@@ -944,8 +944,8 @@ const visitors = {
 		const consequent = b.block(
 			transform_body(node.consequent.body, {
 				...context,
-				state: { ...context.state, scope: consequent_scope }
-			})
+				state: { ...context.state, scope: consequent_scope },
+			}),
 		);
 		const consequent_id = context.state.scope.generate('consequent');
 
@@ -962,8 +962,8 @@ const visitors = {
 			const alternate = b.block(
 				transform_body(alternate_body, {
 					...context,
-					state: { ...context.state, scope: alternate_scope }
-				})
+					state: { ...context.state, scope: alternate_scope },
+				}),
 			);
 			alternate_id = context.state.scope.generate('alternate');
 			statements.push(b.var(b.id(alternate_id), b.arrow([b.id('__anchor')], alternate)));
@@ -985,15 +985,15 @@ const visitors = {
 											b.call(
 												b.id('__render'),
 												b.id(alternate_id),
-												node.alternate ? b.literal(false) : undefined
-											)
-									  )
-									: undefined
-							)
-						])
-					)
-				)
-			)
+												node.alternate ? b.literal(false) : undefined,
+											),
+										)
+									: undefined,
+							),
+						]),
+					),
+				),
+			),
 		);
 
 		context.state.init.push(b.block(statements));
@@ -1010,7 +1010,7 @@ const visitors = {
 		const metadata = { await: false };
 		let body = transform_body(node.block.body, {
 			...context,
-			state: { ...context.state, metadata }
+			state: { ...context.state, metadata },
 		});
 
 		if (metadata.await) {
@@ -1027,13 +1027,13 @@ const visitors = {
 						? b.literal(null)
 						: b.arrow(
 								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-								b.block(transform_body(node.handler.body.body, context))
-						  ),
+								b.block(transform_body(node.handler.body.body, context)),
+							),
 					node.async === null
 						? undefined
-						: b.arrow([b.id('__anchor')], b.block(transform_body(node.async.body, context)))
-				)
-			)
+						: b.arrow([b.id('__anchor')], b.block(transform_body(node.async.body, context))),
+				),
+			),
 		);
 	},
 
@@ -1065,9 +1065,9 @@ const visitors = {
 				b.call(
 					context.visit(identifer),
 					id,
-					...node.expression.arguments.map((arg) => context.visit(arg, context.state))
-				)
-			)
+					...node.expression.arguments.map((arg) => context.visit(arg, context.state)),
+				),
+			),
 		);
 	},
 
@@ -1119,7 +1119,7 @@ const visitors = {
 		}
 
 		return { ...node, body: statements };
-	}
+	},
 };
 
 /**
@@ -1195,7 +1195,7 @@ function transform_ts_child(node, context) {
 		const type = node.id.name;
 		const children = [];
 		let has_children_props = false;
-		
+
 		// Filter out UseAttributes and handle them separately
 		const use_attributes = [];
 		const attributes = node.attributes
@@ -1240,9 +1240,9 @@ function transform_ts_child(node, context) {
 				b.block(
 					transform_body(node.children, {
 						...context,
-						state: { ...state, scope: component_scope }
-					})
-				)
+						state: { ...state, scope: component_scope },
+					}),
+				),
 			);
 
 			if (is_dom_element) {
@@ -1267,25 +1267,25 @@ function transform_ts_child(node, context) {
 			closing_type.loc = {
 				start: {
 					line: node.loc.end.line,
-					column: node.loc.end.column - type.length - 1
+					column: node.loc.end.column - type.length - 1,
 				},
 				end: {
 					line: node.loc.end.line,
-					column: node.loc.end.column - 1
-				}
+					column: node.loc.end.column - 1,
+				},
 			};
 		}
 
 		state.init.push(
-			b.stmt(b.jsx_element(opening_type, attributes, children, node.selfClosing, closing_type))
+			b.stmt(b.jsx_element(opening_type, attributes, children, node.selfClosing, closing_type)),
 		);
 	} else if (node.type === 'IfStatement') {
 		const consequent_scope = context.state.scopes.get(node.consequent);
 		const consequent = b.block(
 			transform_body(node.consequent.body, {
 				...context,
-				state: { ...context.state, scope: consequent_scope }
-			})
+				state: { ...context.state, scope: consequent_scope },
+			}),
 		);
 
 		let alternate;
@@ -1299,8 +1299,8 @@ function transform_ts_child(node, context) {
 			alternate = b.block(
 				transform_body(alternate_body, {
 					...context,
-					state: { ...context.state, scope: alternate_scope }
-				})
+					state: { ...context.state, scope: alternate_scope },
+				}),
 			);
 		}
 
@@ -1310,8 +1310,8 @@ function transform_ts_child(node, context) {
 		const body = b.block(
 			transform_body(node.body.body, {
 				...context,
-				state: { ...context.state, scope: body_scope }
-			})
+				state: { ...context.state, scope: body_scope },
+			}),
 		);
 
 		state.init.push(b.for_of(visit(node.left), visit(node.right), body, node.await));
@@ -1322,9 +1322,9 @@ function transform_ts_child(node, context) {
 			b.stmt(
 				b.call(
 					context.visit(identifer),
-					...node.expression.arguments.map((arg) => context.visit(arg, context.state))
-				)
-			)
+					...node.expression.arguments.map((arg) => context.visit(arg, context.state)),
+				),
+			),
 		);
 	} else {
 		throw new Error('TODO');
@@ -1348,10 +1348,10 @@ function transform_children(children, { visit, state, root }) {
 				(node.type === 'Element' &&
 					(node.id.type !== 'Identifier' ||
 						node.id.name[0].toLowerCase() !== node.id.name[0] ||
-						node.id.name[0] === '$'))
+						node.id.name[0] === '$')),
 		) ||
 		normalized.filter(
-			(node) => node.type !== 'VariableDeclaration' && node.type !== 'EmptyStatement'
+			(node) => node.type !== 'VariableDeclaration' && node.type !== 'EmptyStatement',
 		).length > 1;
 	let initial = null;
 	let prev = null;
@@ -1365,8 +1365,8 @@ function transform_children(children, { visit, state, root }) {
 				node.id.name[0] !== '$'
 				? state.scope.generate(node.id.name)
 				: node.type == 'Text'
-				? state.scope.generate('text')
-				: state.scope.generate('node')
+					? state.scope.generate('text')
+					: state.scope.generate('node'),
 		);
 	};
 
@@ -1464,7 +1464,7 @@ function transform_children(children, { visit, state, root }) {
 					} else {
 						const id = state.flush_node();
 						state.init.push(
-							b.stmt(b.assignment('=', b.member(id, b.id('textContent')), expression))
+							b.stmt(b.assignment('=', b.member(id, b.id('textContent')), expression)),
 						);
 					}
 				} else {
@@ -1499,7 +1499,7 @@ function transform_children(children, { visit, state, root }) {
 		const flags = is_fragment ? b.literal(TEMPLATE_FRAGMENT) : b.literal(0);
 		state.final.push(b.stmt(b.call('$.append', b.id('__anchor'), initial)));
 		state.hoisted.push(
-			b.var(template_id, b.call('$.template', join_template(state.template), flags))
+			b.var(template_id, b.call('$.template', join_template(state.template), flags)),
 		);
 	}
 }
@@ -1512,7 +1512,7 @@ function transform_body(body, { visit, state }) {
 		init: [],
 		update: [],
 		final: [],
-		metadata: state.metadata
+		metadata: state.metadata,
 	};
 
 	transform_children(body, { visit, state: body_state, root: true });
@@ -1538,7 +1538,7 @@ export function transform(filename, source, analysis, to_ts) {
 		scope: analysis.scope,
 		scopes: analysis.scopes,
 		stylesheets: [],
-		to_ts
+		to_ts,
 	};
 
 	const program = /** @type {ESTree.Program} */ (
@@ -1555,19 +1555,21 @@ export function transform(filename, source, analysis, to_ts) {
 
 	if (state.events.size > 0) {
 		program.body.push(
-			b.stmt(b.call('$.delegate', b.array(Array.from(state.events).map((name) => b.literal(name)))))
+			b.stmt(
+				b.call('$.delegate', b.array(Array.from(state.events).map((name) => b.literal(name)))),
+			),
 		);
 	}
 
 	const js = print(
 		program,
 		tsx({
-			comments: analysis.ast.comments || []
+			comments: analysis.ast.comments || [],
 		}),
 		{
 			sourceMapContent: source,
-			sourceMapSource: path.basename(filename)
-		}
+			sourceMapSource: path.basename(filename),
+		},
 	);
 
 	const css = render_stylesheets(state.stylesheets);
@@ -1575,6 +1577,6 @@ export function transform(filename, source, analysis, to_ts) {
 	return {
 		ast: program,
 		js,
-		css
+		css,
 	};
 }

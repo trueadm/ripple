@@ -113,7 +113,7 @@ const visitors = {
 
 		next();
 	},
-    Declaration(node, { state }) {
+	Declaration(node, { state }) {
 		const property = node.property && remove_css_prefix(node.property.toLowerCase());
 		if (property === 'animation' || property === 'animation-name') {
 			let index = node.start + node.property.length + 1;
@@ -140,19 +140,19 @@ const visitors = {
 			}
 		}
 	},
-    Rule(node, { state, next, visit, path }) {
+	Rule(node, { state, next, visit, path }) {
 		if (is_empty(node, is_in_global_block(path))) {
 			state.code.prependRight(node.start, '/* (empty) ');
-            state.code.appendLeft(node.end, '*/');
-            escape_comment_close(node, state.code);
+			state.code.appendLeft(node.end, '*/');
+			escape_comment_close(node, state.code);
 
 			return;
 		}
 
 		if (!is_used(node) && !is_in_global_block(path)) {
 			state.code.prependRight(node.start, '/* (unused) ');
-            state.code.appendLeft(node.end, '*/');
-            escape_comment_close(node, state.code);
+			state.code.appendLeft(node.end, '*/');
+			escape_comment_close(node, state.code);
 
 			return;
 		}
@@ -181,7 +181,7 @@ const visitors = {
 
 		next();
 	},
-    SelectorList(node, { state, next, path }) {
+	SelectorList(node, { state, next, path }) {
 		// Only add comments if we're not inside a complex selector that itself is unused or a global block
 		if (
 			!is_in_global_block(path) &&
@@ -264,7 +264,7 @@ const visitors = {
 
 		next({ ...state, specificity });
 	},
-    ComplexSelector(node, context) {
+	ComplexSelector(node, context) {
 		const before_bumped = context.state.specificity.bumped;
 
 		for (const relative_selector of node.children) {
@@ -347,26 +347,26 @@ const visitors = {
 		if (node.name === 'is' || node.name === 'where' || node.name === 'has' || node.name === 'not') {
 			context.next();
 		}
-	}
+	},
 };
 
 export function render_stylesheets(stylesheets) {
-    let css = '';
-    
-    for (const stylesheet of stylesheets) {
-        const code = new MagicString(stylesheet.source);
-        const state = {
-            code,
-            hash: stylesheet.hash,
-            selector: `.${stylesheet.hash}`,
-            specificity: {
-                bumped: false
-            }
-        };
-        
-        walk(stylesheet, state, visitors);
-        css += code.toString();
-    }
+	let css = '';
 
-    return css;
+	for (const stylesheet of stylesheets) {
+		const code = new MagicString(stylesheet.source);
+		const state = {
+			code,
+			hash: stylesheet.hash,
+			selector: `.${stylesheet.hash}`,
+			specificity: {
+				bumped: false,
+			},
+		};
+
+		walk(stylesheet, state, visitors);
+		css += code.toString();
+	}
+
+	return css;
 }

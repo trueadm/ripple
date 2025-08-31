@@ -1,4 +1,4 @@
-import { hash } from "../../utils.js";
+import { hash } from '../../utils.js';
 
 const REGEX_COMMENT_CLOSE = /\*\//;
 const REGEX_HTML_COMMENT_CLOSE = /-->/;
@@ -90,10 +90,10 @@ export function parse_style(content) {
 	const parser = new Parser(content, false);
 
 	return {
-        source: content,
-        hash: `ripple-${hash(content)}`,
+		source: content,
+		hash: `ripple-${hash(content)}`,
 		type: 'StyleSheet',
-		body: read_body(parser)
+		body: read_body(parser),
 	};
 }
 
@@ -146,8 +146,8 @@ function read_rule(parser) {
 		metadata: {
 			parent_rule: null,
 			has_local_selectors: false,
-			is_global_block: false
-		}
+			is_global_block: false,
+		},
 	};
 }
 
@@ -175,7 +175,7 @@ function read_block(parser) {
 		type: 'Block',
 		start,
 		end: parser.index,
-		children
+		children,
 	};
 }
 
@@ -220,7 +220,7 @@ function read_declaration(parser) {
 		start,
 		end,
 		property,
-		value
+		value,
 	};
 }
 
@@ -280,7 +280,7 @@ function read_selector_list(parser, inside_pseudo_class = false) {
 				type: 'SelectorList',
 				start,
 				end,
-				children
+				children,
 			};
 		} else {
 			parser.eat(',', true);
@@ -306,7 +306,7 @@ function read_combinator(parser) {
 			type: 'Combinator',
 			name,
 			start: index,
-			end
+			end,
 		};
 	}
 
@@ -315,7 +315,7 @@ function read_combinator(parser) {
 			type: 'Combinator',
 			name: ' ',
 			start,
-			end: parser.index
+			end: parser.index,
 		};
 	}
 
@@ -343,8 +343,8 @@ function read_selector(parser, inside_pseudo_class = false) {
 			metadata: {
 				is_global: false,
 				is_global_like: false,
-				scoped: false
-			}
+				scoped: false,
+			},
 		};
 	}
 
@@ -359,7 +359,7 @@ function read_selector(parser, inside_pseudo_class = false) {
 				type: 'NestingSelector',
 				name: '&',
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 		} else if (parser.eat('*')) {
 			let name = '*';
@@ -373,28 +373,28 @@ function read_selector(parser, inside_pseudo_class = false) {
 				type: 'TypeSelector',
 				name,
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 		} else if (parser.eat('#')) {
 			relative_selector.selectors.push({
 				type: 'IdSelector',
 				name: read_identifier(parser),
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 		} else if (parser.eat('.')) {
 			relative_selector.selectors.push({
 				type: 'ClassSelector',
 				name: read_identifier(parser),
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 		} else if (parser.eat('::')) {
 			relative_selector.selectors.push({
 				type: 'PseudoElementSelector',
 				name: read_identifier(parser),
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 			// We read the inner selectors of a pseudo element to ensure it parses correctly,
 			// but we don't do anything with the result.
@@ -418,7 +418,7 @@ function read_selector(parser, inside_pseudo_class = false) {
 				name,
 				args,
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 		} else if (parser.eat('[')) {
 			parser.allow_whitespace();
@@ -449,7 +449,7 @@ function read_selector(parser, inside_pseudo_class = false) {
 				name,
 				matcher,
 				value,
-				flags
+				flags,
 			});
 		} else if (inside_pseudo_class && parser.match_regex(REGEX_NTH_OF)) {
 			// nth of matcher must come before combinator matcher to prevent collision else the '+' in '+2n-1' would be parsed as a combinator
@@ -458,14 +458,14 @@ function read_selector(parser, inside_pseudo_class = false) {
 				type: 'Nth',
 				value: /**@type {string} */ (parser.read(REGEX_NTH_OF)),
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 		} else if (parser.match_regex(REGEX_PERCENTAGE)) {
 			relative_selector.selectors.push({
 				type: 'Percentage',
 				value: /** @type {string} */ (parser.read(REGEX_PERCENTAGE)),
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 		} else if (!parser.match_regex(REGEX_COMBINATOR)) {
 			let name = read_identifier(parser);
@@ -479,7 +479,7 @@ function read_selector(parser, inside_pseudo_class = false) {
 				type: 'TypeSelector',
 				name,
 				start,
-				end: parser.index
+				end: parser.index,
 			});
 		}
 
@@ -500,8 +500,8 @@ function read_selector(parser, inside_pseudo_class = false) {
 				children,
 				metadata: {
 					rule: null,
-					used: false
-				}
+					used: false,
+				},
 			};
 		}
 
@@ -539,7 +539,7 @@ function read_identifier(parser) {
 
 	let escaped = false;
 
-    while (parser.index < parser.template.length) {
+	while (parser.index < parser.template.length) {
 		const char = parser.template[parser.index];
 		if (escaped) {
 			identifier += '\\' + char;
@@ -559,7 +559,7 @@ function read_identifier(parser) {
 	}
 
 	if (identifier === '') {
-        throw new Error('Expected identifier');
+		throw new Error('Expected identifier');
 	}
 
 	return identifier;

@@ -6,7 +6,9 @@
   "author": "Dominic Gannaway",
   "license": "MIT",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "jsdom": "^26.1.0",

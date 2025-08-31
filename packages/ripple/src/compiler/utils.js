@@ -51,7 +51,7 @@ const RESERVED_WORDS = [
 	'void',
 	'while',
 	'with',
-	'yield'
+	'yield',
 ];
 
 export function is_reserved(word) {
@@ -90,7 +90,7 @@ const DOM_BOOLEAN_ATTRIBUTES = [
 	'webkitdirectory',
 	'defer',
 	'disablepictureinpicture',
-	'disableremoteplayback'
+	'disableremoteplayback',
 ];
 
 export function is_boolean_attribute(name) {
@@ -112,7 +112,7 @@ const DOM_PROPERTIES = [
 	'noValidate',
 	'allowFullscreen',
 	'disablePictureInPicture',
-	'disableRemotePlayback'
+	'disableRemotePlayback',
 ];
 
 export function is_dom_property(name) {
@@ -143,7 +143,7 @@ const DELEGATED_EVENTS = [
 	'pointerup',
 	'touchend',
 	'touchmove',
-	'touchstart'
+	'touchstart',
 ];
 
 export function is_delegated(event_name) {
@@ -436,7 +436,7 @@ export function visit_assignment_expression(node, context, build_assignment) {
 				b.assignment(
 					'=',
 					/** @type {Pattern} */ (context.visit(path.node)),
-					/** @type {Expression} */ (context.visit(value))
+					/** @type {Expression} */ (context.visit(value)),
 				)
 			);
 		});
@@ -510,8 +510,8 @@ export function build_assignment(operator, left, right, context) {
 			b.assignment(
 				operator,
 				/** @type {Pattern} */ (context.visit(left)),
-				/** @type {Expression} */ (context.visit(right))
-			)
+				/** @type {Expression} */ (context.visit(right)),
+			),
 		);
 	}
 
@@ -548,5 +548,3 @@ export function hash(str) {
 	while (i--) hash = ((hash << 5) - hash) ^ str.charCodeAt(i);
 	return (hash >>> 0).toString(36);
 }
-
-

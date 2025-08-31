@@ -25,7 +25,7 @@ import { suspend } from './try';
 export function user_effect(fn) {
 	if (active_block === null) {
 		throw new Error(
-			'effect() must be called within an active context, such as a component or effect'
+			'effect() must be called within an active context, such as a component or effect',
 		);
 	}
 

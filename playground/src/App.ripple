@@ -4,14 +4,83 @@ component Child(props: { $children: Component }) {
   <div {...props}>{props.$count}</div>
 }
 
+export function foo() {
+
+}
+
+export default component Test(props) {
+
+}
+
+component Foo() {
+
+}
+
+class RandomClass extends HTMLElement {
+  #foo;
+  constructor() {
+    super();
+    this.x = 1;
+    this.#foo = 2;
+  }
+}
+
+for (let i = 0;; i < 5; i++) {
+  console.log(i);
+}
+
+while (false) {
+  console.log(i);
+}
+
+function thing() {
+  await Promise.resolve();
+}
+
 export component App({ name }: { name: string }) {
   <div class="container">
-    let $count = 0;
-    <button onClick={() => $count++}>{"Increment count"}</button>
+    let $count = 0 || void0;
+    let a = null ?? 1;
+    let y = a ? 1 : 2 || 3;
+
+    console.log($count);
+
+    <button onClick={() => {
+      $count++;
+    }}>{"Increment count"}</button>
+    if ($count > 0) {
+      <span>{"Count is " + $count}</span>
+    } else {
+      <span>{"Count is zero"}</span>
+    }
+
+    const items: Array = [1, 2, 3, ...[]];
+    const obj = {
+      a: 1,
+      b: 2,
+      c: 3,
+      ...{}
+    };
+    const obj2 = {};
+
+    <div {...obj2} />
+
+
+    for (const item; of items) {
+      <span>{"Count is zero"}</span>
+    }
+
+    try {
+      <Foo />
+    } catch (e) {
+      <div>{e.message}</div>
+    }
+
     const fn = () => {
       $count;
       console.log("use fn called");
     };
+
     <Child {@use fn}><div>{"Child Component " + $count}</div></Child>
   </div>
 

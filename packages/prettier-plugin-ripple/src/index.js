@@ -5,8 +5,8 @@ export const languages = [
 		name: 'ripple',
 		parsers: ['ripple'],
 		extensions: ['.ripple'],
-		vscodeLanguageIds: ['ripple']
-	}
+		vscodeLanguageIds: ['ripple'],
+	},
 ];
 
 export const parsers = {
@@ -14,23 +14,23 @@ export const parsers = {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
 			const ast = parse(text);
-			
+
 			// Ensure the AST has the required properties for Prettier
 			if (!ast.comments) {
 				ast.comments = [];
 			}
-			
+
 			return ast;
 		},
-		
+
 		locStart(node) {
 			return node.start || 0;
 		},
-		
+
 		locEnd(node) {
 			return node.end || 0;
-		}
-	}
+		},
+	},
 };
 
 export const printers = {
@@ -38,8 +38,8 @@ export const printers = {
 		print(path, options, print) {
 			const node = path.getValue();
 			return printRippleNode(node, path, options, print);
-		}
-	}
+		},
+	},
 };
 
 function printRippleNode(node, path, options, print) {
@@ -59,6 +59,75 @@ function printRippleNode(node, path, options, print) {
 
 		case 'ExportNamedDeclaration':
 			return printExportNamedDeclaration(node, path, options, print);
+
+		case 'ExportDefaultDeclaration':
+			return printExportDefaultDeclaration(node, path, options, print);
+
+		case 'FunctionDeclaration':
+			return printFunctionDeclaration(node, path, options, print);
+
+		case 'IfStatement':
+			return printIfStatement(node, path, options, print);
+
+		case 'ForOfStatement':
+			return printForOfStatement(node, path, options, print);
+
+		case 'ForStatement':
+			return printForStatement(node, path, options, print);
+
+		case 'WhileStatement':
+			return printWhileStatement(node, path, options, print);
+
+		case 'ClassDeclaration':
+			return printClassDeclaration(node, path, options, print);
+
+		case 'TryStatement':
+			return printTryStatement(node, path, options, print);
+
+		case 'ArrayExpression':
+			return '[' + path.map(print, 'elements').join(', ') + ']';
+
+		case 'ObjectExpression':
+			return printObjectExpression(node, path, options, print);
+
+		case 'ClassBody':
+			return printClassBody(node, path, options, print);
+
+		case 'PropertyDefinition':
+			return printPropertyDefinition(node, path, options, print);
+
+		case 'MethodDefinition':
+			return printMethodDefinition(node, path, options, print);
+
+		case 'PrivateIdentifier':
+			return '#' + node.name;
+
+		case 'AssignmentExpression':
+			return path.call(print, 'left') + ' ' + node.operator + ' ' + path.call(print, 'right');
+
+		case 'MemberExpression':
+			return printMemberExpression(node, path, options, print);
+
+		case 'Super':
+			return 'super';
+
+		case 'ThisExpression':
+			return 'this';
+
+		case 'CallExpression':
+			return printCallExpression(node, path, options, print);
+
+		case 'AwaitExpression':
+			return 'await ' + path.call(print, 'argument');
+
+		case 'UnaryExpression':
+			return printUnaryExpression(node, path, options, print);
+
+		case 'SpreadElement':
+			return '...' + path.call(print, 'argument');
+
+		case 'EmptyStatement':
+			return '';
 
 		case 'VariableDeclaration':
 			return printVariableDeclaration(node, path, options, print);
@@ -102,10 +171,13 @@ function printRippleNode(node, path, options, print) {
 
 		case 'BlockStatement':
 			const statements = path.map(print, 'body').join('\n');
-			const indentedStatements = statements.split('\n').map(line => {
-				if (line.trim() === '') return '';
-				return '  ' + line;
-			}).join('\n');
+			const indentedStatements = statements
+				.split('\n')
+				.map((line) => {
+					if (line.trim() === '') return '';
+					return '  ' + line;
+				})
+				.join('\n');
 			return '{\n' + indentedStatements + '\n}';
 
 		case 'ReturnStatement':
@@ -114,14 +186,39 @@ function printRippleNode(node, path, options, print) {
 		case 'BinaryExpression':
 			return path.call(print, 'left') + ' ' + node.operator + ' ' + path.call(print, 'right');
 
+		case 'LogicalExpression':
+			return path.call(print, 'left') + ' ' + node.operator + ' ' + path.call(print, 'right');
+
+		case 'ConditionalExpression':
+			return (
+				path.call(print, 'test') +
+				' ? ' +
+				path.call(print, 'consequent') +
+				' : ' +
+				path.call(print, 'alternate')
+			);
+
 		case 'UpdateExpression':
-			return node.prefix ? node.operator + path.call(print, 'argument') : path.call(print, 'argument') + node.operator;
+			return node.prefix
+				? node.operator + path.call(print, 'argument')
+				: path.call(print, 'argument') + node.operator;
+
+		case 'TSArrayType':
+			return 'Array<' + path.call(print, 'elementType') + '>';
+
+		case 'TSNumberKeyword':
+			return 'number';
 
 		case 'CallExpression':
 			return path.call(print, 'callee') + '(' + path.map(print, 'arguments').join(', ') + ')';
 
 		case 'MemberExpression':
-			return path.call(print, 'object') + (node.computed ? '[' + path.call(print, 'property') + ']' : '.' + path.call(print, 'property'));
+			return (
+				path.call(print, 'object') +
+				(node.computed
+					? '[' + path.call(print, 'property') + ']'
+					: '.' + path.call(print, 'property'))
+			);
 
 		case 'ObjectPattern':
 			return printObjectPattern(node, path, options, print);
@@ -165,44 +262,44 @@ function printRippleNode(node, path, options, print) {
 
 function printImportDeclaration(node, path, options, print) {
 	let result = 'import ';
-	
+
 	// Handle type imports
 	if (node.importKind === 'type') {
 		result += 'type ';
 	}
-	
+
 	if (node.specifiers && node.specifiers.length > 0) {
-		const specifiers = node.specifiers.map(spec => {
+		const specifiers = node.specifiers.map((spec) => {
 			if (spec.type === 'ImportDefaultSpecifier') {
 				return spec.local.name;
 			} else if (spec.type === 'ImportSpecifier') {
-				return spec.imported.name === spec.local.name 
-					? spec.local.name 
+				return spec.imported.name === spec.local.name
+					? spec.local.name
 					: spec.imported.name + ' as ' + spec.local.name;
 			}
 			return spec.local.name;
 		});
-		
+
 		if (specifiers.length === 1 && node.specifiers[0].type === 'ImportDefaultSpecifier') {
 			result += specifiers[0];
 		} else {
 			result += '{ ' + specifiers.join(', ') + ' }';
 		}
-		
+
 		result += ' from ';
 	}
-	
+
 	result += JSON.stringify(node.source.value) + ';';
 	return result;
 }
 
 function printExportNamedDeclaration(node, path, options, print) {
 	let result = 'export ';
-	
+
 	if (node.declaration) {
 		result += path.call(print, 'declaration');
 	} else if (node.specifiers && node.specifiers.length > 0) {
-		const specifiers = node.specifiers.map(spec => {
+		const specifiers = node.specifiers.map((spec) => {
 			if (spec.exported.name === spec.local.name) {
 				return spec.local.name;
 			} else {
@@ -210,32 +307,46 @@ function printExportNamedDeclaration(node, path, options, print) {
 			}
 		});
 		result += '{ ' + specifiers.join(', ') + ' }';
-		
+
 		if (node.source) {
 			result += ' from ' + JSON.stringify(node.source.value);
 		}
 		result += ';';
 	}
-	
+
 	return result;
 }
 
 function printComponent(node, path, options, print) {
 	let result = 'component ' + node.id.name;
-	
+
+	// Always add parentheses, even if no parameters
 	if (node.params && node.params.length > 0) {
 		result += '(' + path.map(print, 'params').join(', ') + ')';
+	} else {
+		result += '()';
 	}
-	
+
 	result += ' {\n';
-	const body = path.map(print, 'body').join('\n');
+
+	// Print body statements (no spacing here, as statements are usually inside JSX elements)
+	const bodyStatements = [];
+	for (let i = 0; i < node.body.length; i++) {
+		const statement = path.call(print, 'body', i);
+		bodyStatements.push(statement);
+	}
+
+	const body = bodyStatements.join('\n');
 	// Properly indent each line of the body content
-	const indentedBody = body.split('\n').map(line => {
-		if (line.trim() === '') return '';
-		return '  ' + line;
-	}).join('\n');
+	const indentedBody = body
+		.split('\n')
+		.map((line) => {
+			if (line.trim() === '') return '';
+			return '  ' + line;
+		})
+		.join('\n');
 	result += indentedBody;
-	
+
 	// Add CSS if present
 	if (node.css && node.css.source) {
 		result += '\n\n  <style>';
@@ -244,14 +355,14 @@ function printComponent(node, path, options, print) {
 		// Split into lines and format each line
 		const cssLines = cssContent.split('\n');
 		let inRule = false;
-		
-		cssLines.forEach(line => {
+
+		cssLines.forEach((line) => {
 			const trimmedLine = line.trim();
 			if (!trimmedLine) {
 				result += '\n';
 				return;
 			}
-			
+
 			// Check if this line starts a CSS rule (selector)
 			if (trimmedLine.includes('{')) {
 				inRule = true;
@@ -271,12 +382,12 @@ function printComponent(node, path, options, print) {
 				result += '\n    ' + trimmedLine; // 4 spaces default
 			}
 		});
-		
+
 		result += '\n  </style>';
 	}
-	
+
 	result += '\n}';
-	
+
 	return result;
 }
 
@@ -288,11 +399,11 @@ function printVariableDeclaration(node, path, options, print) {
 
 function printJSXElement(node, path, options, print) {
 	const openingElement = printJSXOpeningElement(node.openingElement, path, options, print);
-	
+
 	if (node.selfClosing || (node.children && node.children.length === 0)) {
 		return openingElement.replace('>', ' />');
 	}
-	
+
 	const children = node.children
 		.map((child, i) => {
 			if (child.type === 'JSXText') {
@@ -300,46 +411,50 @@ function printJSXElement(node, path, options, print) {
 			}
 			return path.call(print, 'children', i);
 		})
-		.filter(child => child !== '');
-	
+		.filter((child) => child !== '');
+
 	const closingElement = '</' + node.openingElement.name.name + '>';
-	
+
 	if (children.length === 0) {
 		return openingElement.replace('>', ' />');
 	}
-	
+
 	if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 20) {
 		return openingElement + children[0] + closingElement;
 	}
-	
-	return openingElement + '\n' + children.map(child => '  ' + child).join('\n') + '\n' + closingElement;
+
+	return (
+		openingElement + '\n' + children.map((child) => '  ' + child).join('\n') + '\n' + closingElement
+	);
 }
 
 function printJSXOpeningElement(node, path, options, print) {
 	let result = '<' + node.name.name;
-	
+
 	if (node.attributes && node.attributes.length > 0) {
-		const attrs = node.attributes.map(attr => {
-			if (attr.type === 'UseAttribute') {
-				return '{@use ' + attr.argument.name + '}';
-			} else if (attr.type === 'SpreadAttribute') {
-				return '{...' + attr.argument.name + '}';
-			} else if (attr.type === 'JSXAttribute') {
-				return printJSXAttribute(attr, path, options, print);
-			}
-			return '';
-		}).filter(attr => attr !== '');
-		
+		const attrs = node.attributes
+			.map((attr) => {
+				if (attr.type === 'UseAttribute') {
+					return '{@use ' + attr.argument.name + '}';
+				} else if (attr.type === 'SpreadAttribute') {
+					return '{...' + attr.argument.name + '}';
+				} else if (attr.type === 'JSXAttribute') {
+					return printJSXAttribute(attr, path, options, print);
+				}
+				return '';
+			})
+			.filter((attr) => attr !== '');
+
 		result += ' ' + attrs.join(' ');
 	}
-	
+
 	result += '>';
 	return result;
 }
 
 function printJSXAttribute(node, path, options, print) {
 	let result = node.name.name;
-	
+
 	if (node.value) {
 		if (node.value.type === 'Literal') {
 			result += '=' + JSON.stringify(node.value.value);
@@ -347,7 +462,7 @@ function printJSXAttribute(node, path, options, print) {
 			result += '={' + node.value.expression.name + '}';
 		}
 	}
-	
+
 	return result;
 }
 
@@ -357,22 +472,310 @@ function printJSXFragment(node, path, options, print) {
 }
 
 function printArrowFunction(node, path, options, print) {
-	const params = node.params.map(param => param.name).join(', ');
-	const body = node.body.type === 'BlockStatement' 
-		? path.call(print, 'body')
-		: path.call(print, 'body');
-	
+	const params = node.params.map((param) => param.name).join(', ');
+	const body =
+		node.body.type === 'BlockStatement' ? path.call(print, 'body') : path.call(print, 'body');
+
 	return '(' + params + ') => ' + body;
+}
+
+function printExportDefaultDeclaration(node, path, options, print) {
+	return 'export default ' + path.call(print, 'declaration');
+}
+
+function printFunctionDeclaration(node, path, options, print) {
+	let result = 'function ' + node.id.name + '(';
+
+	if (node.params && node.params.length > 0) {
+		result += path.map(print, 'params').join(', ');
+	}
+
+	result += ') ';
+	result += path.call(print, 'body');
+
+	return result;
+}
+
+function printIfStatement(node, path, options, print) {
+	let result = 'if (' + path.call(print, 'test') + ') ';
+	result += path.call(print, 'consequent');
+
+	if (node.alternate) {
+		result += ' else ';
+		result += path.call(print, 'alternate');
+	}
+
+	return result;
+}
+
+function printForOfStatement(node, path, options, print) {
+	let result = 'for (';
+	result += path.call(print, 'left');
+	result += ' of ';
+	result += path.call(print, 'right');
+	result += ') ';
+	result += path.call(print, 'body');
+	
+	return result;
+}
+
+function printForStatement(node, path, options, print) {
+	let result = 'for (';
+	if (node.init) {
+		result += path.call(print, 'init');
+	}
+	result += '; ';
+	if (node.test) {
+		result += path.call(print, 'test');
+	}
+	result += '; ';
+	if (node.update) {
+		result += path.call(print, 'update');
+	}
+	result += ') ';
+	result += path.call(print, 'body');
+	
+	return result;
+}
+
+function printWhileStatement(node, path, options, print) {
+	let result = 'while (';
+	result += path.call(print, 'test');
+	result += ') ';
+	result += path.call(print, 'body');
+	
+	return result;
+}
+
+function printObjectExpression(node, path, options, print) {
+	if (!node.properties || node.properties.length === 0) {
+		return '{}';
+	}
+
+	const properties = path.map(print, 'properties').join(',\n');
+	const indentedProperties = properties
+		.split('\n')
+		.map((line) => {
+			if (line.trim() === '') return '';
+			return '  ' + line;
+		})
+		.join('\n');
+
+	return '{\n' + indentedProperties + '\n}';
+}
+
+function printClassDeclaration(node, path, options, print) {
+	let result = 'class ' + node.id.name;
+
+	if (node.superClass) {
+		result += ' extends ' + path.call(print, 'superClass');
+	}
+
+	result += ' ';
+	result += path.call(print, 'body');
+
+	return result;
+}
+
+function printTryStatement(node, path, options, print) {
+	let result = 'try ';
+	result += path.call(print, 'block');
+
+	if (node.handler) {
+		result += ' catch';
+		if (node.handler.param) {
+			result += ' (' + path.call(print, 'handler', 'param') + ')';
+		}
+		result += ' ' + path.call(print, 'handler', 'body');
+	}
+
+	if (node.finalizer) {
+		result += ' finally ';
+		result += path.call(print, 'finalizer');
+	}
+
+	return result;
+}
+
+function printClassBody(node, path, options, print) {
+	if (!node.body || node.body.length === 0) {
+		return '{}';
+	}
+
+	const body = path.map(print, 'body').join('\n');
+	const indentedBody = body
+		.split('\n')
+		.map((line) => {
+			if (line.trim() === '') return '';
+			return '  ' + line;
+		})
+		.join('\n');
+
+	return '{\n' + indentedBody + '\n}';
+}
+
+function printPropertyDefinition(node, path, options, print) {
+	let result = '';
+
+	if (node.static) {
+		result += 'static ';
+	}
+
+	result += path.call(print, 'key');
+
+	if (node.typeAnnotation) {
+		result += path.call(print, 'typeAnnotation');
+	}
+
+	if (node.value) {
+		result += ' = ' + path.call(print, 'value');
+	}
+
+	result += ';';
+
+	return result;
+}
+
+function printMethodDefinition(node, path, options, print) {
+	let result = '';
+
+	if (node.static) {
+		result += 'static ';
+	}
+
+	if (node.kind === 'constructor') {
+		result += 'constructor';
+	} else if (node.kind === 'get') {
+		result += 'get ' + path.call(print, 'key');
+	} else if (node.kind === 'set') {
+		result += 'set ' + path.call(print, 'key');
+	} else {
+		result += path.call(print, 'key');
+	}
+
+	result += '(';
+	if (node.value && node.value.params) {
+		result += node.value.params.map((param) => param.name).join(', ');
+	}
+	result += ') ';
+
+	if (node.value && node.value.body) {
+		result += path.call(print, 'value', 'body');
+	} else {
+		result += '{}';
+	}
+
+	return result;
+}
+
+function printMemberExpression(node, path, options, print) {
+	let result = path.call(print, 'object');
+	if (node.computed) {
+		result += '[' + path.call(print, 'property') + ']';
+	} else {
+		result += '.' + path.call(print, 'property');
+	}
+	return result;
+}
+
+function printCallExpression(node, path, options, print) {
+	let result = path.call(print, 'callee');
+	result += '(';
+	if (node.arguments && node.arguments.length > 0) {
+		result += path.map(print, 'arguments').join(', ');
+	}
+	result += ')';
+	return result;
+}
+
+function printUnaryExpression(node, path, options, print) {
+	if (node.prefix) {
+		// Add space for word operators like 'void', 'typeof', 'delete'
+		const needsSpace = /^[a-z]/.test(node.operator);
+		return node.operator + (needsSpace ? ' ' : '') + path.call(print, 'argument');
+	} else {
+		return path.call(print, 'argument') + node.operator;
+	}
+}
+
+function shouldAddBlankLine(currentNode, nextNode) {
+	// Add blank line after variable declarations when followed by different statement types
+	if (currentNode.type === 'VariableDeclaration' && nextNode.type !== 'VariableDeclaration') {
+		return true;
+	}
+
+	// Add blank line after expression statements when followed by different statement types
+	if (
+		currentNode.type === 'ExpressionStatement' &&
+		nextNode.type !== 'ExpressionStatement' &&
+		nextNode.type !== 'JSXElement'
+	) {
+		return true;
+	}
+
+	// Add blank line after if statements
+	if (currentNode.type === 'IfStatement') {
+		return true;
+	}
+
+	// Add blank line after for loops
+	if (currentNode.type === 'ForOfStatement' || currentNode.type === 'ForStatement') {
+		return true;
+	}
+
+	// Add blank line after while loops
+	if (currentNode.type === 'WhileStatement') {
+		return true;
+	}
+
+	// Add blank line after try statements
+	if (currentNode.type === 'TryStatement') {
+		return true;
+	}
+
+	// Add blank line before try statements
+	if (nextNode.type === 'TryStatement') {
+		return true;
+	}
+
+	// Add blank line before for loops
+	if (nextNode.type === 'ForOfStatement' || nextNode.type === 'ForStatement') {
+		return true;
+	}
+
+	// Add blank line before while loops
+	if (nextNode.type === 'WhileStatement') {
+		return true;
+	}
+
+	// Add blank line before function declarations/expressions
+	if (
+		nextNode.type === 'FunctionDeclaration' ||
+		(nextNode.type === 'VariableDeclaration' &&
+			nextNode.declarations &&
+			nextNode.declarations[0] &&
+			nextNode.declarations[0].init &&
+			nextNode.declarations[0].init.type === 'ArrowFunctionExpression')
+	) {
+		return true;
+	}
+
+	// Add blank line before JSX elements when preceded by statements
+	if (currentNode.type !== 'JSXElement' && nextNode.type === 'JSXElement') {
+		return true;
+	}
+
+	return false;
 }
 
 function printObjectPattern(node, path, options, print) {
 	const properties = path.map(print, 'properties').join(', ');
 	let result = '{ ' + properties + ' }';
-	
+
 	if (node.typeAnnotation) {
 		result += path.call(print, 'typeAnnotation');
 	}
-	
+
 	return result;
 }
 
@@ -380,17 +783,17 @@ function printProperty(node, path, options, print) {
 	if (node.shorthand) {
 		return path.call(print, 'key');
 	}
-	
+
 	return path.call(print, 'key') + ': ' + path.call(print, 'value');
 }
 
 function printVariableDeclarator(node, path, options, print) {
 	let result = path.call(print, 'id');
-	
+
 	if (node.init) {
 		result += ' = ' + path.call(print, 'init');
 	}
-	
+
 	return result;
 }
 
@@ -401,11 +804,11 @@ function printTSTypeLiteral(node, path, options, print) {
 
 function printTSPropertySignature(node, path, options, print) {
 	let result = path.call(print, 'key');
-	
+
 	if (node.typeAnnotation) {
 		result += path.call(print, 'typeAnnotation');
 	}
-	
+
 	return result;
 }
 
@@ -416,7 +819,7 @@ function printTSTypeReference(node, path, options, print) {
 function printElement(node, path, options, print) {
 	const tagName = node.id.name;
 	let result = '<' + tagName;
-	
+
 	if (node.attributes && node.attributes.length > 0) {
 		const attrs = path.map((attrPath, index) => {
 			const attr = node.attributes[index];
@@ -430,38 +833,59 @@ function printElement(node, path, options, print) {
 		}, 'attributes');
 		result += ' ' + attrs.join(' ');
 	}
-	
+
 	if (node.selfClosing || !node.children || node.children.length === 0) {
 		result += ' />';
 		return result;
 	}
-	
+
 	result += '>';
-	
+
 	const children = path.map(print, 'children');
-	const hasComplexChildren = children.some(child => 
-		typeof child === 'string' && (child.includes('\n') || child.length > 50)
+	const hasComplexChildren = children.some(
+		(child) => typeof child === 'string' && (child.includes('\n') || child.length > 50),
 	);
-	
+
 	if (hasComplexChildren || children.length > 1) {
 		result += '\n';
-		result += children.map(child => 
-			typeof child === 'string' 
-				? child.split('\n').map(line => line ? '  ' + line : line).join('\n')
-				: '  ' + child
-		).join('\n');
+
+		// Add intelligent spacing between children
+		const spacedChildren = [];
+		for (let i = 0; i < children.length; i++) {
+			const child = children[i];
+			spacedChildren.push(
+				typeof child === 'string'
+					? child
+							.split('\n')
+							.map((line) => (line ? '  ' + line : line))
+							.join('\n')
+					: '  ' + child,
+			);
+
+			// Add blank lines between logical groups
+			if (i < children.length - 1 && node.children && node.children[i] && node.children[i + 1]) {
+				const currentChild = node.children[i];
+				const nextChild = node.children[i + 1];
+
+				if (shouldAddBlankLine(currentChild, nextChild)) {
+					spacedChildren.push('');
+				}
+			}
+		}
+
+		result += spacedChildren.join('\n');
 		result += '\n';
 	} else if (children.length === 1) {
 		result += children[0];
 	}
-	
+
 	result += '</' + tagName + '>';
 	return result;
 }
 
 function printAttribute(node, path, options, print) {
 	let result = node.name.name;
-	
+
 	if (node.value) {
 		if (node.value.type === 'Literal') {
 			result += '=' + JSON.stringify(node.value.value);
@@ -469,6 +893,6 @@ function printAttribute(node, path, options, print) {
 			result += '={' + path.call(print, 'value') + '}';
 		}
 	}
-	
+
 	return result;
 }

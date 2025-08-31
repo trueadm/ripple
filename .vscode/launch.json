@@ -9,9 +9,7 @@
 			"name": "Extension",
 			"type": "extensionHost",
 			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}/packages/ripple-vscode-plugin/"
-			]
+			"args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/ripple-vscode-plugin/"]
 		}
 	]
 }

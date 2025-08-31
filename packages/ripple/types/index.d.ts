@@ -2,7 +2,7 @@ export type Component<T = Record<string, any>> = (props: T) => void;
 
 export declare function mount(
 	component: () => void,
-	options: { target: HTMLElement; props?: Record<string, any> }
+	options: { target: HTMLElement; props?: Record<string, any> },
 ): () => void;
 
 export declare function untrack<T>(fn: () => T): T;

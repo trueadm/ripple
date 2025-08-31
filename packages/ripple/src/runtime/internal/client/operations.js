@@ -48,7 +48,7 @@ export function first_child(node) {
 	return first_child_getter.call(node);
 }
 
-export function child_frag(node)  {
+export function child_frag(node) {
 	var child = first_child(node);
 
 	if (child.nodeType === 8 && child.data === '') {

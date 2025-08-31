@@ -236,7 +236,7 @@ function RipplePlugin(config) {
 										commentStart,
 										commentEnd,
 										startLoc,
-										endLoc
+										endLoc,
 									);
 								}
 
@@ -273,7 +273,7 @@ function RipplePlugin(config) {
 										commentStart,
 										commentEnd,
 										startLoc,
-										endLoc
+										endLoc,
 									);
 								}
 
@@ -307,7 +307,7 @@ function RipplePlugin(config) {
 									'`{"' +
 									this.input[this.pos] +
 									'"}' +
-									'`?'
+									'`?',
 							);
 						}
 
@@ -429,7 +429,7 @@ function RipplePlugin(config) {
 					noCalls,
 					maybeAsyncArrow,
 					optionalChained,
-					forInit
+					forInit,
 				);
 			}
 
@@ -573,10 +573,10 @@ export function parse(source) {
 					end,
 					loc: {
 						start: startLoc,
-						end: endLoc
-					}
+						end: endLoc,
+					},
 				});
-			}
+			},
 		});
 	} catch (e) {
 		throw e;

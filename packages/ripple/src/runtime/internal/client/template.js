@@ -7,7 +7,7 @@ export function assign_nodes(start, end) {
 	if (block.s === null) {
 		block.s = {
 			start,
-			end
+			end,
 		};
 	}
 }

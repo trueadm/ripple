@@ -62,10 +62,10 @@ export function ripple(inlineOptions) {
 					cssCache.set(cssId, css);
 					js.code += `\nimport ${JSON.stringify(cssId)};\n`;
 				}
-                
+
 				return js;
-			}
-		}
+			},
+		},
 	];
 
 	return plugins;
