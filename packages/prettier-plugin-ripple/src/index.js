@@ -184,7 +184,8 @@ function printRippleNode(node, path, options, print) {
 			return printJSXAttribute(node, path, options, print);
 
 		case 'UseAttribute':
-			return '{@use ' + path.call(print, 'argument') + '}';
+			const argResult = path.call(print, 'argument');
+			return '{@use ' + argResult + '}';
 
 		case 'SpreadAttribute':
 			return '{...' + path.call(print, 'argument') + '}';
@@ -203,8 +204,26 @@ function printRippleNode(node, path, options, print) {
 			return printArrowFunction(node, path, options, print);
 
 		case 'BlockStatement':
-			const statements = path.map(print, 'body').join('\n');
-			const indentedStatements = statements
+			const statements = path.map(print, 'body');
+			
+			// Add intelligent spacing between statements
+			const spacedStatements = [];
+			for (let i = 0; i < statements.length; i++) {
+				spacedStatements.push(statements[i]);
+				
+				// Add blank lines between logical groups
+				if (i < statements.length - 1 && node.body && node.body[i] && node.body[i + 1]) {
+					const currentStmt = node.body[i];
+					const nextStmt = node.body[i + 1];
+					
+					if (shouldAddBlankLine(currentStmt, nextStmt)) {
+						spacedStatements.push('');
+					}
+				}
+			}
+			
+			const joinedStatements = spacedStatements.join('\n');
+			const indentedStatements = joinedStatements
 				.split('\n')
 				.map((line) => {
 					if (line.trim() === '') return '';
@@ -479,9 +498,41 @@ function printJSXOpeningElement(node, path, options, print) {
 		const attrs = node.attributes
 			.map((attr) => {
 				if (attr.type === 'UseAttribute') {
-					return '{@use ' + attr.argument.name + '}';
+					// For UseAttribute, we need to directly format the argument 
+					// Since it's an ArrowFunctionExpression, handle it specially
+					let argResult;
+					if (attr.argument.type === 'ArrowFunctionExpression') {
+						const params = attr.argument.params.map(param => param.name).join(', ');
+						const body = attr.argument.body;
+						
+						// Format the body (BlockStatement)
+						let bodyStr = '{ ';
+						if (body.body && body.body.length > 0) {
+							const statements = body.body.map(stmt => {
+								if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression') {
+									return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
+								}
+								return '/* unsupported statement */';
+							});
+							bodyStr += statements.join('; ') + '; ';
+						}
+						bodyStr += '}';
+						
+						// Always use parentheses for consistency (Prettier standard)
+						argResult = '(' + params + ') => ' + bodyStr;
+					} else {
+						argResult = 'undefined';
+					}
+					
+					return '{@use ' + argResult + '}';
 				} else if (attr.type === 'SpreadAttribute') {
-					return '{...' + attr.argument.name + '}';
+					const argPath = {
+						call: (printFn, key) => {
+							if (key === 'argument') return printFn.call(null, attr.argument);
+							return printFn.call(null, attr[key]);
+						}
+					};
+					return '{...' + printRippleNode(attr.argument, argPath, options, print) + '}';
 				} else if (attr.type === 'JSXAttribute') {
 					return printJSXAttribute(attr, path, options, print);
 				}
@@ -516,11 +567,25 @@ function printJSXFragment(node, path, options, print) {
 }
 
 function printArrowFunction(node, path, options, print) {
-	const params = node.params.map((param) => param.name).join(', ');
-	const body =
-		node.body.type === 'BlockStatement' ? path.call(print, 'body') : path.call(print, 'body');
+	let params;
+	let body;
+	
+	// Handle case where path might be a mock object (from UseAttribute processing)
+	if (path && typeof path.map === 'function') {
+		params = path.map(print, 'params').join(', ');
+		body = path.call(print, 'body');
+	} else {
+		// Fallback: process the node directly
+		params = node.params.map(param => printRippleNode(param, null, options, print)).join(', ');
+		body = printRippleNode(node.body, null, options, print);
+	}
 
-	return '(' + params + ') => ' + body;
+	// Handle single parameter without parentheses (if no parentheses needed)
+	if (node.params.length === 1 && node.params[0].type === 'Identifier') {
+		return params + ' => ' + body;
+	} else {
+		return '(' + params + ') => ' + body;
+	}
 }
 
 function printExportDefaultDeclaration(node, path, options, print) {
@@ -944,6 +1009,28 @@ function shouldAddBlankLine(currentNode, nextNode) {
 		return true;
 	}
 
+	// Add spacing between function declarations and other statements
+	if (currentNode.type === 'FunctionDeclaration') {
+		return true;
+	}
+
+	// Add spacing between different top-level statement types, but not within function bodies
+	if (currentNode.type === 'ExpressionStatement' && nextNode.type === 'ExpressionStatement') {
+		// Only add spacing if these are likely top-level statements (like beforeEach, afterEach, it)
+		// We can detect this by checking if the expressions are function calls with test-related names
+		if (currentNode.expression?.type === 'CallExpression' && nextNode.expression?.type === 'CallExpression') {
+			const currentCallee = currentNode.expression.callee?.name;
+			const nextCallee = nextNode.expression.callee?.name;
+			
+			// Only add spacing between test framework calls, not regular function calls
+			const testFrameworkFunctions = ['beforeEach', 'afterEach', 'beforeAll', 'afterAll', 'it', 'test', 'describe'];
+			
+			if (testFrameworkFunctions.includes(currentCallee) || testFrameworkFunctions.includes(nextCallee)) {
+				return true;
+			}
+		}
+	}
+
 	return false;
 }
 
@@ -1003,9 +1090,39 @@ function printElement(node, path, options, print) {
 		const attrs = path.map((attrPath, index) => {
 			const attr = node.attributes[index];
 			if (attr.type === 'UseAttribute') {
-				return '{@use ' + attr.argument.name + '}';
+				// Handle UseAttribute with direct formatting
+				let argResult;
+				if (attr.argument.type === 'ArrowFunctionExpression') {
+					const params = attr.argument.params.map(param => param.name).join(', ');
+					const body = attr.argument.body;
+					
+					// Format the body (BlockStatement)
+					let bodyStr = '{ ';
+					if (body.body && body.body.length > 0) {
+						const statements = body.body.map(stmt => {
+							if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression') {
+								return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
+							}
+							return '/* unsupported statement */';
+						});
+						bodyStr += statements.join('; ') + '; ';
+					}
+					bodyStr += '}';
+					
+					// Always use parentheses for consistency (Prettier standard)
+					argResult = '(' + params + ') => ' + bodyStr;
+				} else {
+					argResult = 'undefined';
+				}
+				return '{@use ' + argResult + '}';
 			} else if (attr.type === 'SpreadAttribute') {
-				return '{...' + attr.argument.name + '}';
+				const argPath = {
+					call: (printFn, key) => {
+						if (key === 'argument') return printFn.call(null, attr.argument);
+						return printFn.call(null, attr[key]);
+					}
+				};
+				return '{...' + printRippleNode(attr.argument, argPath, options, print) + '}';
 			} else {
 				return attrPath.call(print);
 			}

@@ -4,12 +4,8 @@ import { mount, flushSync } from 'ripple';
 describe('basic', () => {
   let container;
 
-
-
   function render(component) {
     mount(component, { target: container });
-
-
   }
 
   beforeEach(() => {
@@ -28,7 +24,6 @@ describe('basic', () => {
     }
 
     render(Basic);
-
     expect(container).toMatchSnapshot();
   });
 
@@ -58,7 +53,6 @@ describe('basic', () => {
       let $text = 'Hello World';
 
       <button onClick={() => $text = 'Hello Ripple'}>{"Change Text"}</button>
-
       <div>{$text}</div>
     }
 
@@ -104,7 +98,6 @@ describe('basic', () => {
       let $count = 0;
 
       <button onClick={() => $count++}>{"Increment"}</button>
-
       <div $id={`item-${$count}`}>{"Dynamic ID"}</div>
     }
 
@@ -131,7 +124,6 @@ describe('basic', () => {
       let $color = 'red';
 
       <button onClick={() => $color = $color === 'red' ? 'blue' : 'red'}>{"Change Color"}</button>
-
       <div $style={`color: ${$color}; font-weight: bold;`}>{"Dynamic Style"}</div>
     }
 
@@ -156,8 +148,6 @@ describe('basic', () => {
       let $checked = false;
 
       <button onClick={() => { $disabled = !$disabled; $checked = !$checked; }}>{"Toggle"}</button>
-
-
       <input type="checkbox" $disabled={$disabled} $checked={$checked} />
     }
 
@@ -251,8 +241,6 @@ describe('basic', () => {
   it('render spread attributes', () => {
     component Basic() {
       let $attrs = { class: 'initial', id: 'test-1' };
-
-
 
       <button onClick={() => {
         $attrs = { class: 'updated', id: 'test-2', 'data-extra': 'value' };

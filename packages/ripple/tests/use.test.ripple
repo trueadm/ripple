@@ -23,6 +23,7 @@ describe("@use element decorators", () => {
 
   it("capture a <div>", () => {
     let div;
+
     component Component() {
       <div {@use (node) => { div = node; }}>{"Hello World"}</div>
     }
