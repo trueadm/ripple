@@ -1,4 +1,8 @@
 
+component Foo() {
+
+}
+
 export component App({ name }: { name: string }) {
   <div class="container">
     let $count = 0;
@@ -27,24 +31,19 @@ export component App({ name }: { name: string }) {
     };
     const obj2 = {};
 
-    <div {...obj2} />;
+    <div {...obj2} />
 
-    for (const item of items) {
-      <span>{"Count is zero"}</span>
-    }
-
-    try {
+        try {
       <Foo />
     } catch (e) {
       <div>{e.message}</div>
     }
 
-    const fn = () => {
-      $count;
-      console.log("use fn called");
-    };
+    for (const item of items) {
+      <span>{item}</span>
+    }
 
-    <Child {@use fn}><div>{"Child Component " + $count}</div></Child>
+
   </div>
 
   <style>

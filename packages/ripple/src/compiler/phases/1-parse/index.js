@@ -364,7 +364,11 @@ function RipplePlugin(config) {
 
 				if (element.selfClosing) {
 					this.#path.pop();
-					if (this.type !== tok.jsxTagStart) {
+					if (
+						this.type !== tok.jsxTagStart &&
+						this.type?.keyword !== 'for' &&
+						this.type?.keyword !== 'try'
+					) {
 						// Eat the closing `/>`
 						this.pos--;
 						this.next();
