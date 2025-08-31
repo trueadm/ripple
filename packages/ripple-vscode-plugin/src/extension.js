@@ -96,102 +96,48 @@ async function activate(context) {
 	const volar_labs = createLabsInfo(protocol);
 	volar_labs.addLanguageClient(client);
 
-	// // Check if prettier-plugin-ripple is available
-	// let hasPrettierPlugin = false;
-	// try {
-	// 	// Try to find prettier-plugin-ripple in the workspace
-	// 	const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-	// 	if (workspaceRoot) {
-	// 		const pluginPath = path.join(workspaceRoot, 'packages', 'prettier-plugin-ripple', 'src', 'index.js');
-	// 		if (fs.existsSync(pluginPath)) {
-	// 			hasPrettierPlugin = true;
-	// 		}
-	// 	}
-	// } catch (error) {
-	// 	// Plugin not found, continue without it
-	// }
+	// Configure Prettier to handle .ripple files
+	const config = vscode.workspace.getConfiguration();
+	
+	// Tell Prettier extension to enable formatting for ripple language
+	await config.update(
+		'prettier.documentSelectors',
+		['**/*.ripple'],
+		vscode.ConfigurationTarget.Global
+	);
+	
+	// Set Prettier as default formatter for .ripple files
+	await config.update(
+		'[ripple]',
+		{
+			'editor.defaultFormatter': 'esbenp.prettier-vscode'
+		},
+		vscode.ConfigurationTarget.Global
+	);
 
-	// // Register the format command
-	// const formatCommand = vscode.commands.registerCommand('ripple.format', async () => {
-	// 	const editor = vscode.window.activeTextEditor;
-	// 	if (editor && editor.document.languageId === 'ripple') {
-	// 		if (hasPrettierPlugin) {
-	// 			await vscode.commands.executeCommand('editor.action.formatDocument.prettier');
-	// 		} else {
-	// 			vscode.window.showWarningMessage(
-	// 				'Prettier plugin for Ripple not found. Install prettier-plugin-ripple for formatting support.'
-	// 			);
-	// 		}
-	// 	}
-	// });
+	// Register a custom formatter as backup that calls Prettier directly
+	const formatProvider = vscode.languages.registerDocumentFormattingEditProvider(
+		{ language: 'ripple', scheme: 'file' },
+		{
+			async provideDocumentFormattingEdits(document, options, token) {
+				try {
+					// Try to use Prettier extension first
+					const edits = await vscode.commands.executeCommand(
+						'editor.action.formatDocument.prettier'
+					);
+					return edits || [];
+				} catch (error) {
+					console.error('Ripple formatting error:', error);
+					vscode.window.showErrorMessage(
+						'Failed to format Ripple file. Make sure Prettier extension is installed and prettier-plugin-ripple is configured.'
+					);
+					return [];
+				}
+			}
+		}
+	);
 
-	// context.subscriptions.push(formatCommand);
-
-	// if (hasPrettierPlugin) {
-	// 	// Register Prettier as the default formatter for .ripple files
-	// 	const formatProvider = vscode.languages.registerDocumentFormattingEditProvider(
-	// 		{ language: 'ripple', scheme: 'file' },
-	// 		{
-	// 			async provideDocumentFormattingEdits(document, options, token) {
-	// 				try {
-	// 					// Use Prettier extension to format
-	// 					const edits = await vscode.commands.executeCommand(
-	// 						'editor.action.formatDocument.prettier',
-	// 						document.uri
-	// 					);
-	// 					return edits;
-	// 				} catch (error) {
-	// 					console.error('Ripple formatting error:', error);
-	// 					vscode.window.showErrorMessage(
-	// 						'Failed to format Ripple file. Make sure Prettier extension is installed.'
-	// 					);
-	// 					return [];
-	// 				}
-	// 			}
-	// 		}
-	// 	);
-
-	// 	context.subscriptions.push(formatProvider);
-
-	// 	// Set Prettier as default formatter for .ripple files
-	// 	const config = vscode.workspace.getConfiguration();
-	// 	await config.update(
-	// 		'[ripple]',
-	// 		{
-	// 			'editor.defaultFormatter': 'esbenp.prettier-vscode'
-	// 		},
-	// 		vscode.ConfigurationTarget.Global
-	// 	);
-
-	// 	// Show info message that Prettier plugin is available (only once)
-	// 	const hasShownMessage = context.globalState.get('ripple.prettierPluginMessageShown', false);
-	// 	if (!hasShownMessage) {
-	// 		vscode.window.showInformationMessage(
-	// 			'Ripple Prettier plugin detected. Formatting is now available for .ripple files.'
-	// 		);
-	// 		context.globalState.update('ripple.prettierPluginMessageShown', true);
-	// 	}
-	// } else {
-	// 	// Register a basic formatter that shows a helpful message
-	// 	const basicFormatProvider = vscode.languages.registerDocumentFormattingEditProvider(
-	// 		{ language: 'ripple', scheme: 'file' },
-	// 		{
-	// 			provideDocumentFormattingEdits(document, options, token) {
-	// 				vscode.window.showInformationMessage(
-	// 					'Install prettier-plugin-ripple for advanced formatting support.',
-	// 					'Install Plugin'
-	// 				).then(selection => {
-	// 					if (selection === 'Install Plugin') {
-	// 						vscode.env.openExternal(vscode.Uri.parse('https://www.npmjs.com/package/prettier-plugin-ripple'));
-	// 					}
-	// 				});
-	// 				return [];
-	// 			}
-	// 		}
-	// 	);
-
-	// 	context.subscriptions.push(basicFormatProvider);
-	// }
+	context.subscriptions.push(formatProvider);
 
 	return volar_labs.extensionExports;
 }

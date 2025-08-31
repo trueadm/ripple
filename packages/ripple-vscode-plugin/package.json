@@ -68,13 +68,6 @@
           "source.css": "css"
         }
       }
-    ],
-    "commands": [
-      {
-        "command": "ripple.format",
-        "title": "Format Document",
-        "category": "Ripple"
-      }
     ]
   }
 }
