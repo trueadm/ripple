@@ -4,23 +4,27 @@ import { mount, flushSync } from "ripple";
 
 describe("@use element decorators", () => {
   let container;
+
   function render(component) {
     mount(component, {
       target: container
     });
   }
+
   beforeEach(() => {
-    /* Unknown: AssignmentExpression */;
+    container = document.createElement("div");
     document.body.appendChild(container);
   });
+
   afterEach(() => {
     document.body.removeChild(container);
-    /* Unknown: AssignmentExpression */;
+    container = null;
   });
+
   it("capture a <div>", () => {
     let div;
     component Component() {
-      <div {@use undefined}>{"Hello World"}</div>
+      <div {@use (node) => { div = node; }}>{"Hello World"}</div>
     }
     render(Component);
     flushSync();
