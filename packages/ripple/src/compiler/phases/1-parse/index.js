@@ -294,7 +294,7 @@ function RipplePlugin(config) {
 						case 62: // '>'
 						case 125: {
 							// '}'
-							if (ch === 125 && this.#path.at(-1).type === 'Component') {
+							if (ch === 125 && (this.#path.length === 0 || this.#path.at(-1)?.type === 'Component')) {
 								return original.readToken.call(this, ch);
 							}
 							this.raise(
@@ -316,7 +316,7 @@ function RipplePlugin(config) {
 								out += this.input.slice(chunkStart, this.pos);
 								out += this.jsx_readNewLine(true);
 								chunkStart = this.pos;
-							} else if (ch === 32) {
+							} else if (ch === 32 || ch === 9) {
 								++this.pos;
 							} else {
 								this.context.push(tc.b_stat);

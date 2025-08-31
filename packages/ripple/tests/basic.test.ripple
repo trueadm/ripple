@@ -265,4 +265,20 @@ describe('basic', () => {
 		expect(div.id).toBe('test-2');
 		expect(div.getAttribute('data-extra')).toBe('value');
 	});
+
+	it('renders multiple reactive lexical blocks', () => {
+		component Basic() {
+			<div>
+				let obj = { $count: 0};
+				<span>{"parent: "} {obj.$count}</span>
+			</div>
+
+			<div>
+
+				<button onClick={() => b.$count--}>{"-"}</button>
+				<span>{b.$count}</span>
+				<button onClick={() => b.$count++}>{"+"}</button>
+			</div>
+		}
+	})
 });
