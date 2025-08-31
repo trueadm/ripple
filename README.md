@@ -161,6 +161,21 @@ Now `$count` will only reactively create its value on initialization.
 
 > Note: you cannot define reactive variables in module/global scope, they have to be created on access from an active component
 
+#### Arrays
+
+When creating state that contains arrays you should use the reactive alternative for arrays that Ripple provides.
+
+You'll need to import the array function from Ripple:
+
+```js
+import { array } from 'ripple';
+
+const arr = array(1, 2, 3);
+```
+
+The `array` is a reactive Ripple array, and that means you can access properties normally using numeric index. However,
+accessing the `length` property of a Ripple reactive array will be not be reactive, instead you should use `$length`.
+
 ### Effects
 
 When dealing with reactive state, you might want to be able to create side-effects based upon changes that happen upon updates.
@@ -241,6 +256,25 @@ component ListView({ title, items }) {
 ```
 
 ![iamge for the sourcecode above](assets/readme-3.png)
+
+You can use Ripple's reactive arrays to easily compose contents of an array.
+
+```ripple
+import { array } from 'ripple';
+
+component Numbers() {
+  const items = array(1, 2, 3);
+
+  for (const item of items) {
+    <div}>{item}</div>
+  }
+
+  <button onClick={() => items.push(`Item ${items.$length + 1}`)}>{"Add Item"}</button>
+}
+```
+
+Clicking the `<button>` will create a new item, note that `items` is not `$` prefixed, because it's not
+reactive, but rather its properties are instead.
 
 ### Try statements
 

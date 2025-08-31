@@ -46,8 +46,7 @@ export function for_block(node, get_collection, render_fn, flags) {
 				: array_from(collection);
 
 		if (array[TRACKED_OBJECT] !== undefined) {
-			// TODO we previously assigned array to this, but why?
-			get_all_elements(collection);
+			array = get_all_elements(collection);
 			collection.$length;
 		}
 

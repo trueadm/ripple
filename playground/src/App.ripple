@@ -1,14 +1,12 @@
-	export component App() {
-			<div>
-				let obj = { $count: 0};
-				<span class="count">{obj.$count}</span>
-			</div>
+import { array } from 'ripple';
 
-			<div>
-				let b = { $count: 0 };
-
-				<button onClick={() => b.$count--}>{"-"}</button>
-				<span>{b.$count}</span>
-				<button onClick={() => b.$count++}>{"+"}</button>
-			</div>
-		}
+export component App() {
+	const $items = array('Item 1', 'Item 2', 'Item 3');
+	
+	for (const item of $items) {
+		<div class={item}>{item}</div>
+	}
+	<button onClick={() => {
+		$items.push(`Item ${$items.$length + 1}`)
+	}}>{'Add Item'}</button>
+}

@@ -413,14 +413,36 @@ function printComponent(node, path, options, print) {
 
 	result += ' {\n';
 
-	// Print body statements (no spacing here, as statements are usually inside JSX elements)
+	// Print body statements with proper spacing (same logic as BlockStatement)
 	const bodyStatements = [];
 	for (let i = 0; i < node.body.length; i++) {
 		const statement = path.call(print, 'body', i);
 		bodyStatements.push(statement);
 	}
 
-	const body = bodyStatements.join('\n');
+	// Apply the same spacing logic as BlockStatement
+	const spacedStatements = [];
+	for (let i = 0; i < bodyStatements.length; i++) {
+		spacedStatements.push(bodyStatements[i]);
+		
+		// Add blank lines between logical groups OR preserve existing ones
+		if (i < bodyStatements.length - 1 && node.body && node.body[i] && node.body[i + 1]) {
+			const currentStmt = node.body[i];
+			const nextStmt = node.body[i + 1];
+			
+			// Check if there was originally a blank line between these statements
+			const currentEndLine = currentStmt.loc?.end?.line;
+			const nextStartLine = nextStmt.loc?.start?.line;
+			const hasOriginalBlankLine = nextStartLine && currentEndLine && (nextStartLine - currentEndLine > 1);
+			
+			// Preserve original blank lines OR add new ones based on logic
+			if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
+				spacedStatements.push('');
+			}
+		}
+	}
+
+	const body = spacedStatements.join('\n');
 	// Properly indent each line of the body content
 	const indentedBody = body
 		.split('\n')

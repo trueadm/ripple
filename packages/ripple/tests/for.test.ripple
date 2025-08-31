@@ -1,0 +1,58 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { mount, flushSync, array } from 'ripple';
+
+describe('for statements', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+	it('render a simple static array', () => {
+		component App() {
+			const items = ['Item 1', 'Item 2', 'Item 3'];
+
+			for (const item of items) {
+				<div class={item}>{item}</div>
+			}
+		}
+
+		render(App);
+
+		expect(container).toMatchSnapshot();
+	});
+
+	it('render a simple dynamic array', () => {
+		component App() {
+			const items = array('Item 1', 'Item 2', 'Item 3');
+
+			for (const item of items) {
+				<div class={item}>{item}</div>
+			}
+
+			<button onClick={() => items.push(`Item ${items.$length + 1}`)}>{"Add Item"}</button>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+
+    const button = container.querySelector('button');
+    button.click();
+    flushSync();
+
+    expect(container).toMatchSnapshot();
+	});
+});

@@ -1,0 +1,81 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`for statements > render a simple dynamic array 1`] = `
+<div>
+  <!---->
+  <div
+    class="Item 1"
+  >
+    Item 1
+  </div>
+  <div
+    class="Item 2"
+  >
+    Item 2
+  </div>
+  <div
+    class="Item 3"
+  >
+    Item 3
+  </div>
+  <!---->
+  <button>
+    Add Item
+  </button>
+  
+</div>
+`;
+
+exports[`for statements > render a simple dynamic array 2`] = `
+<div>
+  <!---->
+  <div
+    class="Item 1"
+  >
+    Item 1
+  </div>
+  <div
+    class="Item 2"
+  >
+    Item 2
+  </div>
+  <div
+    class="Item 3"
+  >
+    Item 3
+  </div>
+  <div
+    class="Item 4"
+  >
+    Item 4
+  </div>
+  <!---->
+  <button>
+    Add Item
+  </button>
+  
+</div>
+`;
+
+exports[`for statements > render a simple static array 1`] = `
+<div>
+  <!---->
+  <div
+    class="Item 1"
+  >
+    Item 1
+  </div>
+  <div
+    class="Item 2"
+  >
+    Item 2
+  </div>
+  <div
+    class="Item 3"
+  >
+    Item 3
+  </div>
+  <!---->
+  
+</div>
+`;
