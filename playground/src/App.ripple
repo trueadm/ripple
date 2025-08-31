@@ -1,25 +1,18 @@
-import type { Component } from "ripple"
+import type { Component } from "ripple";
 
 component Child(props: { $children: Component }) {
-  <div {...props}>
-    {props.$count}
-  </div>
+  <div {...props}>{props.$count}</div>
 }
 
 export component App({ name }: { name: string }) {
   <div class="container">
     let $count = 0;
-
-    <button onClick={() => $count++}>{ "Increment count" }</button>
-
+    <button onClick={() => $count++}>{"Increment count"}</button>
     const fn = () => {
       $count;
-      console.log('use fn called');
-    }
-
-    <Child {@use fn}>
-      <div>{'Child Component ' + $count}</div>
-    </Child>
+      console.log("use fn called");
+    };
+    <Child {@use fn}><div>{"Child Component " + $count}</div></Child>
   </div>
 
   <style>

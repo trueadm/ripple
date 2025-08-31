@@ -57,6 +57,9 @@ function printRippleNode(node, path, options, print) {
 		case 'Component':
 			return printComponent(node, path, options, print);
 
+		case 'ExportNamedDeclaration':
+			return printExportNamedDeclaration(node, path, options, print);
+
 		case 'VariableDeclaration':
 			return printVariableDeclaration(node, path, options, print);
 
@@ -85,7 +88,11 @@ function printRippleNode(node, path, options, print) {
 			return '{...' + path.call(print, 'argument') + '}';
 
 		case 'Identifier':
-			return node.name;
+			let result = node.name;
+			if (node.typeAnnotation) {
+				result += path.call(print, 'typeAnnotation');
+			}
+			return result;
 
 		case 'Literal':
 			return JSON.stringify(node.value);
@@ -94,7 +101,12 @@ function printRippleNode(node, path, options, print) {
 			return printArrowFunction(node, path, options, print);
 
 		case 'BlockStatement':
-			return '{\n' + path.map(print, 'body').join('\n') + '\n}';
+			const statements = path.map(print, 'body').join('\n');
+			const indentedStatements = statements.split('\n').map(line => {
+				if (line.trim() === '') return '';
+				return '  ' + line;
+			}).join('\n');
+			return '{\n' + indentedStatements + '\n}';
 
 		case 'ReturnStatement':
 			return 'return ' + (node.argument ? path.call(print, 'argument') : '') + ';';
@@ -184,6 +196,30 @@ function printImportDeclaration(node, path, options, print) {
 	return result;
 }
 
+function printExportNamedDeclaration(node, path, options, print) {
+	let result = 'export ';
+	
+	if (node.declaration) {
+		result += path.call(print, 'declaration');
+	} else if (node.specifiers && node.specifiers.length > 0) {
+		const specifiers = node.specifiers.map(spec => {
+			if (spec.exported.name === spec.local.name) {
+				return spec.local.name;
+			} else {
+				return spec.local.name + ' as ' + spec.exported.name;
+			}
+		});
+		result += '{ ' + specifiers.join(', ') + ' }';
+		
+		if (node.source) {
+			result += ' from ' + JSON.stringify(node.source.value);
+		}
+		result += ';';
+	}
+	
+	return result;
+}
+
 function printComponent(node, path, options, print) {
 	let result = 'component ' + node.id.name;
 	
@@ -193,7 +229,52 @@ function printComponent(node, path, options, print) {
 	
 	result += ' {\n';
 	const body = path.map(print, 'body').join('\n');
-	result += body.split('\n').map(line => line ? '  ' + line : line).join('\n');
+	// Properly indent each line of the body content
+	const indentedBody = body.split('\n').map(line => {
+		if (line.trim() === '') return '';
+		return '  ' + line;
+	}).join('\n');
+	result += indentedBody;
+	
+	// Add CSS if present
+	if (node.css && node.css.source) {
+		result += '\n\n  <style>';
+		// Format the CSS content with proper CSS indentation
+		const cssContent = node.css.source.trim();
+		// Split into lines and format each line
+		const cssLines = cssContent.split('\n');
+		let inRule = false;
+		
+		cssLines.forEach(line => {
+			const trimmedLine = line.trim();
+			if (!trimmedLine) {
+				result += '\n';
+				return;
+			}
+			
+			// Check if this line starts a CSS rule (selector)
+			if (trimmedLine.includes('{')) {
+				inRule = true;
+				result += '\n    ' + trimmedLine; // 4 spaces for selectors
+			}
+			// Check if this line ends a CSS rule
+			else if (trimmedLine === '}') {
+				inRule = false;
+				result += '\n    ' + trimmedLine; // 4 spaces for closing brace
+			}
+			// CSS properties inside rules
+			else if (inRule) {
+				result += '\n      ' + trimmedLine; // 6 spaces for properties
+			}
+			// Other CSS content (shouldn't happen in normal CSS)
+			else {
+				result += '\n    ' + trimmedLine; // 4 spaces default
+			}
+		});
+		
+		result += '\n  </style>';
+	}
+	
 	result += '\n}';
 	
 	return result;

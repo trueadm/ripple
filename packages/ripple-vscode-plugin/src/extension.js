@@ -5,8 +5,6 @@ const protocol = require('@volar/language-server/protocol');
 const lsp = require('vscode-languageclient/node');
 const { createLabsInfo, getTsdk } = require('@volar/vscode');
 
-let ripple;
-
 async function activate(context) {
 	// Try to find ripple compiler in workspace
 	let ripple_path = null;
