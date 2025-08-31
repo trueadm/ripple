@@ -1,22 +1,22 @@
 export component App() {
-  <div class="container">
-    <h1>{"Welcome to Ripple!"}</h1>
-    <div class="counter">
-      let $count = 0;
+	<div class='container'>
+		<h1>{'Welcome to Ripple!'}</h1>
+		<div class='counter'>
+			let $count = 0;
 
-      <button onClick={() => $count--}>{"-"}</button>
-      <span class="count">{$count}</span>
-      <button onClick={() => $count++}>{"+"}</button>
-    </div>
-    <div>
-      <p>{"This is a basic Ripple application template."}</p>
-      <p>
-        {"Edit "}
-        <code>{"src/App.ripple"}</code>
-        {" to get started."}
-      </p>
-    </div>
-  </div>
+			<button onClick={() => $count--}>{'-'}</button>
+			<span class='count'>{$count}</span>
+			<button onClick={() => $count++}>{'+'}</button>
+		</div>
+		<div>
+			<p>{'This is a basic Ripple application template.'}</p>
+			<p>
+				{'Edit '}
+				<code>{'src/App.ripple'}</code>
+				{' to get started.'}
+			</p>
+		</div>
+	</div>
 
   <style>
     .container {

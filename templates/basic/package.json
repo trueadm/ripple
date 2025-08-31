@@ -1,21 +1,25 @@
 {
-  "name": "vite-template-ripple",
-  "version": "0.0.0",
-  "description": "",
-  "type": "module",
-  "scripts": {
-    "start": "vite",
-    "dev": "vite",
-    "build": "vite build",
-    "serve": "vite preview"
-  },
-  "license": "MIT",
-  "devDependencies": {
-    "typescript": "5.7.2",
-    "vite": "6.0.0",
-    "vite-plugin-ripple": "0.2.7"
-  },
-  "dependencies": {
-    "ripple": "0.2.7"
-  }
+	"name": "vite-template-ripple",
+	"version": "0.0.0",
+	"description": "",
+	"type": "module",
+	"scripts": {
+		"start": "vite",
+		"dev": "vite",
+		"build": "vite build",
+		"serve": "vite preview",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
+	},
+	"license": "MIT",
+	"devDependencies": {
+		"prettier": "^3.0.0",
+		"prettier-plugin-ripple": "0.2.7",
+		"typescript": "5.7.2",
+		"vite": "6.0.0",
+		"vite-plugin-ripple": "0.2.7"
+	},
+	"dependencies": {
+		"ripple": "0.2.7"
+	}
 }
