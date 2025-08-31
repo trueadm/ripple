@@ -1,72 +1,14 @@
-component Foo() {
+	export component App() {
+			<div>
+				let obj = { $count: 0};
+				<span class="count">{obj.$count}</span>
+			</div>
 
-}
+			<div>
+				let b = { $count: 0 };
 
-export component App({ name }: { name: string }) {
-	<div class='container'>
-		let $count = 0;
-		let void_thing = void 0;
-		let a = null ?? 1;
-		let y = a ? 1 : 2 || 3;
-
-		console.log($count);
-
-		<button onClick={() => {
-			$count++;
-		}}>{'Increment count'}</button>
-		if ($count > 0) {
-			<span>{'Count is ' + $count}</span>
-		} else {
-			<span>{'Count is zero'}</span>
+				<button onClick={() => b.$count--}>{"-"}</button>
+				<span>{b.$count}</span>
+				<button onClick={() => b.$count++}>{"+"}</button>
+			</div>
 		}
-
-		const items: Array = [1, 2, 3, ...[]];
-		const thing = {};
-		const obj = {
-			a: 1,
-			b: 2,
-			c: 3,
-			...thing
-		};
-		const obj2 = {};
-
-		<div {...obj2} />
-
-		try {
-			<Foo />
-		} catch (e) {
-			<div>{e.message}</div>
-		}
-
-		for (const item of items) {
-			<span>{item}</span>
-		}
-	</div>
-
-  <style>
-    .container {
-      text-align: center;
-    }
-
-    h1 {
-      font-family: "Recursive", sans-serif;
-      font-size: 4rem;
-      font-weight: 400;
-      margin-bottom: 2rem;
-    }
-
-    p {
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
-    }
-
-    button {
-      font-size: 1.2rem;
-    }
-
-    span {
-      padding: 1rem;
-      font-size: 1.2rem;
-    }
-  </style>
-}

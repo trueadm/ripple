@@ -269,16 +269,34 @@ describe('basic', () => {
 	it('renders multiple reactive lexical blocks', () => {
 		component Basic() {
 			<div>
-				let obj = { $count: 0};
-				<span>{"parent: "} {obj.$count}</span>
+				let obj = {
+					$count: 0
+				};
+
+				<span>{obj.$count}</span>
 			</div>
-
 			<div>
+				let b = {
+					$count: 0
+				};
 
-				<button onClick={() => b.$count--}>{"-"}</button>
-				<span>{b.$count}</span>
-				<button onClick={() => b.$count++}>{"+"}</button>
+				<button onClick={() => b.$count--}>{'-'}</button>
+				<span class='count'>{b.$count}</span>
+				<button onClick={() => b.$count++}>{'+'}</button>
 			</div>
 		}
-	})
+		render(Basic);
+
+		const buttons = container.querySelectorAll('button');
+
+		buttons[0].click();
+		flushSync();
+
+		expect(container.querySelector('.count').textContent).toBe('-1');
+
+		buttons[1].click();
+		flushSync();
+
+		expect(container.querySelector('.count').textContent).toBe('0');
+	});
 });
