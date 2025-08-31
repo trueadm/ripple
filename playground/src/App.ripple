@@ -1,31 +1,4 @@
-import type { Component } from "ripple";
-
-component Child(props: { $children: Component }) {
-  <div {...props}>{props.$count}</div>
-}
-
-export function foo() {
-
-}
-
-export default component Test(props) {
-
-}
-
-component Foo() {
-
-}
-
-class RandomClass extends HTMLElement {
-  #foo;
-  constructor() {
-    super();
-    this.x = 1;
-    this.#foo = 2;
-  }
-}
-
-for (let i = 0;; i < 5; i++) {
+for (let i = 0; i < 5; i++) {
   console.log(i);
 }
 
@@ -33,13 +6,18 @@ while (false) {
   console.log(i);
 }
 
-function thing() {
+async function thing() {
   await Promise.resolve();
 }
 
+do {
+  console.log("example");
+} while (false)
+
 export component App({ name }: { name: string }) {
   <div class="container">
-    let $count = 0 || void0;
+    let $count = 0;
+    let void_thing = void 0;
     let a = null ?? 1;
     let y = a ? 1 : 2 || 3;
 
@@ -55,18 +33,19 @@ export component App({ name }: { name: string }) {
     }
 
     const items: Array = [1, 2, 3, ...[]];
+    const thing = {};
     const obj = {
       a: 1,
       b: 2,
       c: 3,
-      ...{}
+      ...thing
     };
     const obj2 = {};
 
-    <div {...obj2} />
+    <div {...obj2} />;
 
 
-    for (const item; of items) {
+    for (const item of items) {
       <span>{"Count is zero"}</span>
     }
 

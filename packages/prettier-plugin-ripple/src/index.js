@@ -78,6 +78,9 @@ function printRippleNode(node, path, options, print) {
 		case 'WhileStatement':
 			return printWhileStatement(node, path, options, print);
 
+		case 'DoWhileStatement':
+			return printDoWhileStatement(node, path, options, print);
+
 		case 'ClassDeclaration':
 			return printClassDeclaration(node, path, options, print);
 
@@ -394,7 +397,18 @@ function printComponent(node, path, options, print) {
 function printVariableDeclaration(node, path, options, print) {
 	const kind = node.kind || 'let';
 	const declarations = path.map(print, 'declarations').join(', ');
-	return kind + ' ' + declarations + ';';
+	
+	// Don't add semicolon if this is inside a for-loop (ForStatement or ForOfStatement)
+	// We can detect this by checking if there's a parent ForStatement or ForOfStatement
+	const hasForLoopParent = path.stack && path.stack.some(item => 
+		item && typeof item === 'object' && (item.type === 'ForStatement' || item.type === 'ForOfStatement')
+	);
+	
+	if (hasForLoopParent) {
+		return kind + ' ' + declarations;
+	} else {
+		return kind + ' ' + declarations + ';';
+	}
 }
 
 function printJSXElement(node, path, options, print) {
@@ -484,7 +498,14 @@ function printExportDefaultDeclaration(node, path, options, print) {
 }
 
 function printFunctionDeclaration(node, path, options, print) {
-	let result = 'function ' + node.id.name + '(';
+	let result = '';
+	
+	// Handle async functions
+	if (node.async) {
+		result += 'async ';
+	}
+	
+	result += 'function ' + node.id.name + '(';
 
 	if (node.params && node.params.length > 0) {
 		result += path.map(print, 'params').join(', ');
@@ -521,28 +542,46 @@ function printForOfStatement(node, path, options, print) {
 
 function printForStatement(node, path, options, print) {
 	let result = 'for (';
+	
+	// Handle init part
 	if (node.init) {
 		result += path.call(print, 'init');
 	}
-	result += '; ';
+	result += ';';
+	
+	// Handle test part  
 	if (node.test) {
-		result += path.call(print, 'test');
+		result += ' ' + path.call(print, 'test');
 	}
-	result += '; ';
+	result += ';';
+	
+	// Handle update part
 	if (node.update) {
-		result += path.call(print, 'update');
+		result += ' ' + path.call(print, 'update');
 	}
+	
 	result += ') ';
 	result += path.call(print, 'body');
 	
 	return result;
 }
 
+// Updated for-loop formatting
 function printWhileStatement(node, path, options, print) {
 	let result = 'while (';
 	result += path.call(print, 'test');
 	result += ') ';
 	result += path.call(print, 'body');
+	
+	return result;
+}
+
+function printDoWhileStatement(node, path, options, print) {
+	let result = 'do ';
+	result += path.call(print, 'body');
+	result += ' while (';
+	result += path.call(print, 'test');
+	result += ')';
 	
 	return result;
 }
@@ -724,7 +763,7 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Add blank line after while loops
-	if (currentNode.type === 'WhileStatement') {
+	if (currentNode.type === 'WhileStatement' || currentNode.type === 'DoWhileStatement') {
 		return true;
 	}
 
@@ -744,7 +783,7 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Add blank line before while loops
-	if (nextNode.type === 'WhileStatement') {
+	if (nextNode.type === 'WhileStatement' || nextNode.type === 'DoWhileStatement') {
 		return true;
 	}
 
