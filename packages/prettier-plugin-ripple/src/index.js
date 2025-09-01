@@ -167,6 +167,27 @@ function printRippleNode(node, path, options, print) {
 		case 'ThrowStatement':
 			return printThrowStatement(node, path, options, print);
 
+		case 'TSInterfaceDeclaration':
+			return printTSInterfaceDeclaration(node, path, options, print);
+
+		case 'TSTypeAliasDeclaration':
+			return printTSTypeAliasDeclaration(node, path, options, print);
+
+		case 'TSTypeParameterDeclaration':
+			return printTSTypeParameterDeclaration(node, path, options, print);
+
+		case 'TSTypeParameter':
+			return printTSTypeParameter(node, path, options, print);
+
+		case 'TSNumberKeyword':
+			return 'number';
+
+		case 'TSBooleanKeyword':
+			return 'boolean';
+
+		case 'TSInterfaceBody':
+			return printTSInterfaceBody(node, path, options, print);
+
 		case 'SwitchStatement':
 			return printSwitchStatement(node, path, options, print);
 
@@ -236,7 +257,17 @@ function printRippleNode(node, path, options, print) {
 				} else {
 					argResult = path.call(print, 'argument');
 				}
+			} else if (node.argument.type === 'CallExpression') {
+				// Handle CallExpression directly
+				const callee = node.argument.callee.name || 'func';
+				const args = node.argument.arguments.map(arg => {
+					if (arg.type === 'Identifier') return arg.name;
+					if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
+					return '/* arg */';
+				}).join(', ');
+				argResult = callee + '(' + args + ')';
 			} else {
+				// For other argument types, try to format them properly
 				argResult = path.call(print, 'argument');
 			}
 			return '{@use ' + argResult + '}';
@@ -432,6 +463,11 @@ function printExportNamedDeclaration(node, path, options, print) {
 function printComponent(node, path, options, print) {
 	let result = 'component ' + node.id.name;
 
+	// Add TypeScript generics if present
+	if (node.typeParameters) {
+		result += path.call(print, 'typeParameters');
+	}
+
 	// Always add parentheses, even if no parameters
 	if (node.params && node.params.length > 0) {
 		result += '(' + path.map(print, 'params').join(', ') + ')';
@@ -605,7 +641,25 @@ function printJSXOpeningElement(node, path, options, print) {
 					} else if (attr.argument.type === 'Identifier') {
 						argResult = attr.argument.name;
 					} else {
-						argResult = 'ref';
+						// For other argument types (CallExpression, etc.)
+						if (attr.argument.type === 'CallExpression') {
+							const callee = attr.argument.callee.name || 'func';
+							const args = attr.argument.arguments.map(arg => {
+								if (arg.type === 'Identifier') return arg.name;
+								if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
+								return '/* arg */';
+							}).join(', ');
+							argResult = callee + '(' + args + ')';
+						} else {
+							// For other types, try the path approach
+							const argPath = {
+								call: (printFn, key) => {
+									if (key === 'argument') return printFn.call(null, attr.argument);
+									return '';
+								}
+							};
+							argResult = printRippleNode(attr.argument, argPath, options, print);
+						}
 					}
 					
 					return '{@use ' + argResult + '}';
@@ -984,6 +1038,75 @@ function printThrowStatement(node, path, options, print) {
 	return 'throw ' + path.call(print, 'argument') + ';';
 }
 
+function printTSInterfaceDeclaration(node, path, options, print) {
+	let result = 'interface ' + node.id.name;
+	
+	if (node.typeParameters) {
+		result += path.call(print, 'typeParameters');
+	}
+	
+	result += ' ';
+	result += path.call(print, 'body');
+	
+	return result;
+}
+
+function printTSInterfaceBody(node, path, options, print) {
+	if (!node.body || node.body.length === 0) {
+		return '{}';
+	}
+	
+	const members = path.map(print, 'body');
+	const joinedMembers = members.join(';\n');
+	const indentedMembers = joinedMembers
+		.split('\n')
+		.map((line) => {
+			if (line.trim() === '') return '';
+			return createIndent(options) + line;
+		})
+		.join('\n');
+	
+	return '{\n' + indentedMembers + ';\n}';
+}
+
+function printTSTypeAliasDeclaration(node, path, options, print) {
+	let result = 'type ' + node.id.name;
+	
+	if (node.typeParameters) {
+		result += path.call(print, 'typeParameters');
+	}
+	
+	result += ' = ';
+	result += path.call(print, 'typeAnnotation');
+	result += ';';
+	
+	return result;
+}
+
+function printTSTypeParameterDeclaration(node, path, options, print) {
+	if (!node.params || node.params.length === 0) {
+		return '';
+	}
+	
+	return '<' + path.map(print, 'params').join(', ') + '>';
+}
+
+function printTSTypeParameter(node, path, options, print) {
+	let result = node.name;
+	
+	if (node.constraint) {
+		result += ' extends ' + path.call(print, 'constraint');
+	}
+	
+	if (node.default) {
+		result += ' = ' + path.call(print, 'default');
+	}
+	
+	return result;
+}
+
+
+
 function printSwitchStatement(node, path, options, print) {
 	let result = 'switch (' + path.call(print, 'discriminant') + ') {\n';
 	
@@ -1210,7 +1333,25 @@ function printElement(node, path, options, print) {
 				} else if (attr.argument.type === 'Identifier') {
 					argResult = attr.argument.name;
 				} else {
-					argResult = 'ref';
+					// For other argument types (CallExpression, etc.)
+					if (attr.argument.type === 'CallExpression') {
+						const callee = attr.argument.callee.name || 'func';
+						const args = attr.argument.arguments.map(arg => {
+							if (arg.type === 'Identifier') return arg.name;
+							if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
+							return '/* arg */';
+						}).join(', ');
+						argResult = callee + '(' + args + ')';
+					} else {
+						// For other types, try the path approach
+						const argPath = {
+							call: (printFn, key) => {
+								if (key === 'argument') return printFn.call(null, attr.argument);
+								return '';
+							}
+						};
+						argResult = printRippleNode(attr.argument, argPath, options, print);
+					}
 				}
 				return '{@use ' + argResult + '}';
 			} else if (attr.type === 'SpreadAttribute') {
