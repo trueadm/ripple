@@ -391,11 +391,11 @@ function RipplePlugin(config) {
 					} else {
 						this.parseTemplateBody(element.children);
 					}
-					const tok = this.acornTypeScript.tokContexts;
+					const tokContexts = this.acornTypeScript.tokContexts;
 
 					const curContext = this.curContext();
 
-					if (curContext === tok.tc_expr) {
+					if (curContext === tokContexts.tc_expr) {
 						this.context.pop();
 					}
 				}

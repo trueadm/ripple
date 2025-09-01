@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-ripple",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Ripple plugin for prettier",
   "type": "module",
   "module": "src/index.js",
