@@ -11,10 +11,10 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "jsdom": "^26.1.0",
-    "prettier": "^3.6.2",
-    "prettier-plugin-ripple": "workspace:*",
+    "jsdom": "catalog:",
+    "prettier": "catalog:",
     "vite-plugin-ripple": "workspace:*",
-    "vitest": "^3.2.4"
+    "prettier-plugin-ripple": "workspace:*",
+    "vitest": "catalog:"
   }
 }

@@ -54,12 +54,12 @@
     "acorn-typescript": "^1.4.13",
     "esrap": "^2.1.0",
     "is-reference": "^3.0.3",
-    "magic-string": "^0.30.17",
+    "magic-string": "^0.30.18",
     "muggle-string": "^0.4.1",
     "zimmerframe": "^1.1.2"
   },
   "devDependencies": {
     "@types/estree": "^1.0.8",
-    "typescript": "^5.9.2"
+    "typescript": "catalog:"
   }
 }
