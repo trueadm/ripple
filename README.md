@@ -151,7 +151,7 @@ component Counter({ $startingCount }) {
 Now given `$startingCount` is reactive, it would mean that `$count` might reset each time an incoming change to `$startingCount` occurs. That might not be desirable, so Ripple provides a way to `untrack` reactivity in those cases:
 
 ```ripple
-import { untrack } from "ripple";
+import { untrack } from 'ripple';
 
 component Counter({ $startingCount }) {
   let $count = untrack(() => $startingCount);
@@ -232,9 +232,9 @@ statements, making control-flow far easier to read and reason with.
 component Truthy({ x }) {
   <div>
     if (x) {
-      <span>{"x is truthy"}</span>
+      <span>{'x is truthy'}</span>
     } else {
-      <span>{"x is falsy"}</span>
+      <span>{'x is falsy'}</span>
     }
   </div>
 }
@@ -285,7 +285,7 @@ Try blocks work to building the foundation for **error boundaries**, when the ru
 an error in the `try` block, you can easily render a fallback in the `catch` block.
 
 ```ripple
-import { reportError } from "some-library";
+import { reportError } from 'some-library';
 
 component ErrorBoundary() {
   <div>
@@ -293,7 +293,8 @@ component ErrorBoundary() {
       <ComponentThatFails />
     } catch (e) {
       reportError(e);
-      <div>{"An error occured! " + e.message}</div>
+
+      <div>{'An error occured! ' + e.message}</div>
     }
   </div>
 }
@@ -411,7 +412,8 @@ You can also create `{@use}` functions inline.
 ```ripple
 component App() {
   let $node;
-  <div {@use undefined}>{"Hello world"}</div>
+
+  <div {@use undefined}>{'Hello world'}</div>
 }
 ```
 
@@ -419,10 +421,10 @@ You can also use function factories to define properties, these are functions th
 thing. However, you can use this pattern to pass reactive properties.
 
 ```ripple
-import { fadeIn } from "some-library";
+import { fadeIn } from 'some-library';
 
 component App({ $ms }) {
-  <div {@use undefined}>{"Hello world"}</div>
+  <div {@use undefined}>{'Hello world'}</div>
 }
 ```
 
@@ -440,7 +442,7 @@ Ripple supports native CSS styling that is localized to the given component usin
 
 ```ripple
 component MyComponent() {
-  <div class="container"><h1>{"Hello World"}</h1></div>
+  <div class='container'><h1>{'Hello World'}</h1></div>
 
   <style>
     .container {

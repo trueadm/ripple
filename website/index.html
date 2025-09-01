@@ -1,476 +1,557 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Ripple - Coming Soon</title>
-	<meta name="description" content="Ripple - A new way to build reactive web applications. Coming soon.">
-	
-	<!-- Open Graph / Facebook -->
-	<meta property="og:type" content="website">
-	<meta property="og:url" content="https://ripplejs.dev/">
-	<meta property="og:title" content="Ripple - Coming Soon">
-	<meta property="og:description" content="A new way to build reactive web applications. Coming soon.">
-	<meta property="og:image" content="/ripple-social.png">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Ripple - Coming Soon</title>
+		<meta
+			name="description"
+			content="Ripple - A new way to build reactive web applications. Coming soon."
+		/>
 
-	<!-- Twitter -->
-	<meta property="twitter:card" content="summary_large_image">
-	<meta property="twitter:url" content="https://ripplejs.dev/">
-	<meta property="twitter:title" content="Ripple - Coming Soon">
-	<meta property="twitter:description" content="A new way to build reactive web applications. Coming soon.">
-	<meta property="twitter:image" content="/ripple-social.png">
+		<!-- Open Graph / Facebook -->
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://ripplejs.dev/" />
+		<meta property="og:title" content="Ripple - Coming Soon" />
+		<meta
+			property="og:description"
+			content="A new way to build reactive web applications. Coming soon."
+		/>
+		<meta property="og:image" content="/ripple-social.png" />
 
-	<link rel="icon" type="image/x-icon" href="/favicon.ico">
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap" rel="stylesheet">
-	
-	<style>
-		* {
-			margin: 0;
-			padding: 0;
-			box-sizing: border-box;
-		}
+		<!-- Twitter -->
+		<meta property="twitter:card" content="summary_large_image" />
+		<meta property="twitter:url" content="https://ripplejs.dev/" />
+		<meta property="twitter:title" content="Ripple - Coming Soon" />
+		<meta
+			property="twitter:description"
+			content="A new way to build reactive web applications. Coming soon."
+		/>
+		<meta property="twitter:image" content="/ripple-social.png" />
 
-		body {
-			font-family: 'Recursive', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-			background: #0a0a0f;
-			color: white;
-			min-height: 100vh;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			overflow-x: hidden;
-			overflow-y: auto;
-			position: relative;
-		}
+		<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap"
+			rel="stylesheet"
+		/>
 
-		/* Starfield layer */
-		body::before {
-			content: '';
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background: 
-				radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.15), transparent),
-				radial-gradient(1px 1px at 40px 70px, rgba(120, 219, 226, 0.4), transparent),
-				radial-gradient(1px 1px at 90px 40px, rgba(255, 119, 198, 0.3), transparent),
-				radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.1), transparent),
-				radial-gradient(2px 2px at 160px 30px, rgba(120, 219, 226, 0.2), transparent);
-			background-repeat: repeat;
-			background-size: 200px 100px, 200px 100px, 200px 100px, 200px 100px, 200px 100px;
-			animation: starTwinkle 8s linear infinite;
-		}
-
-		/* Atmospheric layer */
-		body::after {
-			content: '';
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background: 
-				radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-				radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
-				radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
-		}
-
-		@keyframes starTwinkle {
-			0%, 100% {
-				opacity: 1;
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
 			}
-			50% {
-				opacity: 0.7;
+
+			body {
+				font-family:
+					'Recursive',
+					-apple-system,
+					BlinkMacSystemFont,
+					'Segoe UI',
+					Roboto,
+					sans-serif;
+				background: #0a0a0f;
+				color: white;
+				min-height: 100vh;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				overflow-x: hidden;
+				overflow-y: auto;
+				position: relative;
 			}
-		}
 
-		@keyframes atmosphericShift {
-			0%, 100% {
-				transform: translateX(0) translateY(0) scale(1);
-				opacity: 0.8;
+			/* Starfield layer */
+			body::before {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background:
+					radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.15), transparent),
+					radial-gradient(1px 1px at 40px 70px, rgba(120, 219, 226, 0.4), transparent),
+					radial-gradient(1px 1px at 90px 40px, rgba(255, 119, 198, 0.3), transparent),
+					radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.1), transparent),
+					radial-gradient(2px 2px at 160px 30px, rgba(120, 219, 226, 0.2), transparent);
+				background-repeat: repeat;
+				background-size:
+					200px 100px,
+					200px 100px,
+					200px 100px,
+					200px 100px,
+					200px 100px;
+				animation: starTwinkle 8s linear infinite;
 			}
-			25% {
-				transform: translateX(20px) translateY(-15px) scale(1.05);
-				opacity: 0.9;
+
+			/* Atmospheric layer */
+			body::after {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background:
+					radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+					radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+					radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
 			}
-			50% {
-				transform: translateX(-10px) translateY(-25px) scale(0.95);
-				opacity: 1;
+
+			@keyframes starTwinkle {
+				0%,
+				100% {
+					opacity: 1;
+				}
+				50% {
+					opacity: 0.7;
+				}
 			}
-			75% {
-				transform: translateX(-15px) translateY(10px) scale(1.02);
-				opacity: 0.85;
+
+			@keyframes atmosphericShift {
+				0%,
+				100% {
+					transform: translateX(0) translateY(0) scale(1);
+					opacity: 0.8;
+				}
+				25% {
+					transform: translateX(20px) translateY(-15px) scale(1.05);
+					opacity: 0.9;
+				}
+				50% {
+					transform: translateX(-10px) translateY(-25px) scale(0.95);
+					opacity: 1;
+				}
+				75% {
+					transform: translateX(-15px) translateY(10px) scale(1.02);
+					opacity: 0.85;
+				}
 			}
-		}
 
-		.container {
-			text-align: center;
-			max-width: 600px;
-			padding: 2rem;
-			position: relative;
-			z-index: 10;
-			backdrop-filter: blur(1px);
-		}
+			.container {
+				text-align: center;
+				max-width: 600px;
+				padding: 2rem;
+				position: relative;
+				z-index: 10;
+				backdrop-filter: blur(1px);
+			}
 
-		.logo {
-			width: 120px;
-			height: 120px;
-			margin: 0 auto 2rem;
-			background: rgba(255, 255, 255, 0.1);
-			border-radius: 24px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			backdrop-filter: blur(10px);
-			border: 1px solid rgba(255, 255, 255, 0.2);
-		}
+			.logo {
+				width: 120px;
+				height: 120px;
+				margin: 0 auto 2rem;
+				background: rgba(255, 255, 255, 0.1);
+				border-radius: 24px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				backdrop-filter: blur(10px);
+				border: 1px solid rgba(255, 255, 255, 0.2);
+			}
 
-		.logo svg {
-			width: 60px;
-			height: 60px;
-			fill: white;
-		}
+			.logo svg {
+				width: 60px;
+				height: 60px;
+				fill: white;
+			}
 
-		h1 {
-			font-size: 3.5rem;
-			font-weight: 700;
-			margin-bottom: 1rem;
-			font-variation-settings: 'CASL' 1, 'slnt' -15;
-			letter-spacing: -0.02em;
-			color: white;
-			text-shadow: 
-				0 0 30px rgba(120, 219, 226, 0.8),
-				0 0 60px rgba(255, 119, 198, 0.6),
-				0 0 90px rgba(120, 119, 198, 0.4);
-			animation: glowFadeOut 3s ease-in-out forwards;
-		}
-
-		@keyframes glowFadeOut {
-			0% {
-				text-shadow: 
+			h1 {
+				font-size: 3.5rem;
+				font-weight: 700;
+				margin-bottom: 1rem;
+				font-variation-settings:
+					'CASL' 1,
+					'slnt' -15;
+				letter-spacing: -0.02em;
+				color: white;
+				text-shadow:
 					0 0 30px rgba(120, 219, 226, 0.8),
 					0 0 60px rgba(255, 119, 198, 0.6),
 					0 0 90px rgba(120, 119, 198, 0.4);
+				animation: glowFadeOut 3s ease-in-out forwards;
 			}
-			100% {
-				text-shadow: none;
+
+			@keyframes glowFadeOut {
+				0% {
+					text-shadow:
+						0 0 30px rgba(120, 219, 226, 0.8),
+						0 0 60px rgba(255, 119, 198, 0.6),
+						0 0 90px rgba(120, 119, 198, 0.4);
+				}
+				100% {
+					text-shadow: none;
+				}
 			}
-		}
 
-		.subtitle {
-			font-size: 1.25rem;
-			font-weight: 400;
-			margin-bottom: 3rem;
-			opacity: 0.8;
-			line-height: 1.6;
-			font-variation-settings: 'CASL' 0.5;
-			color: rgba(255, 255, 255, 0.8);
-			text-shadow: 0 0 20px rgba(120, 219, 226, 0.2);
-		}
-
-		.coming-soon {
-			font-size: 1.1rem;
-			font-weight: 500;
-			background: rgba(255, 255, 255, 0.15);
-			padding: 1rem 2rem;
-			border-radius: 50px;
-			backdrop-filter: blur(10px);
-			border: 1px solid rgba(255, 255, 255, 0.2);
-			display: inline-block;
-			margin-bottom: 2rem;
-		}
-
-		.github-link {
-			color: rgba(255, 255, 255, 0.7);
-			text-decoration: none;
-			font-weight: 500;
-			transition: all 0.3s ease;
-			display: inline-flex;
-			align-items: center;
-			gap: 0.5rem;
-			padding: 0.75rem 1.5rem;
-			border: 1px solid rgba(120, 219, 226, 0.3);
-			border-radius: 50px;
-			background: rgba(0, 0, 0, 0.2);
-			backdrop-filter: blur(10px);
-		}
-
-		.github-link:hover {
-			color: white;
-			transform: translateY(-2px);
-			border-color: rgba(120, 219, 226, 0.6);
-			box-shadow: 0 10px 30px rgba(120, 219, 226, 0.2);
-			background: rgba(120, 219, 226, 0.1);
-		}
-
-		.github-link svg {
-			width: 20px;
-			height: 20px;
-			fill: currentColor;
-		}
-
-		/* Mock Editor */
-		.editor-mockup {
-			max-width: 700px;
-			margin: 3rem auto 2rem;
-			background: rgba(30, 30, 35, 0.95);
-			border-radius: 12px;
-			border: 1px solid rgba(255, 255, 255, 0.1);
-			backdrop-filter: blur(10px);
-			overflow: hidden;
-			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-			text-align: left;
-		}
-
-		.editor-header {
-			background: rgba(20, 20, 25, 0.9);
-			padding: 0.75rem 1rem 0;
-			border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-			display: flex;
-			align-items: flex-start;
-			gap: 1rem;
-		}
-
-		.editor-dots {
-			display: flex;
-			gap: 0.5rem;
-			align-self: center;
-			margin-top: -7px;
-		}
-
-		.editor-dot {
-			width: 12px;
-			height: 12px;
-			border-radius: 50%;
-		}
-
-		.editor-dot.red { background: #ff5f57; }
-		.editor-dot.yellow { background: #ffbd2e; }
-		.editor-dot.green { background: #28ca42; }
-
-		.editor-tab {
-			background: rgba(25, 25, 30, 0.95);
-			padding: 0.5rem 1rem;
-			border-radius: 6px 6px 0 0;
-			color: rgba(255, 255, 255, 0.9);
-			font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-			font-size: 0.75rem;
-			border: 1px solid rgba(255, 255, 255, 0.1);
-			border-bottom: none;
-			margin-bottom: -1px;
-			align-self: flex-end;
-		}
-
-
-
-		.editor-content {
-			background: rgba(25, 25, 30, 0.95);
-			padding: 0;
-			font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-			font-size: 0.8rem;
-			line-height: 1.5;
-			color: #e1e4e8;
-			overflow-x: auto;
-			text-align: left;
-		}
-
-		.editor-code {
-			margin: 0;
-			padding: 1.5rem;
-			background: none;
-			color: inherit;
-			font: inherit;
-			white-space: pre;
-			overflow-x: auto;
-		}
-
-		.editor-line {
-			display: block;
-		}
-
-		.line-number {
-			color: rgba(255, 255, 255, 0.3);
-			display: inline-block;
-			width: 1rem;
-			text-align: right;
-			margin-right: 0.75rem;
-			user-select: none;
-		}
-
-		/* Syntax highlighting - matching screenshot colors */
-		.keyword { color: #569cd6; }
-		.export-keyword { color: #c586c0; }
-		.string { color: #ce9178; }
-		.component { color: #4ec9b0; }
-		.function { color: #dcdcaa; }
-		.property { color: #9cdcfe; }
-		.css-selector { color: #d7ba7d; }
-		.control-keyword { color: #c586c0; }
-		.block-brace { color: #c586c0; }
-		.tag { color: #569cd6; }
-		.attribute { color: #92c5f8; }
-		.value { color: #b5cea8; }
-		.comment { color: #6a9955; font-style: italic; }
-		.brace { color: #ffd700; }
-		.css-brace { color: #d4d4d4; }
-		.template-brace { color: #ffd700; }
-		.ripple-syntax { color: #4fc1ff; }
-		.bracket { color: #808080; }
-
-		/* Atmospheric particles */
-		.particle {
-			position: absolute;
-			border-radius: 50%;
-			pointer-events: none;
-		}
-
-		.particle-1 {
-			width: 4px;
-			height: 4px;
-			background: rgba(120, 219, 226, 0.6);
-			top: 20%;
-			left: 15%;
-			animation: drift 25s linear infinite, pulse 3s ease-in-out infinite;
-		}
-
-		.particle-2 {
-			width: 6px;
-			height: 6px;
-			background: rgba(255, 119, 198, 0.4);
-			top: 60%;
-			right: 20%;
-			animation: drift 30s linear infinite reverse, pulse 4s ease-in-out infinite 1s;
-		}
-
-		.particle-3 {
-			width: 3px;
-			height: 3px;
-			background: rgba(120, 119, 198, 0.7);
-			top: 80%;
-			left: 70%;
-			animation: drift 20s linear infinite, pulse 2.5s ease-in-out infinite 2s;
-		}
-
-		.particle-4 {
-			width: 5px;
-			height: 5px;
-			background: rgba(120, 219, 226, 0.3);
-			top: 30%;
-			left: 80%;
-			animation: drift 35s linear infinite reverse, pulse 3.5s ease-in-out infinite 0.5s;
-		}
-
-		.particle-5 {
-			width: 2px;
-			height: 2px;
-			background: rgba(255, 119, 198, 0.8);
-			top: 10%;
-			right: 30%;
-			animation: drift 22s linear infinite, pulse 2s ease-in-out infinite 1.5s;
-		}
-
-		@keyframes drift {
-			0% {
-				transform: translateX(0) translateY(0) rotate(0deg);
-			}
-			25% {
-				transform: translateX(100px) translateY(-50px) rotate(90deg);
-			}
-			50% {
-				transform: translateX(-50px) translateY(-100px) rotate(180deg);
-			}
-			75% {
-				transform: translateX(-100px) translateY(50px) rotate(270deg);
-			}
-			100% {
-				transform: translateX(0) translateY(0) rotate(360deg);
-			}
-		}
-
-		@keyframes pulse {
-			0%, 100% {
-				opacity: 0.3;
-				transform: scale(1);
-			}
-			50% {
-				opacity: 1;
-				transform: scale(1.5);
-			}
-		}
-
-		@media (max-width: 768px) {
-			h1 {
-				font-size: 2.5rem;
-			}
-			
 			.subtitle {
+				font-size: 1.25rem;
+				font-weight: 400;
+				margin-bottom: 3rem;
+				opacity: 0.8;
+				line-height: 1.6;
+				font-variation-settings: 'CASL' 0.5;
+				color: rgba(255, 255, 255, 0.8);
+				text-shadow: 0 0 20px rgba(120, 219, 226, 0.2);
+			}
+
+			.coming-soon {
 				font-size: 1.1rem;
-			}
-			
-			.container {
-				padding: 1rem;
-			}
-			
-			.logo {
-				width: 100px;
-				height: 100px;
-			}
-			
-			.logo svg {
-				width: 50px;
-				height: 50px;
+				font-weight: 500;
+				background: rgba(255, 255, 255, 0.15);
+				padding: 1rem 2rem;
+				border-radius: 50px;
+				backdrop-filter: blur(10px);
+				border: 1px solid rgba(255, 255, 255, 0.2);
+				display: inline-block;
+				margin-bottom: 2rem;
 			}
 
+			.github-link {
+				color: rgba(255, 255, 255, 0.7);
+				text-decoration: none;
+				font-weight: 500;
+				transition: all 0.3s ease;
+				display: inline-flex;
+				align-items: center;
+				gap: 0.5rem;
+				padding: 0.75rem 1.5rem;
+				border: 1px solid rgba(120, 219, 226, 0.3);
+				border-radius: 50px;
+				background: rgba(0, 0, 0, 0.2);
+				backdrop-filter: blur(10px);
+			}
+
+			.github-link:hover {
+				color: white;
+				transform: translateY(-2px);
+				border-color: rgba(120, 219, 226, 0.6);
+				box-shadow: 0 10px 30px rgba(120, 219, 226, 0.2);
+				background: rgba(120, 219, 226, 0.1);
+			}
+
+			.github-link svg {
+				width: 20px;
+				height: 20px;
+				fill: currentColor;
+			}
+
+			/* Mock Editor */
 			.editor-mockup {
-				margin: 2rem auto 1.5rem;
-				max-width: 95%;
+				max-width: 700px;
+				margin: 3rem auto 2rem;
+				background: rgba(30, 30, 35, 0.95);
+				border-radius: 12px;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				backdrop-filter: blur(10px);
+				overflow: hidden;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+				text-align: left;
 			}
 
-			.editor-content {
-				padding: 1rem;
-				font-size: 0.7rem;
+			.editor-header {
+				background: rgba(20, 20, 25, 0.9);
+				padding: 0.75rem 1rem 0;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+				display: flex;
+				align-items: flex-start;
+				gap: 1rem;
 			}
 
-			.line-number {
-				width: 1.5rem;
-				margin-right: 0.75rem;
-				font-size: 0.75rem;
+			.editor-dots {
+				display: flex;
+				gap: 0.5rem;
+				align-self: center;
+				margin-top: -7px;
+			}
+
+			.editor-dot {
+				width: 12px;
+				height: 12px;
+				border-radius: 50%;
+			}
+
+			.editor-dot.red {
+				background: #ff5f57;
+			}
+			.editor-dot.yellow {
+				background: #ffbd2e;
+			}
+			.editor-dot.green {
+				background: #28ca42;
 			}
 
 			.editor-tab {
+				background: rgba(25, 25, 30, 0.95);
+				padding: 0.5rem 1rem;
+				border-radius: 6px 6px 0 0;
+				color: rgba(255, 255, 255, 0.9);
+				font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
 				font-size: 0.75rem;
-				padding: 0.4rem 0.8rem;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				border-bottom: none;
+				margin-bottom: -1px;
+				align-self: flex-end;
 			}
-		}
-	</style>
-</head>
-<body>
-	<!-- Atmospheric particles -->
-	<div class="particle particle-1"></div>
-	<div class="particle particle-2"></div>
-	<div class="particle particle-3"></div>
-	<div class="particle particle-4"></div>
-	<div class="particle particle-5"></div>
 
-	<div class="container">		
-		<h1>Ripple</h1>
-		<p class="subtitle">the elegant UI framework for the web</p>
+			.editor-content {
+				background: rgba(25, 25, 30, 0.95);
+				padding: 0;
+				font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+				font-size: 0.8rem;
+				line-height: 1.5;
+				color: #e1e4e8;
+				overflow-x: auto;
+				text-align: left;
+			}
 
-		<!-- Mock Editor -->
-		<div class="editor-mockup">
-			<div class="editor-header">
-				<div class="editor-dots">
-					<div class="editor-dot red"></div>
-					<div class="editor-dot yellow"></div>
-					<div class="editor-dot green"></div>
+			.editor-code {
+				margin: 0;
+				padding: 1.5rem;
+				background: none;
+				color: inherit;
+				font: inherit;
+				white-space: pre;
+				overflow-x: auto;
+			}
+
+			.editor-line {
+				display: block;
+			}
+
+			.line-number {
+				color: rgba(255, 255, 255, 0.3);
+				display: inline-block;
+				width: 1rem;
+				text-align: right;
+				margin-right: 0.75rem;
+				user-select: none;
+			}
+
+			/* Syntax highlighting - matching screenshot colors */
+			.keyword {
+				color: #569cd6;
+			}
+			.export-keyword {
+				color: #c586c0;
+			}
+			.string {
+				color: #ce9178;
+			}
+			.component {
+				color: #4ec9b0;
+			}
+			.function {
+				color: #dcdcaa;
+			}
+			.property {
+				color: #9cdcfe;
+			}
+			.css-selector {
+				color: #d7ba7d;
+			}
+			.control-keyword {
+				color: #c586c0;
+			}
+			.block-brace {
+				color: #c586c0;
+			}
+			.tag {
+				color: #569cd6;
+			}
+			.attribute {
+				color: #92c5f8;
+			}
+			.value {
+				color: #b5cea8;
+			}
+			.comment {
+				color: #6a9955;
+				font-style: italic;
+			}
+			.brace {
+				color: #ffd700;
+			}
+			.css-brace {
+				color: #d4d4d4;
+			}
+			.template-brace {
+				color: #ffd700;
+			}
+			.ripple-syntax {
+				color: #4fc1ff;
+			}
+			.bracket {
+				color: #808080;
+			}
+
+			/* Atmospheric particles */
+			.particle {
+				position: absolute;
+				border-radius: 50%;
+				pointer-events: none;
+			}
+
+			.particle-1 {
+				width: 4px;
+				height: 4px;
+				background: rgba(120, 219, 226, 0.6);
+				top: 20%;
+				left: 15%;
+				animation:
+					drift 25s linear infinite,
+					pulse 3s ease-in-out infinite;
+			}
+
+			.particle-2 {
+				width: 6px;
+				height: 6px;
+				background: rgba(255, 119, 198, 0.4);
+				top: 60%;
+				right: 20%;
+				animation:
+					drift 30s linear infinite reverse,
+					pulse 4s ease-in-out infinite 1s;
+			}
+
+			.particle-3 {
+				width: 3px;
+				height: 3px;
+				background: rgba(120, 119, 198, 0.7);
+				top: 80%;
+				left: 70%;
+				animation:
+					drift 20s linear infinite,
+					pulse 2.5s ease-in-out infinite 2s;
+			}
+
+			.particle-4 {
+				width: 5px;
+				height: 5px;
+				background: rgba(120, 219, 226, 0.3);
+				top: 30%;
+				left: 80%;
+				animation:
+					drift 35s linear infinite reverse,
+					pulse 3.5s ease-in-out infinite 0.5s;
+			}
+
+			.particle-5 {
+				width: 2px;
+				height: 2px;
+				background: rgba(255, 119, 198, 0.8);
+				top: 10%;
+				right: 30%;
+				animation:
+					drift 22s linear infinite,
+					pulse 2s ease-in-out infinite 1.5s;
+			}
+
+			@keyframes drift {
+				0% {
+					transform: translateX(0) translateY(0) rotate(0deg);
+				}
+				25% {
+					transform: translateX(100px) translateY(-50px) rotate(90deg);
+				}
+				50% {
+					transform: translateX(-50px) translateY(-100px) rotate(180deg);
+				}
+				75% {
+					transform: translateX(-100px) translateY(50px) rotate(270deg);
+				}
+				100% {
+					transform: translateX(0) translateY(0) rotate(360deg);
+				}
+			}
+
+			@keyframes pulse {
+				0%,
+				100% {
+					opacity: 0.3;
+					transform: scale(1);
+				}
+				50% {
+					opacity: 1;
+					transform: scale(1.5);
+				}
+			}
+
+			@media (max-width: 768px) {
+				h1 {
+					font-size: 2.5rem;
+				}
+
+				.subtitle {
+					font-size: 1.1rem;
+				}
+
+				.container {
+					padding: 1rem;
+				}
+
+				.logo {
+					width: 100px;
+					height: 100px;
+				}
+
+				.logo svg {
+					width: 50px;
+					height: 50px;
+				}
+
+				.editor-mockup {
+					margin: 2rem auto 1.5rem;
+					max-width: 95%;
+				}
+
+				.editor-content {
+					padding: 1rem;
+					font-size: 0.7rem;
+				}
+
+				.line-number {
+					width: 1.5rem;
+					margin-right: 0.75rem;
+					font-size: 0.75rem;
+				}
+
+				.editor-tab {
+					font-size: 0.75rem;
+					padding: 0.4rem 0.8rem;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<!-- Atmospheric particles -->
+		<div class="particle particle-1"></div>
+		<div class="particle particle-2"></div>
+		<div class="particle particle-3"></div>
+		<div class="particle particle-4"></div>
+		<div class="particle particle-5"></div>
+
+		<div class="container">
+			<h1>Ripple</h1>
+			<p class="subtitle">the elegant UI framework for the web</p>
+
+			<!-- Mock Editor -->
+			<div class="editor-mockup">
+				<div class="editor-header">
+					<div class="editor-dots">
+						<div class="editor-dot red"></div>
+						<div class="editor-dot yellow"></div>
+						<div class="editor-dot green"></div>
+					</div>
+					<div class="editor-tab">TodoList.ripple</div>
 				</div>
-				<div class="editor-tab">TodoList.ripple</div>
-			</div>
-			<div class="editor-content">
-				<pre class="editor-code"><span class="line-number"> 1</span> <span class="export-keyword">import</span> <span class="brace">{</span> <span class="property">Button</span> <span class="brace">}</span> <span class="export-keyword">from</span> <span class="string">'./Button.ripple'</span>;
+				<div class="editor-content">
+					<pre
+						class="editor-code"
+					><span class="line-number"> 1</span> <span class="export-keyword">import</span> <span class="brace">{</span> <span class="property">Button</span> <span class="brace">}</span> <span class="export-keyword">from</span> <span class="string">'./Button.ripple'</span>;
 <span class="line-number"> 2</span> 
 <span class="line-number"> 3</span> <span class="export-keyword">export</span> <span class="keyword">component</span> <span class="function">TodoList</span><span class="brace">(</span><span class="brace">{</span> <span class="property">todos</span>, <span class="property">addTodo</span> <span class="brace">}</span>: <span class="component">Props</span><span class="brace">)</span> <span class="brace">{</span>
 <span class="line-number"> 4</span>   <span class="bracket">&lt;</span><span class="tag">div</span> <span class="attribute">class</span>=<span class="string">'container'</span><span class="bracket">&gt;</span>
@@ -495,16 +576,22 @@
 <span class="line-number">23</span>     <span class="css-brace">}</span>
 <span class="line-number">24</span>   <span class="bracket">&lt;/</span><span class="tag">style</span><span class="bracket">&gt;</span>
 <span class="line-number">25</span> <span class="brace">}</span></pre>
+				</div>
 			</div>
+
+			<a
+				href="https://github.com/trueadm/ripple"
+				class="github-link"
+				target="_blank"
+				rel="noopener noreferrer"
+			>
+				<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<path
+						d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+					/>
+				</svg>
+				View on GitHub
+			</a>
 		</div>
-	
-		
-		<a href="https://github.com/trueadm/ripple" class="github-link" target="_blank" rel="noopener noreferrer">
-			<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-				<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-			</svg>
-			View on GitHub
-		</a>
-	</div>
-</body>
+	</body>
 </html>

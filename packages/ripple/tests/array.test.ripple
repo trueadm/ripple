@@ -1,0 +1,54 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { mount, flushSync, array } from 'ripple';
+
+describe('array', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+	it('handles direct assignment', () => {
+		component ArrayTest() {
+			let items = array(1, 2, 3);
+
+			<button onClick={() => items[items.$length] = items.$length + 1}>{'increment'}</button>
+
+			<Child items={items} />
+		}
+
+		component Child({ items }) {
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.$length}</pre>
+		}
+
+		render(ArrayTest);
+
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+	});
+});

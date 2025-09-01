@@ -364,13 +364,7 @@ export function is_inside_call_expression(context) {
 }
 
 export function is_tracked_name(name) {
-	return (
-		typeof name === 'string' &&
-		name.startsWith('$') &&
-		name.length > 1 &&
-		name[1] !== '$' &&
-		name !== '$length'
-	);
+	return typeof name === 'string' && name.startsWith('$') && name.length > 1 && name[1] !== '$';
 }
 
 export function is_svelte_import(callee, context) {
@@ -492,15 +486,20 @@ export function build_assignment(operator, left, right, context) {
 
 	const transform = binding.transform;
 
-	const path = context.path.map((node) => node.type);
-
 	// reassignment
-	if (object === left && transform?.assign) {
+	if (
+		(object === left || (left.type === 'MemberExpression' && left.computed && operator === '=')) &&
+		transform?.assign
+	) {
 		let value = /** @type {Expression} */ (
 			context.visit(build_assignment_value(operator, left, right))
 		);
 
-		return transform.assign(object, value);
+		return transform.assign(
+			object,
+			value,
+			left.type === 'MemberExpression' && left.computed ? left.property : undefined,
+		);
 	}
 
 	// mutation

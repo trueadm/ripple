@@ -1,18 +1,14 @@
-
+import { array } from 'ripple';
 
 export component App() {
-  <div>
-    let obj = { $count: 0};
+	let items = array(1, 2, 3);
 
-    <span>{"parent: "} {obj.$count}</span>
-  </div>
+	<button onClick={() => items[items.$length] = items.$length + 1}>{'increment'}</button>
 
-  <div>
-    let b = { $count: 0 };
-
-    <button onClick={() => b.$count--}>{"-"}</button>
-    <span>{b.$count}</span>
-    <button onClick={() => b.$count++}>{"+"}</button>
-  </div>
+	<Child items={items} />
 }
 
+component Child({ items }) {
+	<pre>{JSON.stringify(items)}</pre>
+	<pre>{items.$length}</pre>
+}

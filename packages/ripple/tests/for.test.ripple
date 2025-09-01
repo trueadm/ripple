@@ -43,16 +43,17 @@ describe('for statements', () => {
 				<div class={item}>{item}</div>
 			}
 
-			<button onClick={() => items.push(`Item ${items.$length + 1}`)}>{"Add Item"}</button>
+			<button onClick={() => items.push(`Item ${items.$length + 1}`)}>{'Add Item'}</button>
 		}
 
 		render(App);
 		expect(container).toMatchSnapshot();
 
-    const button = container.querySelector('button');
-    button.click();
-    flushSync();
+		const button = container.querySelector('button');
 
-    expect(container).toMatchSnapshot();
+		button.click();
+		flushSync();
+
+		expect(container).toMatchSnapshot();
 	});
 });

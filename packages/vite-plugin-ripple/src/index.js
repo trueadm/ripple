@@ -67,7 +67,7 @@ export function ripple(inlineOptions) {
 
 					return js;
 				},
-			}
+			},
 		},
 	];
 
