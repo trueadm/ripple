@@ -5,6 +5,7 @@
 
 [![CI](https://github.com/trueadm/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/trueadm/ripple/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/JBF2ySrh2W)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic)
 
 # What is Ripple?
 
@@ -43,7 +44,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 
 > We're working hard on getting an online playgroud available. Watch this space!
 
-You can try Ripple now by using our basic Vite template by running these commands in your terminal:
+You can try Ripple now by using our basic Vite template either via [StackBlitz](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic), or by running these commands in your terminal:
 
 ```bash
 npx degit trueadm/ripple/templates/basic my-app
