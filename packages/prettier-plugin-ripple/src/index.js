@@ -210,7 +210,35 @@ function printRippleNode(node, path, options, print) {
 			return printJSXAttribute(node, path, options, print);
 
 		case 'UseAttribute':
-			const argResult = path.call(print, 'argument');
+			// Handle different types of UseAttribute arguments
+			let argResult;
+			if (node.argument.type === 'Identifier') {
+				argResult = node.argument.name;
+			} else if (node.argument.type === 'ArrowFunctionExpression') {
+				// Handle arrow functions specially
+				const params = node.argument.params.map(param => param.name).join(', ');
+				const body = node.argument.body;
+				
+				if (body.type === 'BlockStatement') {
+					let bodyStr = '{ ';
+					if (body.body && body.body.length > 0) {
+						const statements = body.body.map(stmt => {
+							if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression') {
+								return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
+							}
+							return '/* unsupported statement */';
+						});
+						bodyStr += statements.join('; ') + '; ';
+					}
+					bodyStr += '}';
+					
+					argResult = `(${params}) => ${bodyStr}`;
+				} else {
+					argResult = path.call(print, 'argument');
+				}
+			} else {
+				argResult = path.call(print, 'argument');
+			}
 			return '{@use ' + argResult + '}';
 
 		case 'SpreadAttribute':
@@ -574,8 +602,10 @@ function printJSXOpeningElement(node, path, options, print) {
 						
 						// Always use parentheses for consistency (Prettier standard)
 						argResult = '(' + params + ') => ' + bodyStr;
+					} else if (attr.argument.type === 'Identifier') {
+						argResult = attr.argument.name;
 					} else {
-						argResult = 'undefined';
+						argResult = 'ref';
 					}
 					
 					return '{@use ' + argResult + '}';
@@ -1177,8 +1207,10 @@ function printElement(node, path, options, print) {
 					
 					// Always use parentheses for consistency (Prettier standard)
 					argResult = '(' + params + ') => ' + bodyStr;
+				} else if (attr.argument.type === 'Identifier') {
+					argResult = attr.argument.name;
 				} else {
-					argResult = 'undefined';
+					argResult = 'ref';
 				}
 				return '{@use ' + argResult + '}';
 			} else if (attr.type === 'SpreadAttribute') {
