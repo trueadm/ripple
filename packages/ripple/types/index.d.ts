@@ -16,3 +16,10 @@ export interface Ref<T> {
 }
 
 export declare function ref<T>(value: T): Ref<T>;
+
+export interface RippleArray<T> extends Array<T> {
+  $length: number;
+  toJSON(): T[];
+}
+
+export declare function array<T>(...elements: T[]): RippleArray<T>;
