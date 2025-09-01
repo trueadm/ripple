@@ -7,6 +7,7 @@
   "type": "module",
   "module": "src/index.js",
   "main": "src/index.js",
+  "homepage": "https://ripplejs.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trueadm/ripple.git",

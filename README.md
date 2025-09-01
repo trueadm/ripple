@@ -1,7 +1,9 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-dark.png">
-  <img src="assets/ripple-light.png" alt="Ripple - the elegant UI framework for the web" />
-</picture>
+<a href="https://ripplejs.com">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-dark.png">
+    <img src="assets/ripple-light.png" alt="Ripple - the elegant UI framework for the web" />
+  </picture>
+</a>
 
 [![CI](https://github.com/trueadm/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/trueadm/ripple/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/JBF2ySrh2W)
