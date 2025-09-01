@@ -40,10 +40,12 @@
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			overflow: hidden;
+			overflow-x: hidden;
+			overflow-y: auto;
 			position: relative;
 		}
 
+		/* Starfield layer */
 		body::before {
 			content: '';
 			position: absolute;
@@ -56,13 +58,24 @@
 				radial-gradient(1px 1px at 40px 70px, rgba(120, 219, 226, 0.4), transparent),
 				radial-gradient(1px 1px at 90px 40px, rgba(255, 119, 198, 0.3), transparent),
 				radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.1), transparent),
-				radial-gradient(2px 2px at 160px 30px, rgba(120, 219, 226, 0.2), transparent),
+				radial-gradient(2px 2px at 160px 30px, rgba(120, 219, 226, 0.2), transparent);
+			background-repeat: repeat;
+			background-size: 200px 100px, 200px 100px, 200px 100px, 200px 100px, 200px 100px;
+			animation: starTwinkle 8s linear infinite;
+		}
+
+		/* Atmospheric layer */
+		body::after {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: 
 				radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
 				radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
 				radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
-			background-repeat: repeat;
-			background-size: 200px 100px, 200px 100px, 200px 100px, 200px 100px, 200px 100px, 100% 100%, 100% 100%, 100% 100%;
-			animation: atmosphericShift 20s ease-in-out infinite, starTwinkle 8s linear infinite;
 		}
 
 		@keyframes starTwinkle {
@@ -76,28 +89,20 @@
 
 		@keyframes atmosphericShift {
 			0%, 100% {
-				background: 
-					radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-					radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
-					radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
+				transform: translateX(0) translateY(0) scale(1);
+				opacity: 0.8;
 			}
 			25% {
-				background: 
-					radial-gradient(circle at 60% 30%, rgba(120, 119, 198, 0.4) 0%, transparent 60%),
-					radial-gradient(circle at 30% 70%, rgba(255, 119, 198, 0.2) 0%, transparent 40%),
-					radial-gradient(circle at 80% 80%, rgba(120, 219, 226, 0.15) 0%, transparent 50%);
+				transform: translateX(20px) translateY(-15px) scale(1.05);
+				opacity: 0.9;
 			}
 			50% {
-				background: 
-					radial-gradient(circle at 80% 60%, rgba(120, 119, 198, 0.2) 0%, transparent 70%),
-					radial-gradient(circle at 20% 30%, rgba(255, 119, 198, 0.25) 0%, transparent 45%),
-					radial-gradient(circle at 60% 90%, rgba(120, 219, 226, 0.2) 0%, transparent 40%);
+				transform: translateX(-10px) translateY(-25px) scale(0.95);
+				opacity: 1;
 			}
 			75% {
-				background: 
-					radial-gradient(circle at 30% 20%, rgba(120, 119, 198, 0.35) 0%, transparent 55%),
-					radial-gradient(circle at 70% 80%, rgba(255, 119, 198, 0.18) 0%, transparent 50%),
-					radial-gradient(circle at 10% 60%, rgba(120, 219, 226, 0.12) 0%, transparent 60%);
+				transform: translateX(-15px) translateY(10px) scale(1.02);
+				opacity: 0.85;
 			}
 		}
 
@@ -133,22 +138,25 @@
 			font-size: 3.5rem;
 			font-weight: 700;
 			margin-bottom: 1rem;
-			background: linear-gradient(135deg, #ffffff 0%, #78dbe2 30%, #ff77c6 70%, #7877c6 100%);
-			-webkit-background-clip: text;
-			-webkit-text-fill-color: transparent;
-			background-clip: text;
 			font-variation-settings: 'CASL' 1, 'slnt' -15;
 			letter-spacing: -0.02em;
-			text-shadow: 0 0 30px rgba(120, 219, 226, 0.3);
-			animation: titleGlow 4s ease-in-out infinite;
+			color: white;
+			text-shadow: 
+				0 0 30px rgba(120, 219, 226, 0.8),
+				0 0 60px rgba(255, 119, 198, 0.6),
+				0 0 90px rgba(120, 119, 198, 0.4);
+			animation: glowFadeOut 3s ease-in-out forwards;
 		}
 
-		@keyframes titleGlow {
-			0%, 100% {
-				filter: drop-shadow(0 0 20px rgba(120, 219, 226, 0.3));
+		@keyframes glowFadeOut {
+			0% {
+				text-shadow: 
+					0 0 30px rgba(120, 219, 226, 0.8),
+					0 0 60px rgba(255, 119, 198, 0.6),
+					0 0 90px rgba(120, 119, 198, 0.4);
 			}
-			50% {
-				filter: drop-shadow(0 0 40px rgba(255, 119, 198, 0.4));
+			100% {
+				text-shadow: none;
 			}
 		}
 
@@ -203,6 +211,114 @@
 			height: 20px;
 			fill: currentColor;
 		}
+
+		/* Mock Editor */
+		.editor-mockup {
+			max-width: 700px;
+			margin: 3rem auto 2rem;
+			background: rgba(30, 30, 35, 0.95);
+			border-radius: 12px;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			backdrop-filter: blur(10px);
+			overflow: hidden;
+			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+			text-align: left;
+		}
+
+		.editor-header {
+			background: rgba(20, 20, 25, 0.9);
+			padding: 0.75rem 1rem 0;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+			display: flex;
+			align-items: flex-start;
+			gap: 1rem;
+		}
+
+		.editor-dots {
+			display: flex;
+			gap: 0.5rem;
+			align-self: center;
+			margin-top: -7px;
+		}
+
+		.editor-dot {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+		}
+
+		.editor-dot.red { background: #ff5f57; }
+		.editor-dot.yellow { background: #ffbd2e; }
+		.editor-dot.green { background: #28ca42; }
+
+		.editor-tab {
+			background: rgba(25, 25, 30, 0.95);
+			padding: 0.5rem 1rem;
+			border-radius: 6px 6px 0 0;
+			color: rgba(255, 255, 255, 0.9);
+			font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+			font-size: 0.75rem;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			border-bottom: none;
+			margin-bottom: -1px;
+			align-self: flex-end;
+		}
+
+
+
+		.editor-content {
+			background: rgba(25, 25, 30, 0.95);
+			padding: 0;
+			font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+			font-size: 0.8rem;
+			line-height: 1.5;
+			color: #e1e4e8;
+			overflow-x: auto;
+			text-align: left;
+		}
+
+		.editor-code {
+			margin: 0;
+			padding: 1.5rem;
+			background: none;
+			color: inherit;
+			font: inherit;
+			white-space: pre;
+			overflow-x: auto;
+		}
+
+		.editor-line {
+			display: block;
+		}
+
+		.line-number {
+			color: rgba(255, 255, 255, 0.3);
+			display: inline-block;
+			width: 1rem;
+			text-align: right;
+			margin-right: 0.75rem;
+			user-select: none;
+		}
+
+		/* Syntax highlighting - matching screenshot colors */
+		.keyword { color: #569cd6; }
+		.export-keyword { color: #c586c0; }
+		.string { color: #ce9178; }
+		.component { color: #4ec9b0; }
+		.function { color: #dcdcaa; }
+		.property { color: #9cdcfe; }
+		.css-selector { color: #d7ba7d; }
+		.control-keyword { color: #c586c0; }
+		.block-brace { color: #c586c0; }
+		.tag { color: #569cd6; }
+		.attribute { color: #92c5f8; }
+		.value { color: #b5cea8; }
+		.comment { color: #6a9955; font-style: italic; }
+		.brace { color: #ffd700; }
+		.css-brace { color: #d4d4d4; }
+		.template-brace { color: #ffd700; }
+		.ripple-syntax { color: #4fc1ff; }
+		.bracket { color: #808080; }
 
 		/* Atmospheric particles */
 		.particle {
@@ -307,6 +423,27 @@
 				width: 50px;
 				height: 50px;
 			}
+
+			.editor-mockup {
+				margin: 2rem auto 1.5rem;
+				max-width: 95%;
+			}
+
+			.editor-content {
+				padding: 1rem;
+				font-size: 0.7rem;
+			}
+
+			.line-number {
+				width: 1.5rem;
+				margin-right: 0.75rem;
+				font-size: 0.75rem;
+			}
+
+			.editor-tab {
+				font-size: 0.75rem;
+				padding: 0.4rem 0.8rem;
+			}
 		}
 	</style>
 </head>
@@ -321,6 +458,45 @@
 	<div class="container">		
 		<h1>Ripple</h1>
 		<p class="subtitle">the elegant UI framework for the web</p>
+
+		<!-- Mock Editor -->
+		<div class="editor-mockup">
+			<div class="editor-header">
+				<div class="editor-dots">
+					<div class="editor-dot red"></div>
+					<div class="editor-dot yellow"></div>
+					<div class="editor-dot green"></div>
+				</div>
+				<div class="editor-tab">TodoList.ripple</div>
+			</div>
+			<div class="editor-content">
+				<pre class="editor-code"><span class="line-number"> 1</span> <span class="export-keyword">import</span> <span class="brace">{</span> <span class="property">Button</span> <span class="brace">}</span> <span class="export-keyword">from</span> <span class="string">'./Button.ripple'</span>;
+<span class="line-number"> 2</span> 
+<span class="line-number"> 3</span> <span class="export-keyword">export</span> <span class="keyword">component</span> <span class="function">TodoList</span><span class="brace">(</span><span class="brace">{</span> <span class="property">todos</span>, <span class="property">addTodo</span> <span class="brace">}</span>: <span class="component">Props</span><span class="brace">)</span> <span class="brace">{</span>
+<span class="line-number"> 4</span>   <span class="bracket">&lt;</span><span class="tag">div</span> <span class="attribute">class</span>=<span class="string">'container'</span><span class="bracket">&gt;</span>
+<span class="line-number"> 5</span>     <span class="bracket">&lt;</span><span class="tag">h2</span><span class="bracket">&gt;</span><span class="template-brace">{</span><span class="string">'Todo List'</span><span class="template-brace">}</span><span class="bracket">&lt;/</span><span class="tag">h2</span><span class="bracket">&gt;</span>
+<span class="line-number"> 6</span>     <span class="bracket">&lt;</span><span class="tag">ul</span><span class="bracket">&gt;</span>
+<span class="line-number"> 7</span>       <span class="control-keyword">for</span> <span class="brace">(</span><span class="keyword">const</span> <span class="property">todo</span> <span class="keyword">of</span> <span class="ripple-syntax">todos</span><span class="brace">)</span> <span class="block-brace">{</span>
+<span class="line-number"> 8</span>         <span class="bracket">&lt;</span><span class="tag">li</span><span class="bracket">&gt;</span><span class="template-brace">{</span><span class="property">todo.text</span><span class="template-brace">}</span><span class="bracket">&lt;/</span><span class="tag">li</span><span class="bracket">&gt;</span>
+<span class="line-number"> 9</span>       <span class="block-brace">}</span>
+<span class="line-number">10</span>     <span class="bracket">&lt;/</span><span class="tag">ul</span><span class="bracket">&gt;</span>
+<span class="line-number">11</span> 
+<span class="line-number">12</span>     <span class="control-keyword">if</span> <span class="brace">(</span><span class="ripple-syntax">todos</span>.<span class="property">length</span> <span class="keyword">&gt;</span> <span class="value">0</span><span class="brace">)</span> <span class="block-brace">{</span>
+<span class="line-number">13</span>       <span class="bracket">&lt;</span><span class="tag">p</span><span class="bracket">&gt;</span><span class="template-brace">{</span><span class="ripple-syntax">todos</span>.<span class="property">length</span><span class="template-brace">}</span> <span class="template-brace">{</span><span class="string">"items"</span><span class="template-brace">}</span><span class="bracket">&lt;/</span><span class="tag">p</span><span class="bracket">&gt;</span>
+<span class="line-number">14</span>     <span class="block-brace">}</span>
+<span class="line-number">15</span> 
+<span class="line-number">16</span>     <span class="bracket">&lt;</span><span class="component">Button</span> <span class="attribute">onClick</span>=<span class="template-brace">{</span><span class="property">addTodo</span><span class="template-brace">}</span> <span class="attribute">label</span>=<span class="template-brace">{</span><span class="string">"Add Todo"</span><span class="template-brace">}</span> <span class="bracket">/&gt;</span>
+<span class="line-number">17</span>   <span class="bracket">&lt;/</span><span class="tag">div</span><span class="bracket">&gt;</span>
+<span class="line-number">18</span> 
+<span class="line-number">19</span>   <span class="bracket">&lt;</span><span class="tag">style</span><span class="bracket">&gt;</span>
+<span class="line-number">20</span>     <span class="css-selector">.container</span> <span class="css-brace">{</span>
+<span class="line-number">21</span>       <span class="attribute">text-align</span>: <span class="value">center</span>;
+<span class="line-number">22</span>       <span class="attribute">font-family</span>: <span class="string">"Arial"</span>, <span class="value">sans-serif</span>;
+<span class="line-number">23</span>     <span class="css-brace">}</span>
+<span class="line-number">24</span>   <span class="bracket">&lt;/</span><span class="tag">style</span><span class="bracket">&gt;</span>
+<span class="line-number">25</span> <span class="brace">}</span></pre>
+			</div>
+		</div>
 	
 		
 		<a href="https://github.com/trueadm/ripple" class="github-link" target="_blank" rel="noopener noreferrer">
