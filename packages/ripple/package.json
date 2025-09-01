@@ -60,6 +60,6 @@
   },
   "devDependencies": {
     "@types/estree": "^1.0.8",
-    "typescript": "^5.9.2"
+    "typescript": "catalog:"
   }
 }

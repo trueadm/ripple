@@ -18,6 +18,6 @@
   },
   "devDependencies": {
     "ripple": "workspace:*",
-    "vite": "^7.1.4"
+    "vite": "catalog:"
   }
 }
