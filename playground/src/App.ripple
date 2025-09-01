@@ -1,11 +1,18 @@
-import { ref, effect } from 'ripple';
+
 
 export component App() {
-	const divRef = ref();
+  <div>
+    let obj = { $count: 0};
 
-	effect(() => {
-		console.log('Div reference changed:', divRef.$current);
-	});
+    <span>{"parent: "} {obj.$count}</span>
+  </div>
 
-	<div {@use divRef}>{'Hello Ripple!'}</div>
+  <div>
+    let b = { $count: 0 };
+
+    <button onClick={() => b.$count--}>{"-"}</button>
+    <span>{b.$count}</span>
+    <button onClick={() => b.$count++}>{"+"}</button>
+  </div>
 }
+

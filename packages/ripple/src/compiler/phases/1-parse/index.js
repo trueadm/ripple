@@ -67,7 +67,6 @@ function RipplePlugin(config) {
 			}
 
 			jsx_parseExpressionContainer() {
-				const tok = this.acornTypeScript.tokTypes;
 				let node = this.startNode();
 				this.next();
 
@@ -136,13 +135,6 @@ function RipplePlugin(config) {
 								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
-					// case tt.bracketL:
-					// 	var t = this.jsx_parseTupleContainer();
-					// 	return (
-					// 		'JSXEmptyExpression' === t.expression.type &&
-					// 			this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
-					// 		t
-					// 	);
 					case tok.jsxTagStart:
 					case tt.string:
 						return this.parseExprAtom();
@@ -294,7 +286,10 @@ function RipplePlugin(config) {
 						case 62: // '>'
 						case 125: {
 							// '}'
-							if (ch === 125 && (this.#path.length === 0 || this.#path.at(-1)?.type === 'Component')) {
+							if (
+								ch === 125 &&
+								(this.#path.length === 0 || this.#path.at(-1)?.type === 'Component')
+							) {
 								return original.readToken.call(this, ch);
 							}
 							this.raise(
@@ -399,6 +394,13 @@ function RipplePlugin(config) {
 						return null;
 					} else {
 						this.parseTemplateBody(element.children);
+					}
+					const tok = this.acornTypeScript.tokContexts;
+
+					const curContext = this.curContext();
+
+					if (curContext === tok.tc_expr) {
+						this.context.pop();
 					}
 				}
 
