@@ -876,7 +876,7 @@ const visitors = {
 				const tracked_element = context.visit(element, { ...context.state, metadata });
 
 				if (metadata.tracking) {
-					tracked.push(b.spread(b.call('Object.keys', tracked_element.argument)));
+					tracked.push(b.spread(tracked_element.argument));
 					elements.push(tracked_element);
 				} else {
 					elements.push(tracked_element);

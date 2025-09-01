@@ -193,7 +193,7 @@ const visitors = {
 								);
 							},
 						};
-					} else {
+					} else if (binding.initial?.type !== 'Literal') {
 						for (const ref of binding.references) {
 							const path = ref.path;
 							const parent_node = path?.at(-1);
@@ -202,6 +202,9 @@ const visitors = {
 							if (parent_node?.type === 'MemberExpression' && parent_node.computed) {
 								binding.transform = {
 									assign: (node, value, computed) => {
+										if (!computed) {
+											return node;
+										}
 										return b.call('$.set_property', node, visit(computed), value, b.id('__block'));
 									},
 								};
