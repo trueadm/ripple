@@ -55,7 +55,7 @@ export function ripple(inlineOptions) {
 				const filename = id.replace(root, '');
 				if (!filename.endsWith('.ripple')) return;
 
-				const { js, css } = await compile(code, filename, id);
+				const { js, css } = await compile(code.trim(), filename, id);
 
 				if (css !== '') {
 					const cssId = createVirtualImportId(filename, root, 'style');
