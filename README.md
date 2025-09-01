@@ -1,7 +1,7 @@
 <a href="https://ripplejs.com">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-dark.png">
-    <img src="assets/ripple-light.png" alt="Ripple - the elegant UI framework for the web" />
+    <img src="assets/ripple-light.png" alt="Ripple - the elegant TypeScript UI framework" />
   </picture>
 </a>
 
@@ -13,7 +13,7 @@
 
 > Currently, this project is still in early development, and should not be used in production.
 
-Ripple is a TypeScript UI framework for the web.
+Ripple is a TypeScript UI framework that takes the best parts of React, Solid and Svelte and combined them into one package.
 
 I wrote Ripple as a love letter for frontend web – and this is largely a project that I built in less than a week, so it's very raw.
 
@@ -34,6 +34,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 - **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
 - **TypeScript Support**: Full TypeScript integration with type checking
 - **VSCode Integration**: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
+- **Peformance**: Fine-grain rendering, with industry leading performance and memory usage
 
 ## Missing Features
 
