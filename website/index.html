@@ -34,13 +34,71 @@
 
 		body {
 			font-family: 'Recursive', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			background: #0a0a0f;
 			color: white;
 			min-height: 100vh;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			overflow: hidden;
+			position: relative;
+		}
+
+		body::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: 
+				radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.15), transparent),
+				radial-gradient(1px 1px at 40px 70px, rgba(120, 219, 226, 0.4), transparent),
+				radial-gradient(1px 1px at 90px 40px, rgba(255, 119, 198, 0.3), transparent),
+				radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.1), transparent),
+				radial-gradient(2px 2px at 160px 30px, rgba(120, 219, 226, 0.2), transparent),
+				radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+				radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+				radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
+			background-repeat: repeat;
+			background-size: 200px 100px, 200px 100px, 200px 100px, 200px 100px, 200px 100px, 100% 100%, 100% 100%, 100% 100%;
+			animation: atmosphericShift 20s ease-in-out infinite, starTwinkle 8s linear infinite;
+		}
+
+		@keyframes starTwinkle {
+			0%, 100% {
+				opacity: 1;
+			}
+			50% {
+				opacity: 0.7;
+			}
+		}
+
+		@keyframes atmosphericShift {
+			0%, 100% {
+				background: 
+					radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+					radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+					radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
+			}
+			25% {
+				background: 
+					radial-gradient(circle at 60% 30%, rgba(120, 119, 198, 0.4) 0%, transparent 60%),
+					radial-gradient(circle at 30% 70%, rgba(255, 119, 198, 0.2) 0%, transparent 40%),
+					radial-gradient(circle at 80% 80%, rgba(120, 219, 226, 0.15) 0%, transparent 50%);
+			}
+			50% {
+				background: 
+					radial-gradient(circle at 80% 60%, rgba(120, 119, 198, 0.2) 0%, transparent 70%),
+					radial-gradient(circle at 20% 30%, rgba(255, 119, 198, 0.25) 0%, transparent 45%),
+					radial-gradient(circle at 60% 90%, rgba(120, 219, 226, 0.2) 0%, transparent 40%);
+			}
+			75% {
+				background: 
+					radial-gradient(circle at 30% 20%, rgba(120, 119, 198, 0.35) 0%, transparent 55%),
+					radial-gradient(circle at 70% 80%, rgba(255, 119, 198, 0.18) 0%, transparent 50%),
+					radial-gradient(circle at 10% 60%, rgba(120, 219, 226, 0.12) 0%, transparent 60%);
+			}
 		}
 
 		.container {
@@ -48,7 +106,8 @@
 			max-width: 600px;
 			padding: 2rem;
 			position: relative;
-			z-index: 2;
+			z-index: 10;
+			backdrop-filter: blur(1px);
 		}
 
 		.logo {
@@ -74,21 +133,34 @@
 			font-size: 3.5rem;
 			font-weight: 700;
 			margin-bottom: 1rem;
-			background: linear-gradient(45deg, #ffffff, #e0e7ff);
+			background: linear-gradient(135deg, #ffffff 0%, #78dbe2 30%, #ff77c6 70%, #7877c6 100%);
 			-webkit-background-clip: text;
 			-webkit-text-fill-color: transparent;
 			background-clip: text;
 			font-variation-settings: 'CASL' 1, 'slnt' -15;
 			letter-spacing: -0.02em;
+			text-shadow: 0 0 30px rgba(120, 219, 226, 0.3);
+			animation: titleGlow 4s ease-in-out infinite;
+		}
+
+		@keyframes titleGlow {
+			0%, 100% {
+				filter: drop-shadow(0 0 20px rgba(120, 219, 226, 0.3));
+			}
+			50% {
+				filter: drop-shadow(0 0 40px rgba(255, 119, 198, 0.4));
+			}
 		}
 
 		.subtitle {
 			font-size: 1.25rem;
 			font-weight: 400;
 			margin-bottom: 3rem;
-			opacity: 0.9;
+			opacity: 0.8;
 			line-height: 1.6;
 			font-variation-settings: 'CASL' 0.5;
+			color: rgba(255, 255, 255, 0.8);
+			text-shadow: 0 0 20px rgba(120, 219, 226, 0.2);
 		}
 
 		.coming-soon {
@@ -104,18 +176,26 @@
 		}
 
 		.github-link {
-			color: rgba(255, 255, 255, 0.8);
+			color: rgba(255, 255, 255, 0.7);
 			text-decoration: none;
 			font-weight: 500;
 			transition: all 0.3s ease;
 			display: inline-flex;
 			align-items: center;
 			gap: 0.5rem;
+			padding: 0.75rem 1.5rem;
+			border: 1px solid rgba(120, 219, 226, 0.3);
+			border-radius: 50px;
+			background: rgba(0, 0, 0, 0.2);
+			backdrop-filter: blur(10px);
 		}
 
 		.github-link:hover {
 			color: white;
 			transform: translateY(-2px);
+			border-color: rgba(120, 219, 226, 0.6);
+			box-shadow: 0 10px 30px rgba(120, 219, 226, 0.2);
+			background: rgba(120, 219, 226, 0.1);
 		}
 
 		.github-link svg {
@@ -124,44 +204,84 @@
 			fill: currentColor;
 		}
 
-		/* Animated background elements */
-		.bg-element {
+		/* Atmospheric particles */
+		.particle {
 			position: absolute;
 			border-radius: 50%;
-			background: rgba(255, 255, 255, 0.1);
-			animation: float 6s ease-in-out infinite;
+			pointer-events: none;
 		}
 
-		.bg-element:nth-child(1) {
-			width: 200px;
-			height: 200px;
-			top: 10%;
-			left: 10%;
-			animation-delay: 0s;
+		.particle-1 {
+			width: 4px;
+			height: 4px;
+			background: rgba(120, 219, 226, 0.6);
+			top: 20%;
+			left: 15%;
+			animation: drift 25s linear infinite, pulse 3s ease-in-out infinite;
 		}
 
-		.bg-element:nth-child(2) {
-			width: 150px;
-			height: 150px;
-			top: 70%;
-			right: 10%;
-			animation-delay: 2s;
-		}
-
-		.bg-element:nth-child(3) {
-			width: 100px;
-			height: 100px;
-			top: 30%;
+		.particle-2 {
+			width: 6px;
+			height: 6px;
+			background: rgba(255, 119, 198, 0.4);
+			top: 60%;
 			right: 20%;
-			animation-delay: 4s;
+			animation: drift 30s linear infinite reverse, pulse 4s ease-in-out infinite 1s;
 		}
 
-		@keyframes float {
-			0%, 100% {
-				transform: translateY(0px) rotate(0deg);
+		.particle-3 {
+			width: 3px;
+			height: 3px;
+			background: rgba(120, 119, 198, 0.7);
+			top: 80%;
+			left: 70%;
+			animation: drift 20s linear infinite, pulse 2.5s ease-in-out infinite 2s;
+		}
+
+		.particle-4 {
+			width: 5px;
+			height: 5px;
+			background: rgba(120, 219, 226, 0.3);
+			top: 30%;
+			left: 80%;
+			animation: drift 35s linear infinite reverse, pulse 3.5s ease-in-out infinite 0.5s;
+		}
+
+		.particle-5 {
+			width: 2px;
+			height: 2px;
+			background: rgba(255, 119, 198, 0.8);
+			top: 10%;
+			right: 30%;
+			animation: drift 22s linear infinite, pulse 2s ease-in-out infinite 1.5s;
+		}
+
+		@keyframes drift {
+			0% {
+				transform: translateX(0) translateY(0) rotate(0deg);
+			}
+			25% {
+				transform: translateX(100px) translateY(-50px) rotate(90deg);
 			}
 			50% {
-				transform: translateY(-20px) rotate(180deg);
+				transform: translateX(-50px) translateY(-100px) rotate(180deg);
+			}
+			75% {
+				transform: translateX(-100px) translateY(50px) rotate(270deg);
+			}
+			100% {
+				transform: translateX(0) translateY(0) rotate(360deg);
+			}
+		}
+
+		@keyframes pulse {
+			0%, 100% {
+				opacity: 0.3;
+				transform: scale(1);
+			}
+			50% {
+				opacity: 1;
+				transform: scale(1.5);
 			}
 		}
 
@@ -191,6 +311,13 @@
 	</style>
 </head>
 <body>
+	<!-- Atmospheric particles -->
+	<div class="particle particle-1"></div>
+	<div class="particle particle-2"></div>
+	<div class="particle particle-3"></div>
+	<div class="particle particle-4"></div>
+	<div class="particle particle-5"></div>
+
 	<div class="container">		
 		<h1>Ripple</h1>
 		<p class="subtitle">the elegant UI framework for the web</p>
