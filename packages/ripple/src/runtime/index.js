@@ -37,3 +37,5 @@ export { keyed } from './internal/client/for.js';
 export { user_effect as effect } from './internal/client/blocks.js';
 
 export { Portal } from './internal/client/portal.js';
+
+export { ref } from './internal/client/runtime.js';

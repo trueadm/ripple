@@ -19,6 +19,7 @@ import {
 	run_block,
 	run_teardown,
 	schedule_update,
+	set_property,
 } from './runtime';
 import { suspend } from './try';
 
@@ -69,19 +70,29 @@ export function async(fn) {
 }
 
 export function use(element, get_fn) {
-	var fn = undefined;
+	var use_obj = undefined;
 	var e;
+	var current_block = active_block;
 
 	return block(RENDER_BLOCK, () => {
-		if (fn !== (fn = get_fn())) {
+		if (use_obj !== (use_obj = get_fn())) {
 			if (e) {
 				destroy_block(e);
 				e = null;
 			}
 
-			if (fn) {
+			if (use_obj) {
 				e = branch(() => {
-					effect(() => fn(element));
+					effect(() => {
+						if (typeof use_obj === 'function') {
+							return use_obj(element);
+						} else {
+							set_property(use_obj, '$current', element, current_block);
+							return () => {
+								set_property(use_obj, '$current', null, current_block);
+							};
+						}
+					});
 				});
 			}
 		}

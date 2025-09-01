@@ -936,3 +936,16 @@ export function pop_component() {
 export function use_prop() {
 	return Symbol(USE_PROP);
 }
+
+export function ref(value) {
+	var block = active_block || active_scope;
+	if (!block) {
+		throw new Error('ref() must be called within a component or reactive context');
+	}
+
+	// Create a tracked object with a $current property
+	var ref_obj = { $current: value };
+
+	// Make the $current property reactive
+	return tracked_object(ref_obj, ['$current'], block);
+}

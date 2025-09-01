@@ -1,4 +1,11 @@
+import { ref, effect } from 'ripple';
 
 export component App() {
+	const divRef = ref();
 
+	effect(() => {
+		console.log('Div reference changed:', divRef.$current);
+	});
+
+	<div {@use divRef}>{'Hello Ripple!'}</div>
 }

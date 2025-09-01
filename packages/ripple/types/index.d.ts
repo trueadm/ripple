@@ -10,3 +10,9 @@ export declare function untrack<T>(fn: () => T): T;
 export declare function flushSync<T>(fn: () => T): T;
 
 export declare function effect(fn: (() => void) | (() => () => void)): void;
+
+export interface Ref<T> {
+	$current: T;
+}
+
+export declare function ref<T>(value: T): Ref<T>;
