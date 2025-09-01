@@ -68,6 +68,24 @@ function createIndent(options, level = 1) {
 	}
 }
 
+// Helper function to format call expressions safely
+function formatCallExpression(node, options) {
+	if (!node || node.type !== 'CallExpression') {
+		return 'unknown()';
+	}
+	
+	const callee = node.callee.name || 'unknown';
+	const args = (node.arguments || [])
+		.map((arg) => {
+			if (arg.type === 'Identifier') return arg.name;
+			if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
+			return '/* arg */';
+		})
+		.join(', ');
+	
+	return callee + '(' + args + ')';
+}
+
 function printRippleNode(node, path, options, print) {
 	if (!node || typeof node !== 'object') {
 		return String(node || '');
@@ -672,26 +690,30 @@ function printJSXOpeningElement(node, path, options, print) {
 								.join(', ');
 							argResult = callee + '(' + args + ')';
 						} else {
-							// For other types, try the path approach
-							const argPath = {
-								call: (printFn, key) => {
-									if (key === 'argument') return printFn.call(null, attr.argument);
-									return '';
-								},
-							};
-							argResult = printRippleNode(attr.argument, argPath, options, print);
+							// For other argument types, format directly without mock path
+							if (attr.argument.type === 'Identifier') {
+								argResult = attr.argument.name;
+							} else if (attr.argument.type === 'CallExpression') {
+								argResult = formatCallExpression(attr.argument, options);
+							} else {
+								// Fallback to basic string representation
+								argResult = attr.argument.name || 'unknown';
+							}
 						}
 					}
 
 					return '{@use ' + argResult + '}';
 				} else if (attr.type === 'SpreadAttribute') {
-					const argPath = {
-						call: (printFn, key) => {
-							if (key === 'argument') return printFn.call(null, attr.argument);
-							return printFn.call(null, attr[key]);
-						},
-					};
-					return '{...' + printRippleNode(attr.argument, argPath, options, print) + '}';
+					// Format spread attribute argument directly
+					let argResult;
+					if (attr.argument.type === 'Identifier') {
+						argResult = attr.argument.name;
+					} else if (attr.argument.type === 'CallExpression') {
+						argResult = formatCallExpression(attr.argument, options);
+					} else {
+						argResult = attr.argument.name || 'unknown';
+					}
+					return '{...' + argResult + '}';
 				} else if (attr.type === 'JSXAttribute') {
 					return printJSXAttribute(attr, path, options, print);
 				}
@@ -1381,25 +1403,29 @@ function printElement(node, path, options, print) {
 							.join(', ');
 						argResult = callee + '(' + args + ')';
 					} else {
-						// For other types, try the path approach
-						const argPath = {
-							call: (printFn, key) => {
-								if (key === 'argument') return printFn.call(null, attr.argument);
-								return '';
-							},
-						};
-						argResult = printRippleNode(attr.argument, argPath, options, print);
+						// For other argument types, format directly without mock path
+						if (attr.argument.type === 'Identifier') {
+							argResult = attr.argument.name;
+						} else if (attr.argument.type === 'CallExpression') {
+							argResult = formatCallExpression(attr.argument, options);
+						} else {
+							// Fallback to basic string representation
+							argResult = attr.argument.name || 'unknown';
+						}
 					}
 				}
 				return '{@use ' + argResult + '}';
 			} else if (attr.type === 'SpreadAttribute') {
-				const argPath = {
-					call: (printFn, key) => {
-						if (key === 'argument') return printFn.call(null, attr.argument);
-						return printFn.call(null, attr[key]);
-					},
-				};
-				return '{...' + printRippleNode(attr.argument, argPath, options, print) + '}';
+				// Format spread attribute argument directly
+				let argResult;
+				if (attr.argument.type === 'Identifier') {
+					argResult = attr.argument.name;
+				} else if (attr.argument.type === 'CallExpression') {
+					argResult = formatCallExpression(attr.argument, options);
+				} else {
+					argResult = attr.argument.name || 'unknown';
+				}
+				return '{...' + argResult + '}';
 			} else {
 				return attrPath.call(print);
 			}
