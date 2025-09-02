@@ -6,6 +6,7 @@ const {
 } = require('@volar/language-server/node');
 const { createTypeScriptPlugins } = require('./ts.js');
 const { getRippleLanguagePlugin, createRippleDiagnosticPlugin } = require('./language.js');
+const { pathToFileURL } = require('url');
 
 const connection = createConnection();
 const server = createServer(connection);
@@ -24,7 +25,7 @@ connection.onInitialize(async (params) => {
 		);
 	}
 
-	ripple = await import(ripple_path);
+	ripple = await import(pathToFileURL(ripple_path).href);
 
 	const { typescript, diagnosticMessages } = loadTsdkByPath(tsdk, params.locale);
 
