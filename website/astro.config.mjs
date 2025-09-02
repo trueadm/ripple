@@ -17,8 +17,8 @@ const rippleGrammar = JSON.parse(fs.readFileSync(grammarPath, 'utf8'));
 
 // https://astro.build/config
 export default defineConfig({
-	base: '/docs',
-	redirects: { '/': '/docs/intro/overview' },
+	// https://github.com/withastro/starlight/issues/347
+	redirects: { '/docs/': '/docs/intro/overview' },
 	integrations: [
 		starlight({
 			favicon: '/favicon.ico',
@@ -31,26 +31,26 @@ export default defineConfig({
 				{
 					label: 'Introduction',
 					items: [
-						{ label: 'Overview', slug: 'intro/overview' },
-						{ label: 'Getting started', slug: 'intro/getting-started' },
+						{ label: 'Overview', slug: 'docs/intro/overview' },
+						{ label: 'Getting started', slug: 'docs/intro/getting-started' },
 					],
 				},
 				{
 					label: 'Reactivity',
 					items: [
-						{ label: "Ripple's reactivity model", slug: 'reactivity' },
-						{ label: 'Effects', slug: 'reactivity/effects' },
+						{ label: "Ripple's reactivity model", slug: 'docs/reactivity' },
+						{ label: 'Effects', slug: 'docs/reactivity/effects' },
 					],
 				},
 				{
 					label: 'Template syntax',
 					items: [
-						{ label: 'Ripple components', slug: 'template-syntax/ripple-components' },
-						{ label: 'Templating', slug: 'template-syntax' },
-						{ label: 'If block', slug: 'template-syntax/if-block' },
-						{ label: 'For block', slug: 'template-syntax/for-block' },
-						{ label: 'Try, catch block', slug: 'template-syntax/try-catch-block' },
-						{ label: 'Event handling', slug: 'template-syntax/event-handling' },
+						{ label: 'Ripple components', slug: 'docs/template-syntax/ripple-components' },
+						{ label: 'Templating', slug: 'docs/template-syntax' },
+						{ label: 'If block', slug: 'docs/template-syntax/if-block' },
+						{ label: 'For block', slug: 'docs/template-syntax/for-block' },
+						{ label: 'Try, catch block', slug: 'docs/template-syntax/try-catch-block' },
+						{ label: 'Event handling', slug: 'docs/template-syntax/event-handling' },
 					],
 				},
 				// {
