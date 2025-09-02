@@ -701,6 +701,8 @@
 
 				.container {
 					padding: 1rem;
+					max-width: 100%;
+					overflow-x: hidden;
 				}
 
 				.logo {
@@ -714,24 +716,72 @@
 				}
 
 				.editor-mockup {
-					margin: 1rem auto;
-					max-width: 95%;
+					margin: 1rem 0.5rem;
+					max-width: calc(100vw - 1rem);
+					overflow: hidden;
 				}
 
 				.editor-content {
-					padding: 1rem;
-					font-size: 0.7rem;
+					padding: 0.5rem;
+					font-size: 0.65rem;
+					height: 400px;
+					overflow-x: auto;
+					overflow-y: auto;
+				}
+
+				.editor-code {
+					padding: 0.75rem;
+					white-space: pre-wrap;
+					word-wrap: break-word;
+					overflow-wrap: break-word;
+					font-size: 0.65rem;
+					line-height: 1.4;
 				}
 
 				.line-number {
-					width: 1.5rem;
-					margin-right: 0.75rem;
-					font-size: 0.75rem;
+					width: 1.2rem;
+					margin-right: 0.5rem;
+					font-size: 0.6rem;
+					flex-shrink: 0;
 				}
 
 				.editor-tab {
-					font-size: 0.75rem;
-					padding: 0.4rem 0.8rem;
+					font-size: 0.7rem;
+					padding: 0.3rem 0.6rem;
+				}
+
+				.social-links {
+					flex-direction: column;
+					gap: 0.75rem;
+					align-items: center;
+				}
+
+				.github-link,
+				.discord-link {
+					width: 100%;
+					max-width: 200px;
+					justify-content: center;
+					font-size: 0.9rem;
+					padding: 0.6rem 1.2rem;
+					height: 44px;
+				}
+
+				.content-section {
+					padding: 1.5rem;
+					margin: 1.5rem 0.5rem 0;
+				}
+
+				.description {
+					font-size: 1rem;
+				}
+
+				.features {
+					padding-left: 1.5rem;
+				}
+
+				.features li {
+					font-size: 0.9rem;
+					padding: 0.4rem 0;
 				}
 			}
 		</style>
