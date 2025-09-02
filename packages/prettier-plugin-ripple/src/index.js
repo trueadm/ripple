@@ -84,9 +84,20 @@ function printRippleNode(node, path, options, print) {
 	}
 
 	switch (node.type) {
-		case 'Program':
-			// Return doc parts that Prettier can handle for cursor tracking
-			return join(concat([line, line]), path.map(print, 'body'));
+		case 'Program': {
+			// Handle the body statements properly - each statement returns an array
+			const statements = [];
+			for (let i = 0; i < node.body.length; i++) {
+				const statement = path.call(print, 'body', i);
+				// If statement is an array, flatten it
+				if (Array.isArray(statement)) {
+					statements.push(concat(statement));
+				} else {
+					statements.push(statement);
+				}
+			}
+			return join(concat([line, line]), statements);
+		}
 
 		case 'ImportDeclaration':
 			return printImportDeclaration(node, path, options, print);
@@ -125,12 +136,43 @@ function printRippleNode(node, path, options, print) {
 			return printTryStatement(node, path, options, print);
 
 		case 'ArrayExpression': {
-			// Use cursor-safe approach
-			const parts = [];
-			parts.push('[');
-			parts.push(path.map(print, 'elements').join(', '));
+			if (!node.elements || node.elements.length === 0) {
+				return '[]';
+			}
+
+			const elements = path.map(print, 'elements');
+			const shouldUseTrailingComma = options.trailingComma !== 'none' && elements.length > 0;
+
+			// Simple single-line for short arrays
+			if (elements.length <= 3) {
+				const parts = ['['];
+				for (let i = 0; i < elements.length; i++) {
+					if (i > 0) parts.push(', ');
+					parts.push(elements[i]);
+				}
+				if (shouldUseTrailingComma && options.trailingComma === 'all') {
+					parts.push(',');
+				}
+				parts.push(']');
+				return parts;
+			}
+
+			// Multi-line for longer arrays
+			const parts = ['['];
+			parts.push(line);
+			for (let i = 0; i < elements.length; i++) {
+				if (i > 0) {
+					parts.push(',');
+					parts.push(line);
+				}
+				parts.push(indent(elements[i]));
+			}
+			if (shouldUseTrailingComma) {
+				parts.push(',');
+			}
+			parts.push(line);
 			parts.push(']');
-			return parts.join('');
+			return parts;
 		}
 
 		case 'ObjectExpression':
@@ -148,15 +190,8 @@ function printRippleNode(node, path, options, print) {
 		case 'PrivateIdentifier':
 			return '#' + node.name;
 
-		case 'AssignmentExpression': {
-			const parts = [];
-			parts.push(path.call(print, 'left'));
-			parts.push(' ');
-			parts.push(node.operator);
-			parts.push(' ');
-			parts.push(path.call(print, 'right'));
-			return parts.join('');
-		}
+		case 'AssignmentExpression':
+			return concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
 
 		case 'MemberExpression':
 			return printMemberExpression(node, path, options, print);
@@ -171,14 +206,18 @@ function printRippleNode(node, path, options, print) {
 			const parts = [];
 			parts.push(path.call(print, 'callee'));
 			parts.push('(');
-			parts.push(path.map(print, 'arguments').join(', '));
+			const args = path.map(print, 'arguments');
+			for (let i = 0; i < args.length; i++) {
+				if (i > 0) parts.push(', ');
+				parts.push(args[i]);
+			}
 			parts.push(')');
-			return parts.join('');
+			return parts;
 		}
 
 		case 'AwaitExpression': {
 			const parts = ['await ', path.call(print, 'argument')];
-			return parts.join('');
+			return parts;
 		}
 
 		case 'UnaryExpression':
@@ -237,7 +276,7 @@ function printRippleNode(node, path, options, print) {
 
 		case 'SpreadElement': {
 			const parts = ['...', path.call(print, 'argument')];
-			return parts.join('');
+			return parts;
 		}
 
 		case 'EmptyStatement':
@@ -246,43 +285,28 @@ function printRippleNode(node, path, options, print) {
 		case 'VariableDeclaration':
 			return printVariableDeclaration(node, path, options, print);
 
-		case 'ExpressionStatement': {
-			const parts = [path.call(print, 'expression'), ';'];
-			return parts.join('');
-		}
-
-		case 'JSXElement':
-			return printJSXElement(node, path, options, print);
-
-		case 'JSXFragment':
-			return printJSXFragment(node, path, options, print);
-
-		case 'JSXText':
-			return node.value;
+		case 'ExpressionStatement':
+			return concat([path.call(print, 'expression'), ';']);
 
 		case 'JSXExpressionContainer': {
 			const parts = ['{', path.call(print, 'expression'), '}'];
-			return parts.join('');
+			return parts;
 		}
 
-		case 'JSXAttribute':
-			return printJSXAttribute(node, path, options, print);
-
 		case 'UseAttribute':
-			return '{@use ' + printJS(path, print, 'argument') + '}';
+			return concat(['{@use ', path.call(print, 'argument'), '}']);
 
 		case 'SpreadAttribute': {
 			const parts = ['{...', path.call(print, 'argument'), '}'];
-			return parts.join('');
+			return parts;
 		}
 
-		case 'Identifier': {
-			const parts = [node.name];
+		case 'Identifier':
+			// Simple case - just return the name directly like Prettier core
 			if (node.typeAnnotation) {
-				parts.push(path.call(print, 'typeAnnotation'));
+				return concat([node.name, path.call(print, 'typeAnnotation')]);
 			}
-			return parts.join('');
-		}
+			return node.name;
 
 		case 'Literal':
 			return formatStringLiteral(node.value, options);
@@ -290,41 +314,52 @@ function printRippleNode(node, path, options, print) {
 		case 'ArrowFunctionExpression':
 			return printArrowFunction(node, path, options, print);
 
-		case 'BlockStatement':
-			const statements = path.map(print, 'body');
+		case 'FunctionExpression':
+			return printFunctionExpression(node, path, options, print);
 
-			// Preserve existing blank lines by checking source line differences
-			const spacedStatements = [];
-			for (let i = 0; i < statements.length; i++) {
-				spacedStatements.push(statements[i]);
+		case 'BlockStatement': {
+			// Use AST builders instead of string operations
+			const parts = ['{'];
 
-				// Add blank lines between logical groups OR preserve existing ones
-				if (i < statements.length - 1 && node.body && node.body[i] && node.body[i + 1]) {
-					const currentStmt = node.body[i];
-					const nextStmt = node.body[i + 1];
+			if (node.body && node.body.length > 0) {
+				parts.push(line);
 
-					// Check if there was originally a blank line between these statements
-					const currentEndLine = currentStmt.loc?.end?.line;
-					const nextStartLine = nextStmt.loc?.start?.line;
-					const hasOriginalBlankLine =
-						nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+				// Build statements with proper spacing
+				const statementParts = [];
+				for (let i = 0; i < node.body.length; i++) {
+					const statement = path.call(print, 'body', i);
 
-					// Preserve original blank lines OR add new ones based on logic
-					if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
-						spacedStatements.push('');
+					// Handle array statements properly
+					if (Array.isArray(statement)) {
+						statementParts.push(indent(concat(statement)));
+					} else {
+						statementParts.push(indent(statement));
+					}
+
+					// Add blank lines between logical groups
+					if (i < node.body.length - 1) {
+						const currentStmt = node.body[i];
+						const nextStmt = node.body[i + 1];
+
+						// Check if there was originally a blank line
+						const currentEndLine = currentStmt.loc?.end?.line;
+						const nextStartLine = nextStmt.loc?.start?.line;
+						const hasOriginalBlankLine =
+							nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+
+						if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
+							statementParts.push(line); // Add extra line
+						}
 					}
 				}
+
+				parts.push(join(line, statementParts));
+				parts.push(line);
 			}
 
-			const joinedStatements = spacedStatements.join('\n');
-			const indentedStatements = joinedStatements
-				.split('\n')
-				.map((line) => {
-					if (line.trim() === '') return '';
-					return createIndent(options) + line;
-				})
-				.join('\n');
-			return '{\n' + indentedStatements + '\n}';
+			parts.push('}');
+			return parts;
+		}
 
 		case 'ReturnStatement': {
 			const parts = ['return'];
@@ -333,54 +368,34 @@ function printRippleNode(node, path, options, print) {
 				parts.push(path.call(print, 'argument'));
 			}
 			parts.push(';');
-			return parts.join('');
+			return parts;
 		}
 
-		case 'BinaryExpression': {
-			const parts = [];
-			parts.push(path.call(print, 'left'));
-			parts.push(' ');
-			parts.push(node.operator);
-			parts.push(' ');
-			parts.push(path.call(print, 'right'));
-			return parts.join('');
-		}
+		case 'BinaryExpression':
+			return concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
 
-		case 'LogicalExpression': {
-			const parts = [];
-			parts.push(path.call(print, 'left'));
-			parts.push(' ');
-			parts.push(node.operator);
-			parts.push(' ');
-			parts.push(path.call(print, 'right'));
-			return parts.join('');
-		}
+		case 'LogicalExpression':
+			return concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
 
-		case 'ConditionalExpression': {
-			const parts = [];
-			parts.push(path.call(print, 'test'));
-			parts.push(' ? ');
-			parts.push(path.call(print, 'consequent'));
-			parts.push(' : ');
-			parts.push(path.call(print, 'alternate'));
-			return parts.join('');
-		}
+		case 'ConditionalExpression':
+			return concat([
+				path.call(print, 'test'),
+				' ? ',
+				path.call(print, 'consequent'),
+				' : ',
+				path.call(print, 'alternate'),
+			]);
 
-		case 'UpdateExpression': {
-			const parts = [];
+		case 'UpdateExpression':
 			if (node.prefix) {
-				parts.push(node.operator);
-				parts.push(path.call(print, 'argument'));
+				return concat([node.operator, path.call(print, 'argument')]);
 			} else {
-				parts.push(path.call(print, 'argument'));
-				parts.push(node.operator);
+				return concat([path.call(print, 'argument'), node.operator]);
 			}
-			return parts.join('');
-		}
 
 		case 'TSArrayType': {
 			const parts = ['Array<', path.call(print, 'elementType'), '>'];
-			return parts.join('');
+			return parts;
 		}
 
 		case 'TSNumberKeyword':
@@ -398,9 +413,12 @@ function printRippleNode(node, path, options, print) {
 		case 'VariableDeclarator':
 			return printVariableDeclarator(node, path, options, print);
 
+		case 'AssignmentPattern':
+			return printAssignmentPattern(node, path, options, print);
+
 		case 'TSTypeAnnotation': {
 			const parts = [': ', path.call(print, 'typeAnnotation')];
-			return parts.join('');
+			return parts;
 		}
 
 		case 'TSTypeLiteral':
@@ -411,6 +429,20 @@ function printRippleNode(node, path, options, print) {
 
 		case 'TSStringKeyword':
 			return 'string';
+
+		case 'TSNumberKeyword':
+			return 'number';
+
+		case 'TSNullKeyword':
+			return 'null';
+
+		case 'TSLiteralType':
+			return path.call(print, 'literal');
+
+		case 'TSUnionType': {
+			const types = path.map(print, 'types');
+			return join(' | ', types);
+		}
 
 		case 'TSTypeReference':
 			return printTSTypeReference(node, path, options, print);
@@ -423,7 +455,7 @@ function printRippleNode(node, path, options, print) {
 
 		case 'Text': {
 			const parts = ['{', path.call(print, 'expression'), '}'];
-			return parts.join('');
+			return parts;
 		}
 
 		default:
@@ -446,14 +478,15 @@ function printImportDeclaration(node, path, options, print) {
 		const defaultImports = [];
 		const namedImports = [];
 		const namespaceImports = [];
-		
+
 		node.specifiers.forEach((spec) => {
 			if (spec.type === 'ImportDefaultSpecifier') {
 				defaultImports.push(spec.local.name);
 			} else if (spec.type === 'ImportSpecifier') {
-				const importName = spec.imported.name === spec.local.name
-					? spec.local.name
-					: spec.imported.name + ' as ' + spec.local.name;
+				const importName =
+					spec.imported.name === spec.local.name
+						? spec.local.name
+						: spec.imported.name + ' as ' + spec.local.name;
 				namedImports.push(importName);
 			} else if (spec.type === 'ImportNamespaceSpecifier') {
 				namespaceImports.push('* as ' + spec.local.name);
@@ -471,23 +504,22 @@ function printImportDeclaration(node, path, options, print) {
 		if (namedImports.length > 0) {
 			importParts.push('{ ' + namedImports.join(', ') + ' }');
 		}
-		
+
 		parts.push(' ' + importParts.join(', ') + ' from');
 	}
 
 	parts.push(' ' + formatStringLiteral(node.source.value, options) + ';');
-	
+
 	// Return as single string for proper cursor tracking
-	return parts.join('');
+	return parts;
 }
 
 function printExportNamedDeclaration(node, path, options, print) {
 	if (node.declaration) {
-		// Use cursor-safe approach
 		const parts = [];
 		parts.push('export ');
 		parts.push(path.call(print, 'declaration'));
-		return parts.join('');
+		return parts;
 	} else if (node.specifiers && node.specifiers.length > 0) {
 		const specifiers = node.specifiers.map((spec) => {
 			if (spec.exported.name === spec.local.name) {
@@ -496,35 +528,55 @@ function printExportNamedDeclaration(node, path, options, print) {
 				return spec.local.name + ' as ' + spec.exported.name;
 			}
 		});
-		
-		let result = 'export { ' + specifiers.join(', ') + ' }';
-		if (node.source) {
-			result += ' from ' + formatStringLiteral(node.source.value, options);
+
+		const parts = ['export { '];
+		for (let i = 0; i < specifiers.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(specifiers[i]);
 		}
-		result += ';';
-		
-		return result;
+		parts.push(' }');
+
+		if (node.source) {
+			parts.push(' from ');
+			parts.push(formatStringLiteral(node.source.value, options));
+		}
+		parts.push(';');
+
+		return parts;
 	}
 
 	return 'export';
 }
 
 function printComponent(node, path, options, print) {
-	// Use Prettier doc builders properly - build complete strings first, then concat
-	let signature = 'component ' + node.id.name;
+	// Use arrays instead of string concatenation
+	const signatureParts = ['component ', node.id.name];
 
 	// Add TypeScript generics if present
 	if (node.typeParameters) {
-		signature += path.call(print, 'typeParameters');
+		const typeParams = path.call(print, 'typeParameters');
+		if (Array.isArray(typeParams)) {
+			signatureParts.push(...typeParams);
+		} else {
+			signatureParts.push(typeParams);
+		}
 	}
 
 	// Always add parentheses, even if no parameters
 	if (node.params && node.params.length > 0) {
-		signature += '(';
-		signature += path.map(print, 'params').join(', ');
-		signature += ')';
+		signatureParts.push('(');
+		const paramList = path.map(print, 'params');
+		for (let i = 0; i < paramList.length; i++) {
+			if (i > 0) signatureParts.push(', ');
+			if (Array.isArray(paramList[i])) {
+				signatureParts.push(...paramList[i]);
+			} else {
+				signatureParts.push(paramList[i]);
+			}
+		}
+		signatureParts.push(')');
 	} else {
-		signature += '()';
+		signatureParts.push('()');
 	}
 
 	// Build body content as complete string
@@ -554,16 +606,23 @@ function printComponent(node, path, options, print) {
 		}
 	}
 
-	const body = spacedStatements.join('\n');
-	const indentedBody = body
-		.split('\n')
-		.map((line) => {
-			if (line.trim() === '') return '';
-			return createIndent(options) + line;
-		})
-		.join('\n');
+	// Use Prettier AST builders instead of manual string joining
+	const bodyParts = [];
+	for (let i = 0; i < spacedStatements.length; i++) {
+		if (i > 0) {
+			if (spacedStatements[i] === '') {
+				bodyParts.push(line); // Add extra blank line
+			} else {
+				bodyParts.push(line);
+			}
+		}
 
-	// Build CSS content as complete string  
+		if (spacedStatements[i] !== '') {
+			bodyParts.push(indent(spacedStatements[i]));
+		}
+	}
+
+	// Build CSS content as complete string
 	let cssContent = '';
 	if (node.css && node.css.source) {
 		cssContent += '\n\n  <style>';
@@ -594,13 +653,26 @@ function printComponent(node, path, options, print) {
 		cssContent += '\n  </style>';
 	}
 
-	// Return string directly for now - will convert to docs later
-	return signature + ' {\n' + indentedBody + cssContent + '\n}';
+	// Use proper AST builders like Prettier core
+	const parts = [concat(signatureParts), ' {'];
+
+	if (bodyParts.length > 0) {
+		parts.push(line);
+		parts.push(...bodyParts);
+		parts.push(line);
+	}
+
+	if (cssContent) {
+		parts.push(cssContent);
+	}
+
+	parts.push('}');
+
+	return concat(parts);
 }
 
 function printVariableDeclaration(node, path, options, print) {
 	const kind = node.kind || 'let';
-	const declarations = path.map(print, 'declarations').join(', ');
 
 	// Don't add semicolon if this is inside a for-loop (ForStatement or ForOfStatement)
 	// We can detect this by checking if there's a parent ForStatement or ForOfStatement
@@ -613,19 +685,29 @@ function printVariableDeclaration(node, path, options, print) {
 				(item.type === 'ForStatement' || item.type === 'ForOfStatement'),
 		);
 
-	// Use cursor-safe approach
-	const parts = [kind, ' ', declarations];
+	const declarations = path.map(print, 'declarations');
+
 	if (!hasForLoopParent) {
-		parts.push(';');
+		return concat([kind, ' ', declarations, ';']);
 	}
-	return parts.join('');
+
+	return concat([kind, ' ', declarations]);
 }
 
 function printJSXElement(node, path, options, print) {
 	const openingElement = printJSXOpeningElement(node.openingElement, path, options, print);
 
 	if (node.selfClosing || (node.children && node.children.length === 0)) {
-		return openingElement.replace('>', ' />');
+		// Convert to self-closing tag - create new opening with ' />' instead of '>'
+		const parts = ['<', node.openingElement.name.name];
+		if (node.openingElement.attributes && node.openingElement.attributes.length > 0) {
+			for (let i = 0; i < node.openingElement.attributes.length; i++) {
+				parts.push(' ');
+				parts.push(path.call(print, 'openingElement', 'attributes', i));
+			}
+		}
+		parts.push(' />');
+		return concat(parts);
 	}
 
 	const children = node.children
@@ -637,69 +719,61 @@ function printJSXElement(node, path, options, print) {
 		})
 		.filter((child) => child !== '');
 
-	const closingElement = '</' + node.openingElement.name.name + '>';
+	const closingTag = concat(['</', node.openingElement.name.name, '>']);
 
 	if (children.length === 0) {
-		return openingElement.replace('>', ' />');
+		// Self-closing version
+		const parts = ['<', node.openingElement.name.name];
+		if (node.openingElement.attributes && node.openingElement.attributes.length > 0) {
+			for (let i = 0; i < node.openingElement.attributes.length; i++) {
+				parts.push(' ');
+				parts.push(path.call(print, 'openingElement', 'attributes', i));
+			}
+		}
+		parts.push(' />');
+		return concat(parts);
 	}
 
 	if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 20) {
-		return openingElement + children[0] + closingElement;
+		// Single line
+		return concat([openingElement, children[0], closingTag]);
 	}
 
-	return (
-		openingElement +
-		'\n' +
-		children.map((child) => createIndent(options) + child).join('\n') +
-		'\n' +
-		closingElement
-	);
+	// Multi-line
+	const parts = [openingElement];
+	parts.push(line);
+	for (let i = 0; i < children.length; i++) {
+		if (i > 0) parts.push(line);
+		parts.push(indent(children[i]));
+	}
+	parts.push(line);
+	parts.push(closingTag);
+
+	return concat(parts);
 }
 
 function printJSXOpeningElement(node, path, options, print) {
-	let result = '<' + node.name.name;
+	const tag = node.name.name;
 
-	if (node.attributes && node.attributes.length > 0) {
-		const attrs = node.attributes
-			.map((attr) => {
-				if (attr.type === 'UseAttribute') {
-					// Create a mock path for the UseAttribute
-					const mockPath = {
-						call: (printFn, key) => {
-							if (key === 'argument') {
-								return printRippleNode(attr.argument, null, options, print);
-							}
-							return '';
-						}
-					};
-					return '{@use ' + printJS(mockPath, print, 'argument') + '}';
-				} else if (attr.type === 'SpreadAttribute') {
-					// Format spread attribute using generic node printing
-					let argResult;
-					if (attr.argument.type === 'Identifier') {
-						argResult = attr.argument.name;
-					} else {
-						argResult = printRippleNode(attr.argument, null, options, print);
-					}
-					return '{...' + argResult + '}';
-				} else if (attr.type === 'JSXAttribute') {
-					return printJSXAttribute(attr, null, options, print);
-				}
-				return '';
-			})
-			.filter((attr) => attr !== '');
-
-		// Check if the line would be too long and needs wrapping
-		const singleLineResult = result + ' ' + attrs.join(' ') + '>';
-		if (singleLineResult.length <= (options.printWidth || 80)) {
-			return singleLineResult;
-		}
-
-		// Multi-line formatting
-		return result + '\n' + attrs.map((attr) => createIndent(options) + attr).join('\n') + '\n>';
+	if (!node.attributes || node.attributes.length === 0) {
+		return group(['<', tag, '>']);
 	}
 
-	return result + '>';
+	// Use Svelte-style approach with group and path.map
+	const openingTag = group([
+		'<',
+		tag,
+		indent(
+			group([
+				...path.map((attrPath) => {
+					return concat([' ', print(attrPath)]);
+				}, 'attributes'),
+			]),
+		),
+		'>',
+	]);
+
+	return openingTag;
 }
 
 function printJSXAttribute(node, path, options, print) {
@@ -713,6 +787,7 @@ function printJSXAttribute(node, path, options, print) {
 		}
 	}
 
+	// Return as simple string since this is a complete atomic unit
 	return result;
 }
 
@@ -721,28 +796,90 @@ function printJSXFragment(node, path, options, print) {
 	return '<>\n' + children + '\n</>';
 }
 
+function printFunctionExpression(node, path, options, print) {
+	const parts = [];
+
+	// Handle async functions
+	if (node.async) {
+		parts.push('async ');
+	}
+
+	parts.push('function');
+
+	// Handle generator functions
+	if (node.generator) {
+		parts.push('*');
+	}
+
+	// Function name (if any)
+	if (node.id) {
+		parts.push(' ');
+		parts.push(node.id.name);
+	}
+
+	parts.push('(');
+
+	if (node.params && node.params.length > 0) {
+		const paramList = path.map(print, 'params');
+		for (let i = 0; i < paramList.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(paramList[i]);
+		}
+	}
+
+	parts.push(')');
+
+	// Handle return type annotation
+	if (node.returnType) {
+		parts.push(path.call(print, 'returnType'));
+	}
+
+	parts.push(' ');
+	parts.push(path.call(print, 'body'));
+
+	return concat(parts);
+}
+
 function printArrowFunction(node, path, options, print) {
-	const params = path.map(print, 'params').join(', ');
+	// Build params array properly
+	const paramParts = [];
+	const paramList = path.map(print, 'params');
+	for (let i = 0; i < paramList.length; i++) {
+		if (i > 0) paramParts.push(', ');
+		paramParts.push(paramList[i]);
+	}
 	const body = path.call(print, 'body');
 
-	// Handle single parameter without parentheses (if no parentheses needed)
-	if (node.params.length === 1 && node.params[0].type === 'Identifier') {
-		return params + ' => ' + body;
+	// Return array of parts
+	const parts = [];
+
+	// Handle single parameter without parentheses (only for simple identifiers without types)
+	if (
+		node.params.length === 1 &&
+		node.params[0].type === 'Identifier' &&
+		!node.params[0].typeAnnotation
+	) {
+		parts.push(...paramParts);
+		parts.push(' => ');
+		parts.push(body);
 	} else {
-		return '(' + params + ') => ' + body;
+		parts.push('(');
+		parts.push(...paramParts);
+		parts.push(') => ');
+		parts.push(body);
 	}
+
+	return concat(parts);
 }
 
 function printExportDefaultDeclaration(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('export default ');
 	parts.push(path.call(print, 'declaration'));
-	return parts.join('');
+	return parts;
 }
 
 function printFunctionDeclaration(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 
 	// Handle async functions
@@ -762,17 +899,27 @@ function printFunctionDeclaration(node, path, options, print) {
 	parts.push('(');
 
 	if (node.params && node.params.length > 0) {
-		parts.push(path.map(print, 'params').join(', '));
+		const paramList = path.map(print, 'params');
+		for (let i = 0; i < paramList.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(paramList[i]);
+		}
 	}
 
-	parts.push(') ');
+	parts.push(')');
+
+	// Handle return type annotation
+	if (node.returnType) {
+		parts.push(path.call(print, 'returnType'));
+	}
+
+	parts.push(' ');
 	parts.push(path.call(print, 'body'));
 
-	return parts.join('');
+	return parts;
 }
 
 function printIfStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('if (');
 	parts.push(path.call(print, 'test'));
@@ -784,11 +931,10 @@ function printIfStatement(node, path, options, print) {
 		parts.push(path.call(print, 'alternate'));
 	}
 
-	return parts.join('');
+	return parts;
 }
 
 function printForOfStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('for (');
 	parts.push(path.call(print, 'left'));
@@ -797,11 +943,10 @@ function printForOfStatement(node, path, options, print) {
 	parts.push(') ');
 	parts.push(path.call(print, 'body'));
 
-	return parts.join('');
+	return parts;
 }
 
 function printForStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('for (');
 
@@ -827,23 +972,21 @@ function printForStatement(node, path, options, print) {
 	parts.push(') ');
 	parts.push(path.call(print, 'body'));
 
-	return parts.join('');
+	return parts;
 }
 
 // Updated for-loop formatting
 function printWhileStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('while (');
 	parts.push(path.call(print, 'test'));
 	parts.push(') ');
 	parts.push(path.call(print, 'body'));
 
-	return parts.join('');
+	return parts;
 }
 
 function printDoWhileStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('do ');
 	parts.push(path.call(print, 'body'));
@@ -851,7 +994,7 @@ function printDoWhileStatement(node, path, options, print) {
 	parts.push(path.call(print, 'test'));
 	parts.push(')');
 
-	return parts.join('');
+	return parts;
 }
 
 function printObjectExpression(node, path, options, print) {
@@ -859,20 +1002,34 @@ function printObjectExpression(node, path, options, print) {
 		return '{}';
 	}
 
-	const properties = path.map(print, 'properties').join(',\n');
-	const indentedProperties = properties
-		.split('\n')
-		.map((line) => {
-			if (line.trim() === '') return '';
-			return createIndent(options) + line;
-		})
-		.join('\n');
+	// Use AST builders and respect trailing commas
+	const properties = path.map(print, 'properties');
+	const shouldUseTrailingComma = options.trailingComma !== 'none' && properties.length > 0;
+	const parts = ['{'];
 
-	return '{\n' + indentedProperties + '\n}';
+	if (properties.length > 0) {
+		parts.push(line);
+		for (let i = 0; i < properties.length; i++) {
+			if (i > 0) {
+				parts.push(',');
+				parts.push(line);
+			}
+			parts.push(indent(properties[i]));
+		}
+
+		// Add trailing comma if configured
+		if (shouldUseTrailingComma) {
+			parts.push(',');
+		}
+
+		parts.push(line);
+	}
+
+	parts.push('}');
+	return parts;
 }
 
 function printClassDeclaration(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('class ');
 	parts.push(node.id.name);
@@ -885,11 +1042,10 @@ function printClassDeclaration(node, path, options, print) {
 	parts.push(' ');
 	parts.push(path.call(print, 'body'));
 
-	return parts.join('');
+	return parts;
 }
 
 function printTryStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('try ');
 	parts.push(path.call(print, 'block'));
@@ -910,7 +1066,7 @@ function printTryStatement(node, path, options, print) {
 		parts.push(path.call(print, 'finalizer'));
 	}
 
-	return parts.join('');
+	return parts;
 }
 
 function printClassBody(node, path, options, print) {
@@ -918,32 +1074,45 @@ function printClassBody(node, path, options, print) {
 		return '{}';
 	}
 
-	const body = path.map(print, 'body').join('\n');
-	const indentedBody = body
-		.split('\n')
-		.map((line) => {
-			if (line.trim() === '') return '';
-			return createIndent(options) + line;
-		})
-		.join('\n');
+	const members = path.map(print, 'body');
 
-	return '{\n' + indentedBody + '\n}';
+	// Use AST builders for proper formatting
+	return group(['{', indent(concat([line, join(concat([line, line]), members)])), line, '}']);
 }
 
 function printPropertyDefinition(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 
+	// Access modifiers (public, private, protected)
+	if (node.accessibility) {
+		parts.push(node.accessibility);
+		parts.push(' ');
+	}
+
+	// Static keyword
 	if (node.static) {
 		parts.push('static ');
 	}
 
+	// Readonly keyword
+	if (node.readonly) {
+		parts.push('readonly ');
+	}
+
+	// Property name
 	parts.push(path.call(print, 'key'));
 
+	// Optional marker
+	if (node.optional) {
+		parts.push('?');
+	}
+
+	// Type annotation
 	if (node.typeAnnotation) {
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
+	// Initializer
 	if (node.value) {
 		parts.push(' = ');
 		parts.push(path.call(print, 'value'));
@@ -951,17 +1120,29 @@ function printPropertyDefinition(node, path, options, print) {
 
 	parts.push(';');
 
-	return parts.join('');
+	return concat(parts);
 }
 
 function printMethodDefinition(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 
+	// Access modifiers (public, private, protected)
+	if (node.accessibility) {
+		parts.push(node.accessibility);
+		parts.push(' ');
+	}
+
+	// Static keyword
 	if (node.static) {
 		parts.push('static ');
 	}
 
+	// Async keyword
+	if (node.value && node.value.async) {
+		parts.push('async ');
+	}
+
+	// Method kind and name
 	if (node.kind === 'constructor') {
 		parts.push('constructor');
 	} else if (node.kind === 'get') {
@@ -974,26 +1155,37 @@ function printMethodDefinition(node, path, options, print) {
 		parts.push(path.call(print, 'key'));
 	}
 
+	// Parameters - use proper path.map for TypeScript support
 	parts.push('(');
-	if (node.value && node.value.params) {
-		parts.push(node.value.params.map((param) => param.name).join(', '));
+	if (node.value && node.value.params && node.value.params.length > 0) {
+		const params = path.map(print, 'value', 'params');
+		for (let i = 0; i < params.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(params[i]);
+		}
 	}
-	parts.push(') ');
+	parts.push(')');
 
+	// Return type
+	if (node.value && node.value.returnType) {
+		parts.push(path.call(print, 'value', 'returnType'));
+	}
+
+	// Method body
+	parts.push(' ');
 	if (node.value && node.value.body) {
 		parts.push(path.call(print, 'value', 'body'));
 	} else {
 		parts.push('{}');
 	}
 
-	return parts.join('');
+	return concat(parts);
 }
 
 function printMemberExpression(node, path, options, print) {
-	// Use cursor-safe approach by building parts and joining them
 	const objectPart = path.call(print, 'object');
 	const propertyPart = path.call(print, 'property');
-	
+
 	if (node.computed) {
 		return objectPart + '[' + propertyPart + ']';
 	} else {
@@ -1001,12 +1193,9 @@ function printMemberExpression(node, path, options, print) {
 	}
 }
 
-// printCallExpression function removed - now using generic path.call approach
-
 function printUnaryExpression(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
-	
+
 	if (node.prefix) {
 		parts.push(node.operator);
 		// Add space for word operators like 'void', 'typeof', 'delete'
@@ -1019,12 +1208,11 @@ function printUnaryExpression(node, path, options, print) {
 		parts.push(path.call(print, 'argument'));
 		parts.push(node.operator);
 	}
-	
-	return parts.join('');
+
+	return parts;
 }
 
 function printYieldExpression(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('yield');
 
@@ -1037,28 +1225,30 @@ function printYieldExpression(node, path, options, print) {
 		parts.push(path.call(print, 'argument'));
 	}
 
-	return parts.join('');
+	return parts;
 }
 
 function printNewExpression(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('new ');
 	parts.push(path.call(print, 'callee'));
 
 	if (node.arguments && node.arguments.length > 0) {
 		parts.push('(');
-		parts.push(path.map(print, 'arguments').join(', '));
+		const argList = path.map(print, 'arguments');
+		for (let i = 0; i < argList.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(argList[i]);
+		}
 		parts.push(')');
 	} else {
 		parts.push('()');
 	}
 
-	return parts.join('');
+	return parts;
 }
 
 function printTemplateLiteral(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('`');
 
@@ -1073,28 +1263,25 @@ function printTemplateLiteral(node, path, options, print) {
 	}
 
 	parts.push('`');
-	return parts.join('');
+	return parts;
 }
 
 function printTaggedTemplateExpression(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push(path.call(print, 'tag'));
 	parts.push(path.call(print, 'quasi'));
-	return parts.join('');
+	return parts;
 }
 
 function printThrowStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('throw ');
 	parts.push(path.call(print, 'argument'));
 	parts.push(';');
-	return parts.join('');
+	return parts;
 }
 
 function printTSInterfaceDeclaration(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('interface ');
 	parts.push(node.id.name);
@@ -1106,7 +1293,7 @@ function printTSInterfaceDeclaration(node, path, options, print) {
 	parts.push(' ');
 	parts.push(path.call(print, 'body'));
 
-	return parts.join('');
+	return parts;
 }
 
 function printTSInterfaceBody(node, path, options, print) {
@@ -1128,7 +1315,6 @@ function printTSInterfaceBody(node, path, options, print) {
 }
 
 function printTSTypeAliasDeclaration(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('type ');
 	parts.push(node.id.name);
@@ -1141,24 +1327,26 @@ function printTSTypeAliasDeclaration(node, path, options, print) {
 	parts.push(path.call(print, 'typeAnnotation'));
 	parts.push(';');
 
-	return parts.join('');
+	return parts;
 }
 
 function printTSTypeParameterDeclaration(node, path, options, print) {
-	// Use cursor-safe approach
 	if (!node.params || node.params.length === 0) {
 		return '';
 	}
 
 	const parts = [];
 	parts.push('<');
-	parts.push(path.map(print, 'params').join(', '));
+	const paramList = path.map(print, 'params');
+	for (let i = 0; i < paramList.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(paramList[i]);
+	}
 	parts.push('>');
-	return parts.join('');
+	return parts;
 }
 
 function printTSTypeParameter(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push(node.name);
 
@@ -1172,11 +1360,10 @@ function printTSTypeParameter(node, path, options, print) {
 		parts.push(path.call(print, 'default'));
 	}
 
-	return parts.join('');
+	return parts;
 }
 
 function printSwitchStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('switch (');
 	parts.push(path.call(print, 'discriminant'));
@@ -1190,11 +1377,10 @@ function printSwitchStatement(node, path, options, print) {
 	}
 
 	parts.push('\n}');
-	return parts.join('');
+	return parts;
 }
 
 function printSwitchCase(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 
 	if (node.test) {
@@ -1216,11 +1402,10 @@ function printSwitchCase(node, path, options, print) {
 		}
 	}
 
-	return parts.join('');
+	return parts;
 }
 
 function printBreakStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('break');
 	if (node.label) {
@@ -1228,11 +1413,10 @@ function printBreakStatement(node, path, options, print) {
 		parts.push(path.call(print, 'label'));
 	}
 	parts.push(';');
-	return parts.join('');
+	return parts;
 }
 
 function printContinueStatement(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('continue');
 	if (node.label) {
@@ -1240,16 +1424,19 @@ function printContinueStatement(node, path, options, print) {
 		parts.push(path.call(print, 'label'));
 	}
 	parts.push(';');
-	return parts.join('');
+	return parts;
 }
 
 function printSequenceExpression(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('(');
-	parts.push(path.map(print, 'expressions').join(', '));
+	const exprList = path.map(print, 'expressions');
+	for (let i = 0; i < exprList.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(exprList[i]);
+	}
 	parts.push(')');
-	return parts.join('');
+	return parts;
 }
 
 function shouldAddBlankLine(currentNode, nextNode) {
@@ -1359,21 +1546,23 @@ function shouldAddBlankLine(currentNode, nextNode) {
 }
 
 function printObjectPattern(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push('{ ');
-	parts.push(path.map(print, 'properties').join(', '));
+	const propList = path.map(print, 'properties');
+	for (let i = 0; i < propList.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(propList[i]);
+	}
 	parts.push(' }');
 
 	if (node.typeAnnotation) {
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
-	return parts.join('');
+	return parts;
 }
 
 function printProperty(node, path, options, print) {
-	// Use cursor-safe approach
 	if (node.shorthand) {
 		return path.call(print, 'key');
 	}
@@ -1382,136 +1571,125 @@ function printProperty(node, path, options, print) {
 	parts.push(path.call(print, 'key'));
 	parts.push(': ');
 	parts.push(path.call(print, 'value'));
-	return parts.join('');
+	return parts;
 }
 
 function printVariableDeclarator(node, path, options, print) {
-	// Use cursor-safe approach
-	const parts = [];
-	parts.push(path.call(print, 'id'));
-
+	// Follow Prettier core pattern - simple concatenation for basic cases
 	if (node.init) {
-		parts.push(' = ');
-		parts.push(path.call(print, 'init'));
+		return [path.call(print, 'id'), ' = ', path.call(print, 'init')];
 	}
 
-	return parts.join('');
+	return path.call(print, 'id');
+}
+
+function printAssignmentPattern(node, path, options, print) {
+	// Handle default parameters like: count: number = 0
+	return [path.call(print, 'left'), ' = ', path.call(print, 'right')];
 }
 
 function printTSTypeLiteral(node, path, options, print) {
-	const members = path.map(print, 'members').join('; ');
-	return '{ ' + members + ' }';
+	if (!node.members || node.members.length === 0) {
+		return '{}';
+	}
+
+	const members = path.map(print, 'members');
+
+	// Use AST builders for proper formatting
+	return group(['{', indent(concat([line, join(concat([';', line]), members), ';'])), line, '}']);
 }
 
 function printTSPropertySignature(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push(path.call(print, 'key'));
+
+	if (node.optional) {
+		parts.push('?');
+	}
 
 	if (node.typeAnnotation) {
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
-	return parts.join('');
+	return concat(parts);
 }
 
 function printTSTypeReference(node, path, options, print) {
-	return path.call(print, 'typeName');
+	const parts = [path.call(print, 'typeName')];
+
+	if (node.typeParameters) {
+		parts.push('<');
+		const typeArgs = path.map(print, 'typeParameters', 'params');
+		for (let i = 0; i < typeArgs.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(typeArgs[i]);
+		}
+		parts.push('>');
+	}
+
+	return concat(parts);
 }
 
 function printElement(node, path, options, print) {
 	const tagName = node.id.name;
-	let result = '<' + tagName;
 
-	if (node.attributes && node.attributes.length > 0) {
-		const attrs = path.map((attrPath, index) => {
-			const attr = node.attributes[index];
-			if (attr.type === 'UseAttribute') {
-				return '{@use ' + printJS(attrPath, print, 'argument') + '}';
-			} else if (attr.type === 'SpreadAttribute') {
-				// Format spread attribute argument directly
-				let argResult;
-				if (attr.argument.type === 'Identifier') {
-					argResult = attr.argument.name;
-				} else {
-					argResult = printRippleNode(attr.argument, null, options, print);
-				}
-				return '{...' + argResult + '}';
-			} else {
-				return attrPath.call(print);
-			}
-		}, 'attributes');
-
-		// Check if the line would be too long and needs wrapping
-		const singleLineResult =
-			result +
-			' ' +
-			attrs.join(' ') +
-			(node.selfClosing || !node.children || node.children.length === 0 ? ' />' : '>');
-
-		if (singleLineResult.length <= options.printWidth) {
-			// Single line fits within print width
-			result += ' ' + attrs.join(' ');
-		} else {
-			// Multi-line: each attribute on its own line
-			result += '\n' + attrs.map((attr) => createIndent(options) + attr).join('\n');
-			if (!options.bracketSameLine) {
-				result += '\n';
-			}
+	if (!node.attributes || node.attributes.length === 0) {
+		if (node.selfClosing || !node.children || node.children.length === 0) {
+			return group(['<', tagName, ' />']);
 		}
+
+		// No attributes, but has children
+		const children = path.map(print, 'children');
+		if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 20) {
+			// Single line with short content
+			return group(['<', tagName, '>', children[0], '</', tagName, '>']);
+		}
+
+		// Multi-line
+		return group([
+			'<',
+			tagName,
+			'>',
+			indent(concat([line, join(line, children)])),
+			line,
+			'</',
+			tagName,
+			'>',
+		]);
 	}
+
+	// Use Svelte-style approach with group and path.map for attributes
+	const openingTag = group([
+		'<',
+		tagName,
+		indent(
+			group([
+				...path.map((attrPath) => {
+					return concat([' ', print(attrPath)]);
+				}, 'attributes'),
+			]),
+		),
+		node.selfClosing || !node.children || node.children.length === 0 ? ' />' : '>',
+	]);
 
 	if (node.selfClosing || !node.children || node.children.length === 0) {
-		result += ' />';
-		return result;
+		return openingTag;
 	}
 
-	result += '>';
-
+	// Has children
 	const children = path.map(print, 'children');
-	const hasComplexChildren = children.some(
-		(child) => typeof child === 'string' && (child.includes('\n') || child.length > 50),
-	);
+	const closingTag = concat(['</', tagName, '>']);
 
-	if (hasComplexChildren || children.length > 1) {
-		result += '\n';
-
-		// Add intelligent spacing between children
-		const spacedChildren = [];
-		for (let i = 0; i < children.length; i++) {
-			const child = children[i];
-			spacedChildren.push(
-				typeof child === 'string'
-					? child
-							.split('\n')
-							.map((line) => (line ? createIndent(options) + line : line))
-							.join('\n')
-					: createIndent(options) + child,
-			);
-
-			// Add blank lines between logical groups
-			if (i < children.length - 1 && node.children && node.children[i] && node.children[i + 1]) {
-				const currentChild = node.children[i];
-				const nextChild = node.children[i + 1];
-
-				if (shouldAddBlankLine(currentChild, nextChild)) {
-					spacedChildren.push('');
-				}
-			}
-		}
-
-		result += spacedChildren.join('\n');
-		result += '\n';
-	} else if (children.length === 1) {
-		result += children[0];
+	if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 20) {
+		// Single line
+		return group([openingTag, children[0], closingTag]);
 	}
 
-	result += '</' + tagName + '>';
-	return result;
+	// Multi-line
+	return group([openingTag, indent(concat([line, join(line, children)])), line, closingTag]);
 }
 
 function printAttribute(node, path, options, print) {
-	// Use cursor-safe approach
 	const parts = [];
 	parts.push(node.name.name);
 
@@ -1526,5 +1704,5 @@ function printAttribute(node, path, options, print) {
 		}
 	}
 
-	return parts.join('');
+	return parts;
 }
