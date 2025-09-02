@@ -231,7 +231,36 @@
 				background: rgba(20, 20, 25, 0.3);
 			}
 
+			.editor-content::-webkit-scrollbar {
+				width: 8px;
+				height: 8px;
+			}
+
+			.editor-content::-webkit-scrollbar-track {
+				background: rgba(20, 20, 25, 0.3);
+				border-radius: 4px;
+			}
+
+			.editor-content::-webkit-scrollbar-thumb {
+				background: rgba(120, 219, 226, 0.4);
+				border-radius: 4px;
+				transition: background 0.3s ease;
+			}
+
+			.editor-content::-webkit-scrollbar-thumb:hover {
+				background: rgba(120, 219, 226, 0.6);
+			}
+
+			.editor-content::-webkit-scrollbar-corner {
+				background: rgba(20, 20, 25, 0.3);
+			}
+
 			.editor-code {
+				scrollbar-width: thin;
+				scrollbar-color: rgba(120, 219, 226, 0.4) rgba(20, 20, 25, 0.3);
+			}
+
+			.editor-content {
 				scrollbar-width: thin;
 				scrollbar-color: rgba(120, 219, 226, 0.4) rgba(20, 20, 25, 0.3);
 			}
@@ -716,9 +745,9 @@
 				}
 
 				.editor-mockup {
-					margin: 1rem 0.5rem;
-					max-width: calc(100vw - 1rem);
-					overflow: hidden;
+					margin: 1rem auto;
+					max-width: calc(100% - 2rem);
+					width: 100%;
 				}
 
 				.editor-content {
@@ -731,11 +760,10 @@
 
 				.editor-code {
 					padding: 0.75rem;
-					white-space: pre-wrap;
-					word-wrap: break-word;
-					overflow-wrap: break-word;
+					white-space: pre;
 					font-size: 0.65rem;
 					line-height: 1.4;
+					min-width: max-content;
 				}
 
 				.line-number {
@@ -751,24 +779,39 @@
 				}
 
 				.social-links {
-					flex-direction: column;
+					flex-direction: row;
+					flex-wrap: wrap;
 					gap: 0.75rem;
-					align-items: center;
+					align-items: stretch;
+					justify-content: center;
+					margin-bottom: 2rem;
 				}
 
 				.github-link,
 				.discord-link {
-					width: 100%;
-					max-width: 200px;
+					flex: 1;
+					max-width: 180px;
+					min-width: 140px;
 					justify-content: center;
-					font-size: 0.9rem;
-					padding: 0.6rem 1.2rem;
+					font-size: 0.85rem;
+					padding: 0.6rem 1rem;
 					height: 44px;
+					display: flex;
+					align-items: center;
+					box-sizing: border-box;
 				}
 
 				.content-section {
 					padding: 1.5rem;
-					margin: 1.5rem 0.5rem 0;
+					margin: 1.5rem 1rem;
+					max-width: none;
+					width: auto;
+				}
+
+				.early-development {
+					margin: 1.5rem 1rem;
+					max-width: none;
+					width: auto;
 				}
 
 				.description {
