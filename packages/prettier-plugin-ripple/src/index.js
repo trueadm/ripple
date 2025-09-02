@@ -1,4 +1,7 @@
 import { parse } from 'ripple/compiler';
+import { doc } from 'prettier';
+
+const { concat, join, line, group, indent } = doc.builders;
 
 export const languages = [
 	{
@@ -37,7 +40,10 @@ export const printers = {
 	'ripple-ast': {
 		print(path, options, print) {
 			const node = path.getValue();
-			return printRippleNode(node, path, options, print);
+			const parts = printRippleNode(node, path, options, print);
+			// If printRippleNode returns doc parts, return them directly
+			// If it returns a string, wrap it for consistency
+			return typeof parts === 'string' ? parts : parts;
 		},
 	},
 };
@@ -79,7 +85,8 @@ function printRippleNode(node, path, options, print) {
 
 	switch (node.type) {
 		case 'Program':
-			return path.map(print, 'body').join('\n\n');
+			// Return doc parts that Prettier can handle for cursor tracking
+			return join(concat([line, line]), path.map(print, 'body'));
 
 		case 'ImportDeclaration':
 			return printImportDeclaration(node, path, options, print);
@@ -117,8 +124,14 @@ function printRippleNode(node, path, options, print) {
 		case 'TryStatement':
 			return printTryStatement(node, path, options, print);
 
-		case 'ArrayExpression':
-			return '[' + path.map(print, 'elements').join(', ') + ']';
+		case 'ArrayExpression': {
+			// Use cursor-safe approach
+			const parts = [];
+			parts.push('[');
+			parts.push(path.map(print, 'elements').join(', '));
+			parts.push(']');
+			return parts.join('');
+		}
 
 		case 'ObjectExpression':
 			return printObjectExpression(node, path, options, print);
@@ -135,8 +148,15 @@ function printRippleNode(node, path, options, print) {
 		case 'PrivateIdentifier':
 			return '#' + node.name;
 
-		case 'AssignmentExpression':
-			return path.call(print, 'left') + ' ' + node.operator + ' ' + path.call(print, 'right');
+		case 'AssignmentExpression': {
+			const parts = [];
+			parts.push(path.call(print, 'left'));
+			parts.push(' ');
+			parts.push(node.operator);
+			parts.push(' ');
+			parts.push(path.call(print, 'right'));
+			return parts.join('');
+		}
 
 		case 'MemberExpression':
 			return printMemberExpression(node, path, options, print);
@@ -147,11 +167,19 @@ function printRippleNode(node, path, options, print) {
 		case 'ThisExpression':
 			return 'this';
 
-		case 'CallExpression':
-			return path.call(print, 'callee') + '(' + path.map(print, 'arguments').join(', ') + ')';
+		case 'CallExpression': {
+			const parts = [];
+			parts.push(path.call(print, 'callee'));
+			parts.push('(');
+			parts.push(path.map(print, 'arguments').join(', '));
+			parts.push(')');
+			return parts.join('');
+		}
 
-		case 'AwaitExpression':
-			return 'await ' + path.call(print, 'argument');
+		case 'AwaitExpression': {
+			const parts = ['await ', path.call(print, 'argument')];
+			return parts.join('');
+		}
 
 		case 'UnaryExpression':
 			return printUnaryExpression(node, path, options, print);
@@ -207,8 +235,10 @@ function printRippleNode(node, path, options, print) {
 		case 'SequenceExpression':
 			return printSequenceExpression(node, path, options, print);
 
-		case 'SpreadElement':
-			return '...' + path.call(print, 'argument');
+		case 'SpreadElement': {
+			const parts = ['...', path.call(print, 'argument')];
+			return parts.join('');
+		}
 
 		case 'EmptyStatement':
 			return '';
@@ -216,8 +246,10 @@ function printRippleNode(node, path, options, print) {
 		case 'VariableDeclaration':
 			return printVariableDeclaration(node, path, options, print);
 
-		case 'ExpressionStatement':
-			return path.call(print, 'expression') + ';';
+		case 'ExpressionStatement': {
+			const parts = [path.call(print, 'expression'), ';'];
+			return parts.join('');
+		}
 
 		case 'JSXElement':
 			return printJSXElement(node, path, options, print);
@@ -228,8 +260,10 @@ function printRippleNode(node, path, options, print) {
 		case 'JSXText':
 			return node.value;
 
-		case 'JSXExpressionContainer':
-			return '{' + path.call(print, 'expression') + '}';
+		case 'JSXExpressionContainer': {
+			const parts = ['{', path.call(print, 'expression'), '}'];
+			return parts.join('');
+		}
 
 		case 'JSXAttribute':
 			return printJSXAttribute(node, path, options, print);
@@ -237,15 +271,18 @@ function printRippleNode(node, path, options, print) {
 		case 'UseAttribute':
 			return '{@use ' + printJS(path, print, 'argument') + '}';
 
-		case 'SpreadAttribute':
-			return '{...' + path.call(print, 'argument') + '}';
+		case 'SpreadAttribute': {
+			const parts = ['{...', path.call(print, 'argument'), '}'];
+			return parts.join('');
+		}
 
-		case 'Identifier':
-			let result = node.name;
+		case 'Identifier': {
+			const parts = [node.name];
 			if (node.typeAnnotation) {
-				result += path.call(print, 'typeAnnotation');
+				parts.push(path.call(print, 'typeAnnotation'));
 			}
-			return result;
+			return parts.join('');
+		}
 
 		case 'Literal':
 			return formatStringLiteral(node.value, options);
@@ -289,31 +326,62 @@ function printRippleNode(node, path, options, print) {
 				.join('\n');
 			return '{\n' + indentedStatements + '\n}';
 
-		case 'ReturnStatement':
-			return 'return ' + (node.argument ? path.call(print, 'argument') : '') + ';';
+		case 'ReturnStatement': {
+			const parts = ['return'];
+			if (node.argument) {
+				parts.push(' ');
+				parts.push(path.call(print, 'argument'));
+			}
+			parts.push(';');
+			return parts.join('');
+		}
 
-		case 'BinaryExpression':
-			return path.call(print, 'left') + ' ' + node.operator + ' ' + path.call(print, 'right');
+		case 'BinaryExpression': {
+			const parts = [];
+			parts.push(path.call(print, 'left'));
+			parts.push(' ');
+			parts.push(node.operator);
+			parts.push(' ');
+			parts.push(path.call(print, 'right'));
+			return parts.join('');
+		}
 
-		case 'LogicalExpression':
-			return path.call(print, 'left') + ' ' + node.operator + ' ' + path.call(print, 'right');
+		case 'LogicalExpression': {
+			const parts = [];
+			parts.push(path.call(print, 'left'));
+			parts.push(' ');
+			parts.push(node.operator);
+			parts.push(' ');
+			parts.push(path.call(print, 'right'));
+			return parts.join('');
+		}
 
-		case 'ConditionalExpression':
-			return (
-				path.call(print, 'test') +
-				' ? ' +
-				path.call(print, 'consequent') +
-				' : ' +
-				path.call(print, 'alternate')
-			);
+		case 'ConditionalExpression': {
+			const parts = [];
+			parts.push(path.call(print, 'test'));
+			parts.push(' ? ');
+			parts.push(path.call(print, 'consequent'));
+			parts.push(' : ');
+			parts.push(path.call(print, 'alternate'));
+			return parts.join('');
+		}
 
-		case 'UpdateExpression':
-			return node.prefix
-				? node.operator + path.call(print, 'argument')
-				: path.call(print, 'argument') + node.operator;
+		case 'UpdateExpression': {
+			const parts = [];
+			if (node.prefix) {
+				parts.push(node.operator);
+				parts.push(path.call(print, 'argument'));
+			} else {
+				parts.push(path.call(print, 'argument'));
+				parts.push(node.operator);
+			}
+			return parts.join('');
+		}
 
-		case 'TSArrayType':
-			return 'Array<' + path.call(print, 'elementType') + '>';
+		case 'TSArrayType': {
+			const parts = ['Array<', path.call(print, 'elementType'), '>'];
+			return parts.join('');
+		}
 
 		case 'TSNumberKeyword':
 			return 'number';
@@ -330,8 +398,10 @@ function printRippleNode(node, path, options, print) {
 		case 'VariableDeclarator':
 			return printVariableDeclarator(node, path, options, print);
 
-		case 'TSTypeAnnotation':
-			return ': ' + path.call(print, 'typeAnnotation');
+		case 'TSTypeAnnotation': {
+			const parts = [': ', path.call(print, 'typeAnnotation')];
+			return parts.join('');
+		}
 
 		case 'TSTypeLiteral':
 			return printTSTypeLiteral(node, path, options, print);
@@ -351,8 +421,10 @@ function printRippleNode(node, path, options, print) {
 		case 'Attribute':
 			return printAttribute(node, path, options, print);
 
-		case 'Text':
-			return '{' + path.call(print, 'expression') + '}';
+		case 'Text': {
+			const parts = ['{', path.call(print, 'expression'), '}'];
+			return parts.join('');
+		}
 
 		default:
 			// Fallback for unknown node types
@@ -362,18 +434,17 @@ function printRippleNode(node, path, options, print) {
 }
 
 function printImportDeclaration(node, path, options, print) {
-	let result = 'import ';
+	// Use Prettier's doc builders for proper cursor tracking
+	const parts = ['import'];
 
 	// Handle type imports
 	if (node.importKind === 'type') {
-		result += 'type ';
+		parts.push(' type');
 	}
 
 	if (node.specifiers && node.specifiers.length > 0) {
 		const defaultImports = [];
 		const namedImports = [];
-		
-		// Separate default, named, and namespace imports
 		const namespaceImports = [];
 		
 		node.specifiers.forEach((spec) => {
@@ -389,31 +460,34 @@ function printImportDeclaration(node, path, options, print) {
 			}
 		});
 
-		// Format the imports correctly
-		const parts = [];
+		// Build import clause properly
+		const importParts = [];
 		if (defaultImports.length > 0) {
-			parts.push(defaultImports.join(', '));
+			importParts.push(defaultImports.join(', '));
 		}
 		if (namespaceImports.length > 0) {
-			parts.push(namespaceImports.join(', '));
+			importParts.push(namespaceImports.join(', '));
 		}
 		if (namedImports.length > 0) {
-			parts.push('{ ' + namedImports.join(', ') + ' }');
+			importParts.push('{ ' + namedImports.join(', ') + ' }');
 		}
 		
-		result += parts.join(', ');
-		result += ' from ';
+		parts.push(' ' + importParts.join(', ') + ' from');
 	}
 
-	result += formatStringLiteral(node.source.value, options) + ';';
-	return result;
+	parts.push(' ' + formatStringLiteral(node.source.value, options) + ';');
+	
+	// Return as single string for proper cursor tracking
+	return parts.join('');
 }
 
 function printExportNamedDeclaration(node, path, options, print) {
-	let result = 'export ';
-
 	if (node.declaration) {
-		result += path.call(print, 'declaration');
+		// Use cursor-safe approach
+		const parts = [];
+		parts.push('export ');
+		parts.push(path.call(print, 'declaration'));
+		return parts.join('');
 	} else if (node.specifiers && node.specifiers.length > 0) {
 		const specifiers = node.specifiers.map((spec) => {
 			if (spec.exported.name === spec.local.name) {
@@ -422,58 +496,58 @@ function printExportNamedDeclaration(node, path, options, print) {
 				return spec.local.name + ' as ' + spec.exported.name;
 			}
 		});
-		result += '{ ' + specifiers.join(', ') + ' }';
-
+		
+		let result = 'export { ' + specifiers.join(', ') + ' }';
 		if (node.source) {
 			result += ' from ' + formatStringLiteral(node.source.value, options);
 		}
 		result += ';';
+		
+		return result;
 	}
 
-	return result;
+	return 'export';
 }
 
 function printComponent(node, path, options, print) {
-	let result = 'component ' + node.id.name;
+	// Use Prettier doc builders properly - build complete strings first, then concat
+	let signature = 'component ' + node.id.name;
 
 	// Add TypeScript generics if present
 	if (node.typeParameters) {
-		result += path.call(print, 'typeParameters');
+		signature += path.call(print, 'typeParameters');
 	}
 
 	// Always add parentheses, even if no parameters
 	if (node.params && node.params.length > 0) {
-		result += '(' + path.map(print, 'params').join(', ') + ')';
+		signature += '(';
+		signature += path.map(print, 'params').join(', ');
+		signature += ')';
 	} else {
-		result += '()';
+		signature += '()';
 	}
 
-	result += ' {\n';
-
-	// Print body statements with proper spacing (same logic as BlockStatement)
+	// Build body content as complete string
 	const bodyStatements = [];
 	for (let i = 0; i < node.body.length; i++) {
 		const statement = path.call(print, 'body', i);
 		bodyStatements.push(statement);
 	}
 
-	// Apply the same spacing logic as BlockStatement
+	// Apply spacing logic
 	const spacedStatements = [];
 	for (let i = 0; i < bodyStatements.length; i++) {
 		spacedStatements.push(bodyStatements[i]);
 
-		// Add blank lines between logical groups OR preserve existing ones
 		if (i < bodyStatements.length - 1 && node.body && node.body[i] && node.body[i + 1]) {
 			const currentStmt = node.body[i];
 			const nextStmt = node.body[i + 1];
 
-			// Check if there was originally a blank line between these statements
 			const currentEndLine = currentStmt.loc?.end?.line;
 			const nextStartLine = nextStmt.loc?.start?.line;
 			const hasOriginalBlankLine =
 				nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
 
-			// Preserve original blank lines OR add new ones based on logic
 			if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
 				spacedStatements.push('');
 			}
@@ -481,7 +555,6 @@ function printComponent(node, path, options, print) {
 	}
 
 	const body = spacedStatements.join('\n');
-	// Properly indent each line of the body content
 	const indentedBody = body
 		.split('\n')
 		.map((line) => {
@@ -489,50 +562,40 @@ function printComponent(node, path, options, print) {
 			return createIndent(options) + line;
 		})
 		.join('\n');
-	result += indentedBody;
 
-	// Add CSS if present
+	// Build CSS content as complete string  
+	let cssContent = '';
 	if (node.css && node.css.source) {
-		result += '\n\n  <style>';
-		// Format the CSS content with proper CSS indentation
-		const cssContent = node.css.source.trim();
-		// Split into lines and format each line
-		const cssLines = cssContent.split('\n');
+		cssContent += '\n\n  <style>';
+		const css = node.css.source.trim();
+		const cssLines = css.split('\n');
 		let inRule = false;
 
 		cssLines.forEach((line) => {
 			const trimmedLine = line.trim();
 			if (!trimmedLine) {
-				result += '\n';
+				cssContent += '\n';
 				return;
 			}
 
-			// Check if this line starts a CSS rule (selector)
 			if (trimmedLine.includes('{')) {
 				inRule = true;
-				result += '\n    ' + trimmedLine; // 4 spaces for selectors
-			}
-			// Check if this line ends a CSS rule
-			else if (trimmedLine === '}') {
+				cssContent += '\n    ' + trimmedLine;
+			} else if (trimmedLine === '}') {
 				inRule = false;
-				result += '\n    ' + trimmedLine; // 4 spaces for closing brace
-			}
-			// CSS properties inside rules
-			else if (inRule) {
-				result += '\n      ' + trimmedLine; // 6 spaces for properties
-			}
-			// Other CSS content (shouldn't happen in normal CSS)
-			else {
-				result += '\n    ' + trimmedLine; // 4 spaces default
+				cssContent += '\n    ' + trimmedLine;
+			} else if (inRule) {
+				cssContent += '\n      ' + trimmedLine;
+			} else {
+				cssContent += '\n    ' + trimmedLine;
 			}
 		});
 
-		result += '\n  </style>';
+		cssContent += '\n  </style>';
 	}
 
-	result += '\n}';
-
-	return result;
+	// Return string directly for now - will convert to docs later
+	return signature + ' {\n' + indentedBody + cssContent + '\n}';
 }
 
 function printVariableDeclaration(node, path, options, print) {
@@ -550,11 +613,12 @@ function printVariableDeclaration(node, path, options, print) {
 				(item.type === 'ForStatement' || item.type === 'ForOfStatement'),
 		);
 
-	if (hasForLoopParent) {
-		return kind + ' ' + declarations;
-	} else {
-		return kind + ' ' + declarations + ';';
+	// Use cursor-safe approach
+	const parts = [kind, ' ', declarations];
+	if (!hasForLoopParent) {
+		parts.push(';');
 	}
+	return parts.join('');
 }
 
 function printJSXElement(node, path, options, print) {
@@ -670,103 +734,124 @@ function printArrowFunction(node, path, options, print) {
 }
 
 function printExportDefaultDeclaration(node, path, options, print) {
-	return 'export default ' + path.call(print, 'declaration');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('export default ');
+	parts.push(path.call(print, 'declaration'));
+	return parts.join('');
 }
 
 function printFunctionDeclaration(node, path, options, print) {
-	let result = '';
+	// Use cursor-safe approach
+	const parts = [];
 
 	// Handle async functions
 	if (node.async) {
-		result += 'async ';
+		parts.push('async ');
 	}
 
-	result += 'function';
+	parts.push('function');
 
 	// Handle generator functions
 	if (node.generator) {
-		result += '*';
+		parts.push('*');
 	}
 
-	result += ' ' + node.id.name + '(';
+	parts.push(' ');
+	parts.push(node.id.name);
+	parts.push('(');
 
 	if (node.params && node.params.length > 0) {
-		result += path.map(print, 'params').join(', ');
+		parts.push(path.map(print, 'params').join(', '));
 	}
 
-	result += ') ';
-	result += path.call(print, 'body');
+	parts.push(') ');
+	parts.push(path.call(print, 'body'));
 
-	return result;
+	return parts.join('');
 }
 
 function printIfStatement(node, path, options, print) {
-	let result = 'if (' + path.call(print, 'test') + ') ';
-	result += path.call(print, 'consequent');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('if (');
+	parts.push(path.call(print, 'test'));
+	parts.push(') ');
+	parts.push(path.call(print, 'consequent'));
 
 	if (node.alternate) {
-		result += ' else ';
-		result += path.call(print, 'alternate');
+		parts.push(' else ');
+		parts.push(path.call(print, 'alternate'));
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printForOfStatement(node, path, options, print) {
-	let result = 'for (';
-	result += path.call(print, 'left');
-	result += ' of ';
-	result += path.call(print, 'right');
-	result += ') ';
-	result += path.call(print, 'body');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('for (');
+	parts.push(path.call(print, 'left'));
+	parts.push(' of ');
+	parts.push(path.call(print, 'right'));
+	parts.push(') ');
+	parts.push(path.call(print, 'body'));
 
-	return result;
+	return parts.join('');
 }
 
 function printForStatement(node, path, options, print) {
-	let result = 'for (';
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('for (');
 
 	// Handle init part
 	if (node.init) {
-		result += path.call(print, 'init');
+		parts.push(path.call(print, 'init'));
 	}
-	result += ';';
+	parts.push(';');
 
 	// Handle test part
 	if (node.test) {
-		result += ' ' + path.call(print, 'test');
+		parts.push(' ');
+		parts.push(path.call(print, 'test'));
 	}
-	result += ';';
+	parts.push(';');
 
 	// Handle update part
 	if (node.update) {
-		result += ' ' + path.call(print, 'update');
+		parts.push(' ');
+		parts.push(path.call(print, 'update'));
 	}
 
-	result += ') ';
-	result += path.call(print, 'body');
+	parts.push(') ');
+	parts.push(path.call(print, 'body'));
 
-	return result;
+	return parts.join('');
 }
 
 // Updated for-loop formatting
 function printWhileStatement(node, path, options, print) {
-	let result = 'while (';
-	result += path.call(print, 'test');
-	result += ') ';
-	result += path.call(print, 'body');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('while (');
+	parts.push(path.call(print, 'test'));
+	parts.push(') ');
+	parts.push(path.call(print, 'body'));
 
-	return result;
+	return parts.join('');
 }
 
 function printDoWhileStatement(node, path, options, print) {
-	let result = 'do ';
-	result += path.call(print, 'body');
-	result += ' while (';
-	result += path.call(print, 'test');
-	result += ')';
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('do ');
+	parts.push(path.call(print, 'body'));
+	parts.push(' while (');
+	parts.push(path.call(print, 'test'));
+	parts.push(')');
 
-	return result;
+	return parts.join('');
 }
 
 function printObjectExpression(node, path, options, print) {
@@ -787,36 +872,45 @@ function printObjectExpression(node, path, options, print) {
 }
 
 function printClassDeclaration(node, path, options, print) {
-	let result = 'class ' + node.id.name;
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('class ');
+	parts.push(node.id.name);
 
 	if (node.superClass) {
-		result += ' extends ' + path.call(print, 'superClass');
+		parts.push(' extends ');
+		parts.push(path.call(print, 'superClass'));
 	}
 
-	result += ' ';
-	result += path.call(print, 'body');
+	parts.push(' ');
+	parts.push(path.call(print, 'body'));
 
-	return result;
+	return parts.join('');
 }
 
 function printTryStatement(node, path, options, print) {
-	let result = 'try ';
-	result += path.call(print, 'block');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('try ');
+	parts.push(path.call(print, 'block'));
 
 	if (node.handler) {
-		result += ' catch';
+		parts.push(' catch');
 		if (node.handler.param) {
-			result += ' (' + path.call(print, 'handler', 'param') + ')';
+			parts.push(' (');
+			parts.push(path.call(print, 'handler', 'param'));
+			parts.push(')');
 		}
-		result += ' ' + path.call(print, 'handler', 'body');
+		parts.push(' ');
+		parts.push(path.call(print, 'handler', 'body'));
 	}
 
 	if (node.finalizer) {
-		result += ' finally ';
-		result += path.call(print, 'finalizer');
+		parts.push(' finally ');
+		parts.push(path.call(print, 'finalizer'));
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printClassBody(node, path, options, print) {
@@ -837,141 +931,182 @@ function printClassBody(node, path, options, print) {
 }
 
 function printPropertyDefinition(node, path, options, print) {
-	let result = '';
+	// Use cursor-safe approach
+	const parts = [];
 
 	if (node.static) {
-		result += 'static ';
+		parts.push('static ');
 	}
 
-	result += path.call(print, 'key');
+	parts.push(path.call(print, 'key'));
 
 	if (node.typeAnnotation) {
-		result += path.call(print, 'typeAnnotation');
+		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
 	if (node.value) {
-		result += ' = ' + path.call(print, 'value');
+		parts.push(' = ');
+		parts.push(path.call(print, 'value'));
 	}
 
-	result += ';';
+	parts.push(';');
 
-	return result;
+	return parts.join('');
 }
 
 function printMethodDefinition(node, path, options, print) {
-	let result = '';
+	// Use cursor-safe approach
+	const parts = [];
 
 	if (node.static) {
-		result += 'static ';
+		parts.push('static ');
 	}
 
 	if (node.kind === 'constructor') {
-		result += 'constructor';
+		parts.push('constructor');
 	} else if (node.kind === 'get') {
-		result += 'get ' + path.call(print, 'key');
+		parts.push('get ');
+		parts.push(path.call(print, 'key'));
 	} else if (node.kind === 'set') {
-		result += 'set ' + path.call(print, 'key');
+		parts.push('set ');
+		parts.push(path.call(print, 'key'));
 	} else {
-		result += path.call(print, 'key');
+		parts.push(path.call(print, 'key'));
 	}
 
-	result += '(';
+	parts.push('(');
 	if (node.value && node.value.params) {
-		result += node.value.params.map((param) => param.name).join(', ');
+		parts.push(node.value.params.map((param) => param.name).join(', '));
 	}
-	result += ') ';
+	parts.push(') ');
 
 	if (node.value && node.value.body) {
-		result += path.call(print, 'value', 'body');
+		parts.push(path.call(print, 'value', 'body'));
 	} else {
-		result += '{}';
+		parts.push('{}');
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printMemberExpression(node, path, options, print) {
-	let result = path.call(print, 'object');
+	// Use cursor-safe approach by building parts and joining them
+	const objectPart = path.call(print, 'object');
+	const propertyPart = path.call(print, 'property');
+	
 	if (node.computed) {
-		result += '[' + path.call(print, 'property') + ']';
+		return objectPart + '[' + propertyPart + ']';
 	} else {
-		result += '.' + path.call(print, 'property');
+		return objectPart + '.' + propertyPart;
 	}
-	return result;
 }
 
 // printCallExpression function removed - now using generic path.call approach
 
 function printUnaryExpression(node, path, options, print) {
+	// Use cursor-safe approach
+	const parts = [];
+	
 	if (node.prefix) {
+		parts.push(node.operator);
 		// Add space for word operators like 'void', 'typeof', 'delete'
 		const needsSpace = /^[a-z]/.test(node.operator);
-		return node.operator + (needsSpace ? ' ' : '') + path.call(print, 'argument');
+		if (needsSpace) {
+			parts.push(' ');
+		}
+		parts.push(path.call(print, 'argument'));
 	} else {
-		return path.call(print, 'argument') + node.operator;
+		parts.push(path.call(print, 'argument'));
+		parts.push(node.operator);
 	}
+	
+	return parts.join('');
 }
 
 function printYieldExpression(node, path, options, print) {
-	let result = 'yield';
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('yield');
 
 	if (node.delegate) {
-		result += '*';
+		parts.push('*');
 	}
 
 	if (node.argument) {
-		result += ' ' + path.call(print, 'argument');
+		parts.push(' ');
+		parts.push(path.call(print, 'argument'));
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printNewExpression(node, path, options, print) {
-	let result = 'new ' + path.call(print, 'callee');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('new ');
+	parts.push(path.call(print, 'callee'));
 
 	if (node.arguments && node.arguments.length > 0) {
-		result += '(' + path.map(print, 'arguments').join(', ') + ')';
+		parts.push('(');
+		parts.push(path.map(print, 'arguments').join(', '));
+		parts.push(')');
 	} else {
-		result += '()';
+		parts.push('()');
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printTemplateLiteral(node, path, options, print) {
-	let result = '`';
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('`');
 
 	for (let i = 0; i < node.quasis.length; i++) {
-		result += node.quasis[i].value.raw;
+		parts.push(node.quasis[i].value.raw);
 
 		if (i < node.expressions.length) {
-			result += '${' + path.call(print, 'expressions', i) + '}';
+			parts.push('${');
+			parts.push(path.call(print, 'expressions', i));
+			parts.push('}');
 		}
 	}
 
-	result += '`';
-	return result;
+	parts.push('`');
+	return parts.join('');
 }
 
 function printTaggedTemplateExpression(node, path, options, print) {
-	return path.call(print, 'tag') + path.call(print, 'quasi');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push(path.call(print, 'tag'));
+	parts.push(path.call(print, 'quasi'));
+	return parts.join('');
 }
 
 function printThrowStatement(node, path, options, print) {
-	return 'throw ' + path.call(print, 'argument') + ';';
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('throw ');
+	parts.push(path.call(print, 'argument'));
+	parts.push(';');
+	return parts.join('');
 }
 
 function printTSInterfaceDeclaration(node, path, options, print) {
-	let result = 'interface ' + node.id.name;
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('interface ');
+	parts.push(node.id.name);
 
 	if (node.typeParameters) {
-		result += path.call(print, 'typeParameters');
+		parts.push(path.call(print, 'typeParameters'));
 	}
 
-	result += ' ';
-	result += path.call(print, 'body');
+	parts.push(' ');
+	parts.push(path.call(print, 'body'));
 
-	return result;
+	return parts.join('');
 }
 
 function printTSInterfaceBody(node, path, options, print) {
@@ -993,93 +1128,128 @@ function printTSInterfaceBody(node, path, options, print) {
 }
 
 function printTSTypeAliasDeclaration(node, path, options, print) {
-	let result = 'type ' + node.id.name;
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('type ');
+	parts.push(node.id.name);
 
 	if (node.typeParameters) {
-		result += path.call(print, 'typeParameters');
+		parts.push(path.call(print, 'typeParameters'));
 	}
 
-	result += ' = ';
-	result += path.call(print, 'typeAnnotation');
-	result += ';';
+	parts.push(' = ');
+	parts.push(path.call(print, 'typeAnnotation'));
+	parts.push(';');
 
-	return result;
+	return parts.join('');
 }
 
 function printTSTypeParameterDeclaration(node, path, options, print) {
+	// Use cursor-safe approach
 	if (!node.params || node.params.length === 0) {
 		return '';
 	}
 
-	return '<' + path.map(print, 'params').join(', ') + '>';
+	const parts = [];
+	parts.push('<');
+	parts.push(path.map(print, 'params').join(', '));
+	parts.push('>');
+	return parts.join('');
 }
 
 function printTSTypeParameter(node, path, options, print) {
-	let result = node.name;
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push(node.name);
 
 	if (node.constraint) {
-		result += ' extends ' + path.call(print, 'constraint');
+		parts.push(' extends ');
+		parts.push(path.call(print, 'constraint'));
 	}
 
 	if (node.default) {
-		result += ' = ' + path.call(print, 'default');
+		parts.push(' = ');
+		parts.push(path.call(print, 'default'));
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printSwitchStatement(node, path, options, print) {
-	let result = 'switch (' + path.call(print, 'discriminant') + ') {\n';
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('switch (');
+	parts.push(path.call(print, 'discriminant'));
+	parts.push(') {\n');
 
 	for (let i = 0; i < node.cases.length; i++) {
-		result += path.call(print, 'cases', i);
+		parts.push(path.call(print, 'cases', i));
 		if (i < node.cases.length - 1) {
-			result += '\n';
+			parts.push('\n');
 		}
 	}
 
-	result += '\n}';
-	return result;
+	parts.push('\n}');
+	return parts.join('');
 }
 
 function printSwitchCase(node, path, options, print) {
-	let result = '';
+	// Use cursor-safe approach
+	const parts = [];
 
 	if (node.test) {
-		result += 'case ' + path.call(print, 'test') + ':';
+		parts.push('case ');
+		parts.push(path.call(print, 'test'));
+		parts.push(':');
 	} else {
-		result += 'default:';
+		parts.push('default:');
 	}
 
 	if (node.consequent && node.consequent.length > 0) {
-		result += '\n';
+		parts.push('\n');
 		for (let i = 0; i < node.consequent.length; i++) {
-			result += createIndent(options) + path.call(print, 'consequent', i);
+			parts.push(createIndent(options));
+			parts.push(path.call(print, 'consequent', i));
 			if (i < node.consequent.length - 1) {
-				result += '\n';
+				parts.push('\n');
 			}
 		}
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printBreakStatement(node, path, options, print) {
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('break');
 	if (node.label) {
-		return 'break ' + path.call(print, 'label') + ';';
+		parts.push(' ');
+		parts.push(path.call(print, 'label'));
 	}
-	return 'break;';
+	parts.push(';');
+	return parts.join('');
 }
 
 function printContinueStatement(node, path, options, print) {
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('continue');
 	if (node.label) {
-		return 'continue ' + path.call(print, 'label') + ';';
+		parts.push(' ');
+		parts.push(path.call(print, 'label'));
 	}
-	return 'continue;';
+	parts.push(';');
+	return parts.join('');
 }
 
 function printSequenceExpression(node, path, options, print) {
-	return '(' + path.map(print, 'expressions').join(', ') + ')';
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('(');
+	parts.push(path.map(print, 'expressions').join(', '));
+	parts.push(')');
+	return parts.join('');
 }
 
 function shouldAddBlankLine(currentNode, nextNode) {
@@ -1189,32 +1359,43 @@ function shouldAddBlankLine(currentNode, nextNode) {
 }
 
 function printObjectPattern(node, path, options, print) {
-	const properties = path.map(print, 'properties').join(', ');
-	let result = '{ ' + properties + ' }';
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push('{ ');
+	parts.push(path.map(print, 'properties').join(', '));
+	parts.push(' }');
 
 	if (node.typeAnnotation) {
-		result += path.call(print, 'typeAnnotation');
+		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printProperty(node, path, options, print) {
+	// Use cursor-safe approach
 	if (node.shorthand) {
 		return path.call(print, 'key');
 	}
 
-	return path.call(print, 'key') + ': ' + path.call(print, 'value');
+	const parts = [];
+	parts.push(path.call(print, 'key'));
+	parts.push(': ');
+	parts.push(path.call(print, 'value'));
+	return parts.join('');
 }
 
 function printVariableDeclarator(node, path, options, print) {
-	let result = path.call(print, 'id');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push(path.call(print, 'id'));
 
 	if (node.init) {
-		result += ' = ' + path.call(print, 'init');
+		parts.push(' = ');
+		parts.push(path.call(print, 'init'));
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printTSTypeLiteral(node, path, options, print) {
@@ -1223,13 +1404,15 @@ function printTSTypeLiteral(node, path, options, print) {
 }
 
 function printTSPropertySignature(node, path, options, print) {
-	let result = path.call(print, 'key');
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push(path.call(print, 'key'));
 
 	if (node.typeAnnotation) {
-		result += path.call(print, 'typeAnnotation');
+		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
-	return result;
+	return parts.join('');
 }
 
 function printTSTypeReference(node, path, options, print) {
@@ -1328,15 +1511,20 @@ function printElement(node, path, options, print) {
 }
 
 function printAttribute(node, path, options, print) {
-	let result = node.name.name;
+	// Use cursor-safe approach
+	const parts = [];
+	parts.push(node.name.name);
 
 	if (node.value) {
 		if (node.value.type === 'Literal') {
-			result += '=' + formatStringLiteral(node.value.value, options);
+			parts.push('=');
+			parts.push(formatStringLiteral(node.value.value, options));
 		} else {
-			result += '={' + path.call(print, 'value') + '}';
+			parts.push('={');
+			parts.push(path.call(print, 'value'));
+			parts.push('}');
 		}
 	}
 
-	return result;
+	return parts.join('');
 }
