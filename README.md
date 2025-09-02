@@ -415,7 +415,10 @@ You can also create `{@use}` functions inline.
 component App() {
   let $node;
 
-  <div {@use undefined}>{'Hello world'}</div>
+  <div {@use (node) => {
+    $node = node;
+    return () => $node = null;
+  }}>{"Hello world"}</div>
 }
 ```
 
@@ -426,14 +429,14 @@ thing. However, you can use this pattern to pass reactive properties.
 import { fadeIn } from 'some-library';
 
 component App({ $ms }) {
-  <div {@use undefined}>{'Hello world'}</div>
+  <div {@use fadeIn({ $ms })}>{"Hello world"}</div>
 }
 ```
 
 Lastly, you can use element hooks on composite components.
 
 ```ripple
-<Image {@use undefined} {...props} />;
+<Image {@use (node) => console.log(node)} {...props} />
 ```
 
 When passing element hooks to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that can be spread to HTML template elements later on, and still work.
