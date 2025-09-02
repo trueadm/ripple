@@ -29,7 +29,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 
 ## Features
 
-- **Reactive State Management**: Built-in reactivity with `$` prefixed variables
+- **Reactive State Management**: Built-in reactivity with `$` prefixed variables and object properties
 - **Component-Based Architecture**: Clean, reusable components with props and children
 - **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
 - **TypeScript Support**: Full TypeScript integration with type checking
@@ -443,7 +443,7 @@ Ripple supports native CSS styling that is localized to the given component usin
 
 ```ripple
 component MyComponent() {
-  <div class='container'><h1>{'Hello World'}</h1></div>
+  <div class="container"><h1>{'Hello World'}</h1></div>
 
   <style>
     .container {
