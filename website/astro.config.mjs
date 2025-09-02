@@ -21,6 +21,7 @@ export default defineConfig({
 	redirects: { '/': '/docs/intro/overview' },
 	integrations: [
 		starlight({
+			favicon: '/favicon.ico',
 			title: 'Ripple',
 			expressiveCode: {
 				themes: ['tokyo-night', 'catppuccin-latte'],

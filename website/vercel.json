@@ -1,11 +1,5 @@
 {
 	"framework": "astro",
-	"rewrites": [
-		{
-			"source": "/",
-			"destination": "/docs/index.html"
-		}
-	],
 	"headers": [
 		{
 			"source": "/(.*)",
