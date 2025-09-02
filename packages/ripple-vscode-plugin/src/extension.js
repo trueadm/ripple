@@ -177,7 +177,7 @@ async function activate(context) {
 		context.subscriptions.push(formatProvider);
 
 		console.log("Ripple extension activated successfully");
-		vscode.window.showInformationMessage("Ripple extension activated!")
+		// vscode.window.showInformationMessage("Ripple extension activated!")
 
 		return volar_labs.extensionExports;
 	} catch (error) {
