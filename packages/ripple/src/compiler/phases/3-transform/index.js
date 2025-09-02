@@ -809,8 +809,6 @@ const visitors = {
 		if (left === argument) {
 			if (transformers?.update) {
 				return transformers.update(node);
-			} else if (binding.kind === 'prop') {
-				throw new Error('Cannot update component prop property, component props are not writable');
 			}
 		}
 

@@ -124,7 +124,6 @@ describe('composite components', () => {
 				let obj = {
 					$count: 0
 				};
-				let $button = true;
 
 				<span class='count'>{obj.$count}</span>
 				<span>{' '}</span>
@@ -148,5 +147,73 @@ describe('composite components', () => {
 		expect(container.querySelector('.count').textContent).toBe('1');
 		expect(container.querySelector('.count2').textContent).toBe('1');
 		expect(container.querySelector('.count3').textContent).toBe('1');
+	});
+
+	it('parents and children have isolated but connected state', () => {
+		component Button(props) {
+			<button onClick={() => { props.$count++; } }>{"child: " + props.$count}</button>
+		}
+
+		component App() {
+			<div>
+				let $count = 0;
+
+				<button onClick={() => { $count++; } }>{"parent: " + $count}</button>
+				<Button {$count} />
+			</div>
+		}
+
+		render(App);
+
+		const buttons = container.querySelectorAll('button');
+
+		expect(buttons[0].textContent).toBe('parent: 0');
+		expect(buttons[1].textContent).toBe('child: 0');
+
+		buttons[0].click();
+		flushSync();
+
+		expect(buttons[0].textContent).toBe('parent: 1');
+		expect(buttons[1].textContent).toBe('child: 1');
+
+		buttons[1].click();
+		flushSync();
+
+		expect(buttons[0].textContent).toBe('parent: 1');
+		expect(buttons[1].textContent).toBe('child: 2');
+	});
+
+	it('parents and children have isolated but connected state (destructured props)', () => {
+		component Button({$count}) {
+			<button onClick={() => { $count++; } }>{"child: " + $count}</button>
+		}
+
+		component App() {
+			<div>
+				let $count = 0;
+
+				<button onClick={() => { $count++; } }>{"parent: " + $count}</button>
+				<Button {$count} />
+			</div>
+		}
+
+		render(App);
+
+		const buttons = container.querySelectorAll('button');
+
+		expect(buttons[0].textContent).toBe('parent: 0');
+		expect(buttons[1].textContent).toBe('child: 0');
+
+		buttons[0].click();
+		flushSync();
+
+		expect(buttons[0].textContent).toBe('parent: 1');
+		expect(buttons[1].textContent).toBe('child: 1');
+
+		buttons[1].click();
+		flushSync();
+
+		expect(buttons[0].textContent).toBe('parent: 1');
+		expect(buttons[1].textContent).toBe('child: 2');
 	});
 });

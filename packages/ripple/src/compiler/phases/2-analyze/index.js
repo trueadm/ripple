@@ -319,6 +319,23 @@ const visitors = {
 
 						binding.transform = {
 							read: (_) => b.call('$.get_property', b.id('__props'), b.literal(name)),
+							assign: (node, value) => {
+								return b.call(
+									'$.set_property',
+									b.id('__props'),
+									b.literal(name),
+									value,
+									b.id('__block'),
+								);
+							},
+							update: (_) =>
+								b.call(
+									node.prefix ? '$.update_property_pre' : '$.update_property',
+									b.id('__props'),
+									b.literal(name),
+									b.id('__block'),
+									node.operator === '--' && b.literal(-1),
+								),
 						};
 					}
 				}

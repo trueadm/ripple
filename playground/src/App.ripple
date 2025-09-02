@@ -1,13 +1,12 @@
 component Button({$count}) {
-  <button onClick={() => {  } }>{"child: "}{$count}</button>
+  <button onClick={() => { $count = $count + 1; } }>{"child: "}{$count}</button>
 }
 
 export component App() {
   <div>
     let $count = 0;
 
-    <span>{"parent: "} {$count}</span>
-    <span>{" "}</span>
+    <button onClick={() => { $count = $count + 1; } }>{"parent: "}{$count}</button>
     <Button {$count} />
   </div>
 }
