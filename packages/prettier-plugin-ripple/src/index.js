@@ -318,16 +318,8 @@ function printRippleNode(node, path, options, print) {
 		case 'TSNumberKeyword':
 			return 'number';
 
-		case 'CallExpression':
-			return path.call(print, 'callee') + '(' + path.map(print, 'arguments').join(', ') + ')';
-
 		case 'MemberExpression':
-			return (
-				path.call(print, 'object') +
-				(node.computed
-					? '[' + path.call(print, 'property') + ']'
-					: '.' + path.call(print, 'property'))
-			);
+			return printMemberExpression(node, path, options, print);
 
 		case 'ObjectPattern':
 			return printObjectPattern(node, path, options, print);
@@ -378,23 +370,38 @@ function printImportDeclaration(node, path, options, print) {
 	}
 
 	if (node.specifiers && node.specifiers.length > 0) {
-		const specifiers = node.specifiers.map((spec) => {
+		const defaultImports = [];
+		const namedImports = [];
+		
+		// Separate default, named, and namespace imports
+		const namespaceImports = [];
+		
+		node.specifiers.forEach((spec) => {
 			if (spec.type === 'ImportDefaultSpecifier') {
-				return spec.local.name;
+				defaultImports.push(spec.local.name);
 			} else if (spec.type === 'ImportSpecifier') {
-				return spec.imported.name === spec.local.name
+				const importName = spec.imported.name === spec.local.name
 					? spec.local.name
 					: spec.imported.name + ' as ' + spec.local.name;
+				namedImports.push(importName);
+			} else if (spec.type === 'ImportNamespaceSpecifier') {
+				namespaceImports.push('* as ' + spec.local.name);
 			}
-			return spec.local.name;
 		});
 
-		if (specifiers.length === 1 && node.specifiers[0].type === 'ImportDefaultSpecifier') {
-			result += specifiers[0];
-		} else {
-			result += '{ ' + specifiers.join(', ') + ' }';
+		// Format the imports correctly
+		const parts = [];
+		if (defaultImports.length > 0) {
+			parts.push(defaultImports.join(', '));
 		}
-
+		if (namespaceImports.length > 0) {
+			parts.push(namespaceImports.join(', '));
+		}
+		if (namedImports.length > 0) {
+			parts.push('{ ' + namedImports.join(', ') + ' }');
+		}
+		
+		result += parts.join(', ');
 		result += ' from ';
 	}
 

@@ -1,5 +1,9 @@
+import type { Component } from 'ripple';
 
+export default component App({ name }: { name: string }) {
+	<div>
+		let $count = 0;
 
-export component App() {
-	<div>{"Hello world"}</div>
+		<button onClick={() => $count++}>{$count}</button>
+	</div>
 }
