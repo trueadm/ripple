@@ -1,12 +1,19 @@
-component Button({$count}) {
-  <button onClick={() => { $count = $count + 1; } }>{"child: "}{$count}</button>
+component Button({ A, B, $children }) {
+  <div>
+    <A />
+		<$children />
+    <B />
+  </div>
 }
 
 export component App() {
-  <div>
-    let $count = 0;
-
-    <button onClick={() => { $count = $count + 1; } }>{"parent: "}{$count}</button>
-    <Button {$count} />
-  </div>
+  <Button>
+    component A() {
+			<div>{"I am A"}</div>
+		}
+		<div>{"other text"}</div>
+		component B() {
+			<div>{"I am B"}</div>
+		}
+  </Button>
 }

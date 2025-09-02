@@ -1,0 +1,23 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`composite components > correct handles passing through component props and $children 1`] = `
+<div>
+  <!---->
+  <div>
+    <div>
+      I am A
+    </div>
+    <!---->
+    <div>
+      other text
+    </div>
+    <!---->
+    <div>
+      I am B
+    </div>
+    <!---->
+  </div>
+  <!---->
+  
+</div>
+`;

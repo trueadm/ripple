@@ -44,6 +44,15 @@ export function arrow(params, body, async = false) {
 	};
 }
 
+export function component(id, params, body) {
+	return {
+		type: 'Component',
+		id,
+		params,
+		body,
+	};
+}
+
 /**
  * @param {ESTree.AssignmentOperator} operator
  * @param {ESTree.Pattern} left

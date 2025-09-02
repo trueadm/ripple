@@ -216,4 +216,30 @@ describe('composite components', () => {
 		expect(buttons[0].textContent).toBe('parent: 1');
 		expect(buttons[1].textContent).toBe('child: 2');
 	});
+
+	it('correct handles passing through component props and $children', () => {
+		component Button({ A, B, $children }) {
+			<div>
+				<A />
+				<$children />
+				<B />
+			</div>
+		}
+
+		component App() {
+			<Button>
+				component A() {
+					<div>{"I am A"}</div>
+				}
+				<div>{"other text"}</div>
+				component B() {
+					<div>{"I am B"}</div>
+				}
+			</Button>
+		}
+
+		render(App);
+
+		expect(container).toMatchSnapshot();
+	})
 });

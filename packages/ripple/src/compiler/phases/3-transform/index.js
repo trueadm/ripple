@@ -597,17 +597,24 @@ const visitors = {
 				}
 			}
 
-			if (node.children.length > 0) {
+			const children_filtered = [];
+
+			for (const child of node.children) {
+				if (child.type === 'Component') {
+					const id = child.id;
+					props.push(b.prop('init', id, visit(child, state)));
+				} else {
+					children_filtered.push(child);
+				}
+			}
+
+			if (children_filtered.length > 0) {
 				const component_scope = context.state.scopes.get(node);
-				const children = b.arrow(
-					[b.id('__anchor'), b.id('__props'), b.id('__block')],
-					b.block(
-						transform_body(node.children, {
-							...context,
-							state: { ...context.state, scope: component_scope },
-						}),
-					),
-				);
+				const children = visit(b.component(b.id('$children'), [], children_filtered), {
+					...context.state,
+					scope: component_scope,
+				});
+
 				if (children_prop) {
 					children_prop.body = b.logical('??', children_prop.body, children);
 				} else {
@@ -724,7 +731,7 @@ const visitors = {
 			b.stmt(b.call('$.pop_component')),
 		];
 
-		if (node.css !== null) {
+		if (node.css !== null && node.css) {
 			context.state.stylesheets.push(node.css);
 		}
 
@@ -1075,21 +1082,6 @@ const visitors = {
 		const statements = [];
 
 		for (const statement of node.body) {
-			if (statement.type === 'Eval') {
-				const finalizer = statement.finalizer;
-				if (finalizer === null) {
-					throw new Error('`eval` block should have been transformed');
-				}
-
-				for (const final_node of finalizer.body) {
-					if (final_node.type === 'EmptyStatement') {
-						continue;
-					} else {
-						statements.push(context.visit(final_node));
-					}
-				}
-				continue;
-			}
 			statements.push(context.visit(statement));
 		}
 
@@ -1100,21 +1092,6 @@ const visitors = {
 		const statements = [];
 
 		for (const statement of node.body) {
-			if (statement.type === 'Eval') {
-				const finalizer = statement.finalizer;
-				if (finalizer === null) {
-					throw new Error('`eval` block should have been transformed');
-				}
-
-				for (const final_node of finalizer.body) {
-					if (final_node.type === 'EmptyStatement') {
-						continue;
-					} else {
-						statements.push(context.visit(final_node));
-					}
-				}
-				continue;
-			}
 			statements.push(context.visit(statement));
 		}
 
@@ -1172,15 +1149,6 @@ function join_template(items) {
 function normalize_child(node, normalized) {
 	if (node.type === 'EmptyStatement') {
 		return;
-	} else if (node.type === 'Eval') {
-		const finalizer = node.finalizer;
-		if (finalizer === null) {
-			throw new Error('`eval` block should have been transformed');
-		}
-
-		for (const final_node of finalizer.body) {
-			normalize_child(final_node, normalized);
-		}
 	} else {
 		normalized.push(node);
 	}
