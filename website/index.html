@@ -472,9 +472,18 @@
 
 			.bottom-links {
 				display: flex;
-				flex-direction: column;
+				flex-direction: row;
 				gap: 1rem;
+				align-items: stretch;
+				justify-content: center;
+			}
+
+			.bottom-links .github-link,
+			.bottom-links .discord-link {
+				display: flex;
 				align-items: center;
+				box-sizing: border-box;
+				height: 48px;
 			}
 
 			/* Mock Editor */
