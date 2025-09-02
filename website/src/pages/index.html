@@ -271,10 +271,12 @@
 			}
 
 			@keyframes blink {
-				0%, 50% {
+				0%,
+				50% {
 					opacity: 1;
 				}
-				51%, 100% {
+				51%,
+				100% {
 					opacity: 0;
 				}
 			}
@@ -912,7 +914,12 @@
 					Join Discord
 				</a>
 
-				<a href="/docs" class="discord-link" target="_blank" rel="noopener noreferrer">
+				<a
+					href="/docs/intro/overview"
+					class="discord-link"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						width="24"
@@ -951,22 +958,53 @@
 			</div>
 
 			<div class="early-development">
-				<p>Ripple is currently in early development. A full website with documentation, playground, tutorials, and examples is coming soon.</p>
+				<p>
+					Ripple is currently in early development. A full website with documentation, playground,
+					tutorials, and examples is coming soon.
+				</p>
 			</div>
 
 			<div class="content-section">
-				<h2 class="description">Ripple is a TypeScript UI framework that takes the best parts of React, Solid and Svelte and combines them into one package.</h2>
-				
+				<h2 class="description">
+					Ripple is a TypeScript UI framework that takes the best parts of React, Solid and Svelte
+					and combines them into one package.
+				</h2>
+
 				<ul class="features">
-					<li><strong>Reactive State Management</strong> - Built-in reactivity with <code>$</code> prefixed variables and object properties</li>
-					<li><strong>Component-Based Architecture</strong> - Clean, reusable components with props and children</li>
-					<li><strong>JSX-like Syntax</strong> - Familiar templating with Ripple-specific enhancements</li>
-					<li><strong>Performance</strong> - Fine-grain rendering, with industry leading performance and memory usage</li>
-					<li><strong>TypeScript Support</strong> - Full TypeScript integration with type checking</li>
-					<li><strong>VSCode Integration</strong> - Rich editor support with diagnostics and IntelliSense</li>
-					<li><strong>Control Flow</strong> - Native <code>if</code>, <code>for</code>, and <code>try</code> in templates</li>
-					<li><strong>Scoped Styling</strong> - Component-local CSS with <code>&lt;style&gt;</code> elements</li>
-					<li><strong>Prettier Support</strong> - Full Prettier formatting support for <code>.ripple</code> modules</li>
+					<li>
+						<strong>Reactive State Management</strong> - Built-in reactivity with
+						<code>$</code> prefixed variables and object properties
+					</li>
+					<li>
+						<strong>Component-Based Architecture</strong> - Clean, reusable components with props
+						and children
+					</li>
+					<li>
+						<strong>JSX-like Syntax</strong> - Familiar templating with Ripple-specific enhancements
+					</li>
+					<li>
+						<strong>Performance</strong> - Fine-grain rendering, with industry leading performance
+						and memory usage
+					</li>
+					<li>
+						<strong>TypeScript Support</strong> - Full TypeScript integration with type checking
+					</li>
+					<li>
+						<strong>VSCode Integration</strong> - Rich editor support with diagnostics and
+						IntelliSense
+					</li>
+					<li>
+						<strong>Control Flow</strong> - Native <code>if</code>, <code>for</code>, and
+						<code>try</code> in templates
+					</li>
+					<li>
+						<strong>Scoped Styling</strong> - Component-local CSS with
+						<code>&lt;style&gt;</code> elements
+					</li>
+					<li>
+						<strong>Prettier Support</strong> - Full Prettier formatting support for
+						<code>.ripple</code> modules
+					</li>
 				</ul>
 			</div>
 
@@ -1048,10 +1086,11 @@
 				if (!element) return;
 
 				let charIndex = 0;
-				
+
 				function addChar() {
 					if (charIndex < codeContent.length) {
-						element.innerHTML = codeContent.substring(0, charIndex + 20) + '<span class="typing-cursor">|</span>';
+						element.innerHTML =
+							codeContent.substring(0, charIndex + 20) + '<span class="typing-cursor">|</span>';
 						charIndex += 20;
 						setTimeout(addChar, 10);
 					} else {
