@@ -48,6 +48,10 @@
       "default": "./src/jsx-runtime.js"
     }
   },
+  "imports": {
+    "#client": "./src/runtime/internal/client/types.d.ts",
+    "#client/constants": "./src/internal/client/constants.js"
+  },
   "dependencies": {
     "@jridgewell/sourcemap-codec": "^1.5.5",
     "acorn": "^8.15.0",

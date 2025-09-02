@@ -1,3 +1,5 @@
+/** @import { Block, Component, Dependency, Computed, Tracked } from '#client' */
+
 import {
 	destroy_block,
 	destroy_non_branch_children,
@@ -37,9 +39,13 @@ import {
 const FLUSH_MICROTASK = 0;
 const FLUSH_SYNC = 1;
 
+/** @type {null | Block} */
 export let active_block = null;
+/** @type {null | Block | Computed} */
 export let active_reaction = null;
+/** @type {null | Block} */
 export let active_scope = null;
+/** @type {null | Component} */
 export let active_component = null;
 
 var old_values = new Map();
@@ -49,9 +55,12 @@ let scheduler_mode = FLUSH_MICROTASK;
 // Used for handling scheduling
 let is_micro_task_queued = false;
 let clock = 0;
+/** @type {Block[]} */
 let queued_root_blocks = [];
+/** @type {(() => void)[]} */
 let queued_microtasks = [];
 let flush_count = 0;
+/** @type {null | Dependency} */
 let active_dependency = null;
 
 export let tracking = false;
@@ -61,22 +70,37 @@ function increment_clock() {
 	return ++clock;
 }
 
+/**
+ * @param {Block | null} block
+ */
 export function set_active_block(block) {
 	active_block = block;
 }
 
+/**
+ * @param {Block | null} reaction
+ */
 export function set_active_reaction(reaction) {
 	active_reaction = reaction;
 }
 
+/**
+ * @param {Component | null} component
+ */
 export function set_active_component(component) {
 	active_component = component;
 }
 
+/**
+ * @param {boolean} value
+ */
 export function set_tracking(value) {
 	tracking = value;
 }
 
+/**
+ * @param {Block} block
+ */
 export function run_teardown(block) {
 	var fn = block.t;
 	if (fn !== null) {
@@ -100,6 +124,9 @@ export function run_teardown(block) {
 	}
 }
 
+/**
+ * @param {Computed} computed
+ */
 function update_computed(computed) {
 	var value = computed.v;
 
@@ -113,6 +140,9 @@ function update_computed(computed) {
 	}
 }
 
+/**
+ * @param {Computed} computed
+ */
 function destroy_computed_children(computed) {
 	var blocks = computed.blocks;
 
@@ -124,6 +154,9 @@ function destroy_computed_children(computed) {
 	}
 }
 
+/**
+ * @param {Computed} computed
+ */
 function run_computed(computed) {
 	var previous_block = active_block;
 	var previous_reaction = active_reaction;
@@ -154,6 +187,10 @@ function run_computed(computed) {
 	}
 }
 
+/**
+ * @param {unknown} error
+ * @param {Block} block
+ */
 export function handle_error(error, block) {
 	var current = block;
 
@@ -169,6 +206,9 @@ export function handle_error(error, block) {
 	throw error;
 }
 
+/**
+ * @param {Block} block
+ */
 export function run_block(block) {
 	var previous_block = active_block;
 	var previous_reaction = active_reaction;
@@ -210,6 +250,12 @@ export function run_block(block) {
 	}
 }
 
+/**
+ *
+ * @param {any} v
+ * @param {Block} b
+ * @returns {Tracked}
+ */
 export function tracked(v, b) {
 	return {
 		b,
@@ -219,6 +265,11 @@ export function tracked(v, b) {
 	};
 }
 
+/**
+ * @param {any} fn
+ * @param {any} block
+ * @returns {Computed}
+ */
 export function computed(fn, block) {
 	return {
 		b: block,
@@ -231,12 +282,17 @@ export function computed(fn, block) {
 	};
 }
 
+/**
+ * @param {Tracked} tracked
+ * @returns {Dependency}
+ */
 function create_dependency(tracked) {
-	var existing = active_reaction.d;
+	var reaction = /** @type {Computed | Block} **/ (active_reaction);
+	var existing = reaction.d;
 
 	// Recycle tracking entries
 	if (existing !== null) {
-		active_reaction.d = existing.n;
+		reaction.d = existing.n;
 		existing.c = tracked.c;
 		existing.t = tracked;
 		existing.n = null;
@@ -250,6 +306,9 @@ function create_dependency(tracked) {
 	};
 }
 
+/**
+ * @param {Dependency | null} tracking
+ */
 function is_tracking_dirty(tracking) {
 	if (tracking === null) {
 		return false;
@@ -258,7 +317,7 @@ function is_tracking_dirty(tracking) {
 		var tracked = tracking.t;
 
 		if ((tracked.f & COMPUTED) !== 0) {
-			update_computed(tracked);
+			update_computed(/** @type {Computed} **/ (tracked));
 		}
 
 		if (tracked.c > tracking.c) {
@@ -270,6 +329,9 @@ function is_tracking_dirty(tracking) {
 	return false;
 }
 
+/**
+ * @param {Block} block
+ */
 function is_block_dirty(block) {
 	var flags = block.f;
 
@@ -405,6 +467,9 @@ function capture_deferred(fn) {
 	return [value, deferred];
 }
 
+/**
+ * @param {Block} block
+ */
 function flush_deferred_upodates(block) {
 	var current = block.first;
 	var is_awaited = false;
@@ -432,7 +497,11 @@ function flush_deferred_upodates(block) {
 	return is_awaited;
 }
 
+/**
+ * @param {Block} root_block
+ */
 function flush_updates(root_block) {
+	/** @type {Block | null} */
 	var current = root_block;
 	var containing_update = null;
 	var effects = [];
@@ -457,6 +526,7 @@ function flush_updates(root_block) {
 					handle_error(error, current);
 				}
 			}
+			/** @type {Block | null} */
 			var child = current.first;
 
 			if (child !== null) {
@@ -465,6 +535,7 @@ function flush_updates(root_block) {
 			}
 		}
 
+		/** @type {Block} */
 		var parent = current.p;
 		current = current.next;
 
@@ -493,6 +564,9 @@ function flush_updates(root_block) {
 	}
 }
 
+/**
+ * @param {Block[]} root_blocks
+ */
 function flush_queued_root_blocks(root_blocks) {
 	for (let i = 0; i < root_blocks.length; i++) {
 		flush_updates(root_blocks[i]);
@@ -523,6 +597,9 @@ function flush_microtasks() {
 	old_values.clear();
 }
 
+/**
+ * @param { (() => void) } [fn]
+ */
 export function queue_microtask(fn) {
 	if (!is_micro_task_queued) {
 		is_micro_task_queued = true;
@@ -533,6 +610,9 @@ export function queue_microtask(fn) {
 	}
 }
 
+/**
+ * @param {Block} block
+ */
 export function schedule_update(block) {
 	if (scheduler_mode === FLUSH_MICROTASK) {
 		queue_microtask();
@@ -552,14 +632,17 @@ export function schedule_update(block) {
 	queued_root_blocks.push(current);
 }
 
+/**
+ * @param {Tracked} tracked
+ */
 function register_dependency(tracked) {
-	var depedency = active_dependency;
+	var dependency = active_dependency;
 
-	if (depedency === null) {
-		depedency = create_dependency(tracked);
-		active_dependency = depedency;
+	if (dependency === null) {
+		dependency = create_dependency(tracked);
+		active_dependency = dependency;
 	} else {
-		var current = depedency;
+		var current = dependency;
 
 		while (current !== null) {
 			if (current.t === tracked) {
@@ -573,11 +656,14 @@ function register_dependency(tracked) {
 			current = next;
 		}
 
-		depedency = create_dependency(tracked);
-		current.n = depedency;
+		dependency = create_dependency(tracked);
+		current.n = dependency;
 	}
 }
 
+/**
+ * @param {Computed} computed
+ */
 export function get_computed(computed) {
 	update_computed(computed);
 	if (tracking) {
@@ -587,10 +673,18 @@ export function get_computed(computed) {
 	return computed.v;
 }
 
+/**
+ * @param {Computed | Tracked} tracked
+ */
 export function get(tracked) {
-	return (tracked.f & COMPUTED) !== 0 ? get_computed(tracked) : get_tracked(tracked);
+	return (tracked.f & COMPUTED) !== 0
+		? get_computed(/** @type {Computed} */ (tracked))
+		: get_tracked(tracked);
 }
 
+/**
+ * @param {Tracked} tracked
+ */
 export function get_tracked(tracked) {
 	var value = tracked.v;
 	if (tracking) {
@@ -602,6 +696,11 @@ export function get_tracked(tracked) {
 	return value;
 }
 
+/**
+ * @param {Computed | Tracked} tracked
+ * @param {any} value
+ * @param {Block} block
+ */
 export function set(tracked, value, block) {
 	var old_value = tracked.v;
 
@@ -622,6 +721,11 @@ export function set(tracked, value, block) {
 	}
 }
 
+/**
+ * @template T
+ * @param {() => T} fn
+ * @returns {T}
+ */
 export function untrack(fn) {
 	var previous_tracking = tracking;
 	var previous_dependency = active_dependency;
@@ -635,11 +739,17 @@ export function untrack(fn) {
 	}
 }
 
+/**
+ * @template T
+ * @param {() => T} [fn]
+ * @returns {T}
+ */
 export function flush_sync(fn) {
 	var previous_scheduler_mode = scheduler_mode;
 	var previous_queued_root_blocks = queued_root_blocks;
 
 	try {
+		/** @type {Block[]} */
 		var root_blocks = [];
 
 		scheduler_mode = FLUSH_SYNC;
@@ -656,7 +766,7 @@ export function flush_sync(fn) {
 
 		flush_count = 0;
 
-		return result;
+		return /** @type {T} */ (result);
 	} finally {
 		scheduler_mode = previous_scheduler_mode;
 		queued_root_blocks = previous_queued_root_blocks;

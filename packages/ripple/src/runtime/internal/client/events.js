@@ -15,6 +15,11 @@ var all_registered_events = new Set();
 /** @type {Set<(events: Array<string>) => void>} */
 var root_event_handles = new Set();
 
+/**
+ * @this {EventTarget}
+ * @param {Event} event
+ * @returns {void}
+ */
 export function handle_event_propagation(event) {
 	var handler_element = this;
 	var owner_document = /** @type {Node} */ (handler_element).ownerDocument;
@@ -148,6 +153,12 @@ export function handle_event_propagation(event) {
 	}
 }
 
+/**
+ * @param {string} event_name
+ * @param {EventTarget} dom
+ * @param {EventListener} [handler]
+ * @param {AddEventListenerOptions} [options]
+ */
 function create_event(event_name, dom, handler, options = {}) {
 	var block = active_block;
 

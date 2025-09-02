@@ -1,3 +1,5 @@
+/** @import { Block, Computed } from '#client' */
+
 import {
 	BLOCK_HAS_RUN,
 	BRANCH_BLOCK,
@@ -23,6 +25,9 @@ import {
 } from './runtime';
 import { suspend } from './try';
 
+/**
+ * @param {Function} fn
+ */
 export function user_effect(fn) {
 	if (active_block === null) {
 		throw new Error(
@@ -45,22 +50,41 @@ export function user_effect(fn) {
 	return block(EFFECT_BLOCK, fn);
 }
 
+/**
+ * @param {Function} fn
+ */
 export function effect(fn) {
 	return block(EFFECT_BLOCK, fn);
 }
 
+/**
+ * @param {Function} fn
+ * @param {number} [flags]
+ */
 export function render(fn, flags = 0) {
 	return block(RENDER_BLOCK | flags, fn);
 }
 
+/**
+ * @param {any} element
+ * @param {any} fn
+ * @param {number} [flags]
+ */
 export function render_spread(element, fn, flags = 0) {
 	return block(RENDER_BLOCK | flags, apply_element_spread(element, fn));
 }
 
+/**
+ * @param {Function} fn
+ * @param {number} [flags]
+ */
 export function branch(fn, flags = 0) {
 	return block(BRANCH_BLOCK | flags, fn);
 }
 
+/**
+ * @param {() => any} fn
+ */
 export function async(fn) {
 	return block(BRANCH_BLOCK, async () => {
 		const unsuspend = suspend();
@@ -118,7 +142,14 @@ function push_block(block, parent_block) {
 	}
 }
 
+/**
+ * @param {number} flags
+ * @param {Function} fn
+ * @param {any} state
+ * @returns {Block}
+ */
 export function block(flags, fn, state = null) {
+	/** @type {Block} */
 	var block = {
 		c: active_component,
 		d: null,
@@ -134,7 +165,7 @@ export function block(flags, fn, state = null) {
 	};
 
 	if (active_reaction !== null && (active_reaction.f & COMPUTED) !== 0) {
-		(active_reaction.blocks ??= []).push(block);
+		(/** @type {Computed} */ (active_reaction).blocks ??= []).push(block);
 	}
 
 	if (active_block !== null) {
