@@ -658,18 +658,8 @@ function printJSXFragment(node, path, options, print) {
 }
 
 function printArrowFunction(node, path, options, print) {
-	let params;
-	let body;
-
-	// Handle case where path might be a mock object (from UseAttribute processing)
-	if (path && typeof path.map === 'function') {
-		params = path.map(print, 'params').join(', ');
-		body = path.call(print, 'body');
-	} else {
-		// Fallback: process the node directly
-		params = node.params.map((param) => printRippleNode(param, null, options, print)).join(', ');
-		body = printRippleNode(node.body, null, options, print);
-	}
+	const params = path.map(print, 'params').join(', ');
+	const body = path.call(print, 'body');
 
 	// Handle single parameter without parentheses (if no parentheses needed)
 	if (node.params.length === 1 && node.params[0].type === 'Identifier') {
