@@ -40,9 +40,9 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 ## Missing Features
 
 - **SSR**: Ripple is currently an SPA only, this is because I haven't gotten around to it
-- **Testing & Types**: The codebase is very raw with limited types (I've opted for JavaScript only to avoid build problems). There aren't any tests either – I've been using the `playground` directory to manually test things as I go
+- **Testing & Types**: The codebase is very raw with limited types, we're getting around to it
 
-## Quick Start
+## Getting Started
 
 ### Try Ripple
 
@@ -56,6 +56,17 @@ cd my-app
 npm i # or yarn or pnpm
 npm run dev # or yarn or pnpm
 ```
+
+## VSCode Extension
+
+The [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin) provides:
+
+- **Syntax Highlighting** for `.ripple` files
+- **Real-time Diagnostics** for compilation errors
+- **TypeScript Integration** for type checking
+- **IntelliSense** for autocompletion
+
+You can find the extension on the VS Code Marketplace as [`Ripple for VS Code`](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin).
 
 ### Mounting your app
 
@@ -467,17 +478,6 @@ component MyComponent() {
 ```
 
 > Note: the `<style>` element must be top-level within a `component`.
-
-## VSCode Extension
-
-The [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin) provides:
-
-- **Syntax Highlighting** for `.ripple` files
-- **Real-time Diagnostics** for compilation errors
-- **TypeScript Integration** for type checking
-- **IntelliSense** for autocompletion
-
-You can find the extension on the VS Code Marketplace as [`Ripple for VS Code`](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin).
 
 ## Playground
 
