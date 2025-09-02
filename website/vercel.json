@@ -3,11 +3,7 @@
 	"rewrites": [
 		{
 			"source": "/",
-			"destination": "/index.html"
-		},
-		{
-			"source": "/docs/:path*",
-			"destination": "/docs/:path*"
+			"destination": "/docs/index.html"
 		}
 	],
 	"headers": [
