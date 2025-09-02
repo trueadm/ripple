@@ -32,14 +32,10 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 - **Reactive State Management**: Built-in reactivity with `$` prefixed variables and object properties
 - **Component-Based Architecture**: Clean, reusable components with props and children
 - **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
-- **Peformance**: Fine-grain rendering, with industry leading performance and memory usage
+- **Performance**: Fine-grain rendering, with industry leading performance and memory usage
 - **TypeScript Support**: Full TypeScript integration with type checking
 - **VSCode Integration**: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
-<<<<<<< HEAD
 - **Prettier Support**: Full Prettier formatting support for `.ripple` modules
-=======
-- **Performance**: Fine-grain rendering, with industry leading performance and memory usage
->>>>>>> 9f42552e7044373189516d30f2e6c6c3f42ca02d
 
 ## Missing Features
 
