@@ -397,14 +397,16 @@ the reference to the underlying DOM element.
 ```ripple
 component App() {
   let $node;
+
   const ref = (node) => {
-    /* Unknown: AssignmentExpression */;
+    $node = node;
     console.log("mounted", node);
     return () => {
-      /* Unknown: AssignmentExpression */;
+      $node = undefined;
       console.log("unmounted", node);
     };
   };
+  
   <div {@use ref}>{"Hello world"}</div>
 }
 ```
