@@ -1,14 +1,15 @@
-import { array } from 'ripple';
+function fadeIn() {
 
-export component App() {
-	let items = array(1, 2, 3);
-
-	<button onClick={() => items[items.$length] = items.$length + 1}>{'increment'}</button>
-
-	<Child items={items} />
 }
 
-component Child({ items }) {
-	<pre>{JSON.stringify(items)}</pre>
-	<pre>{items.$length}</pre>
+export component App({ $ms, data }) {
+	<div>
+		<span {@use fadeIn(data.value)}>{'Member expression'}</span>
+		<p {@use fadeIn({
+			duration: $ms,
+			easing: 'ease'
+		})}>{'Object literal'}</p>
+		<button {@use fadeIn($ms)}>{'Reactive variable'}</button>
+		<input {@use fadeIn}>{'Simple identifier'}</input>
+	</div>
 }

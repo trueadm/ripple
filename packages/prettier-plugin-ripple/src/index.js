@@ -68,22 +68,8 @@ function createIndent(options, level = 1) {
 	}
 }
 
-// Helper function to format call expressions safely
-function formatCallExpression(node, options) {
-	if (!node || node.type !== 'CallExpression') {
-		return 'unknown()';
-	}
-	
-	const callee = node.callee.name || 'unknown';
-	const args = (node.arguments || [])
-		.map((arg) => {
-			if (arg.type === 'Identifier') return arg.name;
-			if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
-			return '/* arg */';
-		})
-		.join(', ');
-	
-	return callee + '(' + args + ')';
+function printJS(path, print, name) {
+	return path.call(print, name);
 }
 
 function printRippleNode(node, path, options, print) {
@@ -162,7 +148,7 @@ function printRippleNode(node, path, options, print) {
 			return 'this';
 
 		case 'CallExpression':
-			return printCallExpression(node, path, options, print);
+			return path.call(print, 'callee') + '(' + path.map(print, 'arguments').join(', ') + ')';
 
 		case 'AwaitExpression':
 			return 'await ' + path.call(print, 'argument');
@@ -249,51 +235,7 @@ function printRippleNode(node, path, options, print) {
 			return printJSXAttribute(node, path, options, print);
 
 		case 'UseAttribute':
-			// Handle different types of UseAttribute arguments
-			let argResult;
-			if (node.argument.type === 'Identifier') {
-				argResult = node.argument.name;
-			} else if (node.argument.type === 'ArrowFunctionExpression') {
-				// Handle arrow functions specially
-				const params = node.argument.params.map((param) => param.name).join(', ');
-				const body = node.argument.body;
-
-				if (body.type === 'BlockStatement') {
-					let bodyStr = '{ ';
-					if (body.body && body.body.length > 0) {
-						const statements = body.body.map((stmt) => {
-							if (
-								stmt.type === 'ExpressionStatement' &&
-								stmt.expression.type === 'AssignmentExpression'
-							) {
-								return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
-							}
-							return '/* unsupported statement */';
-						});
-						bodyStr += statements.join('; ') + '; ';
-					}
-					bodyStr += '}';
-
-					argResult = `(${params}) => ${bodyStr}`;
-				} else {
-					argResult = path.call(print, 'argument');
-				}
-			} else if (node.argument.type === 'CallExpression') {
-				// Handle CallExpression directly
-				const callee = node.argument.callee.name || 'func';
-				const args = node.argument.arguments
-					.map((arg) => {
-						if (arg.type === 'Identifier') return arg.name;
-						if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
-						return '/* arg */';
-					})
-					.join(', ');
-				argResult = callee + '(' + args + ')';
-			} else {
-				// For other argument types, try to format them properly
-				argResult = path.call(print, 'argument');
-			}
-			return '{@use ' + argResult + '}';
+			return '{@use ' + printJS(path, print, 'argument') + '}';
 
 		case 'SpreadAttribute':
 			return '{...' + path.call(print, 'argument') + '}';
@@ -650,72 +592,27 @@ function printJSXOpeningElement(node, path, options, print) {
 		const attrs = node.attributes
 			.map((attr) => {
 				if (attr.type === 'UseAttribute') {
-					// For UseAttribute, we need to directly format the argument
-					// Since it's an ArrowFunctionExpression, handle it specially
-					let argResult;
-					if (attr.argument.type === 'ArrowFunctionExpression') {
-						const params = attr.argument.params.map((param) => param.name).join(', ');
-						const body = attr.argument.body;
-
-						// Format the body (BlockStatement)
-						let bodyStr = '{ ';
-						if (body.body && body.body.length > 0) {
-							const statements = body.body.map((stmt) => {
-								if (
-									stmt.type === 'ExpressionStatement' &&
-									stmt.expression.type === 'AssignmentExpression'
-								) {
-									return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
-								}
-								return '/* unsupported statement */';
-							});
-							bodyStr += statements.join('; ') + '; ';
-						}
-						bodyStr += '}';
-
-						// Always use parentheses for consistency (Prettier standard)
-						argResult = '(' + params + ') => ' + bodyStr;
-					} else if (attr.argument.type === 'Identifier') {
-						argResult = attr.argument.name;
-					} else {
-						// For other argument types (CallExpression, etc.)
-						if (attr.argument.type === 'CallExpression') {
-							const callee = attr.argument.callee.name || 'func';
-							const args = attr.argument.arguments
-								.map((arg) => {
-									if (arg.type === 'Identifier') return arg.name;
-									if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
-									return '/* arg */';
-								})
-								.join(', ');
-							argResult = callee + '(' + args + ')';
-						} else {
-							// For other argument types, format directly without mock path
-							if (attr.argument.type === 'Identifier') {
-								argResult = attr.argument.name;
-							} else if (attr.argument.type === 'CallExpression') {
-								argResult = formatCallExpression(attr.argument, options);
-							} else {
-								// Fallback to basic string representation
-								argResult = attr.argument.name || 'unknown';
+					// Create a mock path for the UseAttribute
+					const mockPath = {
+						call: (printFn, key) => {
+							if (key === 'argument') {
+								return printRippleNode(attr.argument, null, options, print);
 							}
+							return '';
 						}
-					}
-
-					return '{@use ' + argResult + '}';
+					};
+					return '{@use ' + printJS(mockPath, print, 'argument') + '}';
 				} else if (attr.type === 'SpreadAttribute') {
-					// Format spread attribute argument directly
+					// Format spread attribute using generic node printing
 					let argResult;
 					if (attr.argument.type === 'Identifier') {
 						argResult = attr.argument.name;
-					} else if (attr.argument.type === 'CallExpression') {
-						argResult = formatCallExpression(attr.argument, options);
 					} else {
-						argResult = attr.argument.name || 'unknown';
+						argResult = printRippleNode(attr.argument, null, options, print);
 					}
 					return '{...' + argResult + '}';
 				} else if (attr.type === 'JSXAttribute') {
-					return printJSXAttribute(attr, path, options, print);
+					return printJSXAttribute(attr, null, options, print);
 				}
 				return '';
 			})
@@ -723,21 +620,15 @@ function printJSXOpeningElement(node, path, options, print) {
 
 		// Check if the line would be too long and needs wrapping
 		const singleLineResult = result + ' ' + attrs.join(' ') + '>';
-
-		if (singleLineResult.length <= options.printWidth) {
-			// Single line fits within print width
-			result += ' ' + attrs.join(' ');
-		} else {
-			// Multi-line: each attribute on its own line
-			result += '\n' + attrs.map((attr) => createIndent(options) + attr).join('\n');
-			if (!options.bracketSameLine) {
-				result += '\n';
-			}
+		if (singleLineResult.length <= (options.printWidth || 80)) {
+			return singleLineResult;
 		}
+
+		// Multi-line formatting
+		return result + '\n' + attrs.map((attr) => createIndent(options) + attr).join('\n') + '\n>';
 	}
 
-	result += '>';
-	return result;
+	return result + '>';
 }
 
 function printJSXAttribute(node, path, options, print) {
@@ -1012,15 +903,7 @@ function printMemberExpression(node, path, options, print) {
 	return result;
 }
 
-function printCallExpression(node, path, options, print) {
-	let result = path.call(print, 'callee');
-	result += '(';
-	if (node.arguments && node.arguments.length > 0) {
-		result += path.map(print, 'arguments').join(', ');
-	}
-	result += ')';
-	return result;
-}
+// printCallExpression function removed - now using generic path.call approach
 
 function printUnaryExpression(node, path, options, print) {
 	if (node.prefix) {
@@ -1364,66 +1247,14 @@ function printElement(node, path, options, print) {
 		const attrs = path.map((attrPath, index) => {
 			const attr = node.attributes[index];
 			if (attr.type === 'UseAttribute') {
-				// Handle UseAttribute with direct formatting
-				let argResult;
-				if (attr.argument.type === 'ArrowFunctionExpression') {
-					const params = attr.argument.params.map((param) => param.name).join(', ');
-					const body = attr.argument.body;
-
-					// Format the body (BlockStatement)
-					let bodyStr = '{ ';
-					if (body.body && body.body.length > 0) {
-						const statements = body.body.map((stmt) => {
-							if (
-								stmt.type === 'ExpressionStatement' &&
-								stmt.expression.type === 'AssignmentExpression'
-							) {
-								return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
-							}
-							return '/* unsupported statement */';
-						});
-						bodyStr += statements.join('; ') + '; ';
-					}
-					bodyStr += '}';
-
-					// Always use parentheses for consistency (Prettier standard)
-					argResult = '(' + params + ') => ' + bodyStr;
-				} else if (attr.argument.type === 'Identifier') {
-					argResult = attr.argument.name;
-				} else {
-					// For other argument types (CallExpression, etc.)
-					if (attr.argument.type === 'CallExpression') {
-						const callee = attr.argument.callee.name || 'func';
-						const args = attr.argument.arguments
-							.map((arg) => {
-								if (arg.type === 'Identifier') return arg.name;
-								if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
-								return '/* arg */';
-							})
-							.join(', ');
-						argResult = callee + '(' + args + ')';
-					} else {
-						// For other argument types, format directly without mock path
-						if (attr.argument.type === 'Identifier') {
-							argResult = attr.argument.name;
-						} else if (attr.argument.type === 'CallExpression') {
-							argResult = formatCallExpression(attr.argument, options);
-						} else {
-							// Fallback to basic string representation
-							argResult = attr.argument.name || 'unknown';
-						}
-					}
-				}
-				return '{@use ' + argResult + '}';
+				return '{@use ' + printJS(attrPath, print, 'argument') + '}';
 			} else if (attr.type === 'SpreadAttribute') {
 				// Format spread attribute argument directly
 				let argResult;
 				if (attr.argument.type === 'Identifier') {
 					argResult = attr.argument.name;
-				} else if (attr.argument.type === 'CallExpression') {
-					argResult = formatCallExpression(attr.argument, options);
 				} else {
-					argResult = attr.argument.name || 'unknown';
+					argResult = printRippleNode(attr.argument, null, options, print);
 				}
 				return '{...' + argResult + '}';
 			} else {
