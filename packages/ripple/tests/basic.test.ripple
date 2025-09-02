@@ -43,6 +43,7 @@ describe('basic', () => {
 	it('render semi-dynamic text', () => {
 		component Basic() {
 			let text = 'Hello World';
+
 			<div>{text}</div>
 		}
 
@@ -54,6 +55,7 @@ describe('basic', () => {
 	it('render dynamic text', () => {
 		component Basic() {
 			let $text = 'Hello World';
+
 			<button onClick={() => $text = 'Hello Ripple'}>{'Change Text'}</button>
 			<div>{$text}</div>
 		}
@@ -71,6 +73,7 @@ describe('basic', () => {
 	it('render dynamic class attribute', () => {
 		component Basic() {
 			let $active = false;
+
 			<button onClick={() => $active = !$active}>{'Toggle'}</button>
 			<div $class={$active ? 'active' : 'inactive'}>{'Dynamic Class'}</div>
 		}
@@ -96,6 +99,7 @@ describe('basic', () => {
 	it('render dynamic id attribute', () => {
 		component Basic() {
 			let $count = 0;
+
 			<button onClick={() => $count++}>{'Increment'}</button>
 			<div $id={`item-${$count}`}>{'Dynamic ID'}</div>
 		}
@@ -121,6 +125,7 @@ describe('basic', () => {
 	it('render dynamic style attribute', () => {
 		component Basic() {
 			let $color = 'red';
+
 			<button onClick={() => $color = $color === 'red' ? 'blue' : 'red'}>{'Change Color'}</button>
 			<div $style={`color: ${$color}; font-weight: bold;`}>{'Dynamic Style'}</div>
 		}
@@ -144,6 +149,7 @@ describe('basic', () => {
 		component Basic() {
 			let $disabled = false;
 			let $checked = false;
+
 			<button onClick={() => {
 				$disabled = !$disabled;
 				$checked = !$checked;
@@ -170,6 +176,7 @@ describe('basic', () => {
 		component Basic() {
 			let $theme = 'light';
 			let $size = 'medium';
+
 			<button
 				onClick={() => {
 				$theme = $theme === 'light' ? 'dark' : 'light';
@@ -200,6 +207,7 @@ describe('basic', () => {
 		component Basic() {
 			let $showTitle = false;
 			let $showAria = false;
+
 			<button onClick={() => {
 				$showTitle = !$showTitle;
 				$showAria = !$showAria;
@@ -237,6 +245,7 @@ describe('basic', () => {
 				class: 'initial',
 				id: 'test-1'
 			};
+
 			<button
 				onClick={() => {
 				$attrs = {
@@ -283,6 +292,42 @@ describe('basic', () => {
 				<button onClick={() => b.$count--}>{'-'}</button>
 				<span class='count'>{b.$count}</span>
 				<button onClick={() => b.$count++}>{'+'}</button>
+			</div>
+		}
+		render(Basic);
+
+		const buttons = container.querySelectorAll('button');
+
+		buttons[0].click();
+		flushSync();
+
+		expect(container.querySelector('.count').textContent).toBe('-1');
+
+		buttons[1].click();
+		flushSync();
+
+		expect(container.querySelector('.count').textContent).toBe('0');
+	});
+
+	it('renders multiple reactive lexical blocks with complexity', () => {
+		component Basic() {
+			const count = '$count';
+
+			<div>
+				let obj = {
+					$count: 0
+				};
+
+				<span>{obj[count]}</span>
+			</div>
+			<div>
+				let b = {
+					$count: 0
+				};
+
+				<button onClick={() => b[count]--}>{'-'}</button>
+				<span class='count'>{b[count]}</span>
+				<button onClick={() => b[count]++}>{'+'}</button>
 			</div>
 		}
 		render(Basic);

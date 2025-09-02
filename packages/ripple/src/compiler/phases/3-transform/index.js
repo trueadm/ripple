@@ -71,7 +71,7 @@ function build_getter(node, context) {
 		const binding = state.scope.get(node.name);
 
 		// don't transform the declaration itself
-		if (node !== binding?.node && binding?.transform) {
+		if (node !== binding?.node && binding?.transform?.read) {
 			return binding.transform.read(node, context.state?.metadata?.spread);
 		}
 	}
@@ -806,7 +806,7 @@ const visitors = {
 		const binding = context.state.scope.get(left.name);
 		const transformers = left && binding?.transform;
 
-		if (left === argument ) {
+		if (left === argument) {
 			if (transformers?.update) {
 				return transformers.update(node);
 			} else if (binding.kind === 'prop') {
@@ -876,7 +876,7 @@ const visitors = {
 				const tracked_element = context.visit(element, { ...context.state, metadata });
 
 				if (metadata.tracking) {
-					tracked.push(b.spread(b.call('Object.keys', tracked_element.argument)));
+					tracked.push(b.spread(tracked_element.argument));
 					elements.push(tracked_element);
 				} else {
 					elements.push(tracked_element);

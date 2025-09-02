@@ -3,10 +3,11 @@
   "description": "Vite plugin for Ripple",
   "license": "MIT",
   "author": "Dominic Gannaway",
-  "version": "0.2.7",
+  "version": "0.2.11",
   "type": "module",
   "module": "src/index.js",
   "main": "src/index.js",
+  "homepage": "https://ripplejs.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trueadm/ripple.git",
@@ -17,6 +18,6 @@
   },
   "devDependencies": {
     "ripple": "workspace:*",
-    "vite": "^5.4.14"
+    "vite": "catalog:"
   }
 }

@@ -163,39 +163,57 @@ const visitors = {
 			if (declarator.id.type === 'Identifier') {
 				const binding = state.scope.get(declarator.id.name);
 
-				if (
-					binding !== null &&
-					is_tracked_name(declarator.id.name) &&
-					parent?.type !== 'ForOfStatement'
-				) {
-					binding.kind = 'tracked';
+				if (binding !== null && parent?.type !== 'ForOfStatement') {
+					if (is_tracked_name(declarator.id.name)) {
+						binding.kind = 'tracked';
 
-					mark_as_tracked(path);
+						mark_as_tracked(path);
 
-					visit(declarator, { ...state, metadata });
+						visit(declarator, { ...state, metadata });
 
-					if (init_is_untracked && metadata.tracking) {
-						metadata.tracking = false;
+						if (init_is_untracked && metadata.tracking) {
+							metadata.tracking = false;
+						}
+
+						binding.transform = {
+							read: (node) => {
+								return metadata.tracking && !metadata.await
+									? b.call('$.get_computed', node)
+									: b.call('$.get_tracked', node);
+							},
+							assign: (node, value) => {
+								return b.call('$.set', node, value, b.id('__block'));
+							},
+							update: (node) => {
+								return b.call(
+									node.prefix ? '$.update_pre' : '$.update',
+									node.argument,
+									b.id('__block'),
+									node.operator === '--' && b.literal(-1),
+								);
+							},
+						};
+					} else if (binding.initial?.type !== 'Literal') {
+						for (const ref of binding.references) {
+							const path = ref.path;
+							const parent_node = path?.at(-1);
+
+							// We're reading a computed property, which might mean it's a reactive property
+							if (parent_node?.type === 'MemberExpression' && parent_node.computed) {
+								binding.transform = {
+									assign: (node, value, computed) => {
+										if (!computed) {
+											return node;
+										}
+										return b.call('$.set_property', node, visit(computed), value, b.id('__block'));
+									},
+								};
+								break;
+							}
+						}
 					}
 
-					binding.transform = {
-						read: (node) => {
-							return metadata.tracking && !metadata.await
-								? b.call('$.get_computed', node)
-								: b.call('$.get_tracked', node);
-						},
-						assign: (node, value) => {
-							return b.call('$.set', node, value, b.id('__block'));
-						},
-						update: (node) => {
-							return b.call(
-								node.prefix ? '$.update_pre' : '$.update',
-								node.argument,
-								b.id('__block'),
-								node.operator === '--' && b.literal(-1),
-							);
-						},
-					};
+					visit(declarator, state);
 				} else {
 					visit(declarator, state);
 				}

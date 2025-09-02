@@ -741,6 +741,12 @@ export function set_property(obj, property, value, block) {
 	var tracked = tracked_properties?.[property];
 
 	if (tracked === undefined) {
+		// Handle computed assignments to arrays
+		if (obj.$length && tracked_properties !== undefined && is_array(obj)) {
+			with_scope(block, () => {
+				obj.splice(property, 1, value);
+			});
+		}
 		return res;
 	}
 

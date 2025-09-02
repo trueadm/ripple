@@ -1,11 +1,14 @@
-import { ref, effect } from 'ripple';
+import { array } from 'ripple';
 
 export component App() {
-	const divRef = ref();
+	let items = array(1, 2, 3);
 
-	effect(() => {
-		console.log('Div reference changed:', divRef.$current);
-	});
+	<button onClick={() => items[items.$length] = items.$length + 1}>{'increment'}</button>
 
-	<div {@use divRef}>{'Hello Ripple!'}</div>
+	<Child items={items} />
+}
+
+component Child({ items }) {
+	<pre>{JSON.stringify(items)}</pre>
+	<pre>{items.$length}</pre>
 }

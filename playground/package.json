@@ -12,10 +12,10 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.12",
     "ripple": "workspace:*",
-    "typescript": "^5.9.2",
-    "vite": "^5.4.14",
+    "typescript": "catalog:",
+    "vite": "catalog:",
     "vite-plugin-ripple": "workspace:*",
-    "vitest": "^2.1.9"
+    "vitest": "catalog:"
   },
   "dependencies": {
     "tailwindcss": "^4.1.12"

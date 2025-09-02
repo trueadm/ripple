@@ -655,7 +655,7 @@ export function try_builder(block, handler = null, finalizer = null) {
 		type: 'TryStatement',
 		block,
 		handler,
-		finalizer
+		finalizer,
 	};
 }
 
@@ -668,7 +668,7 @@ export function catch_clause_builder(param, body) {
 	return {
 		type: 'CatchClause',
 		param,
-		body
+		body,
 	};
 }
 

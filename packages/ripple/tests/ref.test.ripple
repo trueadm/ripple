@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 import { mount, flushSync, ref } from 'ripple';
 
-describe('ref', () => {
+describe('ref()', () => {
 	let container;
 
 	function render(component) {
@@ -23,6 +23,7 @@ describe('ref', () => {
 	it('creates a reactive ref with initial value', () => {
 		component TestRef() {
 			let $count = 5;
+
 			<div><span id='count'>{$count}</span></div>
 		}
 
@@ -34,6 +35,7 @@ describe('ref', () => {
 	it('updates when ref value changes', () => {
 		component TestRef() {
 			let $count = 0;
+
 			<div>
 				<span id='count'>{$count}</span>
 				<button id='btn' onClick={() => $count++}>{'Increment'}</button>

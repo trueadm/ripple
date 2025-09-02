@@ -47,7 +47,7 @@ function formatStringLiteral(value, options) {
 	if (typeof value !== 'string') {
 		return JSON.stringify(value);
 	}
-	
+
 	const quote = options.singleQuote ? "'" : '"';
 	const escapedValue = value
 		.replace(/\\/g, '\\\\')
@@ -55,7 +55,7 @@ function formatStringLiteral(value, options) {
 		.replace(/\n/g, '\\n')
 		.replace(/\r/g, '\\r')
 		.replace(/\t/g, '\\t');
-	
+
 	return quote + escapedValue + quote;
 }
 
@@ -66,6 +66,24 @@ function createIndent(options, level = 1) {
 	} else {
 		return ' '.repeat((options.tabWidth || 2) * level);
 	}
+}
+
+// Helper function to format call expressions safely
+function formatCallExpression(node, options) {
+	if (!node || node.type !== 'CallExpression') {
+		return 'unknown()';
+	}
+	
+	const callee = node.callee.name || 'unknown';
+	const args = (node.arguments || [])
+		.map((arg) => {
+			if (arg.type === 'Identifier') return arg.name;
+			if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
+			return '/* arg */';
+		})
+		.join(', ');
+	
+	return callee + '(' + args + ')';
 }
 
 function printRippleNode(node, path, options, print) {
@@ -167,6 +185,27 @@ function printRippleNode(node, path, options, print) {
 		case 'ThrowStatement':
 			return printThrowStatement(node, path, options, print);
 
+		case 'TSInterfaceDeclaration':
+			return printTSInterfaceDeclaration(node, path, options, print);
+
+		case 'TSTypeAliasDeclaration':
+			return printTSTypeAliasDeclaration(node, path, options, print);
+
+		case 'TSTypeParameterDeclaration':
+			return printTSTypeParameterDeclaration(node, path, options, print);
+
+		case 'TSTypeParameter':
+			return printTSTypeParameter(node, path, options, print);
+
+		case 'TSNumberKeyword':
+			return 'number';
+
+		case 'TSBooleanKeyword':
+			return 'boolean';
+
+		case 'TSInterfaceBody':
+			return printTSInterfaceBody(node, path, options, print);
+
 		case 'SwitchStatement':
 			return printSwitchStatement(node, path, options, print);
 
@@ -210,7 +249,50 @@ function printRippleNode(node, path, options, print) {
 			return printJSXAttribute(node, path, options, print);
 
 		case 'UseAttribute':
-			const argResult = path.call(print, 'argument');
+			// Handle different types of UseAttribute arguments
+			let argResult;
+			if (node.argument.type === 'Identifier') {
+				argResult = node.argument.name;
+			} else if (node.argument.type === 'ArrowFunctionExpression') {
+				// Handle arrow functions specially
+				const params = node.argument.params.map((param) => param.name).join(', ');
+				const body = node.argument.body;
+
+				if (body.type === 'BlockStatement') {
+					let bodyStr = '{ ';
+					if (body.body && body.body.length > 0) {
+						const statements = body.body.map((stmt) => {
+							if (
+								stmt.type === 'ExpressionStatement' &&
+								stmt.expression.type === 'AssignmentExpression'
+							) {
+								return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
+							}
+							return '/* unsupported statement */';
+						});
+						bodyStr += statements.join('; ') + '; ';
+					}
+					bodyStr += '}';
+
+					argResult = `(${params}) => ${bodyStr}`;
+				} else {
+					argResult = path.call(print, 'argument');
+				}
+			} else if (node.argument.type === 'CallExpression') {
+				// Handle CallExpression directly
+				const callee = node.argument.callee.name || 'func';
+				const args = node.argument.arguments
+					.map((arg) => {
+						if (arg.type === 'Identifier') return arg.name;
+						if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
+						return '/* arg */';
+					})
+					.join(', ');
+				argResult = callee + '(' + args + ')';
+			} else {
+				// For other argument types, try to format them properly
+				argResult = path.call(print, 'argument');
+			}
 			return '{@use ' + argResult + '}';
 
 		case 'SpreadAttribute':
@@ -231,29 +313,30 @@ function printRippleNode(node, path, options, print) {
 
 		case 'BlockStatement':
 			const statements = path.map(print, 'body');
-			
+
 			// Preserve existing blank lines by checking source line differences
 			const spacedStatements = [];
 			for (let i = 0; i < statements.length; i++) {
 				spacedStatements.push(statements[i]);
-				
+
 				// Add blank lines between logical groups OR preserve existing ones
 				if (i < statements.length - 1 && node.body && node.body[i] && node.body[i + 1]) {
 					const currentStmt = node.body[i];
 					const nextStmt = node.body[i + 1];
-					
+
 					// Check if there was originally a blank line between these statements
 					const currentEndLine = currentStmt.loc?.end?.line;
 					const nextStartLine = nextStmt.loc?.start?.line;
-					const hasOriginalBlankLine = nextStartLine && currentEndLine && (nextStartLine - currentEndLine > 1);
-					
+					const hasOriginalBlankLine =
+						nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+
 					// Preserve original blank lines OR add new ones based on logic
 					if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
 						spacedStatements.push('');
 					}
 				}
 			}
-			
+
 			const joinedStatements = spacedStatements.join('\n');
 			const indentedStatements = joinedStatements
 				.split('\n')
@@ -404,6 +487,11 @@ function printExportNamedDeclaration(node, path, options, print) {
 function printComponent(node, path, options, print) {
 	let result = 'component ' + node.id.name;
 
+	// Add TypeScript generics if present
+	if (node.typeParameters) {
+		result += path.call(print, 'typeParameters');
+	}
+
 	// Always add parentheses, even if no parameters
 	if (node.params && node.params.length > 0) {
 		result += '(' + path.map(print, 'params').join(', ') + ')';
@@ -424,17 +512,18 @@ function printComponent(node, path, options, print) {
 	const spacedStatements = [];
 	for (let i = 0; i < bodyStatements.length; i++) {
 		spacedStatements.push(bodyStatements[i]);
-		
+
 		// Add blank lines between logical groups OR preserve existing ones
 		if (i < bodyStatements.length - 1 && node.body && node.body[i] && node.body[i + 1]) {
 			const currentStmt = node.body[i];
 			const nextStmt = node.body[i + 1];
-			
+
 			// Check if there was originally a blank line between these statements
 			const currentEndLine = currentStmt.loc?.end?.line;
 			const nextStartLine = nextStmt.loc?.start?.line;
-			const hasOriginalBlankLine = nextStartLine && currentEndLine && (nextStartLine - currentEndLine > 1);
-			
+			const hasOriginalBlankLine =
+				nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+
 			// Preserve original blank lines OR add new ones based on logic
 			if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
 				spacedStatements.push('');
@@ -500,13 +589,18 @@ function printComponent(node, path, options, print) {
 function printVariableDeclaration(node, path, options, print) {
 	const kind = node.kind || 'let';
 	const declarations = path.map(print, 'declarations').join(', ');
-	
+
 	// Don't add semicolon if this is inside a for-loop (ForStatement or ForOfStatement)
 	// We can detect this by checking if there's a parent ForStatement or ForOfStatement
-	const hasForLoopParent = path.stack && path.stack.some(item => 
-		item && typeof item === 'object' && (item.type === 'ForStatement' || item.type === 'ForOfStatement')
-	);
-	
+	const hasForLoopParent =
+		path.stack &&
+		path.stack.some(
+			(item) =>
+				item &&
+				typeof item === 'object' &&
+				(item.type === 'ForStatement' || item.type === 'ForOfStatement'),
+		);
+
 	if (hasForLoopParent) {
 		return kind + ' ' + declarations;
 	} else {
@@ -541,7 +635,11 @@ function printJSXElement(node, path, options, print) {
 	}
 
 	return (
-		openingElement + '\n' + children.map((child) => createIndent(options) + child).join('\n') + '\n' + closingElement
+		openingElement +
+		'\n' +
+		children.map((child) => createIndent(options) + child).join('\n') +
+		'\n' +
+		closingElement
 	);
 }
 
@@ -552,18 +650,21 @@ function printJSXOpeningElement(node, path, options, print) {
 		const attrs = node.attributes
 			.map((attr) => {
 				if (attr.type === 'UseAttribute') {
-					// For UseAttribute, we need to directly format the argument 
+					// For UseAttribute, we need to directly format the argument
 					// Since it's an ArrowFunctionExpression, handle it specially
 					let argResult;
 					if (attr.argument.type === 'ArrowFunctionExpression') {
-						const params = attr.argument.params.map(param => param.name).join(', ');
+						const params = attr.argument.params.map((param) => param.name).join(', ');
 						const body = attr.argument.body;
-						
+
 						// Format the body (BlockStatement)
 						let bodyStr = '{ ';
 						if (body.body && body.body.length > 0) {
-							const statements = body.body.map(stmt => {
-								if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression') {
+							const statements = body.body.map((stmt) => {
+								if (
+									stmt.type === 'ExpressionStatement' &&
+									stmt.expression.type === 'AssignmentExpression'
+								) {
 									return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
 								}
 								return '/* unsupported statement */';
@@ -571,22 +672,48 @@ function printJSXOpeningElement(node, path, options, print) {
 							bodyStr += statements.join('; ') + '; ';
 						}
 						bodyStr += '}';
-						
+
 						// Always use parentheses for consistency (Prettier standard)
 						argResult = '(' + params + ') => ' + bodyStr;
+					} else if (attr.argument.type === 'Identifier') {
+						argResult = attr.argument.name;
 					} else {
-						argResult = 'undefined';
+						// For other argument types (CallExpression, etc.)
+						if (attr.argument.type === 'CallExpression') {
+							const callee = attr.argument.callee.name || 'func';
+							const args = attr.argument.arguments
+								.map((arg) => {
+									if (arg.type === 'Identifier') return arg.name;
+									if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
+									return '/* arg */';
+								})
+								.join(', ');
+							argResult = callee + '(' + args + ')';
+						} else {
+							// For other argument types, format directly without mock path
+							if (attr.argument.type === 'Identifier') {
+								argResult = attr.argument.name;
+							} else if (attr.argument.type === 'CallExpression') {
+								argResult = formatCallExpression(attr.argument, options);
+							} else {
+								// Fallback to basic string representation
+								argResult = attr.argument.name || 'unknown';
+							}
+						}
 					}
-					
+
 					return '{@use ' + argResult + '}';
 				} else if (attr.type === 'SpreadAttribute') {
-					const argPath = {
-						call: (printFn, key) => {
-							if (key === 'argument') return printFn.call(null, attr.argument);
-							return printFn.call(null, attr[key]);
-						}
-					};
-					return '{...' + printRippleNode(attr.argument, argPath, options, print) + '}';
+					// Format spread attribute argument directly
+					let argResult;
+					if (attr.argument.type === 'Identifier') {
+						argResult = attr.argument.name;
+					} else if (attr.argument.type === 'CallExpression') {
+						argResult = formatCallExpression(attr.argument, options);
+					} else {
+						argResult = attr.argument.name || 'unknown';
+					}
+					return '{...' + argResult + '}';
 				} else if (attr.type === 'JSXAttribute') {
 					return printJSXAttribute(attr, path, options, print);
 				}
@@ -596,13 +723,13 @@ function printJSXOpeningElement(node, path, options, print) {
 
 		// Check if the line would be too long and needs wrapping
 		const singleLineResult = result + ' ' + attrs.join(' ') + '>';
-		
+
 		if (singleLineResult.length <= options.printWidth) {
 			// Single line fits within print width
 			result += ' ' + attrs.join(' ');
 		} else {
 			// Multi-line: each attribute on its own line
-			result += '\n' + attrs.map(attr => createIndent(options) + attr).join('\n');
+			result += '\n' + attrs.map((attr) => createIndent(options) + attr).join('\n');
 			if (!options.bracketSameLine) {
 				result += '\n';
 			}
@@ -635,14 +762,14 @@ function printJSXFragment(node, path, options, print) {
 function printArrowFunction(node, path, options, print) {
 	let params;
 	let body;
-	
+
 	// Handle case where path might be a mock object (from UseAttribute processing)
 	if (path && typeof path.map === 'function') {
 		params = path.map(print, 'params').join(', ');
 		body = path.call(print, 'body');
 	} else {
 		// Fallback: process the node directly
-		params = node.params.map(param => printRippleNode(param, null, options, print)).join(', ');
+		params = node.params.map((param) => printRippleNode(param, null, options, print)).join(', ');
 		body = printRippleNode(node.body, null, options, print);
 	}
 
@@ -660,19 +787,19 @@ function printExportDefaultDeclaration(node, path, options, print) {
 
 function printFunctionDeclaration(node, path, options, print) {
 	let result = '';
-	
+
 	// Handle async functions
 	if (node.async) {
 		result += 'async ';
 	}
-	
+
 	result += 'function';
-	
+
 	// Handle generator functions
 	if (node.generator) {
 		result += '*';
 	}
-	
+
 	result += ' ' + node.id.name + '(';
 
 	if (node.params && node.params.length > 0) {
@@ -704,33 +831,33 @@ function printForOfStatement(node, path, options, print) {
 	result += path.call(print, 'right');
 	result += ') ';
 	result += path.call(print, 'body');
-	
+
 	return result;
 }
 
 function printForStatement(node, path, options, print) {
 	let result = 'for (';
-	
+
 	// Handle init part
 	if (node.init) {
 		result += path.call(print, 'init');
 	}
 	result += ';';
-	
-	// Handle test part  
+
+	// Handle test part
 	if (node.test) {
 		result += ' ' + path.call(print, 'test');
 	}
 	result += ';';
-	
+
 	// Handle update part
 	if (node.update) {
 		result += ' ' + path.call(print, 'update');
 	}
-	
+
 	result += ') ';
 	result += path.call(print, 'body');
-	
+
 	return result;
 }
 
@@ -740,7 +867,7 @@ function printWhileStatement(node, path, options, print) {
 	result += path.call(print, 'test');
 	result += ') ';
 	result += path.call(print, 'body');
-	
+
 	return result;
 }
 
@@ -750,7 +877,7 @@ function printDoWhileStatement(node, path, options, print) {
 	result += ' while (';
 	result += path.call(print, 'test');
 	result += ')';
-	
+
 	return result;
 }
 
@@ -907,41 +1034,41 @@ function printUnaryExpression(node, path, options, print) {
 
 function printYieldExpression(node, path, options, print) {
 	let result = 'yield';
-	
+
 	if (node.delegate) {
 		result += '*';
 	}
-	
+
 	if (node.argument) {
 		result += ' ' + path.call(print, 'argument');
 	}
-	
+
 	return result;
 }
 
 function printNewExpression(node, path, options, print) {
 	let result = 'new ' + path.call(print, 'callee');
-	
+
 	if (node.arguments && node.arguments.length > 0) {
 		result += '(' + path.map(print, 'arguments').join(', ') + ')';
 	} else {
 		result += '()';
 	}
-	
+
 	return result;
 }
 
 function printTemplateLiteral(node, path, options, print) {
 	let result = '`';
-	
+
 	for (let i = 0; i < node.quasis.length; i++) {
 		result += node.quasis[i].value.raw;
-		
+
 		if (i < node.expressions.length) {
 			result += '${' + path.call(print, 'expressions', i) + '}';
 		}
 	}
-	
+
 	result += '`';
 	return result;
 }
@@ -954,29 +1081,96 @@ function printThrowStatement(node, path, options, print) {
 	return 'throw ' + path.call(print, 'argument') + ';';
 }
 
+function printTSInterfaceDeclaration(node, path, options, print) {
+	let result = 'interface ' + node.id.name;
+
+	if (node.typeParameters) {
+		result += path.call(print, 'typeParameters');
+	}
+
+	result += ' ';
+	result += path.call(print, 'body');
+
+	return result;
+}
+
+function printTSInterfaceBody(node, path, options, print) {
+	if (!node.body || node.body.length === 0) {
+		return '{}';
+	}
+
+	const members = path.map(print, 'body');
+	const joinedMembers = members.join(';\n');
+	const indentedMembers = joinedMembers
+		.split('\n')
+		.map((line) => {
+			if (line.trim() === '') return '';
+			return createIndent(options) + line;
+		})
+		.join('\n');
+
+	return '{\n' + indentedMembers + ';\n}';
+}
+
+function printTSTypeAliasDeclaration(node, path, options, print) {
+	let result = 'type ' + node.id.name;
+
+	if (node.typeParameters) {
+		result += path.call(print, 'typeParameters');
+	}
+
+	result += ' = ';
+	result += path.call(print, 'typeAnnotation');
+	result += ';';
+
+	return result;
+}
+
+function printTSTypeParameterDeclaration(node, path, options, print) {
+	if (!node.params || node.params.length === 0) {
+		return '';
+	}
+
+	return '<' + path.map(print, 'params').join(', ') + '>';
+}
+
+function printTSTypeParameter(node, path, options, print) {
+	let result = node.name;
+
+	if (node.constraint) {
+		result += ' extends ' + path.call(print, 'constraint');
+	}
+
+	if (node.default) {
+		result += ' = ' + path.call(print, 'default');
+	}
+
+	return result;
+}
+
 function printSwitchStatement(node, path, options, print) {
 	let result = 'switch (' + path.call(print, 'discriminant') + ') {\n';
-	
+
 	for (let i = 0; i < node.cases.length; i++) {
 		result += path.call(print, 'cases', i);
 		if (i < node.cases.length - 1) {
 			result += '\n';
 		}
 	}
-	
+
 	result += '\n}';
 	return result;
 }
 
 function printSwitchCase(node, path, options, print) {
 	let result = '';
-	
+
 	if (node.test) {
 		result += 'case ' + path.call(print, 'test') + ':';
 	} else {
 		result += 'default:';
 	}
-	
+
 	if (node.consequent && node.consequent.length > 0) {
 		result += '\n';
 		for (let i = 0; i < node.consequent.length; i++) {
@@ -986,7 +1180,7 @@ function printSwitchCase(node, path, options, print) {
 			}
 		}
 	}
-	
+
 	return result;
 }
 
@@ -1084,14 +1278,28 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	if (currentNode.type === 'ExpressionStatement' && nextNode.type === 'ExpressionStatement') {
 		// Only add spacing if these are likely top-level statements (like beforeEach, afterEach, it)
 		// We can detect this by checking if the expressions are function calls with test-related names
-		if (currentNode.expression?.type === 'CallExpression' && nextNode.expression?.type === 'CallExpression') {
+		if (
+			currentNode.expression?.type === 'CallExpression' &&
+			nextNode.expression?.type === 'CallExpression'
+		) {
 			const currentCallee = currentNode.expression.callee?.name;
 			const nextCallee = nextNode.expression.callee?.name;
-			
+
 			// Only add spacing between test framework calls, not regular function calls
-			const testFrameworkFunctions = ['beforeEach', 'afterEach', 'beforeAll', 'afterAll', 'it', 'test', 'describe'];
-			
-			if (testFrameworkFunctions.includes(currentCallee) || testFrameworkFunctions.includes(nextCallee)) {
+			const testFrameworkFunctions = [
+				'beforeEach',
+				'afterEach',
+				'beforeAll',
+				'afterAll',
+				'it',
+				'test',
+				'describe',
+			];
+
+			if (
+				testFrameworkFunctions.includes(currentCallee) ||
+				testFrameworkFunctions.includes(nextCallee)
+			) {
 				return true;
 			}
 		}
@@ -1159,14 +1367,17 @@ function printElement(node, path, options, print) {
 				// Handle UseAttribute with direct formatting
 				let argResult;
 				if (attr.argument.type === 'ArrowFunctionExpression') {
-					const params = attr.argument.params.map(param => param.name).join(', ');
+					const params = attr.argument.params.map((param) => param.name).join(', ');
 					const body = attr.argument.body;
-					
+
 					// Format the body (BlockStatement)
 					let bodyStr = '{ ';
 					if (body.body && body.body.length > 0) {
-						const statements = body.body.map(stmt => {
-							if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'AssignmentExpression') {
+						const statements = body.body.map((stmt) => {
+							if (
+								stmt.type === 'ExpressionStatement' &&
+								stmt.expression.type === 'AssignmentExpression'
+							) {
 								return stmt.expression.left.name + ' = ' + stmt.expression.right.name;
 							}
 							return '/* unsupported statement */';
@@ -1174,35 +1385,65 @@ function printElement(node, path, options, print) {
 						bodyStr += statements.join('; ') + '; ';
 					}
 					bodyStr += '}';
-					
+
 					// Always use parentheses for consistency (Prettier standard)
 					argResult = '(' + params + ') => ' + bodyStr;
+				} else if (attr.argument.type === 'Identifier') {
+					argResult = attr.argument.name;
 				} else {
-					argResult = 'undefined';
+					// For other argument types (CallExpression, etc.)
+					if (attr.argument.type === 'CallExpression') {
+						const callee = attr.argument.callee.name || 'func';
+						const args = attr.argument.arguments
+							.map((arg) => {
+								if (arg.type === 'Identifier') return arg.name;
+								if (arg.type === 'Literal') return formatStringLiteral(arg.value, options);
+								return '/* arg */';
+							})
+							.join(', ');
+						argResult = callee + '(' + args + ')';
+					} else {
+						// For other argument types, format directly without mock path
+						if (attr.argument.type === 'Identifier') {
+							argResult = attr.argument.name;
+						} else if (attr.argument.type === 'CallExpression') {
+							argResult = formatCallExpression(attr.argument, options);
+						} else {
+							// Fallback to basic string representation
+							argResult = attr.argument.name || 'unknown';
+						}
+					}
 				}
 				return '{@use ' + argResult + '}';
 			} else if (attr.type === 'SpreadAttribute') {
-				const argPath = {
-					call: (printFn, key) => {
-						if (key === 'argument') return printFn.call(null, attr.argument);
-						return printFn.call(null, attr[key]);
-					}
-				};
-				return '{...' + printRippleNode(attr.argument, argPath, options, print) + '}';
+				// Format spread attribute argument directly
+				let argResult;
+				if (attr.argument.type === 'Identifier') {
+					argResult = attr.argument.name;
+				} else if (attr.argument.type === 'CallExpression') {
+					argResult = formatCallExpression(attr.argument, options);
+				} else {
+					argResult = attr.argument.name || 'unknown';
+				}
+				return '{...' + argResult + '}';
 			} else {
 				return attrPath.call(print);
 			}
 		}, 'attributes');
-		
+
 		// Check if the line would be too long and needs wrapping
-		const singleLineResult = result + ' ' + attrs.join(' ') + (node.selfClosing || !node.children || node.children.length === 0 ? ' />' : '>');
-		
+		const singleLineResult =
+			result +
+			' ' +
+			attrs.join(' ') +
+			(node.selfClosing || !node.children || node.children.length === 0 ? ' />' : '>');
+
 		if (singleLineResult.length <= options.printWidth) {
 			// Single line fits within print width
 			result += ' ' + attrs.join(' ');
 		} else {
 			// Multi-line: each attribute on its own line
-			result += '\n' + attrs.map(attr => createIndent(options) + attr).join('\n');
+			result += '\n' + attrs.map((attr) => createIndent(options) + attr).join('\n');
 			if (!options.bracketSameLine) {
 				result += '\n';
 			}

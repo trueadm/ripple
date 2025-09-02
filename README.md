@@ -1,7 +1,9 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-dark.png">
-  <img src="assets/ripple-light.png" alt="Ripple - the elegant UI framework for the web" />
-</picture>
+<a href="https://ripplejs.com">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-dark.png">
+    <img src="assets/ripple-light.png" alt="Ripple - the elegant TypeScript UI framework" />
+  </picture>
+</a>
 
 [![CI](https://github.com/trueadm/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/trueadm/ripple/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/JBF2ySrh2W)
@@ -11,7 +13,7 @@
 
 > Currently, this project is still in early development, and should not be used in production.
 
-Ripple is a TypeScript UI framework for the web.
+Ripple is a TypeScript UI framework that takes the best parts of React, Solid and Svelte and combined them into one package.
 
 I wrote Ripple as a love letter for frontend web – and this is largely a project that I built in less than a week, so it's very raw.
 
@@ -32,6 +34,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 - **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
 - **TypeScript Support**: Full TypeScript integration with type checking
 - **VSCode Integration**: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
+- **Peformance**: Fine-grain rendering, with industry leading performance and memory usage
 
 ## Missing Features
 
@@ -149,7 +152,7 @@ component Counter({ $startingCount }) {
 Now given `$startingCount` is reactive, it would mean that `$count` might reset each time an incoming change to `$startingCount` occurs. That might not be desirable, so Ripple provides a way to `untrack` reactivity in those cases:
 
 ```ripple
-import { untrack } from "ripple";
+import { untrack } from 'ripple';
 
 component Counter({ $startingCount }) {
   let $count = untrack(() => $startingCount);
@@ -230,9 +233,9 @@ statements, making control-flow far easier to read and reason with.
 component Truthy({ x }) {
   <div>
     if (x) {
-      <span>{"x is truthy"}</span>
+      <span>{'x is truthy'}</span>
     } else {
-      <span>{"x is falsy"}</span>
+      <span>{'x is falsy'}</span>
     }
   </div>
 }
@@ -283,7 +286,7 @@ Try blocks work to building the foundation for **error boundaries**, when the ru
 an error in the `try` block, you can easily render a fallback in the `catch` block.
 
 ```ripple
-import { reportError } from "some-library";
+import { reportError } from 'some-library';
 
 component ErrorBoundary() {
   <div>
@@ -291,7 +294,8 @@ component ErrorBoundary() {
       <ComponentThatFails />
     } catch (e) {
       reportError(e);
-      <div>{"An error occured! " + e.message}</div>
+
+      <div>{'An error occured! ' + e.message}</div>
     }
   </div>
 }
@@ -409,7 +413,8 @@ You can also create `{@use}` functions inline.
 ```ripple
 component App() {
   let $node;
-  <div {@use undefined}>{"Hello world"}</div>
+
+  <div {@use undefined}>{'Hello world'}</div>
 }
 ```
 
@@ -417,10 +422,10 @@ You can also use function factories to define properties, these are functions th
 thing. However, you can use this pattern to pass reactive properties.
 
 ```ripple
-import { fadeIn } from "some-library";
+import { fadeIn } from 'some-library';
 
 component App({ $ms }) {
-  <div {@use undefined}>{"Hello world"}</div>
+  <div {@use undefined}>{'Hello world'}</div>
 }
 ```
 
@@ -438,7 +443,7 @@ Ripple supports native CSS styling that is localized to the given component usin
 
 ```ripple
 component MyComponent() {
-  <div class="container"><h1>{"Hello World"}</h1></div>
+  <div class='container'><h1>{'Hello World'}</h1></div>
 
   <style>
     .container {

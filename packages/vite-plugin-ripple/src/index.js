@@ -51,19 +51,22 @@ export function ripple(inlineOptions) {
 				}
 			},
 
-			async transform(code, id, opts) {
-				const filename = id.replace(root, '');
-				if (!filename.endsWith('.ripple')) return;
+			transform: {
+				filter: { id: /\.ripple$/ },
 
-				const { js, css } = await compile(code, filename, id);
+				async handler(code, id, opts) {
+					const filename = id.replace(root, '');
 
-				if (css !== '') {
-					const cssId = createVirtualImportId(filename, root, 'style');
-					cssCache.set(cssId, css);
-					js.code += `\nimport ${JSON.stringify(cssId)};\n`;
-				}
+					const { js, css } = await compile(code, filename, id);
 
-				return js;
+					if (css !== '') {
+						const cssId = createVirtualImportId(filename, root, 'style');
+						cssCache.set(cssId, css);
+						js.code += `\nimport ${JSON.stringify(cssId)};\n`;
+					}
+
+					return js;
+				},
 			},
 		},
 	];

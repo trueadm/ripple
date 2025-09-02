@@ -28,6 +28,7 @@ describe('composite components', () => {
 
 		component App() {
 			let $count = 0;
+
 			<button onClick={() => $count++}>{'Increment'}</button>
 			<Button $count={$count} />
 		}
