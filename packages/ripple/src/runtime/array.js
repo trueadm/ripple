@@ -213,3 +213,8 @@ export function get_all_elements(array) {
 export function array(...elements) {
 	return new RippleArray(...elements);
 }
+
+array.from = function(arrayLike, mapFn, thisArg) {
+	return RippleArray(...Array.from(arrayLike, mapFn, thisArg));
+};
+

@@ -23,3 +23,16 @@ export interface RippleArray<T> extends Array<T> {
 }
 
 export declare function array<T>(...elements: T[]): RippleArray<T>;
+
+export declare namespace array {
+  function from<T>(
+    arrayLike: ArrayLike<T> | Iterable<T>
+  ): RippleArray<T>;
+
+  function from<T, U>(
+    arrayLike: ArrayLike<T> | Iterable<T>,
+    mapFn: (v: T, k: number) => U,
+    thisArg?: any
+  ): RippleArray<U>;
+}
+

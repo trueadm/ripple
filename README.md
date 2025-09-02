@@ -176,6 +176,19 @@ You'll need to import the array function from Ripple:
 import { array } from 'ripple';
 
 const arr = array(1, 2, 3);
+
+// or alternatively
+const arr = array(...[1, 2, 3]);
+```
+
+If you already have an array or array-like object, you can create a Ripple array by calling `array.from`.  It has the same signature as the standard `Array.from` function:
+
+```js
+import { array } from 'ripple';
+
+const existingArr = [1, 2, 3];
+
+const arr = array.from(existingArr);
 ```
 
 The `array` is a reactive Ripple array, and that means you can access properties normally using numeric index. However,
@@ -407,7 +420,7 @@ component App() {
       console.log("unmounted", node);
     };
   };
-  
+
   <div {@use ref}>{"Hello world"}</div>
 }
 ```
