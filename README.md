@@ -401,6 +401,7 @@ component App() {
   const ref = (node) => {
     $node = node;
     console.log("mounted", node);
+
     return () => {
       $node = undefined;
       console.log("unmounted", node);
