@@ -13,7 +13,7 @@
 
 > Currently, this project is still in early development, and should not be used in production.
 
-Ripple is a TypeScript UI framework that takes the best parts of React, Solid and Svelte and combined them into one package.
+Ripple is a TypeScript UI framework that takes the best parts of React, Solid and Svelte and combines them into one package.
 
 I wrote Ripple as a love letter for frontend web – and this is largely a project that I built in less than a week, so it's very raw.
 
