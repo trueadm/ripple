@@ -74,12 +74,12 @@ async function activate(context) {
 	const serverOptions = {
 		run: {
 			module: serverModule,
-			transport: lsp.TransportKind.ipc,
+			transport: lsp.TransportKind.stdio,
 			options: runOptions,
 		},
 		debug: {
 			module: serverModule,
-			transport: lsp.TransportKind.ipc,
+			transport: lsp.TransportKind.stdio,
 			options: debugOptions,
 		},
 	};
