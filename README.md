@@ -40,7 +40,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 ## Missing Features
 
 - **SSR**: Ripple is currently an SPA only, this is because I haven't gotten around to it
-- **Testing & Types**: The codebase is very raw with limited types, we're getting around to it
+- **Types**: The codebase is very raw with limited types, we're getting around to it
 
 ## Getting Started
 
