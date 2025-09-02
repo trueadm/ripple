@@ -35,7 +35,11 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 - **Peformance**: Fine-grain rendering, with industry leading performance and memory usage
 - **TypeScript Support**: Full TypeScript integration with type checking
 - **VSCode Integration**: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
+<<<<<<< HEAD
 - **Prettier Support**: Full Prettier formatting support for `.ripple` modules
+=======
+- **Performance**: Fine-grain rendering, with industry leading performance and memory usage
+>>>>>>> 9f42552e7044373189516d30f2e6c6c3f42ca02d
 
 ## Missing Features
 
@@ -46,7 +50,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 
 ### Try Ripple
 
-> We're working hard on getting an online playgroud available. Watch this space!
+> We're working hard on getting an online playground available. Watch this space!
 
 You can try Ripple now by using our basic Vite template either via [StackBlitz](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic), or by running these commands in your terminal:
 
@@ -96,7 +100,7 @@ component App() {
 }
 ```
 
-![iamge for the sourcecode above](assets/readme-1.png)
+![image for the sourcecode above](assets/readme-1.png)
 
 Ripple's templating language also supports shorthands and object spreads too:
 
@@ -218,7 +222,7 @@ can only occur _inside_ a `component` body – you can't create JSX inside funct
 </div>
 ```
 
-![iamge for the sourcecode above](assets/readme-5.png)
+![image for the sourcecode above](assets/readme-5.png)
 
 Note that strings inside the template need to be inside `{"string"}`, you can't do `<div>hello</div>` as Ripple
 has no idea if `hello` is a string or maybe some JavaScript code that needs evaluating, so just ensure you wrap them
@@ -227,7 +231,7 @@ using JavaScript expressions regardless.
 
 ### If statements
 
-If blocks work seemlessly with Ripple's templating language, you can put them inside the JSX-like
+If blocks work seamlessly with Ripple's templating language, you can put them inside the JSX-like
 statements, making control-flow far easier to read and reason with.
 
 ```ripple
@@ -242,7 +246,7 @@ component Truthy({ x }) {
 }
 ```
 
-![iamge for the sourcecode above](assets/readme-2.png)
+![image for the sourcecode above](assets/readme-2.png)
 
 ### For statements
 
@@ -253,14 +257,14 @@ other frameworks.
 component ListView({ title, items }) {
   <h2>{title}</h2>
   <ul>
-    for (const item; of items) {
+    for (const item of items) {
       <li>{item.text}</li>
     }
   </ul>
 }
 ```
 
-![iamge for the sourcecode above](assets/readme-3.png)
+![image for the sourcecode above](assets/readme-3.png)
 
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
@@ -296,13 +300,13 @@ component ErrorBoundary() {
     } catch (e) {
       reportError(e);
 
-      <div>{'An error occured! ' + e.message}</div>
+      <div>{'An error occurred! ' + e.message}</div>
     }
   </div>
 }
 ```
 
-![iamge for the sourcecode above](assets/readme-4.png)
+![image for the sourcecode above](assets/readme-4.png)
 
 ### Props
 
