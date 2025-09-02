@@ -180,7 +180,7 @@ export function apply_element_spread(element, fn) {
 				if (effects[symbol]) {
 					destroy_block(effects[symbol]);
 				}
-				effects[symbol] = use(element, use_fn);
+				effects[symbol] = use(element, () => use_fn);
 			}
 
 			next[symbol] = use_fn;

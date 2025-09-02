@@ -1,15 +1,5 @@
-function fadeIn() {
 
-}
 
-export component App({ $ms, data }) {
-	<div>
-		<span {@use fadeIn(data.value)}>{'Member expression'}</span>
-		<p {@use fadeIn({
-			duration: $ms,
-			easing: 'ease'
-		})}>{'Object literal'}</p>
-		<button {@use fadeIn($ms)}>{'Reactive variable'}</button>
-		<input {@use fadeIn}>{'Simple identifier'}</input>
-	</div>
+export component App() {
+	<div>{"Hello world"}</div>
 }

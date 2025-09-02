@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import { mount, flushSync } from 'ripple';
+import { mount, flushSync, array } from 'ripple';
 
 describe('@use element decorators', () => {
 	let container;
@@ -31,4 +31,29 @@ describe('@use element decorators', () => {
 		flushSync();
 		expect(div.textContent).toBe('Hello World');
 	});
+
+	it('works with spreading from composite component', () => {
+		let _node;
+
+		component Component() {
+			let items = array(...[1, 2, 3]);
+
+			function ref(node) {
+				_node = node;
+			}
+
+			<Child {@use ref} {items} />
+		}
+
+		component Child(props) {
+			const { items, ...rest } = props;
+			<pre {...rest}>{JSON.stringify(items)}</pre>
+			<pre>{items.$length}</pre>
+		}
+
+		render(Component);
+		flushSync();
+
+		expect(_node).toBe(document.querySelector('pre'));
+	})
 });
