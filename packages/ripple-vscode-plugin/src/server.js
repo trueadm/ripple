@@ -21,7 +21,7 @@ function log(...args) {
 	}
 }
 
-function error(...args) {
+function logError(...args) {
 	console.error('[Ripple Server ERROR]', ...args);
 }
 
@@ -77,7 +77,7 @@ connection.onInitialize(async (params) => {
 
 		if (!tsdk) {
 			const errorMsg = 'The `typescript.tsdk` init option is required. It should point to a directory containing a `typescript.js` or `tsserverlibrary.js` file, such as `node_modules/typescript/lib`.';
-			error(errorMsg);
+			logError(errorMsg);
 			throw new Error(errorMsg);
 		}
 
@@ -96,7 +96,7 @@ connection.onInitialize(async (params) => {
 				throw new Error('Ripple compiler does not have expected compile_to_volar_mappings method');
 			}
 		} catch (importError) {
-			error('Failed to import ripple compiler:', importError);
+			logError('Failed to import ripple compiler:', importError);
 			throw new Error(`Failed to import ripple compiler: ${importError.message}`);
 		}
 		
@@ -122,7 +122,7 @@ connection.onInitialize(async (params) => {
 		log('Server initialization complete');
 		return initResult;
 	} catch (initError) {
-		error('Server initialization failed:', initError);
+		logError('Server initialization failed:', initError);
 		throw initError;
 	}
 });
@@ -137,14 +137,14 @@ connection.onInitialized(() => {
 
 		log('File watcher setup complete for extensions:', extensions);
 	} catch (err) {
-		error('Failed to setup file watcher:', err);
+		logError('Failed to setup file watcher:', err);
 	}
 });
 
 process.on('uncaughtException', (err) => {
-	error('Uncaught exception:', err);
+	logError('Uncaught exception:', err);
 })
 
 process.on('unhandledRejection', (reason, promise) => {
-	error('Unhandled rejection at:', promise, 'reason:', reason);
+	logError('Unhandled rejection at:', promise, 'reason:', reason);
 })
