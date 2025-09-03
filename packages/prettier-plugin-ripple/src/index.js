@@ -318,47 +318,40 @@ function printRippleNode(node, path, options, print, args) {
 			return printFunctionExpression(node, path, options, print);
 
 		case 'BlockStatement': {
-			// Use AST builders instead of string operations
-			const parts = ['{'];
-
-			if (node.body && node.body.length > 0) {
-				parts.push(line);
-
-				// Build statements with proper spacing
-				const statementParts = [];
-				for (let i = 0; i < node.body.length; i++) {
-					const statement = path.call(print, 'body', i);
-
-					// Handle array statements properly
-					if (Array.isArray(statement)) {
-						statementParts.push(indent(concat(statement)));
-					} else {
-						statementParts.push(indent(statement));
-					}
-
-					// Add blank lines between logical groups
-					if (i < node.body.length - 1) {
-						const currentStmt = node.body[i];
-						const nextStmt = node.body[i + 1];
-
-						// Check if there was originally a blank line
-						const currentEndLine = currentStmt.loc?.end?.line;
-						const nextStartLine = nextStmt.loc?.start?.line;
-						const hasOriginalBlankLine =
-							nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
-
-						if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
-							statementParts.push(line); // Add extra line
-						}
-					}
-				}
-
-				parts.push(join(line, statementParts));
-				parts.push(line);
+			// Apply the same block formatting pattern as component bodies
+			if (!node.body || node.body.length === 0) {
+				return '{}';
 			}
 
-			parts.push('}');
-			return parts;
+			// Process statements and handle spacing
+			const statements = [];
+			for (let i = 0; i < node.body.length; i++) {
+				const statement = path.call(print, 'body', i);
+				statements.push(statement);
+
+				// Handle blank lines between statements
+				if (i < node.body.length - 1) {
+					const currentStmt = node.body[i];
+					const nextStmt = node.body[i + 1];
+
+					const currentEndLine = currentStmt.loc?.end?.line;
+					const nextStartLine = nextStmt.loc?.start?.line;
+					const hasOriginalBlankLine =
+						nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+
+					if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
+						statements.push(hardline); // Extra line for spacing
+					}
+				}
+			}
+
+			// Use proper block statement pattern
+			return group([
+				'{',
+				indent([hardline, join(hardline, statements)]),
+				hardline,
+				'}'
+			]);
 		}
 
 		case 'ReturnStatement': {
