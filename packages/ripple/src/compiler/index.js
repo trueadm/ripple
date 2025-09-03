@@ -21,6 +21,5 @@ export function compile_to_volar_mappings(source, filename) {
 	const analysis = analyze(ast, filename);
 	const transformed = transform(filename, source, analysis, true);
 
-	// Use Svelte's approach to convert esrap sourcemap to Volar mappings
 	return convert_source_map_to_mappings(transformed.js.map, source, transformed.js.code);
 }

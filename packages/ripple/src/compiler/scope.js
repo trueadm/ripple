@@ -229,7 +229,7 @@ export class Scope {
 	/**
 	 * A set of all the names referenced with this scope
 	 * — useful for generating unique names
-	 * @type {Map<string, { node: Identifier; path: AST.SvelteNode[] }[]>}
+	 * @type {Map<string, { node: Identifier; path: AST.Node[] }[]>}
 	 */
 	references = new Map();
 
@@ -362,7 +362,7 @@ export class Scope {
 
 	/**
 	 * @param {Identifier} node
-	 * @param {AST.SvelteNode[]} path
+	 * @param {AST.Node[]} path
 	 */
 	reference(node, path) {
 		path = [...path]; // ensure that mutations to path afterwards don't affect this reference

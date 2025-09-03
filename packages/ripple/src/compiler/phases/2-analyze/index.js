@@ -5,7 +5,7 @@ import {
 	get_delegated_event,
 	is_event_attribute,
 	is_inside_component,
-	is_svelte_import,
+	is_ripple_import,
 	is_tracked_name,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
@@ -156,7 +156,7 @@ const visitors = {
 			const init_is_untracked =
 				declarator.init !== null &&
 				declarator.init.type === 'CallExpression' &&
-				is_svelte_import(declarator.init.callee, context) &&
+				is_ripple_import(declarator.init.callee, context) &&
 				declarator.init.callee.type === 'Identifier' &&
 				(declarator.init.callee.name === 'untrack' || declarator.init.callee.name === 'deferred');
 

@@ -367,7 +367,7 @@ export function is_tracked_name(name) {
 	return typeof name === 'string' && name.startsWith('$') && name.length > 1 && name[1] !== '$';
 }
 
-export function is_svelte_import(callee, context) {
+export function is_ripple_import(callee, context) {
 	if (callee.type === 'Identifier') {
 		const binding = context.state.scope.get(callee.name);
 

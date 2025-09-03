@@ -16,7 +16,7 @@ import {
 	escape_html,
 	is_boolean_attribute,
 	is_dom_property,
-	is_svelte_import,
+	is_ripple_import,
 	is_declared_within_component,
 	is_inside_call_expression,
 } from '../../utils.js';
@@ -131,7 +131,7 @@ const visitors = {
 			(parent?.type === 'MemberExpression' && parent.property === node) ||
 			is_inside_call_expression(context) ||
 			!context.path.some((node) => node.type === 'Component') ||
-			(is_svelte_import(callee, context) &&
+			(is_ripple_import(callee, context) &&
 				(callee.type !== 'Identifier' ||
 					(callee.name !== 'array' && callee.name !== 'deferred'))) ||
 			is_declared_within_component(callee, context)
@@ -1562,7 +1562,7 @@ export function transform(filename, source, analysis, to_ts) {
 	};
 
 	const program = /** @type {ESTree.Program} */ (
-		walk(/** @type {AST.SvelteNode} */ (analysis.ast), state, visitors)
+		walk((analysis.ast), state, visitors)
 	);
 
 	for (const hoisted of state.hoisted) {
