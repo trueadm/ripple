@@ -43,6 +43,10 @@ export const printers = {
 			const parts = printRippleNode(node, path, options, print, args);
 			// If printRippleNode returns doc parts, return them directly
 			// If it returns a string, wrap it for consistency
+			// If it returns an array, concatenate it
+			if (Array.isArray(parts)) {
+				return concat(parts);
+			}
 			return typeof parts === 'string' ? parts : parts;
 		},
 	},
@@ -141,7 +145,6 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			const elements = path.map(print, 'elements');
-			const shouldUseTrailingComma = options.trailingComma !== 'none' && elements.length > 0;
 
 			// Simple single-line for short arrays
 			if (elements.length <= 3) {
@@ -149,9 +152,6 @@ function printRippleNode(node, path, options, print, args) {
 				for (let i = 0; i < elements.length; i++) {
 					if (i > 0) parts.push(', ');
 					parts.push(elements[i]);
-				}
-				if (shouldUseTrailingComma && options.trailingComma === 'all') {
-					parts.push(',');
 				}
 				parts.push(']');
 				return parts;
@@ -166,9 +166,6 @@ function printRippleNode(node, path, options, print, args) {
 					parts.push(line);
 				}
 				parts.push(indent(elements[i]));
-			}
-			if (shouldUseTrailingComma) {
-				parts.push(',');
 			}
 			parts.push(line);
 			parts.push(']');
@@ -298,13 +295,13 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'SpreadAttribute': {
 			const parts = ['{...', path.call(print, 'argument'), '}'];
-			return parts;
+			return concat(parts);
 		}
 
 		case 'Identifier':
 			// Simple case - just return the name directly like Prettier core
 			if (node.typeAnnotation) {
-				return concat([node.name, path.call(print, 'typeAnnotation')]);
+				return concat([node.name, ': ', path.call(print, 'typeAnnotation')]);
 			}
 			return node.name;
 
@@ -410,8 +407,7 @@ function printRippleNode(node, path, options, print, args) {
 			return printAssignmentPattern(node, path, options, print);
 
 		case 'TSTypeAnnotation': {
-			const parts = [': ', path.call(print, 'typeAnnotation')];
-			return parts;
+			return path.call(print, 'typeAnnotation');
 		}
 
 		case 'TSTypeLiteral':
@@ -576,6 +572,7 @@ function printComponent(node, path, options, print) {
 	const bodyStatements = [];
 	for (let i = 0; i < node.body.length; i++) {
 		const statement = path.call(print, 'body', i);
+		// Statements will be indented at the component level
 		bodyStatements.push(statement);
 	}
 
@@ -593,7 +590,9 @@ function printComponent(node, path, options, print) {
 			const hasOriginalBlankLine =
 				nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
 
-			if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
+			const shouldAddBlank = hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt);
+
+			if (shouldAddBlank) {
 				spacedStatements.push('');
 			}
 		}
@@ -607,64 +606,67 @@ function printComponent(node, path, options, print) {
 		}
 		// Handle blank lines between statements
 		if (i < spacedStatements.length - 1 && spacedStatements[i + 1] === '') {
-			statements.push(hardline); // Extra line for spacing
+			statements.push(hardline);
 		}
 	}
 
-	// Build CSS content as complete string
-	let cssContent = '';
+
+
+	// Build CSS content using Prettier document builders
+	let cssContent = null;
 	if (node.css && node.css.source) {
-		cssContent += '\n\n  <style>';
 		const css = node.css.source.trim();
-		const cssLines = css.split('\n');
-		let inRule = false;
 
-		cssLines.forEach((line) => {
-			const trimmedLine = line.trim();
-			if (!trimmedLine) {
-				cssContent += '\n';
-				return;
-			}
+		// Simple CSS formatter for basic rules
+		const formattedCss = formatCss(css);
 
-			if (trimmedLine.includes('{')) {
-				inRule = true;
-				cssContent += '\n    ' + trimmedLine;
-			} else if (trimmedLine === '}') {
-				inRule = false;
-				cssContent += '\n    ' + trimmedLine;
-			} else if (inRule) {
-				cssContent += '\n      ' + trimmedLine;
-			} else {
-				cssContent += '\n    ' + trimmedLine;
-			}
-		});
-
-		cssContent += '\n  </style>';
+		// Build the complete CSS block using document builders
+		cssContent = [
+			'<style>',
+			hardline,
+			...formattedCss,
+			'</style>'
+		];
 	}
 
 	// Use Prettier's standard block statement pattern
 	const parts = [concat(signatureParts)];
 
 	if (statements.length > 0 || cssContent) {
-		// Standard block formatting like Prettier core
-		const blockContent = [];
+		// Build all content that goes inside the component body
+		const allContent = [];
 
+		// Add statements with manual blank line after variable declarations
 		if (statements.length > 0) {
-			blockContent.push(join(hardline, statements));
+			for (let i = 0; i < statements.length; i++) {
+				allContent.push(statements[i]);
+				// Add blank line after variable declarations (except the last statement)
+				if (i < statements.length - 1 && node.body && node.body[i] &&
+					node.body[i].type === 'VariableDeclaration') {
+					allContent.push(hardline);
+				}
+			}
 		}
 
-		// Add CSS content inside the component body if it exists
+		// Use proper group formatting like Prettier core
+		// Add CSS content
 		if (cssContent) {
 			if (statements.length > 0) {
-				blockContent.push(hardline); // Add spacing between statements and CSS
+				allContent.push(hardline); // Add blank line before CSS
 			}
-			blockContent.push(cssContent);
+			allContent.push(cssContent);
 		}
+
+		// Join all content with proper spacing
+		const joinedContent = allContent.length > 0 ? join(line, allContent) : '';
 
 		parts.push(
 			group([
 				' {',
-				indent([hardline, ...blockContent]),
+				indent([
+					hardline,
+					joinedContent
+				]),
 				hardline,
 				'}'
 			])
@@ -1009,28 +1011,23 @@ function printObjectExpression(node, path, options, print) {
 	// Use AST builders and respect trailing commas
 	const properties = path.map(print, 'properties');
 	const shouldUseTrailingComma = options.trailingComma !== 'none' && properties.length > 0;
-	const parts = ['{'];
 
+	let content = [hardline];
 	if (properties.length > 0) {
-		parts.push(line);
-		for (let i = 0; i < properties.length; i++) {
-			if (i > 0) {
-				parts.push(',');
-				parts.push(line);
-			}
-			parts.push(indent(properties[i]));
-		}
-
-		// Add trailing comma if configured
+		content.push(join([',', hardline], properties));
 		if (shouldUseTrailingComma) {
-			parts.push(',');
+			content.push(',');
 		}
-
-		parts.push(line);
+		// Always add hardline after properties for consistent formatting
+		content.push(hardline);
 	}
 
-	parts.push('}');
-	return parts;
+	return group([
+		'{',
+		indent(content.slice(0, -1)), // Indent the content but not the final hardline
+		content[content.length - 1],   // Add the final hardline without indentation
+		'}'
+	]);
 }
 
 function printClassDeclaration(node, path, options, print) {
@@ -1297,7 +1294,7 @@ function printTSInterfaceDeclaration(node, path, options, print) {
 	parts.push(' ');
 	parts.push(path.call(print, 'body'));
 
-	return parts;
+	return concat(parts);
 }
 
 function printTSInterfaceBody(node, path, options, print) {
@@ -1306,16 +1303,19 @@ function printTSInterfaceBody(node, path, options, print) {
 	}
 
 	const members = path.map(print, 'body');
-	const joinedMembers = members.join(';\n');
-	const indentedMembers = joinedMembers
-		.split('\n')
-		.map((line) => {
-			if (line.trim() === '') return '';
-			return createIndent(options) + line;
-		})
-		.join('\n');
 
-	return '{\n' + indentedMembers + ';\n}';
+	// Add semicolons to all members
+	const membersWithSemicolons = members.map(member => concat([member, ';']));
+
+	return group([
+		'{',
+		indent([
+			hardline,
+			join(hardline, membersWithSemicolons)
+		]),
+		hardline,
+		'}'
+	]);
 }
 
 function printTSTypeAliasDeclaration(node, path, options, print) {
@@ -1449,11 +1449,23 @@ function shouldAddBlankLine(currentNode, nextNode) {
 		return true;
 	}
 
+	// Add blank line after variable declarations when followed by other variable declarations
+	// (to separate different variable declarations)
+	if (currentNode.type === 'VariableDeclaration' && nextNode.type === 'VariableDeclaration') {
+		return true;
+	}
+
+	// Add blank line after interface declarations
+	if (currentNode.type === 'TSInterfaceDeclaration') {
+		return true;
+	}
+
 	// Add blank line after expression statements when followed by different statement types
 	if (
 		currentNode.type === 'ExpressionStatement' &&
 		nextNode.type !== 'ExpressionStatement' &&
-		nextNode.type !== 'JSXElement'
+		nextNode.type !== 'JSXElement' &&
+		nextNode.type !== 'Element'
 	) {
 		return true;
 	}
@@ -1563,7 +1575,7 @@ function printObjectPattern(node, path, options, print) {
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
-	return parts;
+	return concat(parts);
 }
 
 function printProperty(node, path, options, print) {
@@ -1575,13 +1587,13 @@ function printProperty(node, path, options, print) {
 	parts.push(path.call(print, 'key'));
 	parts.push(': ');
 	parts.push(path.call(print, 'value'));
-	return parts;
+	return concat(parts);
 }
 
 function printVariableDeclarator(node, path, options, print) {
 	// Follow Prettier core pattern - simple concatenation for basic cases
 	if (node.init) {
-		return [path.call(print, 'id'), ' = ', path.call(print, 'init')];
+		return concat([path.call(print, 'id'), ' = ', path.call(print, 'init')]);
 	}
 
 	return path.call(print, 'id');
@@ -1589,7 +1601,7 @@ function printVariableDeclarator(node, path, options, print) {
 
 function printAssignmentPattern(node, path, options, print) {
 	// Handle default parameters like: count: number = 0
-	return [path.call(print, 'left'), ' = ', path.call(print, 'right')];
+	return concat([path.call(print, 'left'), ' = ', path.call(print, 'right')]);
 }
 
 function printTSTypeLiteral(node, path, options, print) {
@@ -1599,8 +1611,16 @@ function printTSTypeLiteral(node, path, options, print) {
 
 	const members = path.map(print, 'members');
 
-	// Use AST builders for proper formatting
-	return group(['{', indent(concat([line, join(concat([';', line]), members), ';'])), line, '}']);
+	// Use AST builders for proper formatting with proper semicolons
+	return group([
+		'{',
+		indent([
+			line,
+			join([';', line], members)
+		]),
+		line,
+		'}'
+	]);
 }
 
 function printTSPropertySignature(node, path, options, print) {
@@ -1612,6 +1632,7 @@ function printTSPropertySignature(node, path, options, print) {
 	}
 
 	if (node.typeAnnotation) {
+		parts.push(': ');
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
@@ -1644,9 +1665,17 @@ function printElement(node, path, options, print) {
 
 		// No attributes, but has children
 		const children = path.map(print, 'children');
-		if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 20) {
-			// Single line with short content
-			return group(['<', tagName, '>', children[0], '</', tagName, '>']);
+		if (children.length === 1) {
+			// For simple elements, try to keep on single line
+			const child = children[0];
+			if (typeof child === 'string' && child.length < 20) {
+				// Single line with short content
+				return group(['<', tagName, '>', child, '</', tagName, '>']);
+			}
+			// For JSX expressions, always try single line if simple
+			if (child && typeof child === 'object') {
+				return group(['<', tagName, '>', child, '</', tagName, '>']);
+			}
 		}
 
 		// Multi-line
@@ -1654,8 +1683,8 @@ function printElement(node, path, options, print) {
 			'<',
 			tagName,
 			'>',
-			indent(concat([line, join(line, children)])),
-			line,
+			indent(concat([hardline, join(hardline, children)])),
+			hardline,
 			'</',
 			tagName,
 			'>',
@@ -1683,13 +1712,20 @@ function printElement(node, path, options, print) {
 	const children = path.map(print, 'children');
 	const closingTag = concat(['</', tagName, '>']);
 
-	if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 20) {
-		// Single line
-		return group([openingTag, children[0], closingTag]);
+	if (children.length === 1) {
+		const child = children[0];
+		if (typeof child === 'string' && child.length < 20) {
+			// Single line
+			return group([openingTag, child, closingTag]);
+		}
+		// For JSX expressions, always try single line
+		if (child && typeof child === 'object') {
+			return group([openingTag, child, closingTag]);
+		}
 	}
 
 	// Multi-line
-	return group([openingTag, indent(concat([line, join(line, children)])), line, closingTag]);
+	return group([openingTag, indent(concat([hardline, join(hardline, children)])), hardline, closingTag]);
 }
 
 function printAttribute(node, path, options, print) {
@@ -1705,6 +1741,52 @@ function printAttribute(node, path, options, print) {
 			parts.push(path.call(print, 'value'));
 			parts.push('}');
 		}
+	}
+
+	return parts;
+}
+
+// Simple CSS formatter for basic CSS rules
+function formatCss(css) {
+	const parts = [];
+
+	// Split by rules and format each one
+	const ruleRegex = /([^{}]+)\{([^}]*)\}/g;
+	let match;
+
+	while ((match = ruleRegex.exec(css)) !== null) {
+		const selector = match[1].trim();
+		const properties = match[2].trim();
+
+		// Add selector with proper indentation (2 spaces for style content level)
+		parts.push('  ' + selector);
+		parts.push(' {');
+		parts.push(hardline);
+
+		// Add properties - handle the case where properties might be on one line
+		const propLines = properties.split(';').filter(prop => prop.trim().length > 0);
+		for (const prop of propLines) {
+			const trimmedProp = prop.trim();
+			if (trimmedProp) {
+				// Normalize spacing around colons
+				let formattedProp = trimmedProp;
+				if (formattedProp.includes(':')) {
+					const [propName, propValue] = formattedProp.split(':', 2);
+					formattedProp = propName.trim() + ': ' + propValue.trim();
+				}
+				// Add semicolon if it's missing
+				if (!formattedProp.endsWith(';')) {
+					formattedProp += ';';
+				}
+				// Properties get 4 spaces (2 for component + 2 for style content)
+				parts.push('    ' + formattedProp);
+				parts.push(hardline);
+			}
+		}
+
+		// Close rule with proper indentation (2 spaces for style content level)
+		parts.push('  }');
+		parts.push(hardline);
 	}
 
 	return parts;
