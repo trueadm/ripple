@@ -116,7 +116,7 @@ export function call(callee, ...args) {
 	if (typeof callee === 'string') callee = id(callee);
 	args = args.slice();
 
-	// replacing missing arguments with `undefined`, unless they're at the end in which case remove them
+	// replacing missing arguments with `void(0)`, unless they're at the end in which case remove them
 	let i = args.length;
 	let popping = true;
 	while (i--) {
@@ -124,7 +124,7 @@ export function call(callee, ...args) {
 			if (popping) {
 				args.pop();
 			} else {
-				args[i] = id('undefined');
+				args[i] = void0;
 			}
 		} else {
 			popping = false;
@@ -772,6 +772,8 @@ export function jsx_spread_attribute(argument) {
 		argument,
 	};
 }
+
+export const void0 = unary('void', literal(0));
 
 export {
 	await_builder as await,
