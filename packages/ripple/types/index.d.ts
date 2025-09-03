@@ -23,3 +23,13 @@ export interface RippleArray<T> extends Array<T> {
 }
 
 export declare function array<T>(...elements: T[]): RippleArray<T>;
+
+export type Context<T> = {
+	v: T;
+};
+
+export declare function createContext<T>(initialValue: T): Context<T>;
+
+export declare function setContext<T>(context: Context<T>, value: T): void;
+
+export declare function getContext<T>(context: Context<T>): T;

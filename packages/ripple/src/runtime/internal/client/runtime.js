@@ -1,4 +1,4 @@
-/** @import { Block, Component, Dependency, Computed, Tracked } from '#client' */
+/** @import { Block, Component, Dependency, Computed, Tracked, Ref } from '#client' */
 
 import {
 	destroy_block,
@@ -1018,6 +1018,7 @@ export function scope() {
 
 export function push_component() {
 	var component = {
+		c: null,
 		e: null,
 		m: false,
 		p: active_component,
@@ -1026,7 +1027,7 @@ export function push_component() {
 }
 
 export function pop_component() {
-	var component = active_component;
+	var component = /** @type {Component} */ (active_component);
 	component.m = true;
 	var effects = component.e;
 	if (effects !== null) {
@@ -1053,6 +1054,11 @@ export function use_prop() {
 	return Symbol(USE_PROP);
 }
 
+/**
+ * @template T
+ * @param {T} value
+ * @returns {Ref<T>}
+ */
 export function ref(value) {
 	var block = active_block || active_scope;
 	if (!block) {

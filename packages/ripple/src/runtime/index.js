@@ -1,3 +1,5 @@
+/** @import { Block } from '#client' */
+
 import { destroy_block, root } from './internal/client/blocks.js';
 import { handle_root_events } from './internal/client/events.js';
 import { init_operations } from './internal/client/operations.js';
@@ -7,6 +9,11 @@ import { create_anchor } from './internal/client/utils.js';
 // Re-export JSX runtime functions for jsxImportSource: "ripple"
 export { jsx, jsxs, Fragment } from '../jsx-runtime.js';
 
+/**
+ * @param {(anchor: Node, props: Record<string, any>, active_block: Block | null) => void} component
+ * @param {{ props?: Record<string, any>, target: HTMLElement }} options
+ * @returns {() => void}
+ */
 export function mount(component, options) {
 	init_operations();
 
@@ -24,9 +31,14 @@ export function mount(component, options) {
 	return () => {
 		cleanup_events();
 		destroy_block(_root);
-		target.removeChild(anchor_node);
 	};
 }
+
+export {
+	create_context as createContext,
+	get_context as getContext,
+	set_context as setContext,
+} from './internal/client/context.js';
 
 export { flush_sync as flushSync, untrack, deferred } from './internal/client/runtime.js';
 
