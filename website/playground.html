@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Ripple playground</title>
+
+		<script type="module">
+			import { createPlayground } from 'https://unpkg.com/livecodes';
+
+			createPlayground('#container', {
+				appUrl: 'https://ripple.livecodes.pages.dev',
+				config: {
+					activeEditor: 'script',
+					script: {
+						order: 0,
+						language: 'ripple',
+						content: `import type { Component } from "ripple"
+
+component Child(props: { $children: Component }) {
+  console.log(props);
+
+  <div>
+    {props.$count}
+  </div>
+}
+
+export default component App({ name }: { name: string }) {
+  <div class="container">
+    let $count = 0;
+
+    const obj = {
+      $count,
+      b: 2,
+    }
+
+    <button onClick={() => $count++}>{"Increment count"}</button>
+
+    <Child {...obj}>
+      <div>{'Child Component ' + $count}</div>
+    </Child>
+  </div>
+
+  <style>
+    .container {
+      text-align: center;
+    }
+
+    h1 {
+      font-family: "Recursive", sans-serif;
+      font-size: 4rem;
+      font-weight: 400;
+      margin-bottom: 2rem;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+    }
+
+    button {
+      font-size: 1.2rem;
+    }
+
+    span {
+      padding: 1rem;
+      font-size: 1.2rem;
+    }
+  </style>
+}
+`,
+					},
+					markup: {
+						title: '',
+						hideTitle: true,
+					},
+					style: {
+						title: '',
+						hideTitle: true,
+					},
+				},
+			});
+		</script>
+	</head>
+
+	<body id="container" style="height: 100vh; margin: 0; padding: 0; border-radius: 0px" />
+</html>
