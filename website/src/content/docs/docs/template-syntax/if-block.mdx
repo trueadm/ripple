@@ -1,0 +1,23 @@
+---
+title: If, else if, else blocks
+description: Learn about if, else if, else blocks in Ripple
+---
+
+If blocks work seemlessly with Ripple's templating language, you can put them inside the JSX-like
+statements, making control-flow far easier to read and reason with.
+
+```ripple
+component Truthy({ x }) {
+  <div>
+    if (x) {
+      <span>
+        {"x is truthy"}
+      </span>
+    } else {
+      <span>
+        {"x is falsy"}
+      </span>
+    }
+  </div>
+}
+```

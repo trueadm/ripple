@@ -1,4 +1,5 @@
 {
+	"framework": "astro",
 	"headers": [
 		{
 			"source": "/(.*)",
@@ -22,7 +23,7 @@
 			]
 		},
 		{
-			"source": "/index.html",
+			"source": "/(.*)",
 			"headers": [
 				{
 					"key": "Cache-Control",

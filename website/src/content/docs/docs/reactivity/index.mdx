@@ -1,0 +1,61 @@
+---
+title: Reactivity in Ripple
+description: Learn about Ripple's reactivity model
+---
+
+Ripple's reactivity model is inspired by Svelte, and is designed to be simple and easy to use. It is based on the concept of reactive statements, which are statements that automatically re-run when their dependencies change.
+
+### Reactive Variables
+
+Variables prefixed with `$` are automatically reactive:
+
+```ts
+let $name = "World";
+let $count = 0;
+
+// Updates automatically trigger re-renders
+$count++;
+```
+
+Object properties prefixed with `$` are also automatically reactive:
+
+```ts
+let counter = { $current: 0 };
+
+// Updates automatically trigger re-renders
+counter.$current++;
+```
+
+Derived values are simply `$` variables that combined different parts of state:
+
+```ts
+let $count = 0;
+let $double = $count * 2;
+let $quadruple = $double * 2;
+```
+
+That means `$count` itself might be derived if it were to reference another reactive property. For example:
+
+```ripple
+component Counter({ $startingCount }) {
+  let $count = $startingCount;
+  let $double = $count * 2;
+  let $quadruple = $double * 2;
+}
+```
+
+Now given `$startingCount` is reactive, it would mean that `$count` might reset each time an incoming change to `$startingCount` occurs. That might not be desirable, so Ripple provides a way to `untrack` reactivity in those cases:
+
+```ripple
+import { untrack } from 'ripple';
+
+component Counter({ $startingCount }) {
+  let $count = untrack(() => $startingCount);
+  let $double = $count * 2;
+  let $quadruple = $double * 2;
+}
+```
+
+Now `$count` will only reactively create its value on initialization.
+
+> Note: you cannot define reactive variables in module/global scope, they have to be created on access from an active component
