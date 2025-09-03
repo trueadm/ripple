@@ -131,7 +131,32 @@ function read_body(parser) {
 }
 
 function read_at_rule(parser) {
-	debugger;
+	const start = parser.index;
+	parser.eat('@', true);
+
+	const name = read_identifier(parser);
+
+	const prelude = read_value(parser);
+
+	/** @type {AST.CSS.Block | null} */
+	let block = null;
+
+	if (parser.match('{')) {
+		// e.g. `@media (...) {...}`
+		block = read_block(parser);
+	} else {
+		// e.g. `@import '...'`
+		parser.eat(';', true);
+	}
+
+	return {
+		type: 'Atrule',
+		start,
+		end: parser.index,
+		name,
+		prelude,
+		block
+	};
 }
 
 function read_rule(parser) {
