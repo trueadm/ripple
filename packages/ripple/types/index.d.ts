@@ -17,12 +17,26 @@ export interface Ref<T> {
 
 export declare function ref<T>(value: T): Ref<T>;
 
-export interface RippleArray<T> extends Array<T> {
-  $length: number;
-  toJSON(): T[];
-}
+export declare class RippleArray<T> extends Array<T> {
+	static from<T>(arrayLike: ArrayLike<T>): RippleArray<T>;
+	static from<T, U>(
+		arrayLike: ArrayLike<T>,
+		mapFn: (v: T, k: number) => U,
+		thisArg?: any
+	): RippleArray<U>;
+	static from<T>(iterable: Iterable<T>): RippleArray<T>;
+	static from<T, U>(
+		iterable: Iterable<T>,
+		mapFn: (v: T, k: number) => U,
+		thisArg?: any
+	): RippleArray<U>;
 
-export declare function array<T>(...elements: T[]): RippleArray<T>;
+	static of<T>(...items: T[]): RippleArray<T>;
+
+	$length: number;
+
+	toJSON(): T[];
+}
 
 export type Context<T> = {
 	v: T;

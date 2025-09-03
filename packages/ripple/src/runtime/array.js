@@ -35,9 +35,17 @@ const introspect_methods = [
 
 let init = false;
 
-class RippleArray extends Array {
+export class RippleArray extends Array {
 	#tracked_elements = [];
 	#tracked_index;
+
+	static from(arrayLike, mapFn, thisArg) {
+		return new RippleArray(Array.from(arrayLike, mapFn, thisArg));
+	}
+
+	static of(...elements) {
+		return new RippleArray(...elements);
+	}
 
 	constructor(...elements) {
 		super(...elements);
@@ -210,6 +218,3 @@ export function get_all_elements(array) {
 	return arr;
 }
 
-export function array(...elements) {
-	return new RippleArray(...elements);
-}

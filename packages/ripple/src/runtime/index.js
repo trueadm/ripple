@@ -42,7 +42,7 @@ export {
 
 export { flush_sync as flushSync, untrack, deferred } from './internal/client/runtime.js';
 
-export { array } from './array.js';
+export { RippleArray } from './array.js';
 
 export { keyed } from './internal/client/for.js';
 
