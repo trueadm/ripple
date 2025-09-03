@@ -621,12 +621,10 @@ function printComponent(node, path, options, print) {
 		const formattedCss = formatCss(css);
 
 		// Build the complete CSS block using document builders
-		cssContent = [
-			'<style>',
-			hardline,
-			...formattedCss,
-			'</style>'
-		];
+		// Check if we need to add a blank line before CSS
+		const cssParts = ['<style>', hardline, ...formattedCss, '</style>'];
+
+		cssContent = cssParts;
 	}
 
 	// Use Prettier's standard block statement pattern
@@ -636,29 +634,33 @@ function printComponent(node, path, options, print) {
 		// Build all content that goes inside the component body
 		const allContent = [];
 
-		// Add statements with manual blank line after variable declarations
+		// Build content manually with proper spacing
+		let contentParts = [];
+
+		// Add statements
 		if (statements.length > 0) {
 			for (let i = 0; i < statements.length; i++) {
-				allContent.push(statements[i]);
+				contentParts.push(statements[i]);
 				// Add blank line after variable declarations (except the last statement)
 				if (i < statements.length - 1 && node.body && node.body[i] &&
 					node.body[i].type === 'VariableDeclaration') {
-					allContent.push(hardline);
+					contentParts.push(hardline);
 				}
 			}
 		}
 
-		// Use proper group formatting like Prettier core
 		// Add CSS content
 		if (cssContent) {
 			if (statements.length > 0) {
-				allContent.push(hardline); // Add blank line before CSS
+				// Add blank line before CSS
+				contentParts.push(hardline);
 			}
-			allContent.push(cssContent);
+			// Spread the CSS content array
+			contentParts.push(...cssContent);
 		}
 
-		// Join all content with proper spacing
-		const joinedContent = allContent.length > 0 ? join(line, allContent) : '';
+		// Join content parts
+		const joinedContent = contentParts.length > 0 ? concat(contentParts) : '';
 
 		parts.push(
 			group([
