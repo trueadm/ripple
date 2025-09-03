@@ -1,7 +1,7 @@
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
-const { concat, join, line, group, indent } = doc.builders;
+const { concat, join, line, hardline, group, indent } = doc.builders;
 
 export const languages = [
 	{
@@ -38,9 +38,9 @@ export const parsers = {
 
 export const printers = {
 	'ripple-ast': {
-		print(path, options, print) {
+		print(path, options, print, args) {
 			const node = path.getValue();
-			const parts = printRippleNode(node, path, options, print);
+			const parts = printRippleNode(node, path, options, print, args);
 			// If printRippleNode returns doc parts, return them directly
 			// If it returns a string, wrap it for consistency
 			return typeof parts === 'string' ? parts : parts;
@@ -78,7 +78,7 @@ function printJS(path, print, name) {
 	return path.call(print, name);
 }
 
-function printRippleNode(node, path, options, print) {
+function printRippleNode(node, path, options, print, args) {
 	if (!node || typeof node !== 'object') {
 		return String(node || '');
 	}
@@ -606,19 +606,15 @@ function printComponent(node, path, options, print) {
 		}
 	}
 
-	// Use Prettier AST builders instead of manual string joining
-	const bodyParts = [];
+	// Follow Prettier's block statement pattern
+	const statements = [];
 	for (let i = 0; i < spacedStatements.length; i++) {
-		if (i > 0) {
-			if (spacedStatements[i] === '') {
-				bodyParts.push(line); // Add extra blank line
-			} else {
-				bodyParts.push(line);
-			}
-		}
-
 		if (spacedStatements[i] !== '') {
-			bodyParts.push(indent(spacedStatements[i]));
+			statements.push(spacedStatements[i]);
+		}
+		// Handle blank lines between statements
+		if (i < spacedStatements.length - 1 && spacedStatements[i + 1] === '') {
+			statements.push(hardline); // Extra line for spacing
 		}
 	}
 
@@ -653,20 +649,36 @@ function printComponent(node, path, options, print) {
 		cssContent += '\n  </style>';
 	}
 
-	// Use proper AST builders like Prettier core
-	const parts = [concat(signatureParts), ' {'];
+	// Use Prettier's standard block statement pattern
+	const parts = [concat(signatureParts)];
 
-	if (bodyParts.length > 0) {
-		parts.push(line);
-		parts.push(...bodyParts);
-		parts.push(line);
+	if (statements.length > 0 || cssContent) {
+		// Standard block formatting like Prettier core
+		const blockContent = [];
+
+		if (statements.length > 0) {
+			blockContent.push(join(hardline, statements));
+		}
+
+		// Add CSS content inside the component body if it exists
+		if (cssContent) {
+			if (statements.length > 0) {
+				blockContent.push(hardline); // Add spacing between statements and CSS
+			}
+			blockContent.push(cssContent);
+		}
+
+		parts.push(
+			group([
+				' {',
+				indent([hardline, ...blockContent]),
+				hardline,
+				'}'
+			])
+		);
+	} else {
+		parts.push(' {}');
 	}
-
-	if (cssContent) {
-		parts.push(cssContent);
-	}
-
-	parts.push('}');
 
 	return concat(parts);
 }
@@ -759,7 +771,6 @@ function printJSXOpeningElement(node, path, options, print) {
 		return group(['<', tag, '>']);
 	}
 
-	// Use Svelte-style approach with group and path.map
 	const openingTag = group([
 		'<',
 		tag,
@@ -1658,7 +1669,6 @@ function printElement(node, path, options, print) {
 		]);
 	}
 
-	// Use Svelte-style approach with group and path.map for attributes
 	const openingTag = group([
 		'<',
 		tagName,
