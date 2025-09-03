@@ -1,4 +1,4 @@
-import { createContext, getContext, setContext } from 'ripple';
+import { array, createContext, getContext, setContext } from 'ripple';
 
 const MyContext = createContext(null);
 
@@ -12,6 +12,8 @@ export component App() {
   const value = getContext(MyContext);
 
   console.log(value);
+
+  const items = new Array(1, 2, 3);
 
   setContext(MyContext, "Hello from context!");
 

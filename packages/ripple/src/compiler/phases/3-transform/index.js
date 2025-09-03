@@ -150,6 +150,25 @@ const visitors = {
 		);
 	},
 
+	NewExpression(node, context) {
+		const callee = node.callee;
+		const parent = context.path.at(-1);
+
+		if (context.state.metadata?.tracking === false) {
+			context.state.metadata.tracking = true;
+		}
+
+		return b.call(
+			'$.with_scope',
+			b.id('__block'),
+			b.thunk({
+				...node,
+				callee: context.visit(callee),
+				arguments: node.arguments.map((arg) => context.visit(arg)),
+			}),
+		);
+	},
+
 	MemberExpression(node, context) {
 		const parent = context.path.at(-1);
 
