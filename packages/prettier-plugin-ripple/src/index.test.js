@@ -79,7 +79,7 @@ describe('prettier-plugin-ripple', () => {
       const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
       const expected = `export component Test() {
   <div>{"Test"}</div>
-
+  
   <style>
     div {
       color: red;

@@ -2,6 +2,7 @@ import MagicString from 'magic-string';
 import { walk } from 'zimmerframe';
 
 const regex_css_browser_prefix = /^-((webkit)|(moz)|(o)|(ms))-/;
+const regex_css_name_boundary = /^[\s,;}]$/;
 
 const is_keyframes_node = (node) => remove_css_prefix(node.name) === 'keyframes';
 
