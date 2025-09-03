@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import { mount, flushSync, array } from 'ripple';
+import { mount, flushSync, RippleArray } from 'ripple';
 
 describe('array', () => {
 	let container;
@@ -23,7 +23,7 @@ describe('array', () => {
 
 	it('handles direct assignment', () => {
 		component ArrayTest() {
-			let items = array(1, 2, 3);
+			let items = new RippleArray(1, 2, 3);
 
 			<button onClick={() => items[items.$length] = items.$length + 1}>{'increment'}</button>
 

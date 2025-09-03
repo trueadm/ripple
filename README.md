@@ -181,16 +181,23 @@ Now `$count` will only reactively create its value on initialization.
 
 When creating state that contains arrays you should use the reactive alternative for arrays that Ripple provides.
 
-You'll need to import the array function from Ripple:
+You'll need to import the `RippleArray` class from Ripple.  It extends the standard JS `Array` class, and supports all of its methods and properties.
 
 ```js
-import { array } from 'ripple';
+import { RippleArray } from 'ripple';
 
-const arr = array(1, 2, 3);
+// using the new constructor
+const arr = new RippleArray(1, 2, 3);
+
+// using static from method
+const arr = Ripple.from([1, 2, 3]);
+
+// using static of method
+const arr = Ripple.of(1, 2, 3);
 ```
 
-The `array` is a reactive Ripple array, and that means you can access properties normally using numeric index. However,
-accessing the `length` property of a Ripple reactive array will be not be reactive, instead you should use `$length`.
+The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index. However,
+accessing the `length` property of a `RippleArray` will be not be reactive, instead you should use `$length`.
 
 ### Effects
 
@@ -418,7 +425,7 @@ component App() {
       console.log("unmounted", node);
     };
   };
-  
+
   <div {@use ref}>{"Hello world"}</div>
 }
 ```
