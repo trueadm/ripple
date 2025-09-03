@@ -39,11 +39,8 @@ export declare class RippleArray<T> extends Array<T> {
 }
 
 export type Context<T> = {
-	v: T;
+	get(): T;
+	set(value: T): void;
 };
 
 export declare function createContext<T>(initialValue: T): Context<T>;
-
-export declare function setContext<T>(context: Context<T>, value: T): void;
-
-export declare function getContext<T>(context: Context<T>): T;

@@ -1,5 +1,7 @@
+import type { Context } from './context.js';
+
 export type Component = {
-	c: null | Map<any, any>;
+	c: null | Map<Context<any>, any>;
 	e: null | Array<{
 		b: Block;
 		fn: Function;
@@ -44,10 +46,6 @@ export type Block = {
 	prev: null;
 	s: any;
 	t: Tracked | null;
-};
-
-export type Context<T> = {
-	v: T;
 };
 
 export type Ref<T> = {

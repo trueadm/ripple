@@ -1,21 +1,21 @@
-import { array, createContext, getContext, setContext } from 'ripple';
+import { createContext } from 'ripple';
 
 const MyContext = createContext(null);
 
 component Child() {
-  const value = getContext(MyContext);
+  const value = MyContext.get(MyContext);
 
   <div>{value}</div>
 }
 
 export component App() {
-  const value = getContext(MyContext);
+  const value = MyContext.get(MyContext);
 
   console.log(value);
 
   const items = new Array(1, 2, 3);
 
-  setContext(MyContext, "Hello from context!");
+  MyContext.set("Hello from context!");
 
   <Child />
 }

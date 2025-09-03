@@ -1,0 +1,48 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { mount, createContext } from 'ripple';
+
+describe('context', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+	});
+
+  it('creates a reactive ref with initial value', () => {
+    const MyContext = createContext(null);
+
+    component Child() {
+      const value = MyContext.get(MyContext);
+
+      <div>{value}</div>
+    }
+
+    component TestContext() {
+      const value = MyContext.get(MyContext);
+
+      console.log(value);
+
+      const items = new Array(1, 2, 3);
+
+      MyContext.set("Hello from context!");
+
+      <Child />
+    }
+
+		render(TestContext);
+
+		expect(container.querySelector('div').textContent).toBe('Hello from context!');
+	});
+});

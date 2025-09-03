@@ -34,11 +34,7 @@ export function mount(component, options) {
 	};
 }
 
-export {
-	create_context as createContext,
-	get_context as getContext,
-	set_context as setContext,
-} from './internal/client/context.js';
+export { create_context as createContext } from './internal/client/context.js';
 
 export { flush_sync as flushSync, untrack, deferred } from './internal/client/runtime.js';
 
