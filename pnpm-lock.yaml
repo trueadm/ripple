@@ -120,9 +120,6 @@ importers:
       '@rollup/pluginutils':
         specifier: ^4.1.0
         version: 4.2.1
-      resolve.exports:
-        specifier: ^2.0.0
-        version: 2.0.3
     devDependencies:
       ripple:
         specifier: workspace:*
@@ -949,10 +946,6 @@ packages:
 
   request-light@0.7.0:
     resolution: {integrity: sha512-lMbBMrDoxgsyO+yB3sDcrDuX85yYt7sS8BfQd11jtbW/z5ZWgLZRcEGLsLoYw7I0WSUGQBs8CC8ScIxkTX1+6Q==}
-
-  resolve.exports@2.0.3:
-    resolution: {integrity: sha512-OcXjMsGdhL4XnbShKpAcSqPMzQoYkYyhbEaeSko47MjRP9NfEQMhZkXL1DoFlt9LWQn4YttrdnV6X2OiyzBi+A==}
-    engines: {node: '>=10'}
 
   rollup@2.79.2:
     resolution: {integrity: sha512-fS6iqSPZDs3dr/y7Od6y5nha8dW1YnbgtsyotCVvoFGKbERG++CVRFv1meyGDE1SNItQA8BrnCw7ScdAhRJ3XQ==}
@@ -1866,8 +1859,6 @@ snapshots:
   punycode@2.3.1: {}
 
   request-light@0.7.0: {}
-
-  resolve.exports@2.0.3: {}
 
   rollup@2.79.2:
     optionalDependencies:

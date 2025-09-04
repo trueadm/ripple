@@ -4,6 +4,7 @@
   "license": "MIT",
   "author": "Dominic Gannaway",
   "version": "0.2.15",
+  "type": "module",
   "main": "index.js",
   "homepage": "https://ripplejs.com",
   "repository": {
@@ -15,8 +16,7 @@
     "url": "https://github.com/trueadm/ripple/issues"
   },
   "dependencies": {
-		"@rollup/pluginutils": "^4.1.0",
-		"resolve.exports": "^2.0.0"
+		"@rollup/pluginutils": "^4.1.0"
 	},
   "devDependencies": {
     "ripple": "workspace:*",

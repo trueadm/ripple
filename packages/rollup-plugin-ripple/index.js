@@ -1,32 +1,21 @@
-const path = require('path');
-const fs = require('fs');
-const { resolve } = require('resolve.exports');
-const { createFilter } = require('@rollup/pluginutils');
-const { compile } = require('ripple/compiler');
+import path from 'path';
+import { createFilter } from '@rollup/pluginutils';
+import { compile } from 'ripple/compiler';
 
 const PREFIX = '[rollup-plugin-ripple]';
-
-const plugin_options = new Set([
-	'emitCss',
-	'exclude',
-	'extensions',
-	'include',
-	'onwarn',
-	'preprocess',
-]);
 
 /**
  * @param [options] {Partial<import('.').Options>}
  * @returns {import('rollup').Plugin}
  */
-module.exports = function (options = {}) {
+export default function (options = {}) {
 	const { compilerOptions = {}, ...rest } = options;
 	const extensions = ['.ripple'];
 	const filter = createFilter(rest.include, rest.exclude);
 
 	// [filename]:[chunk]
 	const cache_emit = new Map();
-	const { onwarn, emitCss = true } = rest;
+	const { emitCss = true } = rest;
 
 	if (emitCss) {
 		const cssOptionValue = 'external';
@@ -74,4 +63,4 @@ module.exports = function (options = {}) {
 			return js;
 		},
 	};
-};
+}
