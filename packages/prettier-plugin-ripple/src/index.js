@@ -94,7 +94,7 @@ function printRippleNode(node, path, options, print, args) {
 
 	switch (node.type) {
 		case 'Program': {
-			// Handle the body statements properly - each statement returns an array
+			// Handle the body statements properly with whitespace preservation
 			const statements = [];
 			for (let i = 0; i < node.body.length; i++) {
 				const statement = path.call(print, 'body', i);
@@ -104,8 +104,38 @@ function printRippleNode(node, path, options, print, args) {
 				} else {
 					statements.push(statement);
 				}
+				
+				// Add spacing between top-level statements based on original formatting
+				if (i < node.body.length - 1) {
+					const currentStmt = node.body[i];
+					const nextStmt = node.body[i + 1];
+					
+					// Use same whitespace detection logic as in components
+					const sourceText = options.originalText || options.source;
+					let hasOriginalBlankLines = false;
+					
+					if (sourceText && currentStmt.loc && nextStmt.loc) {
+						const currentEnd = currentStmt.loc.end;
+						const nextStart = nextStmt.loc.start;
+						
+						const lines = sourceText.split('\n');
+						const linesBetween = lines.slice(currentEnd.line, nextStart.line - 1);
+						hasOriginalBlankLines = linesBetween.some(line => line.trim() === '');
+					} else {
+						const currentEndLine = currentStmt.loc?.end?.line;
+						const nextStartLine = nextStmt.loc?.start?.line;
+						hasOriginalBlankLines = nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+					}
+					
+					// Add appropriate spacing
+					if (hasOriginalBlankLines) {
+						statements.push(concat([line, line])); // blank line
+					} else {
+						statements.push(line); // single line break
+					}
+				}
 			}
-			return join(concat([line, line]), statements);
+			return concat(statements);
 		}
 
 		case 'ImportDeclaration':
@@ -592,16 +622,37 @@ function printComponent(node, path, options, print) {
 			const currentStmt = node.body[i];
 			const nextStmt = node.body[i + 1];
 
-			const currentEndLine = currentStmt.loc?.end?.line;
-			const nextStartLine = nextStmt.loc?.start?.line;
-			// Only preserve single blank lines (line difference of exactly 2)
-			const hasOriginalSingleBlankLine =
-				nextStartLine && currentEndLine && nextStartLine - currentEndLine === 2;
+			// Use source text analysis for better whitespace detection
+			let hasOriginalBlankLines = false;
+			
+			// Try multiple ways to access the original source text
+			const sourceText = options.originalText || options.source || path.getNode()?.source;
+			
+			if (sourceText && currentStmt.loc && nextStmt.loc) {
+				const currentEnd = currentStmt.loc.end;
+				const nextStart = nextStmt.loc.start;
+				
+				// Extract lines between the statements
+				const lines = sourceText.split('\n');
+				const linesBetween = lines.slice(currentEnd.line, nextStart.line - 1);
+				
+				// Check if there's at least one empty or whitespace-only line
+				hasOriginalBlankLines = linesBetween.some(line => line.trim() === '');
+			} else {
+				// Fallback to line number difference
+				const currentEndLine = currentStmt.loc?.end?.line;
+				const nextStartLine = nextStmt.loc?.start?.line;
+				hasOriginalBlankLines = nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+			}
 
 			const shouldAddBlank = shouldAddBlankLine(currentStmt, nextStmt);
 
-			// Add blank lines if needed by formatting rules (no whitespace preservation for now)
-			if (shouldAddBlank) {
+			// Preserve existing blank lines (collapse multiple to single) OR add only when absolutely necessary
+			if (hasOriginalBlankLines) {
+				// Always preserve existing blank lines (collapsed to single)
+				spacedStatements.push('');
+			} else if (shouldAddBlank) {
+				// Only add blank lines when there were none and it's critical (like after interfaces)
 				spacedStatements.push('');
 			}
 		}
@@ -1513,13 +1564,14 @@ function printSequenceExpression(node, path, options, print) {
 }
 
 function shouldAddBlankLine(currentNode, nextNode) {
-	// Only add blank lines for essential separations that prevent syntax errors or improve readability
+	// Conservative - only add blank lines when truly necessary
 
+	// Critical: Add blank line after interface declarations to prevent merging with next statement
 	if (currentNode.type === 'TSInterfaceDeclaration') {
 		return true;
 	}
 
-	// Add blank line between variable declarations and JSX/Elements
+	// Add blank line between variable declarations and JSX/Elements for readability
 	if (currentNode.type === 'VariableDeclaration' && 
 		(nextNode.type === 'JSXElement' || nextNode.type === 'Element')) {
 		return true;
