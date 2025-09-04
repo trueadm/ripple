@@ -21,9 +21,9 @@ describe('prettier-plugin-ripple', () => {
       const expected = `export component Test() {
   let count = 0;
 
-  <div>{"Hello"}</div>
+  <div>{'Hello'}</div>
 }`;
-      const result = await format(input);
+      const result = await format(input, { singleQuote: true });
       expect(result).toBe(expected);
     });
 
@@ -31,13 +31,13 @@ describe('prettier-plugin-ripple', () => {
       const input = `export default component App() {
   let $node;
 
-  const ref = (node) => {
+  const ref = node => {
     $node = node;
     console.log("mounted", node);
 
     return () => {
       $node = undefined;
-      console.log("unmounted", node);
+      console.log('unmounted', node);
     };
   };
 
@@ -49,7 +49,7 @@ describe('prettier-plugin-ripple', () => {
     c: 3,
   };
 
-  <div {@use ref}>{"Hello world"}</div>
+  <div {@use ref}>{'Hello world'}</div>
 
   <style>
     div {
@@ -57,11 +57,36 @@ describe('prettier-plugin-ripple', () => {
     }
   </style>
 }
-`;
-      const firstFormat = await format(input);
-      const secondFormat = await format(firstFormat);
 
-      expect(firstFormat).toBe(secondFormat);
+export default component App() {
+  <div class="container">
+    <h1>{'Welcome to Ripple!'}</h1>
+
+    const items = [];
+
+    <div class="counter">
+      let $count = 0;
+
+      <button onClick={() => $count--}>{'-'}</button>
+      <span class="count">{$count}</span>
+      <button onClick={() => $count++}>{'+'}</button>
+    </div>
+    <div>
+      const foo = 'foo';
+      
+      <p>{'This is a basic Ripple application template.'}</p>
+      <p>
+        {'Edit '}
+        <code>{'src/App.ripple'}</code>
+        {' to get started.'}
+      </p>
+    </div>
+  </div>
+}
+`;
+      const formatted = await format(input, { singleQuote: true });
+
+      expect(formatted).toBe(input);
     });
 
     it('should handle arrow functions with block bodies', async () => {
@@ -71,21 +96,21 @@ describe('prettier-plugin-ripple', () => {
 
   handler;
 }`;
-      const result = await format(input);
+      const result = await format(input, { singleQuote: true });
       expect(result).toBe(expected);
     });
 
     it('should handle style tags inside component body', async () => {
       const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
       const expected = `export component Test() {
-  <div>{"Test"}</div>
+  <div>{'Test'}</div>
   <style>
     div {
       color: red;
     }
   </style>
 }`;
-      const result = await format(input);
+      const result = await format(input, { singleQuote: true });
       expect(result).toBe(expected);
     });
 
@@ -99,11 +124,11 @@ describe('prettier-plugin-ripple', () => {
 
   let user: User = {
     id: 1,
-    name: "test",
+    name: 'test',
   };
   user;
 }`;
-      const result = await format(input);
+      const result = await format(input, { singleQuote: true });
       expect(result).toBe(expected);
     });
 
@@ -114,7 +139,7 @@ describe('prettier-plugin-ripple', () => {
 
   data;
 }`;
-      const result = await format(input);
+      const result = await format(input, { singleQuote: true });
       expect(result).toBe(expected);
     });
 
@@ -127,7 +152,7 @@ describe('prettier-plugin-ripple', () => {
     <li>{item}</li>
   }
 }`;
-      const result = await format(input);
+      const result = await format(input, { singleQuote: true });
       expect(result).toBe(expected);
     });
   });
