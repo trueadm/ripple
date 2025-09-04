@@ -600,19 +600,8 @@ function printComponent(node, path, options, print) {
 			const shouldAddBlank = shouldAddBlankLine(currentStmt, nextStmt);
 
 			// Preserve existing blank lines, or add them if required by formatting rules
-			if (hasOriginalBlankLine) {
-				// Preserve existing blank lines
+			if (hasOriginalBlankLine || shouldAddBlank) {
 				spacedStatements.push('');
-			} else if (shouldAddBlank) {
-				// Only add blank lines for critical formatting rules
-				const currentType = currentStmt.type;
-				const nextType = nextStmt.type;
-
-				// Add blank lines between very different statement types
-				if ((currentType === 'VariableDeclaration' && (nextType === 'JSXElement' || nextType === 'Element')) ||
-					((currentType === 'ExpressionStatement' || currentType === 'ReturnStatement') && (nextType === 'JSXElement' || nextType === 'Element'))) {
-					spacedStatements.push('');
-				}
 			}
 		}
 	}
