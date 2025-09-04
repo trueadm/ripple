@@ -283,13 +283,13 @@ component ListView({ title, items }) {
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
 ```ripple
-import { array } from 'ripple';
+import { RippleArray } from 'ripple';
 
 component Numbers() {
-  const items = array(1, 2, 3);
+  const items = new RippleArray(1, 2, 3);
 
   for (const item of items) {
-    <div}>{item}</div>
+    <div>{item}</div>
   }
 
   <button onClick={() => items.push(`Item ${items.$length + 1}`)}>{"Add Item"}</button>
