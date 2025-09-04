@@ -1403,7 +1403,7 @@ function transform_children(children, { visit, state, root }) {
 
 		if (child.type === 'Text' && prev_child?.type === 'Text') {
 			if (child.expression.type === 'Literal' && prev_child.expression.type === 'Literal') {
-				prev_child.expression.value += child.expression.value;
+				prev_child.expression = b.literal(prev_child.expression.value + child.expression.value);
 			} else {
 				prev_child.expression = b.binary('+', prev_child.expression, child.expression);
 			}
