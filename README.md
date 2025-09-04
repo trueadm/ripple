@@ -94,7 +94,7 @@ Define reusable components with the `component` keyword. These are similar to fu
 they allow for a JSX-like syntax to be defined alongside standard TypeScript. That means you do not _return JSX_ like in other frameworks,
 but you instead use it like a JavaScript statement, as shown:
 
-```ripple
+```jsx
 component Button(props: { text: string, onClick: () => void }) {
   <button onClick={props.onClick}>
     {props.text}
@@ -106,8 +106,6 @@ component App() {
   <Button text="Click me" onClick={() => console.log("Clicked!")} />
 }
 ```
-
-![image for the sourcecode above](assets/readme-1.png)
 
 Ripple's templating language also supports shorthands and object spreads too:
 
@@ -153,7 +151,7 @@ let $quadruple = $double * 2;
 
 That means `$count` itself might be derived if it were to reference another reactive property. For example:
 
-```ripple
+```jsx
 component Counter({ $startingCount }) {
   let $count = $startingCount;
   let $double = $count * 2;
@@ -163,7 +161,7 @@ component Counter({ $startingCount }) {
 
 Now given `$startingCount` is reactive, it would mean that `$count` might reset each time an incoming change to `$startingCount` occurs. That might not be desirable, so Ripple provides a way to `untrack` reactivity in those cases:
 
-```ripple
+```jsx
 import { untrack } from 'ripple';
 
 component Counter({ $startingCount }) {
@@ -204,7 +202,7 @@ accessing the `length` property of a `RippleArray` will be not be reactive, inst
 When dealing with reactive state, you might want to be able to create side-effects based upon changes that happen upon updates.
 To do this, you can use `effect`:
 
-```ripple
+```jsx
 import { effect } from 'ripple';
 
 component App() {
@@ -223,7 +221,7 @@ component App() {
 The JSX-like syntax might take some time to get used to if you're coming from another framework. For one, templating in Ripple
 can only occur _inside_ a `component` body – you can't create JSX inside functions, or assign it to variables as an expression.
 
-```ripple
+```jsx
 <div>
   // you can create variables inside the template!
   const str = "hello world";
@@ -236,8 +234,6 @@ can only occur _inside_ a `component` body – you can't create JSX inside funct
 </div>
 ```
 
-![image for the sourcecode above](assets/readme-5.png)
-
 Note that strings inside the template need to be inside `{"string"}`, you can't do `<div>hello</div>` as Ripple
 has no idea if `hello` is a string or maybe some JavaScript code that needs evaluating, so just ensure you wrap them
 in curly braces. This shouldn't be an issue in the real-world anyway, as you'll likely use an i18n library that means
@@ -248,7 +244,7 @@ using JavaScript expressions regardless.
 If blocks work seamlessly with Ripple's templating language, you can put them inside the JSX-like
 statements, making control-flow far easier to read and reason with.
 
-```ripple
+```jsx
 component Truthy({ x }) {
   <div>
     if (x) {
@@ -260,14 +256,12 @@ component Truthy({ x }) {
 }
 ```
 
-![image for the sourcecode above](assets/readme-2.png)
-
 ### For statements
 
 You can render collections using a `for...of` block, and you don't need to specify a `key` prop like
 other frameworks.
 
-```ripple
+```jsx
 component ListView({ title, items }) {
   <h2>{title}</h2>
   <ul>
@@ -278,11 +272,9 @@ component ListView({ title, items }) {
 }
 ```
 
-![image for the sourcecode above](assets/readme-3.png)
-
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
-```ripple
+```jsx
 import { RippleArray } from 'ripple';
 
 component Numbers() {
@@ -304,7 +296,7 @@ reactive, but rather its properties are instead.
 Try blocks work to building the foundation for **error boundaries**, when the runtime encounters
 an error in the `try` block, you can easily render a fallback in the `catch` block.
 
-```ripple
+```jsx
 import { reportError } from 'some-library';
 
 component ErrorBoundary() {
@@ -320,13 +312,11 @@ component ErrorBoundary() {
 }
 ```
 
-![image for the sourcecode above](assets/readme-4.png)
-
 ### Props
 
 If you want a prop to be reactive, you should also give it a `$` prefix.
 
-```ripple
+```jsx
 component Button(props: { $text: string, onClick: () => void }) {
   <button onClick={props.onClick}>
     {props.$text}
@@ -353,7 +343,7 @@ Use `$children` prop and then use it in the form of `<$children />` for componen
 
 When you pass in children to a component, it gets implicitly passed as the `$children` prop, in the form of a component.
 
-```ripple
+```jsx
 import type { Component } from 'ripple';
 
 component Card(props: { $children: Component }) {
@@ -370,7 +360,7 @@ component Card(props: { $children: Component }) {
 
 You could also explicitly write the same code as shown:
 
-```ripple
+```jsx
 import type { Component } from 'ripple';
 
 component Card(props: { $children: Component }) {
@@ -412,7 +402,7 @@ the syntax `{@use fn}` where `fn` is a function that captures the DOM element. I
 this identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React. The hook function will receive
 the reference to the underlying DOM element.
 
-```ripple
+```jsx
 component App() {
   let $node;
 
@@ -432,7 +422,7 @@ component App() {
 
 You can also create `{@use}` functions inline.
 
-```ripple
+```jsx
 component App() {
   let $node;
 
@@ -446,7 +436,7 @@ component App() {
 You can also use function factories to define properties, these are functions that return functions that do the same
 thing. However, you can use this pattern to pass reactive properties.
 
-```ripple
+```jsx
 import { fadeIn } from 'some-library';
 
 component App({ $ms }) {
@@ -456,7 +446,7 @@ component App({ $ms }) {
 
 Lastly, you can use element hooks on composite components.
 
-```ripple
+```jsx
 <Image {@use (node) => console.log(node)} {...props} />
 ```
 
@@ -466,7 +456,7 @@ When passing element hooks to composite components (rather than HTML elements) a
 
 Ripple supports native CSS styling that is localized to the given component using the `<style>` element.
 
-```ripple
+```jsx
 component MyComponent() {
   <div class="container"><h1>{'Hello World'}</h1></div>
 
@@ -494,7 +484,7 @@ like in other frameworks. This all happens from the `createContext` function tha
 When you create a context, you can `get` and `set` the values, but this must happen within the component. Using them
 outside will result in an error being thrown.
 
-```ripple
+```jsx
 import { createContext } from 'ripple';
 
 const MyContext = createContext(null);
