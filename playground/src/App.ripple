@@ -3,13 +3,13 @@ import { createContext } from 'ripple';
 const MyContext = createContext(null);
 
 component Child() {
-  const value = MyContext.get(MyContext);
+  const value = MyContext.get();
 
   <div>{value}</div>
 }
 
 export component App() {
-  const value = MyContext.get(MyContext);
+  const value = MyContext.get();
 
   console.log(value);
 
