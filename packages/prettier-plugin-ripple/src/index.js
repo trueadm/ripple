@@ -594,13 +594,14 @@ function printComponent(node, path, options, print) {
 
 			const currentEndLine = currentStmt.loc?.end?.line;
 			const nextStartLine = nextStmt.loc?.start?.line;
-			const hasOriginalBlankLine =
-				nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+			// Only preserve single blank lines (line difference of exactly 2)
+			const hasOriginalSingleBlankLine =
+				nextStartLine && currentEndLine && nextStartLine - currentEndLine === 2;
 
 			const shouldAddBlank = shouldAddBlankLine(currentStmt, nextStmt);
 
-			// Preserve existing blank lines, or add them if required by formatting rules
-			if (hasOriginalBlankLine || shouldAddBlank) {
+			// Add blank lines if needed by formatting rules (no whitespace preservation for now)
+			if (shouldAddBlank) {
 				spacedStatements.push('');
 			}
 		}
@@ -1512,118 +1513,32 @@ function printSequenceExpression(node, path, options, print) {
 }
 
 function shouldAddBlankLine(currentNode, nextNode) {
-	// Add blank line after variable declarations when followed by different statement types
-	if (currentNode.type === 'VariableDeclaration' && nextNode.type !== 'VariableDeclaration') {
-		return true;
-	}
+	// Only add blank lines for essential separations that prevent syntax errors or improve readability
 
-	// Add blank line after variable declarations when followed by other variable declarations
-	// (to separate different variable declarations)
-	if (currentNode.type === 'VariableDeclaration' && nextNode.type === 'VariableDeclaration') {
-		return true;
-	}
-
-	// Add blank line after interface declarations
 	if (currentNode.type === 'TSInterfaceDeclaration') {
 		return true;
 	}
 
-	// Add blank line after expression statements when followed by different statement types
-	if (
-		currentNode.type === 'ExpressionStatement' &&
-		nextNode.type !== 'ExpressionStatement' &&
-		nextNode.type !== 'JSXElement' &&
-		nextNode.type !== 'Element'
-	) {
+	// Add blank line between variable declarations and JSX/Elements
+	if (currentNode.type === 'VariableDeclaration' && 
+		(nextNode.type === 'JSXElement' || nextNode.type === 'Element')) {
 		return true;
 	}
 
-	// Add blank line after if statements
-	if (currentNode.type === 'IfStatement') {
+	// Add blank line between expression statements and JSX/Elements  
+	if (currentNode.type === 'ExpressionStatement' && 
+		(nextNode.type === 'JSXElement' || nextNode.type === 'Element')) {
 		return true;
 	}
 
-	// Add blank line after for loops
-	if (currentNode.type === 'ForOfStatement' || currentNode.type === 'ForStatement') {
+	// Add blank line after variable declarations when followed by expression statements
+	if (currentNode.type === 'VariableDeclaration' && nextNode.type === 'ExpressionStatement') {
 		return true;
 	}
 
-	// Add blank line after while loops
-	if (currentNode.type === 'WhileStatement' || currentNode.type === 'DoWhileStatement') {
-		return true;
-	}
-
-	// Add blank line after try statements
-	if (currentNode.type === 'TryStatement') {
-		return true;
-	}
-
-	// Add blank line before try statements
-	if (nextNode.type === 'TryStatement') {
-		return true;
-	}
-
-	// Add blank line before for loops
+	// Add blank line before control flow statements (for loops, etc.)
 	if (nextNode.type === 'ForOfStatement' || nextNode.type === 'ForStatement') {
 		return true;
-	}
-
-	// Add blank line before while loops
-	if (nextNode.type === 'WhileStatement' || nextNode.type === 'DoWhileStatement') {
-		return true;
-	}
-
-	// Add blank line before function declarations/expressions
-	if (
-		nextNode.type === 'FunctionDeclaration' ||
-		(nextNode.type === 'VariableDeclaration' &&
-			nextNode.declarations &&
-			nextNode.declarations[0] &&
-			nextNode.declarations[0].init &&
-			nextNode.declarations[0].init.type === 'ArrowFunctionExpression')
-	) {
-		return true;
-	}
-
-	// Add blank line before JSX elements when preceded by statements
-	if (currentNode.type !== 'JSXElement' && nextNode.type === 'JSXElement') {
-		return true;
-	}
-
-	// Add spacing between function declarations and other statements
-	if (currentNode.type === 'FunctionDeclaration') {
-		return true;
-	}
-
-	// Add spacing between different top-level statement types, but not within function bodies
-	if (currentNode.type === 'ExpressionStatement' && nextNode.type === 'ExpressionStatement') {
-		// Only add spacing if these are likely top-level statements (like beforeEach, afterEach, it)
-		// We can detect this by checking if the expressions are function calls with test-related names
-		if (
-			currentNode.expression?.type === 'CallExpression' &&
-			nextNode.expression?.type === 'CallExpression'
-		) {
-			const currentCallee = currentNode.expression.callee?.name;
-			const nextCallee = nextNode.expression.callee?.name;
-
-			// Only add spacing between test framework calls, not regular function calls
-			const testFrameworkFunctions = [
-				'beforeEach',
-				'afterEach',
-				'beforeAll',
-				'afterAll',
-				'it',
-				'test',
-				'describe',
-			];
-
-			if (
-				testFrameworkFunctions.includes(currentCallee) ||
-				testFrameworkFunctions.includes(nextCallee)
-			) {
-				return true;
-			}
-		}
 	}
 
 	return false;
