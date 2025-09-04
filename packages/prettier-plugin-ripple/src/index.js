@@ -619,40 +619,47 @@ function printComponent(node, path, options, print) {
 
 
 
-	// Build CSS content using simple formatting
+	// Build CSS content using Prettier document structure
 	let cssContent = null;
 	if (node.css && node.css.source) {
 		const css = node.css.source.trim();
 		const formattedCss = formatCss(css);
-		let cssString = '<style>\n';
+
+		// Build proper document structure for CSS
+		const cssInnerParts = [];
 
 		for (let i = 0; i < formattedCss.length; i++) {
 			const part = formattedCss[i];
 			if (typeof part === 'string') {
 				if (part.trim()) {
 					if (part.trim() === '{') {
-						// Opening brace goes right after selector with a space
-						cssString += ' ' + part.trim();
+						// Opening brace goes right after selector
+						cssInnerParts.push(' ' + part.trim());
 					} else if (part.trim() === '}') {
-						// Closing brace (component indentation will add 2 more spaces = 4 total)
-						cssString += '  ' + part.trim();
+						// Closing brace gets 2 spaces (component will add 2 more = 4 total)
+						cssInnerParts.push('  ' + part.trim());
 					} else if (part.startsWith('  ')) {
-						// Properties already have 2 spaces, component adds 2 more = 4 total, but we want 6 total
-						cssString += '  ' + part;
+						// Properties already have 2 spaces, add 2 more = 4 total (component will add 2 more = 6 total)
+						cssInnerParts.push('  ' + part);
 					} else {
-						// Selectors (component indentation will add 2 more spaces = 4 total)
-						cssString += '  ' + part;
+						// Selectors get 2 spaces (component will add 2 more = 4 total)
+						cssInnerParts.push('  ' + part);
 					}
 				}
 			} else if (part && typeof part === 'object' && Array.isArray(part)) {
 				if (part.some(p => p && p.type === 'line' && p.hard)) {
-					cssString += '\n';
+					cssInnerParts.push(hardline);
 				}
 			}
 		}
 
-		cssString += '\n</style>';
-		cssContent = [cssString];
+		// Structure: <style> + inner CSS content + </style>
+		cssContent = [
+			'<style>',
+			hardline,
+			...cssInnerParts,
+			'</style>'
+		];
 	}
 
 	// Build script content using Prettier document builders
@@ -700,11 +707,11 @@ function printComponent(node, path, options, print) {
 
 			// Add CSS content
 	if (cssContent) {
-		if (contentParts.length > 0) {
-			// Add blank line before CSS
-			contentParts.push(line);
+		// Add blank line before CSS if there are body statements
+		if (node.body && node.body.length > 0) {
+			contentParts.push(hardline);
 		}
-		contentParts.push(cssContent[0]);
+		contentParts.push(concat(cssContent));
 	}
 
 	// Add script content
@@ -721,7 +728,7 @@ function printComponent(node, path, options, print) {
 	const joinedContent = contentParts.length > 0 ? concat(contentParts) : '';
 
 	// Apply component-level indentation
-	const indentedContent = indent([hardline, joinedContent]);
+	const indentedContent = joinedContent ? indent([hardline, joinedContent]) : indent([hardline]);
 
 	parts.push(
 		group([

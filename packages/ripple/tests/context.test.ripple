@@ -34,8 +34,6 @@ describe('context', () => {
 
       console.log(value);
 
-      const items = new Array(1, 2, 3);
-
       MyContext.set("Hello from context!");
 
       <Child />
