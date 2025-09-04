@@ -1168,6 +1168,8 @@ function join_template(items) {
 function normalize_child(node, normalized) {
 	if (node.type === 'EmptyStatement') {
 		return;
+	} else if (node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'style') {
+		return;
 	} else {
 		normalized.push(node);
 	}
@@ -1561,9 +1563,7 @@ export function transform(filename, source, analysis, to_ts) {
 		to_ts,
 	};
 
-	const program = /** @type {ESTree.Program} */ (
-		walk((analysis.ast), state, visitors)
-	);
+	const program = /** @type {ESTree.Program} */ (walk(analysis.ast, state, visitors));
 
 	for (const hoisted of state.hoisted) {
 		program.body.unshift(hoisted);

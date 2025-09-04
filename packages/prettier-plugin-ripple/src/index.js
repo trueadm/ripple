@@ -22,11 +22,7 @@ export const parsers = {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
 			const ast = parse(text);
-
-			// Ensure the AST has the required properties for Prettier
-			if (!ast.comments) {
-				ast.comments = [];
-			}
+			ast.comments = []; // Remove comments to avoid issues with Prettier's comment attachment
 
 			return ast;
 		},
@@ -53,6 +49,15 @@ export const printers = {
 				return concat(parts);
 			}
 			return typeof parts === 'string' ? parts : parts;
+		},
+		printComment(path, options) {
+			const comment = path.getValue();
+			if (comment.type === 'CommentLine') {
+				return '//' + comment.value;
+			} else if (comment.type === 'CommentBlock') {
+				return '/*' + comment.value + '*/';
+			}
+			return '';
 		},
 	},
 };
@@ -357,7 +362,7 @@ function printRippleNode(node, path, options, print, args) {
 				return '{}';
 			}
 
-			// Process statements and handle spacing
+			// Process statements and handle spacing using shouldAddBlankLine
 			const statements = [];
 			for (let i = 0; i < node.body.length; i++) {
 				const statement = path.call(print, 'body', i);
@@ -368,9 +373,15 @@ function printRippleNode(node, path, options, print, args) {
 					const currentStmt = node.body[i];
 					const nextStmt = node.body[i + 1];
 
-					// Only add blank lines when explicitly needed by shouldAddBlankLine logic
-					if (shouldAddBlankLine(currentStmt, nextStmt)) {
-						statements.push(hardline); // Extra line for spacing
+					// Use shouldAddBlankLine to determine spacing
+					// The nextStmt is at index i+1. It's the first statement if i+1 === 0 (impossible)
+					// So in this context, nextStmt is never the first statement
+					// But the rule might apply at a different level
+					const isNextStatementFirst = (i + 1) === 0; // This will always be false
+					if (shouldAddBlankLine(currentStmt, nextStmt, isNextStatementFirst)) {
+						statements.push(concat([hardline, hardline])); // Blank line = two hardlines
+					} else {
+						statements.push(hardline); // Normal line break
 					}
 				}
 			}
@@ -378,7 +389,7 @@ function printRippleNode(node, path, options, print, args) {
 			// Use proper block statement pattern
 			return group([
 				'{',
-				indent([hardline, join(hardline, statements)]),
+				indent([hardline, concat(statements)]),
 				hardline,
 				'}'
 			]);
@@ -471,6 +482,39 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'Element':
 			return printElement(node, path, options, print);
+
+		case 'StyleSheet':
+			return printStyleSheet(node, path, options, print);
+
+		case 'Rule':
+			return printCSSRule(node, path, options, print);
+
+		case 'Declaration':
+			return printCSSDeclaration(node, path, options, print);
+
+		case 'Atrule':
+			return printCSSAtrule(node, path, options, print);
+
+		case 'SelectorList':
+			return printCSSSelectorList(node, path, options, print);
+
+		case 'ComplexSelector':
+			return printCSSComplexSelector(node, path, options, print);
+
+		case 'RelativeSelector':
+			return printCSSRelativeSelector(node, path, options, print);
+
+		case 'TypeSelector':
+			return printCSSTypeSelector(node, path, options, print);
+
+		case 'IdSelector':
+			return printCSSIdSelector(node, path, options, print);
+
+		case 'ClassSelector':
+			return printCSSClassSelector(node, path, options, print);
+
+		case 'Block':
+			return printCSSBlock(node, path, options, print);
 
 		case 'Attribute':
 			return printAttribute(node, path, options, print);
@@ -601,119 +645,32 @@ function printComponent(node, path, options, print) {
 		signatureParts.push('()');
 	}
 
-	// Build body content as complete string
-	const bodyStatements = [];
+	// Build body content using the same pattern as BlockStatement
+	const statements = [];
 	for (let i = 0; i < node.body.length; i++) {
 		const statement = path.call(print, 'body', i);
-		// Statements will be indented at the component level
-		bodyStatements.push(statement);
-	}
+		statements.push(statement);
 
-	// Apply spacing logic
-	const spacedStatements = [];
-	for (let i = 0; i < bodyStatements.length; i++) {
-		spacedStatements.push(bodyStatements[i]);
-
-		if (i < bodyStatements.length - 1 && node.body && node.body[i] && node.body[i + 1]) {
+		// Handle blank lines between statements
+		if (i < node.body.length - 1) {
 			const currentStmt = node.body[i];
 			const nextStmt = node.body[i + 1];
 
-			// Use source text analysis for better whitespace detection
-			let hasOriginalBlankLines = false;
-			
-			// Try multiple ways to access the original source text
-			const sourceText = options.originalText || options.source || path.getNode()?.source;
-			
-			if (sourceText && currentStmt.loc && nextStmt.loc) {
-				const currentEnd = currentStmt.loc.end;
-				const nextStart = nextStmt.loc.start;
-				
-				// Extract lines between the statements
-				const lines = sourceText.split('\n');
-				const linesBetween = lines.slice(currentEnd.line, nextStart.line - 1);
-				
-				// Check if there's at least one empty or whitespace-only line
-				hasOriginalBlankLines = linesBetween.some(line => line.trim() === '');
+			// Use shouldAddBlankLine to determine spacing
+			if (shouldAddBlankLine(currentStmt, nextStmt, false)) {
+				statements.push(concat([hardline, hardline])); // Blank line = two hardlines
 			} else {
-				// Fallback to line number difference
-				const currentEndLine = currentStmt.loc?.end?.line;
-				const nextStartLine = nextStmt.loc?.start?.line;
-				hasOriginalBlankLines = nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
-			}
-
-			const shouldAddBlank = shouldAddBlankLine(currentStmt, nextStmt);
-
-			// Only add blank lines when explicitly needed, don't preserve excessive original spacing
-			if (shouldAddBlank) {
-				spacedStatements.push('');
+				statements.push(hardline); // Normal line break
 			}
 		}
 	}
 
-	// Follow Prettier's block statement pattern
-	const statements = [];
-	for (let i = 0; i < spacedStatements.length; i++) {
-		if (spacedStatements[i] !== '') {
-			statements.push(spacedStatements[i]);
-			
-			// Add line break after each statement (except last)
-			if (i < spacedStatements.length - 1) {
-				// Check if next item is a blank line marker
-				if (spacedStatements[i + 1] === '') {
-					statements.push(hardline); // Extra line for blank line
-				} else {
-					// Add normal line break between statements
-					statements.push(line);
-				}
-			}
-		} else {
-			// This is a blank line marker, skip it (already handled above)
-		}
-	}
 
 
-
-	// Build CSS content using Prettier document structure
-	let cssContent = null;
-	if (node.css && node.css.source) {
-		const css = node.css.source.trim();
-		const formattedCss = formatCss(css);
-
-		// Build proper document structure for CSS
-		const cssInnerParts = [];
-
-		for (let i = 0; i < formattedCss.length; i++) {
-			const part = formattedCss[i];
-			if (typeof part === 'string') {
-				if (part.trim()) {
-					if (part.trim() === '{') {
-						// Opening brace goes right after selector
-						cssInnerParts.push(' ' + part.trim());
-					} else if (part.trim() === '}') {
-						// Closing brace gets 2 spaces (component will add 2 more = 4 total)
-						cssInnerParts.push('  ' + part.trim());
-					} else if (part.startsWith('  ')) {
-						// Properties already have 2 spaces, add 2 more = 4 total (component will add 2 more = 6 total)
-						cssInnerParts.push('  ' + part);
-					} else {
-						// Selectors get 2 spaces (component will add 2 more = 4 total)
-						cssInnerParts.push('  ' + part);
-					}
-				}
-			} else if (part && typeof part === 'object' && Array.isArray(part)) {
-				if (part.some(p => p && p.type === 'line' && p.hard)) {
-					cssInnerParts.push(hardline);
-				}
-			}
-		}
-
-		// Structure: <style> + inner CSS content + </style>
-		cssContent = [
-			'<style>',
-			hardline,
-			...cssInnerParts,
-			'</style>'
-		];
+	// Process statements to add them to contentParts
+	const contentParts = [];
+	if (statements.length > 0) {
+		contentParts.push(concat(statements));
 	}
 
 	// Build script content using Prettier document builders
@@ -740,7 +697,7 @@ function printComponent(node, path, options, print) {
 	// Use Prettier's standard block statement pattern
 	const parts = [concat(signatureParts)];
 
-	if (statements.length > 0 || cssContent || scriptContent) {
+	if (statements.length > 0 || scriptContent) {
 		// Build all content that goes inside the component body
 		const allContent = [];
 
@@ -749,30 +706,16 @@ function printComponent(node, path, options, print) {
 
 		// Add statements
 		if (statements.length > 0) {
-			for (let i = 0; i < statements.length; i++) {
-				contentParts.push(statements[i]);
-				// Add blank line after variable declarations (except the last statement)
-				if (i < statements.length - 1 && node.body && node.body[i] &&
-					node.body[i].type === 'VariableDeclaration') {
-					contentParts.push(hardline);
-				}
-			}
+			// The statements array contains statements separated by line breaks
+			// We need to use join to properly handle the line breaks
+			contentParts.push(concat(statements));
 		}
 
-			// Add CSS content
-	if (cssContent) {
-		// Add blank line before CSS if there are body statements
-		if (node.body && node.body.length > 0) {
-			contentParts.push(hardline);
-		}
-		contentParts.push(concat(cssContent));
-	}
-
-	// Add script content
+		// Add script content
 		if (scriptContent) {
 			if (contentParts.length > 0) {
 				// Always add blank line before script for separation of concerns
-				contentParts.push(line);
+				contentParts.push(hardline);
 			}
 			// Script content is manually indented
 			contentParts.push(...scriptContent);
@@ -1570,8 +1513,103 @@ function printSequenceExpression(node, path, options, print) {
 	return parts;
 }
 
-function shouldAddBlankLine(currentNode, nextNode) {
-	// Temporarily disable ALL blank line additions to debug
+function getWhitespaceLinesBetween(currentNode, nextNode) {
+	// Return the number of blank lines between two nodes based on their location
+	if (currentNode.loc && nextNode.loc && 
+		typeof currentNode.loc.end?.line === 'number' && 
+		typeof nextNode.loc.start?.line === 'number') {
+		
+		const lineGap = nextNode.loc.start.line - currentNode.loc.end.line;
+		const blankLines = Math.max(0, lineGap - 1);
+		console.log(`getWhitespaceLinesBetween: ${currentNode.type}(line ${currentNode.loc.end.line}) -> ${nextNode.type}(line ${nextNode.loc.start.line}), lineGap=${lineGap}, blankLines=${blankLines}`);
+		// lineGap = 1 means adjacent lines (no blank lines)
+		// lineGap = 2 means one blank line between them
+		// lineGap = 3 means two blank lines between them, etc.
+		return blankLines;
+	}
+	
+	console.log(`getWhitespaceLinesBetween: No location info for ${currentNode.type} -> ${nextNode.type}`);
+	// If no location info, assume no whitespace
+	return 0;
+}
+
+function shouldAddBlankLine(currentNode, nextNode, isFirstStatement = false) {
+	// First check if there was original whitespace between the nodes
+	const originalBlankLines = getWhitespaceLinesBetween(currentNode, nextNode);
+	
+	console.log(`shouldAddBlankLine: ${currentNode.type} -> ${nextNode.type}, originalBlankLines=${originalBlankLines}`);
+	
+	// If there were any blank lines in the original, preserve one blank line
+	if (originalBlankLines > 0) {
+		console.log('  -> returning true (preserving original blank lines)');
+		return true;
+	}
+	
+	// If there were no blank lines originally (originalBlankLines === 0), 
+	// then apply our formatting rules to decide whether to add one
+	
+	// Always add blank line before return statements (unless it's the first statement in a block)
+	if (nextNode.type === 'ReturnStatement' && !isFirstStatement) {
+		return true;
+	}
+	
+	// Add blank line before style elements
+	if (nextNode.type === 'Element') {
+		if (nextNode.id && nextNode.id.type === 'Identifier' && nextNode.id.name === 'style') {
+			return true;
+		}
+	}
+	
+	// Add blank line after variable declarations when followed by elements or control flow statements
+	if (currentNode.type === 'VariableDeclaration') {
+		if (nextNode.type === 'Element' || 
+			nextNode.type === 'IfStatement' || 
+			nextNode.type === 'TryStatement' || 
+			nextNode.type === 'ForStatement' ||
+			nextNode.type === 'ForOfStatement' ||
+			nextNode.type === 'WhileStatement') {
+			return true;
+		}
+	}
+	
+	// Add blank line after TypeScript declarations when followed by other statements (not just elements)
+	if (currentNode.type === 'TSInterfaceDeclaration' || currentNode.type === 'TSTypeAliasDeclaration') {
+		// Add blank line before elements, control flow, variable declarations, and expression statements
+		if (nextNode.type === 'Element' || 
+			nextNode.type === 'IfStatement' || 
+			nextNode.type === 'TryStatement' || 
+			nextNode.type === 'ForStatement' ||
+			nextNode.type === 'ForOfStatement' ||
+			nextNode.type === 'WhileStatement' ||
+			nextNode.type === 'VariableDeclaration' ||
+			nextNode.type === 'ExpressionStatement') {
+			return true;
+		}
+	}
+	
+	// Add blank line after if/for/try statements if next is an element
+	if (currentNode.type === 'IfStatement' || 
+		currentNode.type === 'ForStatement' || 
+		currentNode.type === 'ForOfStatement' ||
+		currentNode.type === 'TryStatement' ||
+		currentNode.type === 'WhileStatement') {
+		if (nextNode.type === 'Element') {
+			return true;
+		}
+	}
+	
+	// Add blank line before elements when preceded by non-element statements
+	if (nextNode.type === 'Element') {
+		if (currentNode.type === 'VariableDeclaration' ||
+			currentNode.type === 'ExpressionStatement' ||
+			currentNode.type === 'TSInterfaceDeclaration' ||
+			currentNode.type === 'TSTypeAliasDeclaration') {
+			return true;
+		}
+	}
+	
+	// Fallback: don't add blank lines by default
+	console.log('  -> returning false (no rule matched)');
 	return false;
 }
 
@@ -1669,6 +1707,154 @@ function printTSTypeReference(node, path, options, print) {
 	return concat(parts);
 }
 
+function printStyleSheet(node, path, options, print) {
+	// StyleSheet contains CSS rules in the 'body' property
+	if (node.body && node.body.length > 0) {
+		const cssItems = [];
+		
+		// Process each item in the stylesheet body
+		for (let i = 0; i < node.body.length; i++) {
+			const item = path.call(print, 'body', i);
+			if (item) {
+				cssItems.push(item);
+			}
+		}
+		
+		// Structure the CSS with proper indentation and spacing  
+		// CSS rules need exactly 3 more spaces beyond the <style> element's indentation
+		return concat([
+			hardline,
+			indent([
+				'  ',  // 2 spaces (indent gives 3, we need 5 total = +2)
+				join(concat([hardline, '  ']), cssItems)  // 2 spaces for all CSS lines
+			]),
+			hardline
+		]);
+	}
+	
+	// If no body, return empty string
+	return '';
+}
+
+function printCSSRule(node, path, options, print) {
+	// CSS Rule has prelude (selector) and block (declarations)
+	const selector = path.call(print, 'prelude');
+	const block = path.call(print, 'block');
+	
+	return group([
+		selector,
+		' {',
+		indent([hardline, block]),
+		hardline,
+		'}'
+	]);
+}
+
+function printCSSDeclaration(node, path, options, print) {
+	// CSS Declaration has property and value
+	const parts = [node.property];
+	
+	if (node.value) {
+		parts.push(': ');
+		const value = path.call(print, 'value');
+		parts.push(value);
+	}
+	
+	parts.push(';');
+	return concat(parts);
+}
+
+function printCSSAtrule(node, path, options, print) {
+	// CSS At-rule like @media, @keyframes, etc.
+	const parts = ['@', node.name];
+	
+	if (node.prelude) {
+		parts.push(' ');
+		const prelude = path.call(print, 'prelude');
+		parts.push(prelude);
+	}
+	
+	if (node.block) {
+		const block = path.call(print, 'block');
+		parts.push(' {');
+		parts.push(indent([hardline, block]));
+		parts.push(hardline, '}');
+	} else {
+		parts.push(';');
+	}
+	
+	return group(parts);
+}
+
+function printCSSSelectorList(node, path, options, print) {
+	// SelectorList contains multiple selectors
+	if (node.children && node.children.length > 0) {
+		const selectors = [];
+		for (let i = 0; i < node.children.length; i++) {
+			const selector = path.call(print, 'children', i);
+			selectors.push(selector);
+		}
+		return join(', ', selectors);
+	}
+	return '';
+}
+
+function printCSSComplexSelector(node, path, options, print) {
+	// ComplexSelector contains selector components
+	if (node.children && node.children.length > 0) {
+		const selectorParts = [];
+		for (let i = 0; i < node.children.length; i++) {
+			const part = path.call(print, 'children', i);
+			selectorParts.push(part);
+		}
+		return concat(selectorParts);
+	}
+	return '';
+}
+
+function printCSSRelativeSelector(node, path, options, print) {
+	// RelativeSelector contains selector components in the 'selectors' property
+	if (node.selectors && node.selectors.length > 0) {
+		const selectorParts = [];
+		for (let i = 0; i < node.selectors.length; i++) {
+			const part = path.call(print, 'selectors', i);
+			selectorParts.push(part);
+		}
+		return concat(selectorParts);
+	}
+	return '';
+}
+
+function printCSSTypeSelector(node, path, options, print) {
+	// TypeSelector for element names like 'div', 'body', 'p', etc.
+	return node.name || '';
+}
+
+function printCSSIdSelector(node, path, options, print) {
+	// IdSelector for #id
+	return concat(['#', node.name || '']);
+}
+
+function printCSSClassSelector(node, path, options, print) {
+	// ClassSelector for .class
+	return concat(['.', node.name || '']);
+}
+
+function printCSSBlock(node, path, options, print) {
+	// CSS Block contains declarations
+	if (node.children && node.children.length > 0) {
+		const declarations = [];
+		for (let i = 0; i < node.children.length; i++) {
+			const decl = path.call(print, 'children', i);
+			if (decl) {
+				declarations.push(decl);
+			}
+		}
+		return join(concat([';', hardline]), declarations);
+	}
+	return '';
+}
+
 function printElement(node, path, options, print) {
 	const tagName = node.id.name;
 
@@ -1693,76 +1879,37 @@ function printElement(node, path, options, print) {
 		}
 
 		// Multi-line with whitespace preservation
-		const spacedChildren = [];
-		for (let i = 0; i < children.length; i++) {
-			spacedChildren.push(children[i]);
+		const finalChildren = [];
+		
+		
+		// Iterate over the original AST children to analyze whitespace
+		for (let i = 0; i < node.children.length; i++) {
+			const currentChild = node.children[i];
 			
-			// Apply whitespace preservation between Element children
-			if (i < children.length - 1 && node.children && node.children[i] && node.children[i + 1]) {
-				const currentChild = node.children[i];
+			// Print the current child
+			const printedChild = path.call(print, 'children', i);
+			finalChildren.push(printedChild);
+			
+			// Check if we need spacing after this child
+			if (i < node.children.length - 1) {
 				const nextChild = node.children[i + 1];
 				
-				// For Element children, try source text analysis first, fallback to conservative heuristics
-				let hasOriginalBlankLines = false;
+				console.log(`Element processing: ${currentChild.type} -> ${nextChild.type}`);
 				
-				// Try source text analysis
-				const sourceText = options.originalText || options.source;
-				if (sourceText && currentChild.loc && nextChild.loc) {
-					const currentEnd = currentChild.loc.end;
-					const nextStart = nextChild.loc.start;
-					
-					// Only proceed if line numbers seem reasonable (not negative, not huge gaps)
-					if (currentEnd.line >= 0 && nextStart.line >= 0 && 
-						nextStart.line > currentEnd.line && 
-						nextStart.line - currentEnd.line < 10) { // reasonable gap
-						
-						const lines = sourceText.split('\n');
-						const startIdx = currentEnd.line;
-						const endIdx = nextStart.line - 1;
-						
-						if (startIdx >= 0 && endIdx < lines.length && startIdx < endIdx) {
-							const linesBetween = lines.slice(startIdx, endIdx);
-							hasOriginalBlankLines = linesBetween.some(line => line.trim() === '');
-						}
-					}
-				}
+				// Use the same whitespace detection logic as other nodes
+				const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
 				
-				// Conservative fallback: only add spacing in very specific cases  
-				if (!hasOriginalBlankLines) {
-					// Only add spacing for VariableDeclaration -> Text in Elements with exactly 2 children
-					// This matches the new test case but should not affect the idempotent test's larger Elements
-					if (currentChild.type === 'VariableDeclaration' && nextChild.type === 'Text' &&
-						children.length === 2) {
-						hasOriginalBlankLines = true;
-					}
-				}
-				
-				// Add blank line if original had one
-				if (hasOriginalBlankLines) {
-					spacedChildren.push(''); // blank line marker
+				// Add blank line if there was original whitespace (> 0 lines) or if formatting rules require it
+				if (whitespaceLinesCount > 0 || shouldAddBlankLine(currentChild, nextChild, false)) {
+					console.log('Adding blank line in Element');
+					// Double hardline for blank line
+					finalChildren.push(hardline); // Line break 
+					finalChildren.push(hardline); // Blank line
+				} else {
+					// Single hardline for normal line break
+					finalChildren.push(hardline);
 				}
 			}
-		}
-		
-		// Convert spacing markers to actual spacing
-		const finalChildren = [];
-		for (let i = 0; i < spacedChildren.length; i++) {
-			if (spacedChildren[i] !== '') {
-				finalChildren.push(spacedChildren[i]);
-				
-				// Add line break after each child (except last)
-				if (i < spacedChildren.length - 1) {
-					if (spacedChildren[i + 1] === '') {
-						// Double hardline for blank line
-						finalChildren.push(hardline); // Line break 
-						finalChildren.push(hardline); // Blank line
-					} else {
-						// Single hardline for normal line break
-						finalChildren.push(hardline);
-					}
-				}
-			}
-			// Skip blank markers (they're converted to spacing above)
 		}
 		
 		return group([

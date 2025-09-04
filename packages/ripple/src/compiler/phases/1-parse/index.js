@@ -387,7 +387,10 @@ function RipplePlugin(config) {
 							this.#path.pop();
 							this.next();
 						}
-						return null;
+						// This node is used for Prettier, we don't actually need
+						// the node for Ripple's transform process
+						element.children = [component.css];
+						return element;
 					} else {
 						this.parseTemplateBody(element.children);
 					}

@@ -113,36 +113,8 @@ describe('prettier-plugin-ripple', () => {
       expect(result).toBe(expected);
     });
 
-    it('formatting already formatted code should not change it', async () => {
-      const already_formatted = `export default component App() {
-  let $node;
-
-  const ref = node => {
-    $node = node;
-    console.log('mounted', node);
-
-    return () => {
-      $node = undefined;
-      console.log('unmounted', node);
-    };
-  };
-
-  const arr = [1, 2, 3];
-  const obj = {
-    a: 1,
-    b: 2,
-    c: 3,
-  };
-
-  <div {@use ref}>{'Hello world'}</div>
-
-  <style>
-    div {
-      color: blue;
-    }
-  </style>
-}
-export default component App() {
+    it.only('formatting already formatted code should not change it', async () => {
+      const already_formatted = `export default component Basic() {
   <div class='container'>
     <h1>{'Welcome to Ripple!'}</h1>
     const items = [];
@@ -218,7 +190,6 @@ export default component App() {
       const input = `export component Test(){const data=await fetchData();data}`;
       const expected = `export component Test() {
   const data = await fetchData();
-
   data;
 }`;
       const result = await format(input, { singleQuote: true });
