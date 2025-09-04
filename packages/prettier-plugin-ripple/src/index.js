@@ -1,7 +1,12 @@
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
-const { concat, join, line, hardline, group, indent } = doc.builders;
+const { concat, join, line, hardline, group, indent, dedent } = doc.builders;
+
+// Embed function - not needed for now
+export function embed(path, options) {
+	return null;
+}
 
 export const languages = [
 	{
@@ -108,6 +113,8 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'Component':
 			return printComponent(node, path, options, print);
+
+
 
 		case 'ExportNamedDeclaration':
 			return printExportNamedDeclaration(node, path, options, print);
@@ -612,25 +619,67 @@ function printComponent(node, path, options, print) {
 
 
 
-	// Build CSS content using Prettier document builders
+	// Build CSS content using simple formatting
 	let cssContent = null;
 	if (node.css && node.css.source) {
 		const css = node.css.source.trim();
-
-		// Simple CSS formatter for basic rules
 		const formattedCss = formatCss(css);
+		let cssString = '<style>\n';
 
-		// Build the complete CSS block using document builders
-		// Check if we need to add a blank line before CSS
-		const cssParts = ['<style>', hardline, ...formattedCss, '</style>'];
+		for (let i = 0; i < formattedCss.length; i++) {
+			const part = formattedCss[i];
+			if (typeof part === 'string') {
+				if (part.trim()) {
+					if (part.trim() === '{') {
+						// Opening brace goes right after selector with a space
+						cssString += ' ' + part.trim();
+					} else if (part.trim() === '}') {
+						// Closing brace (component indentation will add 2 more spaces = 4 total)
+						cssString += '  ' + part.trim();
+					} else if (part.startsWith('  ')) {
+						// Properties already have 2 spaces, component adds 2 more = 4 total, but we want 6 total
+						cssString += '  ' + part;
+					} else {
+						// Selectors (component indentation will add 2 more spaces = 4 total)
+						cssString += '  ' + part;
+					}
+				}
+			} else if (part && typeof part === 'object' && Array.isArray(part)) {
+				if (part.some(p => p && p.type === 'line' && p.hard)) {
+					cssString += '\n';
+				}
+			}
+		}
 
-		cssContent = cssParts;
+		cssString += '\n</style>';
+		cssContent = [cssString];
+	}
+
+	// Build script content using Prettier document builders
+	let scriptContent = null;
+	if (node.script && node.script.source) {
+		const script = node.script.source.trim();
+
+		// Build the complete script block as a formatted string
+		// Include proper indentation for component level
+		let scriptString = '  <script>\n';
+		const scriptLines = script.split('\n');
+		for (const line of scriptLines) {
+			if (line.trim()) {
+				scriptString += '    ' + line + '\n';
+			} else {
+				scriptString += '\n';
+			}
+		}
+		scriptString += '  </script>';
+
+		scriptContent = [scriptString];
 	}
 
 	// Use Prettier's standard block statement pattern
 	const parts = [concat(signatureParts)];
 
-	if (statements.length > 0 || cssContent) {
+	if (statements.length > 0 || cssContent || scriptContent) {
 		// Build all content that goes inside the component body
 		const allContent = [];
 
@@ -649,30 +698,39 @@ function printComponent(node, path, options, print) {
 			}
 		}
 
-		// Add CSS content
-		if (cssContent) {
-			if (statements.length > 0) {
-				// Add blank line before CSS
-				contentParts.push(hardline);
+			// Add CSS content
+	if (cssContent) {
+		if (contentParts.length > 0) {
+			// Add blank line before CSS
+			contentParts.push(line);
+		}
+		contentParts.push(cssContent[0]);
+	}
+
+	// Add script content
+		if (scriptContent) {
+			if (contentParts.length > 0) {
+				// Always add blank line before script for separation of concerns
+				contentParts.push(line);
 			}
-			// Spread the CSS content array
-			contentParts.push(...cssContent);
+			// Script content is manually indented
+			contentParts.push(...scriptContent);
 		}
 
-		// Join content parts
-		const joinedContent = contentParts.length > 0 ? concat(contentParts) : '';
+			// Join content parts
+	const joinedContent = contentParts.length > 0 ? concat(contentParts) : '';
 
-		parts.push(
-			group([
-				' {',
-				indent([
-					hardline,
-					joinedContent
-				]),
-				hardline,
-				'}'
-			])
-		);
+	// Apply component-level indentation
+	const indentedContent = indent([hardline, joinedContent]);
+
+	parts.push(
+		group([
+			' {',
+			indentedContent,
+			hardline,
+			'}'
+		])
+	);
 	} else {
 		parts.push(' {}');
 	}
@@ -1760,8 +1818,8 @@ function formatCss(css) {
 		const selector = match[1].trim();
 		const properties = match[2].trim();
 
-		// Add selector with proper indentation (2 spaces for style content level)
-		parts.push('  ' + selector);
+		// Add selector (will be indented at component level)
+		parts.push(selector);
 		parts.push(' {');
 		parts.push(hardline);
 
@@ -1780,16 +1838,17 @@ function formatCss(css) {
 				if (!formattedProp.endsWith(';')) {
 					formattedProp += ';';
 				}
-				// Properties get 4 spaces (2 for component + 2 for style content)
-				parts.push('    ' + formattedProp);
+				// Properties will be indented at component level (2 spaces) + style content level (2 spaces)
+				parts.push('  ' + formattedProp);
 				parts.push(hardline);
 			}
 		}
 
-		// Close rule with proper indentation (2 spaces for style content level)
-		parts.push('  }');
+		// Close rule (will be indented at component level)
+		parts.push('}');
 		parts.push(hardline);
 	}
 
 	return parts;
 }
+
