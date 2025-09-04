@@ -27,8 +27,8 @@ describe('prettier-plugin-ripple', () => {
       expect(result).toBe(expected);
     });
 
-    it('should be idempotent - formatting already formatted code should not change it', async () => {
-      const input = `export default component App() {
+    it('formatting already formatted code should not change it', async () => {
+      const already_formatted = `export default component App() {
   let $node;
 
   const ref = node => {
@@ -59,16 +59,16 @@ describe('prettier-plugin-ripple', () => {
 }
 
 export default component App() {
-  <div class="container">
+  <div class='container'>
     <h1>{'Welcome to Ripple!'}</h1>
 
     const items = [];
 
-    <div class="counter">
+    <div class='counter'>
       let $count = 0;
 
       <button onClick={() => $count--}>{'-'}</button>
-      <span class="count">{$count}</span>
+      <span class='count'>{$count}</span>
       <button onClick={() => $count++}>{'+'}</button>
     </div>
     <div>
@@ -84,9 +84,9 @@ export default component App() {
   </div>
 }
 `;
-      const formatted = await format(input, { singleQuote: true });
+      const formatted = await format(already_formatted, { singleQuote: true });
 
-      expect(formatted).toBe(input);
+      expect(formatted).toBe(already_formatted);
     });
 
     it('should handle arrow functions with block bodies', async () => {
