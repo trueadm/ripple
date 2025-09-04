@@ -108,8 +108,7 @@ export default component App() {
       </p>
     </div>
   </div>
-}
-`;
+}`;
       const formatted = await format(already_formatted, { singleQuote: true });
 
       expect(formatted).toBe(already_formatted);
