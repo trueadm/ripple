@@ -1,21 +1,57 @@
-import { createContext } from 'ripple';
-
-const MyContext = createContext(null);
-
-component Child() {
-  const value = MyContext.get();
-
-  <div>{value}</div>
-}
-
 export component App() {
-  const value = MyContext.get();
+  <div class="container">
+    <h1>{"Welcome to Ripple!"}</h1>
+    <div class="counter">
+      let $count = 0;
 
-  console.log(value);
+      <button onClick={() => $count--}>{"-"}</button>
+      <span class="count">{$count}</span>
+      <button onClick={() => $count++}>{"+"}</button>
+    </div>
+    <div>
+      <p>{"This is a basic Ripple application template."}</p>
+      <p>
+        {"Edit "}
+        <code>{"src/App.ripple"}</code>
+        {" to get started."}
+      </p>
+    </div>
+  </div>
 
-  const items = new Array(1, 2, 3);
+  <style>
+    .container {
+      text-align: center;
+      font-family: "Arial", sans-serif;
+    }
 
-  MyContext.set("Hello from context!");
+    p {
+      margin: 12px 0;
+      font-family: "Arial", sans-serif;
+    }
 
-  <Child />
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "Courier New", monospace;
+    }
+
+    button {
+      font-size: 1.5em;
+      padding: 6px 12px;
+      margin: 0 6px;
+      cursor: pointer;
+      border: none;
+      font-family: "Courier New", monospace;
+    }
+
+    button:hover {
+      background-color: #e0e0e0;
+    }
+
+    .count {
+      margin: 0 12px;
+      font-size: 1.5em;
+    }
+  </style>
 }

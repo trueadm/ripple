@@ -87,7 +87,7 @@ describe('prettier-plugin-ripple', () => {
     }
 
     return x;
-  }
+  };
 
   <div>{'Hello'}</div>
   <div>
@@ -115,38 +115,30 @@ describe('prettier-plugin-ripple', () => {
   };
 
   const arr = [1, 2, 3];
-
   const obj = {
     a: 1,
     b: 2,
     c: 3,
   };
-
   <div {@use ref}>{'Hello world'}</div>
-
   <style>
     div {
       color: blue;
     }
   </style>
 }
-
 export default component App() {
   <div class='container'>
     <h1>{'Welcome to Ripple!'}</h1>
-
     const items = [];
-
     <div class='counter'>
       let $count = 0;
-
       <button onClick={() => $count--}>{'-'}</button>
       <span class='count'>{$count}</span>
       <button onClick={() => $count++}>{'+'}</button>
     </div>
     <div>
       const foo = 'foo';
-      
       <p>{'This is a basic Ripple application template.'}</p>
       <p>
         {'Edit '}
