@@ -62,7 +62,14 @@ describe('prettier-plugin-ripple', () => {
 
 
             if (x) {
+              console.log('test');
               return null;
+            }
+
+            if (y) {
+            
+              return null;
+
             }
 
 
@@ -83,6 +90,12 @@ describe('prettier-plugin-ripple', () => {
     console.log('test');
 
     if (x) {
+      console.log('test');
+
+      return null;
+    }
+
+    if (y) {
       return null;
     }
 
@@ -120,7 +133,9 @@ describe('prettier-plugin-ripple', () => {
     b: 2,
     c: 3,
   };
+
   <div {@use ref}>{'Hello world'}</div>
+
   <style>
     div {
       color: blue;
@@ -131,14 +146,17 @@ export default component App() {
   <div class='container'>
     <h1>{'Welcome to Ripple!'}</h1>
     const items = [];
+
     <div class='counter'>
       let $count = 0;
+
       <button onClick={() => $count--}>{'-'}</button>
       <span class='count'>{$count}</span>
       <button onClick={() => $count++}>{'+'}</button>
     </div>
     <div>
       const foo = 'foo';
+
       <p>{'This is a basic Ripple application template.'}</p>
       <p>
         {'Edit '}
@@ -157,7 +175,6 @@ export default component App() {
       const input = `export component Test(){const handler=()=>{};handler}`;
       const expected = `export component Test() {
   const handler = () => {};
-
   handler;
 }`;
       const result = await format(input, { singleQuote: true });
@@ -168,6 +185,7 @@ export default component App() {
       const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
       const expected = `export component Test() {
   <div>{'Test'}</div>
+
   <style>
     div {
       color: red;
