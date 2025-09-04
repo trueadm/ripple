@@ -113,8 +113,39 @@ describe('prettier-plugin-ripple', () => {
       expect(result).toBe(expected);
     });
 
-    it.only('formatting already formatted code should not change it', async () => {
-      const already_formatted = `export default component Basic() {
+    it('formatting already formatted code should not change it', async () => {
+      const already_formatted = `export component App() {
+  let $node;
+
+  const ref = node => {
+    $node = node;
+    console.log('mounted', node);
+
+    return () => {
+      $node = undefined;
+      console.log('unmounted', node);
+    };
+  };
+
+  const arr = [1, 2, 3];
+  const obj = {
+    a: 1,
+    b: 2,
+    c: 3,
+  };
+
+  <div {@use ref}>{'Hello world'}</div>
+
+  <style>
+    div {
+      color: blue;
+    }
+  </style>
+}
+
+function foo() {}
+
+export default component Basic() {
   <div class='container'>
     <h1>{'Welcome to Ripple!'}</h1>
     const items = [];

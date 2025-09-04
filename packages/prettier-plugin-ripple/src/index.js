@@ -22,7 +22,6 @@ export const parsers = {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
 			const ast = parse(text);
-			ast.comments = []; // Remove comments to avoid issues with Prettier's comment attachment
 
 			return ast;
 		},
@@ -359,6 +358,49 @@ function printRippleNode(node, path, options, print, args) {
 		case 'BlockStatement': {
 			// Apply the same block formatting pattern as component bodies
 			if (!node.body || node.body.length === 0) {
+				// Check if there was original content in the block (like comments)
+				// by examining the source text between the braces
+				const sourceText = options.originalText || options.source;
+				if (sourceText && node.loc) {
+					const startPos = node.loc.start;
+					const endPos = node.loc.end;
+					
+					const lines = sourceText.split('\n');
+					let blockContent = '';
+					
+					// Extract the content between the braces
+					if (startPos.line === endPos.line) {
+						// Single line block
+						const line = lines[startPos.line - 1];
+						blockContent = line.slice(startPos.column + 1, endPos.column - 1);
+					} else {
+						// Multi-line block
+						const firstLine = lines[startPos.line - 1];
+						const lastLine = lines[endPos.line - 1];
+						
+						// Get content from first line after opening brace
+						blockContent += firstLine.slice(startPos.column + 1);
+						
+						// Get content from middle lines
+						for (let i = startPos.line; i < endPos.line - 1; i++) {
+							blockContent += '\n' + lines[i];
+						}
+						
+						// Get content from last line before closing brace
+						blockContent += '\n' + lastLine.slice(0, endPos.column - 1);
+					}
+					
+					// If there's non-whitespace content (like comments), preserve the original format
+					if (blockContent.trim()) {
+						return group([
+							'{',
+							indent([hardline, blockContent.trim()]),
+							hardline,
+							'}'
+						]);
+					}
+				}
+				
 				return '{}';
 			}
 
@@ -1515,20 +1557,18 @@ function printSequenceExpression(node, path, options, print) {
 
 function getWhitespaceLinesBetween(currentNode, nextNode) {
 	// Return the number of blank lines between two nodes based on their location
-	if (currentNode.loc && nextNode.loc && 
+	if (currentNode.loc && nextNode?.loc &&
 		typeof currentNode.loc.end?.line === 'number' && 
 		typeof nextNode.loc.start?.line === 'number') {
 		
 		const lineGap = nextNode.loc.start.line - currentNode.loc.end.line;
 		const blankLines = Math.max(0, lineGap - 1);
-		console.log(`getWhitespaceLinesBetween: ${currentNode.type}(line ${currentNode.loc.end.line}) -> ${nextNode.type}(line ${nextNode.loc.start.line}), lineGap=${lineGap}, blankLines=${blankLines}`);
 		// lineGap = 1 means adjacent lines (no blank lines)
 		// lineGap = 2 means one blank line between them
 		// lineGap = 3 means two blank lines between them, etc.
 		return blankLines;
 	}
 	
-	console.log(`getWhitespaceLinesBetween: No location info for ${currentNode.type} -> ${nextNode.type}`);
 	// If no location info, assume no whitespace
 	return 0;
 }
@@ -1537,11 +1577,8 @@ function shouldAddBlankLine(currentNode, nextNode, isFirstStatement = false) {
 	// First check if there was original whitespace between the nodes
 	const originalBlankLines = getWhitespaceLinesBetween(currentNode, nextNode);
 	
-	console.log(`shouldAddBlankLine: ${currentNode.type} -> ${nextNode.type}, originalBlankLines=${originalBlankLines}`);
-	
 	// If there were any blank lines in the original, preserve one blank line
 	if (originalBlankLines > 0) {
-		console.log('  -> returning true (preserving original blank lines)');
 		return true;
 	}
 	
@@ -1609,7 +1646,6 @@ function shouldAddBlankLine(currentNode, nextNode, isFirstStatement = false) {
 	}
 	
 	// Fallback: don't add blank lines by default
-	console.log('  -> returning false (no rule matched)');
 	return false;
 }
 
@@ -1863,45 +1899,25 @@ function printElement(node, path, options, print) {
 			return group(['<', tagName, ' />']);
 		}
 
-		// No attributes, but has children
-		const children = path.map(print, 'children');
-		if (children.length === 1) {
-			// For simple elements, try to keep on single line
-			const child = children[0];
-			if (typeof child === 'string' && child.length < 20) {
-				// Single line with short content
-				return group(['<', tagName, '>', child, '</', tagName, '>']);
-			}
-			// For JSX expressions, always try single line if simple
-			if (child && typeof child === 'object') {
-				return group(['<', tagName, '>', child, '</', tagName, '>']);
-			}
-		}
-
-		// Multi-line with whitespace preservation
+		// No attributes, but has children - use unified children processing
+		// Build children with whitespace preservation
 		const finalChildren = [];
-		
 		
 		// Iterate over the original AST children to analyze whitespace
 		for (let i = 0; i < node.children.length; i++) {
 			const currentChild = node.children[i];
+			const nextChild = node.children[i + 1]; // Can be undefined for last child
 			
 			// Print the current child
 			const printedChild = path.call(print, 'children', i);
 			finalChildren.push(printedChild);
 			
-			// Check if we need spacing after this child
-			if (i < node.children.length - 1) {
-				const nextChild = node.children[i + 1];
-				
-				console.log(`Element processing: ${currentChild.type} -> ${nextChild.type}`);
-				
-				// Use the same whitespace detection logic as other nodes
+			// Only add spacing if this is not the last child
+			if (nextChild) {
 				const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
-				
+					
 				// Add blank line if there was original whitespace (> 0 lines) or if formatting rules require it
 				if (whitespaceLinesCount > 0 || shouldAddBlankLine(currentChild, nextChild, false)) {
-					console.log('Adding blank line in Element');
 					// Double hardline for blank line
 					finalChildren.push(hardline); // Line break 
 					finalChildren.push(hardline); // Blank line
@@ -1909,6 +1925,19 @@ function printElement(node, path, options, print) {
 					// Single hardline for normal line break
 					finalChildren.push(hardline);
 				}
+			}
+		}
+		
+		// For single simple children, try to keep on one line
+		if (finalChildren.length === 1) {
+			const child = finalChildren[0];
+			if (typeof child === 'string' && child.length < 20) {
+				// Single line with short content
+				return group(['<', tagName, '>', child, '</', tagName, '>']);
+			}
+			// For JSX expressions, always try single line if simple
+			if (child && typeof child === 'object') {
+				return group(['<', tagName, '>', child, '</', tagName, '>']);
 			}
 		}
 		
@@ -1941,12 +1970,40 @@ function printElement(node, path, options, print) {
 		return openingTag;
 	}
 
-	// Has children
-	const children = path.map(print, 'children');
+	// Has children - use unified children processing
+	// Build children with whitespace preservation
+	const finalChildren = [];
+	
+	// Iterate over the original AST children to analyze whitespace
+	for (let i = 0; i < node.children.length; i++) {
+		const currentChild = node.children[i];
+		const nextChild = node.children[i + 1]; // Can be undefined for last child
+		
+		// Print the current child
+		const printedChild = path.call(print, 'children', i);
+		finalChildren.push(printedChild);
+		
+		// Only add spacing if this is not the last child
+		if (nextChild) {
+			const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
+				
+			// Add blank line if there was original whitespace (> 0 lines) or if formatting rules require it
+			if (whitespaceLinesCount > 0 || shouldAddBlankLine(currentChild, nextChild, false)) {
+				// Double hardline for blank line
+				finalChildren.push(hardline); // Line break 
+				finalChildren.push(hardline); // Blank line
+			} else {
+				// Single hardline for normal line break
+				finalChildren.push(hardline);
+			}
+		}
+	}
+	
 	const closingTag = concat(['</', tagName, '>']);
 
-	if (children.length === 1) {
-		const child = children[0];
+	// For single simple children, try to keep on one line
+	if (finalChildren.length === 1) {
+		const child = finalChildren[0];
 		if (typeof child === 'string' && child.length < 20) {
 			// Single line
 			return group([openingTag, child, closingTag]);
@@ -1958,7 +2015,7 @@ function printElement(node, path, options, print) {
 	}
 
 	// Multi-line
-	return group([openingTag, indent(concat([hardline, join(hardline, children)])), hardline, closingTag]);
+	return group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 }
 
 function printAttribute(node, path, options, print) {
