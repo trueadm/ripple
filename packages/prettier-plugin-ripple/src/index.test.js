@@ -27,6 +27,32 @@ describe('prettier-plugin-ripple', () => {
       expect(result).toBe(expected);
     });
 
+    it('should format whitespace correctly', async () => {
+      const input = `export component Test(){
+        let count=0
+
+
+        <div>{"Hello"}</div>
+        <div>
+          let two=2
+          
+          {"Hello"}
+        </div>
+    }`;
+      const expected = `export component Test() {
+  let count = 0;
+
+  <div>{'Hello'}</div>
+  <div>
+    let two = 2;
+
+    {'Hello'}
+  </div>
+}`;
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
+
     it('formatting already formatted code should not change it', async () => {
       const already_formatted = `export default component App() {
   let $node;
