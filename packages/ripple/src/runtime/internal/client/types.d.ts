@@ -47,7 +47,3 @@ export type Block = {
 	s: any;
 	t: Tracked | null;
 };
-
-export type Ref<T> = {
-	$current: T;
-};	

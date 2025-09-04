@@ -96,7 +96,6 @@ export function async(fn) {
 export function use(element, get_fn) {
 	var use_obj = undefined;
 	var e;
-	var current_block = active_block;
 
 	return block(RENDER_BLOCK, () => {
 		if (use_obj !== (use_obj = get_fn())) {
@@ -108,14 +107,7 @@ export function use(element, get_fn) {
 			if (use_obj) {
 				e = branch(() => {
 					effect(() => {
-						if (typeof use_obj === 'function') {
-							return use_obj(element);
-						} else {
-							set_property(use_obj, '$current', element, current_block);
-							return () => {
-								set_property(use_obj, '$current', null, current_block);
-							};
-						}
+						return use_obj(element);
 					});
 				});
 			}
