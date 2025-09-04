@@ -127,8 +127,8 @@ function printRippleNode(node, path, options, print, args) {
 						hasOriginalBlankLines = nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
 					}
 					
-					// Add appropriate spacing
-					if (hasOriginalBlankLines) {
+					// Only add spacing when explicitly needed
+					if (shouldAddBlankLine(currentStmt, nextStmt)) {
 						statements.push(concat([line, line])); // blank line
 					} else {
 						statements.push(line); // single line break
@@ -368,12 +368,8 @@ function printRippleNode(node, path, options, print, args) {
 					const currentStmt = node.body[i];
 					const nextStmt = node.body[i + 1];
 
-					const currentEndLine = currentStmt.loc?.end?.line;
-					const nextStartLine = nextStmt.loc?.start?.line;
-					const hasOriginalBlankLine =
-						nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
-
-					if (hasOriginalBlankLine || shouldAddBlankLine(currentStmt, nextStmt)) {
+					// Only add blank lines when explicitly needed by shouldAddBlankLine logic
+					if (shouldAddBlankLine(currentStmt, nextStmt)) {
 						statements.push(hardline); // Extra line for spacing
 					}
 				}
@@ -647,8 +643,8 @@ function printComponent(node, path, options, print) {
 
 			const shouldAddBlank = shouldAddBlankLine(currentStmt, nextStmt);
 
-			// Preserve existing blank lines OR add blank lines between different statement types
-			if (hasOriginalBlankLines || shouldAddBlank) {
+			// Only add blank lines when explicitly needed, don't preserve excessive original spacing
+			if (shouldAddBlank) {
 				spacedStatements.push('');
 			}
 		}
@@ -1575,41 +1571,7 @@ function printSequenceExpression(node, path, options, print) {
 }
 
 function shouldAddBlankLine(currentNode, nextNode) {
-	// Conservative - only add blank lines when truly necessary
-
-	// Critical: Add blank line after interface declarations to prevent merging with next statement
-	if (currentNode.type === 'TSInterfaceDeclaration') {
-		return true;
-	}
-
-	// Add blank line between variable declarations and JSX/Elements for readability
-	if (currentNode.type === 'VariableDeclaration' && 
-		(nextNode.type === 'JSXElement' || nextNode.type === 'Element')) {
-		return true;
-	}
-
-	// Add blank line between expression statements and JSX/Elements  
-	if (currentNode.type === 'ExpressionStatement' && 
-		(nextNode.type === 'JSXElement' || nextNode.type === 'Element')) {
-		return true;
-	}
-
-	// Add blank line after variable declarations when followed by expression statements
-	// but not in compact arrow function contexts
-	if (currentNode.type === 'VariableDeclaration' && nextNode.type === 'ExpressionStatement') {
-		return true;
-	}
-
-	// Add blank line before control flow statements (for loops, etc.)
-	if (nextNode.type === 'ForOfStatement' || nextNode.type === 'ForStatement') {
-		return true;
-	}
-
-	// Add blank line between Elements for readability
-	if (currentNode.type === 'Element' && nextNode.type === 'Element') {
-		return false; // Let whitespace preservation handle Element-to-Element spacing
-	}
-
+	// Temporarily disable ALL blank line additions to debug
 	return false;
 }
 
