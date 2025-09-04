@@ -155,7 +155,7 @@ async function activate(context) {
 	};
 
 	try {
-		const client = new lsp.LanguageClient(
+		client = new lsp.LanguageClient(
 			'ripple',
 			'Ripple Language Server',
 			serverOptions,
