@@ -26,11 +26,11 @@ async function activate(context) {
 			);
 			console.log("Checking ripple path:", workspaceRipplePath)
 
-					if (fs.existsSync(workspaceRipplePath)) {
-						ripple_path = workspaceRipplePath;
-						console.log("Found ripple compiler at: ", ripple_path)
-						break;
-					}
+			if (fs.existsSync(workspaceRipplePath)) {
+				ripple_path = workspaceRipplePath;
+				console.log("Found ripple compiler at: ", ripple_path)
+				break;
+			}
 
 			// Also try packages/ripple for monorepo structure
 			const monorepoRipplePath = path.join(
