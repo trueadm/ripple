@@ -31,6 +31,7 @@ describe('prettier-plugin-ripple', () => {
       const input = `export component Test(){
         let count=0
 
+        // comment
 
         <div>{"Hello"}</div>
         <div>
@@ -42,6 +43,7 @@ describe('prettier-plugin-ripple', () => {
       const expected = `export component Test() {
   let count = 0;
 
+  // comment
   <div>{'Hello'}</div>
   <div>
     let two = 2;

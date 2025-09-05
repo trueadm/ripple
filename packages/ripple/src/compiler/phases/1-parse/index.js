@@ -642,13 +642,11 @@ function get_comment_handlers(source, comments, index = 0) {
 									const comment = comments[0];
 									if (parent && comment.start >= parent.end) break;
 
-									debugger;
 									(node.trailingComments ||= []).push(comment);
 									comments.shift();
 									end = comment.end;
 								}
 							} else if (node.end <= comments[0].start && /^[,) \t]*$/.test(slice)) {
-								debugger;
 								node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
 							}
 						}

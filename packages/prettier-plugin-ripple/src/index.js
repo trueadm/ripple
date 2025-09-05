@@ -89,6 +89,7 @@ function printRippleNode(node, path, options, print, args) {
 
 	// Handle leading comments
 	if (node.leadingComments) {
+		debugger
 		for (const comment of node.leadingComments) {
 			if (comment.type === 'Line') {
 				parts.push('//' + comment.value);
@@ -96,6 +97,18 @@ function printRippleNode(node, path, options, print, args) {
 				parts.push('/*' + comment.value + '*/');
 			}
 			parts.push(hardline);
+		}
+	}
+
+	// Handle inner comments (for nodes with no children to attach to)
+	const innerCommentParts = [];
+	if (node.innerComments) {
+		for (const comment of node.innerComments) {
+			if (comment.type === 'Line') {
+				innerCommentParts.push('//' + comment.value);
+			} else if (comment.type === 'Block') {
+				innerCommentParts.push('/*' + comment.value + '*/');
+			}
 		}
 	}
 
@@ -366,50 +379,17 @@ function printRippleNode(node, path, options, print, args) {
 		case 'BlockStatement': {
 			// Apply the same block formatting pattern as component bodies
 			if (!node.body || node.body.length === 0) {
-				// Check if there was original content in the block (like comments)
-				// by examining the source text between the braces
-				const sourceText = options.originalText || options.source;
-				if (sourceText && node.loc) {
-					const startPos = node.loc.start;
-					const endPos = node.loc.end;
-					
-					const lines = sourceText.split('\n');
-					let blockContent = '';
-					
-					// Extract the content between the braces
-					if (startPos.line === endPos.line) {
-						// Single line block
-						const line = lines[startPos.line - 1];
-						blockContent = line.slice(startPos.column + 1, endPos.column - 1);
-					} else {
-						// Multi-line block
-						const firstLine = lines[startPos.line - 1];
-						const lastLine = lines[endPos.line - 1];
-						
-						// Get content from first line after opening brace
-						blockContent += firstLine.slice(startPos.column + 1);
-						
-						// Get content from middle lines
-						for (let i = startPos.line; i < endPos.line - 1; i++) {
-							blockContent += '\n' + lines[i];
-						}
-						
-						// Get content from last line before closing brace
-						blockContent += '\n' + lastLine.slice(0, endPos.column - 1);
-					}
-					
-					// If there's non-whitespace content (like comments), preserve the original format
-					if (blockContent.trim()) {
-						return group([
-							'{',
-							indent([hardline, blockContent.trim()]),
-							hardline,
-							'}'
-						]);
-					}
-				}
-				
-				return '{}';
+			// Handle innerComments for empty blocks
+			if (innerCommentParts.length > 0) {
+				nodeContent = group([
+					'{',
+					indent([hardline, join(hardline, innerCommentParts)]),
+					hardline,
+					'}'
+				]);
+				break;
+			}				nodeContent = '{}';
+				break;
 			}
 
 			// Process statements and handle spacing using shouldAddBlankLine
