@@ -344,4 +344,476 @@ describe('basic', () => {
 
 		expect(container.querySelector('.count').textContent).toBe('0');
 	});
+
+	it('renders with different event types', () => {
+		component Basic() {
+			let $focusCount = 0;
+			let $clickCount = 0;
+
+			<button 
+				onFocus={() => $focusCount++}
+				onClick={() => $clickCount++}
+			>{'Test Button'}</button>
+			<div class='focus-count'>{$focusCount}</div>
+			<div class='click-count'>{$clickCount}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const focusDiv = container.querySelector('.focus-count');
+		const clickDiv = container.querySelector('.click-count');
+
+		button.dispatchEvent(new Event('focus'));
+		flushSync();
+		expect(focusDiv.textContent).toBe('1');
+
+		button.click();
+		flushSync();
+		expect(clickDiv.textContent).toBe('1');
+	});
+
+	it('renders with capture events', () => {
+		component Basic() {
+			let $captureClicks = 0;
+			let $bubbleClicks = 0;
+
+			<div onClickCapture={() => $captureClicks++}>
+				<button onClick={() => $bubbleClicks++}>{'Click me'}</button>
+				<div class='capture-count'>{$captureClicks}</div>
+				<div class='bubble-count'>{$bubbleClicks}</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const captureDiv = container.querySelector('.capture-count');
+		const bubbleDiv = container.querySelector('.bubble-count');
+
+		button.click();
+		flushSync();
+
+		expect(captureDiv.textContent).toBe('1');
+		expect(bubbleDiv.textContent).toBe('1');
+	});
+
+	it('renders with component composition and children', () => {
+		component Card(props) {
+			<div class='card'>
+				<props.$children />
+			</div>
+		}
+
+		component Basic() {
+			<Card>
+				component $children() {
+					<p>{'Card content here'}</p>
+				}
+			</Card>
+		}
+
+		render(Basic);
+
+		const card = container.querySelector('.card');
+		const paragraph = card.querySelector('p');
+
+		expect(card).toBeTruthy();
+		expect(paragraph.textContent).toBe('Card content here');
+	});
+
+	it('renders with element attributes and refs', () => {
+		component Basic() {
+			let $elementRef = null;
+			let $hasRef = false;
+
+			<div class='test-element' ref={(node) => {
+				$elementRef = node;
+				$hasRef = !!node;
+			}}>{'Element with ref'}</div>
+			<div class='has-ref'>{$hasRef ? 'Has ref' : 'No ref'}</div>
+		}
+
+		render(Basic);
+
+		const hasRefDiv = container.querySelector('.has-ref');
+		expect(container.querySelector('.test-element')).toBeTruthy();
+	});
+
+	it('renders with error handling simulation', () => {
+		component Basic() {
+			let $hasError = false;
+			let $errorMessage = '';
+
+			const triggerError = () => {
+				try {
+					throw new Error('Test error');
+				} catch (e) {
+					$hasError = true;
+					$errorMessage = e.message;
+				}
+			};
+
+			<div>
+				<button onClick={triggerError}>{'Trigger Error'}</button>
+				if ($hasError) {
+					<div class='error'>{'Error caught: ' + $errorMessage}</div>
+				} else {
+					<div class='success'>{'No error'}</div>
+				}
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const successDiv = container.querySelector('.success');
+
+		expect(successDiv).toBeTruthy();
+		expect(successDiv.textContent).toBe('No error');
+
+		button.click();
+		flushSync();
+
+		const errorDiv = container.querySelector('.error');
+		expect(errorDiv).toBeTruthy();
+		expect(errorDiv.textContent).toBe('Error caught: Test error');
+	});
+
+	it('renders with computed reactive state', () => {
+		component Basic() {
+			let $count = 5;
+			
+			<div class='count'>{$count}</div>
+			<div class='doubled'>{$count * 2}</div>
+			<div class='is-even'>{$count % 2 === 0 ? 'Even' : 'Odd'}</div>
+			<button onClick={() => $count++}>{'Increment'}</button>
+		}
+
+		render(Basic);
+
+		const countDiv = container.querySelector('.count');
+		const doubledDiv = container.querySelector('.doubled');
+		const evenDiv = container.querySelector('.is-even');
+		const button = container.querySelector('button');
+
+		expect(countDiv.textContent).toBe('5');
+		expect(doubledDiv.textContent).toBe('10');
+		expect(evenDiv.textContent).toBe('Odd');
+
+		button.click();
+		flushSync();
+
+		expect(countDiv.textContent).toBe('6');
+		expect(doubledDiv.textContent).toBe('12');
+		expect(evenDiv.textContent).toBe('Even');
+	});
+
+	it('renders with simple reactive objects', () => {
+		component Basic() {
+			let $user = {
+				$name: 'John',
+				$age: 25
+			};
+
+			<div class='name'>{$user.$name}</div>
+			<div class='age'>{$user.$age}</div>
+			<button onClick={() => {
+				$user.$name = 'Jane';
+				$user.$age = 30;
+			}}>{'Update User'}</button>
+		}
+
+		render(Basic);
+
+		const nameDiv = container.querySelector('.name');
+		const ageDiv = container.querySelector('.age');
+		const button = container.querySelector('button');
+
+		expect(nameDiv.textContent).toBe('John');
+		expect(ageDiv.textContent).toBe('25');
+
+		button.click();
+		flushSync();
+
+		expect(nameDiv.textContent).toBe('Jane');
+		expect(ageDiv.textContent).toBe('30');
+	});
+
+	it('renders with conditional rendering using if statements', () => {
+		component Basic() {
+			let $showContent = false;
+			let $userRole = 'guest';
+
+			<button onClick={() => $showContent = !$showContent}>{'Toggle Content'}</button>
+			<button onClick={() => $userRole = $userRole === 'guest' ? 'admin' : 'guest'}>{'Toggle Role'}</button>
+			
+			<div class='content'>
+				if ($showContent) {
+					if ($userRole === 'admin') {
+						<div class='admin-content'>{'Admin content'}</div>
+					} else {
+						<div class='user-content'>{'User content'}</div>
+					}
+				} else {
+					<div class='no-content'>{'No content'}</div>
+				}
+			</div>
+		}
+
+		render(Basic);
+
+		const buttons = container.querySelectorAll('button');
+		const contentDiv = container.querySelector('.content');
+
+		expect(contentDiv.querySelector('.no-content')).toBeTruthy();
+		expect(contentDiv.querySelector('.admin-content')).toBeFalsy();
+		expect(contentDiv.querySelector('.user-content')).toBeFalsy();
+
+		buttons[0].click();
+		flushSync();
+
+		expect(contentDiv.querySelector('.no-content')).toBeFalsy();
+		expect(contentDiv.querySelector('.user-content')).toBeTruthy();
+		expect(contentDiv.querySelector('.admin-content')).toBeFalsy();
+
+		buttons[1].click();
+		flushSync();
+
+		expect(contentDiv.querySelector('.no-content')).toBeFalsy();
+		expect(contentDiv.querySelector('.user-content')).toBeFalsy();
+		expect(contentDiv.querySelector('.admin-content')).toBeTruthy();
+	});
+
+	it('renders with nested components and prop passing', () => {
+		component Button(props) {
+			<button class={props.variant} onClick={props.onClick}>
+				{props.label}
+			</button>
+		}
+
+		component Card(props) {
+			<div class='card'>
+				<h3>{props.title}</h3>
+				<p>{props.content}</p>
+				<Button variant='primary' label={props.buttonText} onClick={props.onAction} />
+			</div>
+		}
+
+		component Basic() {
+			let $clicked = false;
+
+			<Card
+				title='Test Card'
+				content='This is a test card'
+				buttonText='Click me'
+				onAction={() => $clicked = true}
+			/>
+			<div class='status'>{$clicked ? 'Clicked' : 'Not clicked'}</div>
+		}
+
+		render(Basic);
+
+		const card = container.querySelector('.card');
+		const title = card.querySelector('h3');
+		const content = card.querySelector('p');
+		const button = card.querySelector('button');
+		const status = container.querySelector('.status');
+
+		expect(title.textContent).toBe('Test Card');
+		expect(content.textContent).toBe('This is a test card');
+		expect(button.textContent).toBe('Click me');
+		expect(button.className).toBe('primary');
+		expect(status.textContent).toBe('Not clicked');
+
+		button.click();
+		flushSync();
+
+		expect(status.textContent).toBe('Clicked');
+	});
+
+	it('renders with complex event handling and state updates', () => {
+		component Basic() {
+			let $counter = 0;
+			let $history = [];
+			let $isEven = true;
+
+			const handleIncrement = () => {
+				$counter++;
+				$history = [...$history, `Inc to ${$counter}`];
+				$isEven = $counter % 2 === 0;
+			};
+
+			const handleDecrement = () => {
+				$counter--;
+				$history = [...$history, `Dec to ${$counter}`];
+				$isEven = $counter % 2 === 0;
+			};
+
+			const handleReset = () => {
+				$counter = 0;
+				$history = [...$history, 'Reset'];
+				$isEven = true;
+			};
+
+			<div class='counter'>{$counter}</div>
+			<div class='parity'>{$isEven ? 'Even' : 'Odd'}</div>
+			<div class='history-count'>{$history.length}</div>
+			
+			<button class='inc-btn' onClick={handleIncrement}>{'+'}</button>
+			<button class='dec-btn' onClick={handleDecrement}>{'-'}</button>
+			<button class='reset-btn' onClick={handleReset}>{'Reset'}</button>
+		}
+
+		render(Basic);
+
+		const counterDiv = container.querySelector('.counter');
+		const parityDiv = container.querySelector('.parity');
+		const historyDiv = container.querySelector('.history-count');
+		const incBtn = container.querySelector('.inc-btn');
+		const decBtn = container.querySelector('.dec-btn');
+		const resetBtn = container.querySelector('.reset-btn');
+
+		expect(counterDiv.textContent).toBe('0');
+		expect(parityDiv.textContent).toBe('Even');
+		expect(historyDiv.textContent).toBe('0');
+
+		incBtn.click();
+		flushSync();
+
+		expect(counterDiv.textContent).toBe('1');
+		expect(parityDiv.textContent).toBe('Odd');
+		expect(historyDiv.textContent).toBe('1');
+
+		incBtn.click();
+		flushSync();
+
+		expect(counterDiv.textContent).toBe('2');
+		expect(parityDiv.textContent).toBe('Even');
+		expect(historyDiv.textContent).toBe('2');
+
+		decBtn.click();
+		flushSync();
+
+		expect(counterDiv.textContent).toBe('1');
+		expect(parityDiv.textContent).toBe('Odd');
+		expect(historyDiv.textContent).toBe('3');
+
+		resetBtn.click();
+		flushSync();
+
+		expect(counterDiv.textContent).toBe('0');
+		expect(parityDiv.textContent).toBe('Even');
+		expect(historyDiv.textContent).toBe('4');
+	});
+
+	it('renders with reactive component props', () => {
+		component ChildComponent(props) {
+			<div class='child-content'>{props.$text}</div>
+			<div class='child-count'>{props.$count}</div>
+		}
+
+		component Basic() {
+			let $message = 'Hello';
+			let $number = 1;
+
+			<ChildComponent $text={$message} $count={$number} />
+			<button onClick={() => {
+				$message = $message === 'Hello' ? 'Goodbye' : 'Hello';
+				$number++;
+			}}>{'Update Props'}</button>
+		}
+
+		render(Basic);
+
+		const contentDiv = container.querySelector('.child-content');
+		const countDiv = container.querySelector('.child-count');
+		const button = container.querySelector('button');
+
+		expect(contentDiv.textContent).toBe('Hello');
+		expect(countDiv.textContent).toBe('1');
+
+		button.click();
+		flushSync();
+
+		expect(contentDiv.textContent).toBe('Goodbye');
+		expect(countDiv.textContent).toBe('2');
+
+		button.click();
+		flushSync();
+
+		expect(contentDiv.textContent).toBe('Hello');
+		expect(countDiv.textContent).toBe('3');
+	});
+
+	it('renders with styling scoped to component', () => {
+		component Basic() {
+			<div class='styled-container'>
+				<h1>{'Styled heading'}</h1>
+				<p class='text'>{'Styled paragraph'}</p>
+			</div>
+
+			<style>
+				.styled-container {
+					background-color: rgb(0, 0, 255);
+					padding: 16px;
+				}
+
+				h1 {
+					color: rgb(255, 255, 255);
+					font-size: 32px;
+				}
+
+				.text {
+					color: rgb(200, 200, 200);
+					font-size: 14px;
+				}
+			</style>
+		}
+
+		render(Basic);
+
+		const styledContainer = container.querySelector('.styled-container');
+		const heading = styledContainer.querySelector('h1');
+		const paragraph = styledContainer.querySelector('.text');
+
+		expect(styledContainer).toBeTruthy();
+		expect(heading.textContent).toBe('Styled heading');
+		expect(paragraph.textContent).toBe('Styled paragraph');
+	});
+
+	it('renders with mixed static and dynamic content', () => {
+		component Basic() {
+			let $name = 'World';
+			let $count = 0;
+			const staticMessage = 'Welcome to Ripple!';
+
+			<div class='mixed-content'>
+				<h1>{staticMessage}</h1>
+				<p class='greeting'>{'Hello, ' + $name + '!'}</p>
+				<p class='notifications'>{'You have ' + $count + ' notifications'}</p>
+				<button onClick={() => $count++}>{'Add Notification'}</button>
+				<button onClick={() => $name = $name === 'World' ? 'User' : 'World'}>{'Toggle Name'}</button>
+			</div>
+		}
+
+		render(Basic);
+
+		const heading = container.querySelector('h1');
+		const greetingP = container.querySelector('.greeting');
+		const notificationsP = container.querySelector('.notifications');
+		const buttons = container.querySelectorAll('button');
+
+		expect(heading.textContent).toBe('Welcome to Ripple!');
+		expect(greetingP.textContent).toBe('Hello, World!');
+		expect(notificationsP.textContent).toBe('You have 0 notifications');
+
+		buttons[0].click();
+		flushSync();
+		expect(notificationsP.textContent).toBe('You have 1 notifications');
+
+		buttons[1].click();
+		flushSync();
+		expect(greetingP.textContent).toBe('Hello, User!');
+	});
 });
