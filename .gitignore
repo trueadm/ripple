@@ -8,7 +8,7 @@ node_modules/
 coverage
 *.lcov
 
-*.vsix
+packages/ripple-vscode-plugin/*.vsix
 
 # Optional eslint cache
 .eslintcache
