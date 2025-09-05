@@ -1,3 +1,5 @@
+import { type Component } from 'ripple';
+
 export component App() {
   <div class="container">
     <h1>{"Welcome to Ripple!"}</h1>

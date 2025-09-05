@@ -115,7 +115,13 @@ const visitors = {
 		if (!context.state.to_ts && node.importKind === 'type') {
 			return b.empty;
 		}
-		return context.next();
+
+		return {
+			...node,
+			specifiers: node.specifiers
+				.filter((spec) => spec.importKind !== 'type')
+				.map((spec) => context.visit(spec.local)),
+		};
 	},
 
 	CallExpression(node, context) {
