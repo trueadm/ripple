@@ -143,7 +143,9 @@ describe('prettier-plugin-ripple', () => {
   </style>
 }
 
-function foo() {}
+function foo() {
+  // comment
+}
 
 export default component Basic() {
   <div class='container'>

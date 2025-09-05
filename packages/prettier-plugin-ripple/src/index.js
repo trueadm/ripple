@@ -22,6 +22,15 @@ export const parsers = {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
 			const ast = parse(text);
+			
+			// Convert Ripple comment format to Prettier comment format
+			if (ast.comments) {
+				ast.comments = ast.comments.map(comment => ({
+					...comment,
+					type: comment.type === 'Line' ? 'CommentLine' : 
+						  comment.type === 'Block' ? 'CommentBlock' : comment.type,
+				}));
+			}
 
 			return ast;
 		},
@@ -51,12 +60,15 @@ export const printers = {
 		},
 		printComment(path, options) {
 			const comment = path.getValue();
-			if (comment.type === 'CommentLine') {
+			if (comment.type === 'CommentLine' || comment.type === 'Line') {
 				return '//' + comment.value;
-			} else if (comment.type === 'CommentBlock') {
+			} else if (comment.type === 'CommentBlock' || comment.type === 'Block') {
 				return '/*' + comment.value + '*/';
 			}
 			return '';
+		},
+		canAttachComment(node, comment, text, options, locStart, locEnd) {
+			return true;
 		},
 	},
 };
