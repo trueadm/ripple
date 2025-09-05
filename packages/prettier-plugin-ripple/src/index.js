@@ -24,7 +24,7 @@ export const parsers = {
 			const ast = parse(text);
 			
 			// Convert Ripple comment format to Prettier comment format
-			if (ast.comments) {
+			if (ast.comments.length > 0) {
 				ast.comments = ast.comments.map(comment => ({
 					...comment,
 					type: comment.type === 'Line' ? 'CommentLine' : 
@@ -35,12 +35,14 @@ export const parsers = {
 			return ast;
 		},
 
+
+
 		locStart(node) {
-			return node.start || 0;
+			return node.loc.start.index;
 		},
 
 		locEnd(node) {
-			return node.end || 0;
+			return node.loc.end.index;
 		},
 	},
 };
@@ -59,6 +61,7 @@ export const printers = {
 			return typeof parts === 'string' ? parts : parts;
 		},
 		printComment(path, options) {
+			debugger
 			const comment = path.getValue();
 			if (comment.type === 'CommentLine' || comment.type === 'Line') {
 				return '//' + comment.value;
@@ -68,6 +71,9 @@ export const printers = {
 			return '';
 		},
 		canAttachComment(node, comment, text, options, locStart, locEnd) {
+			if (!node.type) {
+				return false;
+			}
 			return true;
 		},
 	},
