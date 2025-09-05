@@ -131,6 +131,7 @@ export class RippleSet extends Set {
 	}
 
 	has(value) {
+		var block = scope();
 		var has = super.has(value);
 		var tracked_items = this.#tracked_items;
 		var t = tracked_items.get(value);
