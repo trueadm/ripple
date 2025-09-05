@@ -1900,7 +1900,7 @@ function printCSSBlock(node, path, options, print) {
 				declarations.push(decl);
 			}
 		}
-		return join(concat([';', hardline]), declarations);
+		return join(hardline, declarations);
 	}
 	return '';
 }

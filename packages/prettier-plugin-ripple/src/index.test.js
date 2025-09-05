@@ -178,6 +178,33 @@ export default component Basic() {
       expect(formatted).toBe(already_formatted);
     });
 
+it('formatting already formatted code should not change it #2', async () => {
+      const already_formatted = `import type { Component } from 'ripple';
+
+export default component App() {
+  <div class='container'>
+    let $count = 0;
+
+    <button onClick={() => $count++}>{$count}</button>
+
+    if ($count > 1) {
+      <div>{'Greater than 1!'}</div>
+    }
+  </div>
+
+  <style>
+    button {
+      padding: 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+}`;
+      const formatted = await format(already_formatted, { singleQuote: true });
+
+      expect(formatted).toBe(already_formatted);
+    });
+
     it('should handle arrow functions with block bodies', async () => {
       const input = `export component Test(){const handler=()=>{};handler}`;
       const expected = `export component Test() {
