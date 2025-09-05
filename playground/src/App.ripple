@@ -1,4 +1,5 @@
 import { effect } from 'ripple';
+import Ripple from 'ripple'
 
 component Child(props) {
   
@@ -15,5 +16,6 @@ export component App() {
 
   <Child $count={() => $count} />;
 
-  <Child $count=[() => $count] />;
+  // TODO
+  // <Child $count=[() => $count] />;
 }
