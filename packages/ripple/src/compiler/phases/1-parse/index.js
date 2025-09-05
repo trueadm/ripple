@@ -423,7 +423,12 @@ function RipplePlugin(config) {
 						const position = this.curPosition();
 						this.startLoc = position;
 						this.endLoc = position;
+						// Avoid triggering onComment handlers, as they will have
+						// already been triggered when parsing the subscript before
+						const onComment = this.options.onComment;
+						this.options.onComment = () => {};
 						this.next();
+						this.options.onComment = onComment;
 
 						return base;
 					}

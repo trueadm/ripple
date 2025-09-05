@@ -511,7 +511,8 @@ function printRippleNode(node, path, options, print, args) {
 			return printTSTypeReference(node, path, options, print);
 
 		case 'Element':
-			return printElement(node, path, options, print);
+			nodeContent = printElement(node, path, options, print);
+			break;
 
 		case 'StyleSheet':
 			return printStyleSheet(node, path, options, print);
