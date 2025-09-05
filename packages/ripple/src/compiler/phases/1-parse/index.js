@@ -197,19 +197,19 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'TryStatement');
 			}
 
-			updateContext(e) {
-				const s = this.type;
-				const context = this.curContext();
-				const tokContexts = this.acornTypeScript.tokContexts;
+			// updateContext(e) {
+			// 	const s = this.type;
+			// 	const context = this.curContext();
+			// 	const tokContexts = this.acornTypeScript.tokContexts;
 
-				if (s == tt.bracketL && context == tokContexts.tc_oTag) {
-					this.context.push(tc.b_expr);
-				} else if (s == tt.bracketR && context == tc.b_expr) {
-					this.context.pop();
-				}
+			// 	if (s == tt.bracketL && context == tokContexts.tc_oTag) {
+			// 		this.context.push(tc.b_expr);
+			// 	} else if (s == tt.bracketR && context == tc.b_expr) {
+			// 		this.context.pop();
+			// 	}
 
-				return super.updateContext(e);
-			}
+			// 	return super.updateContext(e);
+			// }
 
 			jsx_readToken() {
 				let out = '',

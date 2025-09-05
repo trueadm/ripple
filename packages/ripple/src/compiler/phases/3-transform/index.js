@@ -119,8 +119,8 @@ const visitors = {
 		return {
 			...node,
 			specifiers: node.specifiers
-				.filter((spec) => spec.type !== 'ImportSpecifier' || spec.importKind !== 'type')
-				.map((spec) => context.visit(spec.local)),
+				.filter((spec) => spec.importKind !== 'type')
+				.map((spec) => context.visit(spec)),
 		};
 	},
 
