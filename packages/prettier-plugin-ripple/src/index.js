@@ -21,23 +21,15 @@ export const parsers = {
 	ripple: {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
-			const ast = parse(text);
 			
-			// Convert Ripple comment format to Prettier comment format
-			if (ast.comments.length > 0) {
-				ast.comments = ast.comments.map(comment => ({
-					...comment,
-					type: comment.type === 'Line' ? 'CommentLine' : 
-						  comment.type === 'Block' ? 'CommentBlock' : comment.type,
-				}));
-			}
 
-			return ast;
+			return parse(text);
 		},
 
 
 
 		locStart(node) {
+			debugger
 			return node.loc.start.index;
 		},
 
@@ -59,22 +51,6 @@ export const printers = {
 				return concat(parts);
 			}
 			return typeof parts === 'string' ? parts : parts;
-		},
-		printComment(path, options) {
-			debugger
-			const comment = path.getValue();
-			if (comment.type === 'CommentLine' || comment.type === 'Line') {
-				return '//' + comment.value;
-			} else if (comment.type === 'CommentBlock' || comment.type === 'Block') {
-				return '/*' + comment.value + '*/';
-			}
-			return '';
-		},
-		canAttachComment(node, comment, text, options, locStart, locEnd) {
-			if (!node.type) {
-				return false;
-			}
-			return true;
 		},
 	},
 };
@@ -105,13 +81,16 @@ function createIndent(options, level = 1) {
 	}
 }
 
-function printJS(path, print, name) {
-	return path.call(print, name);
-}
-
 function printRippleNode(node, path, options, print, args) {
 	if (!node || typeof node !== 'object') {
 		return String(node || '');
+	}
+
+	if (node.leadingComments) {
+		debugger
+	}
+	if (node.trailingComments) {
+		debugger
 	}
 
 	switch (node.type) {

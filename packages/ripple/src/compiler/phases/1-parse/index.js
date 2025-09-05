@@ -1,6 +1,7 @@
 import * as acorn from 'acorn';
 import { tsPlugin } from 'acorn-typescript';
 import { parse_style } from './style.js';
+import { walk } from 'zimmerframe';
 
 const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
 
@@ -561,8 +562,103 @@ function RipplePlugin(config) {
 	};
 }
 
+/**
+ * Acorn doesn't add comments to the AST by itself. This factory returns the capabilities
+ * to add them after the fact. They are needed in order to support `ripple-ignore` comments
+ * in JS code and so that `prettier-plugin-ripple` doesn't remove all comments when formatting.
+ * @param {string} source
+ * @param {CommentWithLocation[]} comments
+ * @param {number} index
+ */
+function get_comment_handlers(source, comments, index = 0) {
+	return {
+		onComment: (block, value, start, end, start_loc, end_loc) => {
+			if (block && /\n/.test(value)) {
+				let a = start;
+				while (a > 0 && source[a - 1] !== '\n') a -= 1;
+
+				let b = a;
+				while (/[ \t]/.test(source[b])) b += 1;
+
+				const indentation = source.slice(a, b);
+				value = value.replace(new RegExp(`^${indentation}`, 'gm'), '');
+			}
+
+			comments.push({
+				type: block ? 'Block' : 'Line',
+				value,
+				start,
+				end,
+				loc: {
+					start: /** @type {import('acorn').Position} */ (start_loc),
+					end: /** @type {import('acorn').Position} */ (end_loc),
+				},
+			});
+		},
+		add_comments: (ast) => {
+			if (comments.length === 0) return;
+
+			comments = comments
+				.filter((comment) => comment.start >= index)
+				.map(({ type, value, start, end }) => ({ type, value, start, end }));
+
+			walk(ast, null, {
+				_(node, { next, path }) {
+					let comment;
+
+					while (comments[0] && comments[0].start < node.start) {
+						comment = /** @type {CommentWithLocation} */ (comments.shift());
+						(node.leadingComments ||= []).push(comment);
+					}
+
+					next();
+
+					if (comments[0]) {
+						const parent = /** @type {any} */ (path.at(-1));
+
+						if (parent === undefined || node.end !== parent.end) {
+							const slice = source.slice(node.end, comments[0].start);
+							const is_last_in_body =
+								((parent?.type === 'BlockStatement' || parent?.type === 'Program') &&
+									parent.body.indexOf(node) === parent.body.length - 1) ||
+								(parent?.type === 'ArrayExpression' &&
+									parent.elements.indexOf(node) === parent.elements.length - 1) ||
+								(parent?.type === 'ObjectExpression' &&
+									parent.properties.indexOf(node) === parent.properties.length - 1);
+
+							if (is_last_in_body) {
+								// Special case: There can be multiple trailing comments after the last node in a block,
+								// and they can be separated by newlines
+								let end = node.end;
+
+								while (comments.length) {
+									const comment = comments[0];
+									if (parent && comment.start >= parent.end) break;
+
+									(node.trailingComments ||= []).push(comment);
+									comments.shift();
+									end = comment.end;
+								}
+							} else if (node.end <= comments[0].start && /^[,) \t]*$/.test(slice)) {
+								node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+							}
+						}
+					}
+				},
+			});
+
+			// Special case: Trailing comments after the root node (which can only happen for expression tags or for Program nodes).
+			// Adding them ensures that we can later detect the end of the expression tag correctly.
+			if (comments.length > 0 && (comments[0].start >= ast.end || ast.type === 'Program')) {
+				(ast.trailingComments ||= []).push(...comments.splice(0));
+			}
+		},
+	};
+}
+
 export function parse(source) {
 	const comments = [];
+	const { onComment, add_comments } = get_comment_handlers(source, comments);
 	let ast;
 
 	try {
@@ -570,23 +666,13 @@ export function parse(source) {
 			sourceType: 'module',
 			ecmaVersion: 13,
 			locations: true,
-			onComment: (block, text, start, end, startLoc, endLoc) => {
-				comments.push({
-					type: block ? 'Block' : 'Line',
-					value: text,
-					start,
-					end,
-					loc: {
-						start: startLoc,
-						end: endLoc,
-					},
-				});
-			},
+			onComment,
 		});
 	} catch (e) {
 		throw e;
 	}
 
-	ast.comments = comments;
+	add_comments(ast);
+
 	return ast;
 }
