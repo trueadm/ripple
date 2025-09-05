@@ -198,7 +198,6 @@ function RipplePlugin(config) {
 							if (ch === 123 && this.exprAllowed) {
 								return this.getTokenFromCode(ch);
 							}
-							debugger;
 							throw new Error('TODO: Invalid syntax');
 
 						case 47: // '/'
@@ -662,7 +661,6 @@ function get_comment_handlers(source, comments, index = 0) {
 			// Special case: Trailing comments after the root node (which can only happen for expression tags or for Program nodes).
 			// Adding them ensures that we can later detect the end of the expression tag correctly.
 			if (comments.length > 0 && (comments[0].start >= ast.end || ast.type === 'Program')) {
-				debugger;
 				(ast.trailingComments ||= []).push(...comments.splice(0));
 			}
 		},

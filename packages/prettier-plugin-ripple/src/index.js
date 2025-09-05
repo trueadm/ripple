@@ -89,7 +89,6 @@ function printRippleNode(node, path, options, print, args) {
 
 	// Handle leading comments
 	if (node.leadingComments) {
-		debugger
 		for (const comment of node.leadingComments) {
 			if (comment.type === 'Line') {
 				parts.push('//' + comment.value);
