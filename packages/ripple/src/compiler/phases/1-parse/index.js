@@ -614,6 +614,13 @@ function get_comment_handlers(source, comments, index = 0) {
 					next();
 
 					if (comments[0]) {
+						if (node.type === 'BlockStatement' && node.body.length === 0) {
+							if (comments[0].start < node.end && comments[0].end < node.end) {
+								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								(node.innerComments ||= []).push(comment);
+								return;
+							}
+						}
 						const parent = /** @type {any} */ (path.at(-1));
 
 						if (parent === undefined || node.end !== parent.end) {
@@ -635,11 +642,13 @@ function get_comment_handlers(source, comments, index = 0) {
 									const comment = comments[0];
 									if (parent && comment.start >= parent.end) break;
 
+									debugger;
 									(node.trailingComments ||= []).push(comment);
 									comments.shift();
 									end = comment.end;
 								}
 							} else if (node.end <= comments[0].start && /^[,) \t]*$/.test(slice)) {
+								debugger;
 								node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
 							}
 						}
@@ -650,6 +659,7 @@ function get_comment_handlers(source, comments, index = 0) {
 			// Special case: Trailing comments after the root node (which can only happen for expression tags or for Program nodes).
 			// Adding them ensures that we can later detect the end of the expression tag correctly.
 			if (comments.length > 0 && (comments[0].start >= ast.end || ast.type === 'Program')) {
+				debugger;
 				(ast.trailingComments ||= []).push(...comments.splice(0));
 			}
 		},
