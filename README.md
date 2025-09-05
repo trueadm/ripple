@@ -102,7 +102,7 @@ component Button(props: { text: string, onClick: () => void }) {
 }
 
 // Usage
-component App() {
+export component App() {
   <Button text="Click me" onClick={() => console.log("Clicked!")} />
 }
 ```
@@ -175,7 +175,7 @@ Now `$count` will only reactively create its value on initialization.
 
 > Note: you cannot define reactive variables in module/global scope, they have to be created on access from an active component
 
-#### Arrays
+#### Reactive Arrays
 
 When creating state that contains arrays you should use the reactive alternative for arrays that Ripple provides.
 
@@ -197,6 +197,37 @@ const arr = Ripple.of(1, 2, 3);
 The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index. However,
 accessing the `length` property of a `RippleArray` will be not be reactive, instead you should use `$length`.
 
+#### Reactive Set
+
+The `RippleSet` extends the standard JS `Set` class, and supports all of its methods and properties. However,
+accessing the `size` property of a `RippleSet` will be not be reactive, instead you should use `$size`.
+
+```js
+import { RippleSet } from 'ripple';
+
+const arr = new RippleSet([1, 2, 3]);
+```
+
+RippleSet's reactive methods or properties can be used directly or assigned to reactive variables.
+
+```jsx
+import { RippleSet } from 'ripple';
+
+export component App() {
+  const mySet = new RippleSet([1, 2, 3]);
+
+  // direct usage
+  <p>{"Direct usage: mySet contains 2: "}{mySet.has(2)}</p>
+
+  // reactive assignment with prefixed `$`
+  let $has = mySet.has(2);
+  <p>{"Assigned usage: mySet contains 2: "}{$has}</p>
+
+  <button onClick={() => mySet.delete(2)}>{"Delete 2"}</button>
+  <button onClick={() => mySet.add(2)}>{"Add 2"}</button>
+}
+```
+
 ### Effects
 
 When dealing with reactive state, you might want to be able to create side-effects based upon changes that happen upon updates.
@@ -205,7 +236,7 @@ To do this, you can use `effect`:
 ```jsx
 import { effect } from 'ripple';
 
-component App() {
+export component App() {
   let $count = 0;
 
   effect(() => {
@@ -403,7 +434,7 @@ this identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in Re
 the reference to the underlying DOM element.
 
 ```jsx
-component App() {
+export component App() {
   let $node;
 
   const ref = (node) => {
@@ -423,7 +454,7 @@ component App() {
 You can also create `{@use}` functions inline.
 
 ```jsx
-component App() {
+export component App() {
   let $node;
 
   <div {@use (node) => {
@@ -439,7 +470,7 @@ thing. However, you can use this pattern to pass reactive properties.
 ```jsx
 import { fadeIn } from 'some-library';
 
-component App({ $ms }) {
+export component App({ $ms }) {
   <div {@use fadeIn({ $ms })}>{"Hello world"}</div>
 }
 ```
