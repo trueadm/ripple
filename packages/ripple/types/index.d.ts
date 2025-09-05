@@ -38,3 +38,15 @@ export type Context<T> = {
 };
 
 export declare function createContext<T>(initialValue: T): Context<T>;
+
+export class RippleSet<T> extends Set<T> {
+  readonly $size: number;
+  isDisjointFrom(other: RippleSet<T> | Set<T>): boolean;
+  isSubsetOf(other: RippleSet<T> | Set<T>): boolean;
+  isSupersetOf(other: RippleSet<T> | Set<T>): boolean;
+  difference(other: RippleSet<T> | Set<T>): RippleSet<T>;
+  intersection(other: RippleSet<T> | Set<T>): RippleSet<T>;
+  symmetricDifference(other: RippleSet<T> | Set<T>): RippleSet<T>;
+  union(other: RippleSet<T> | Set<T>): RippleSet<T>;
+  toJSON(): T[];
+}
