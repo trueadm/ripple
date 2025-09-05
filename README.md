@@ -68,7 +68,7 @@ The [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemNam
 
 You can find the extension on the VS Code Marketplace as [`Ripple for VS Code`](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin).
 
-You can also [manually install the extension `.vsix` that have been manually packaged](https://github.com/trueadm/ripple/raw/refs/heads/main/packages/ripple-vscode-plugin/published/ripple-vscode-plugin.vsix).
+You can also [manually install the extension](https://github.com/trueadm/ripple/raw/refs/heads/main/packages/ripple-vscode-plugin/published/ripple-vscode-plugin.vsix) `.vsix` that have been manually packaged.
 
 ### Mounting your app
 
