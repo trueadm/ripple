@@ -77,6 +77,20 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'JSXExpressionContainer');
 			}
 
+			jsx_parseBindingExpression() {
+				let node = this.startNode();
+				this.next();
+
+				if (this.type === tt.bracketR) {
+					this.raise(node.start, 'bindings must only be assigned a non-empty expression');
+				}
+
+				node.expression = this.parseExpression();
+
+				this.expect(tt.bracketR);
+				return this.finishNode(node, 'BindingExpression');
+			}
+
 			jsx_parseTupleContainer() {
 				var t = this.startNode();
 				return (
@@ -90,6 +104,7 @@ function RipplePlugin(config) {
 
 			jsx_parseAttribute() {
 				let node = this.startNode();
+
 				if (this.eat(tt.braceL)) {
 					if (this.type.label === '@') {
 						this.next();
@@ -129,6 +144,9 @@ function RipplePlugin(config) {
 				const tok = this.acornTypeScript.tokTypes;
 
 				switch (this.type) {
+					case tt.bracketL:
+						var t = this.jsx_parseBindingExpression();
+						return t;
 					case tt.braceL:
 						var t = this.jsx_parseExpressionContainer();
 						return (
@@ -177,6 +195,20 @@ function RipplePlugin(config) {
 					this.raise(node.start, 'Missing catch or finally clause');
 				}
 				return this.finishNode(node, 'TryStatement');
+			}
+
+			updateContext(e) {
+				const s = this.type;
+				const context = this.curContext();
+				const tokContexts = this.acornTypeScript.tokContexts;
+
+				if (s == tt.bracketL && context == tokContexts.tc_oTag) {
+					this.context.push(tc.b_expr);
+				} else if (s == tt.bracketR && context == tc.b_expr) {
+					this.context.pop();
+				}
+
+				return super.updateContext(e);
 			}
 
 			jsx_readToken() {
