@@ -29,7 +29,6 @@ export const parsers = {
 
 
 		locStart(node) {
-			debugger
 			return node.loc.start.index;
 		},
 
@@ -86,13 +85,22 @@ function printRippleNode(node, path, options, print, args) {
 		return String(node || '');
 	}
 
+	const parts = [];
+
+	// Handle leading comments
 	if (node.leadingComments) {
-		debugger
-	}
-	if (node.trailingComments) {
-		debugger
+		for (const comment of node.leadingComments) {
+			if (comment.type === 'Line') {
+				parts.push('//' + comment.value);
+			} else if (comment.type === 'Block') {
+				parts.push('/*' + comment.value + '*/');
+			}
+			parts.push(hardline);
+		}
 	}
 
+	let nodeContent;
+	
 	switch (node.type) {
 		case 'Program': {
 			// Handle the body statements properly with whitespace preservation
@@ -136,14 +144,17 @@ function printRippleNode(node, path, options, print, args) {
 					}
 				}
 			}
-			return concat(statements);
+			nodeContent = concat(statements);
+			break;
 		}
 
 		case 'ImportDeclaration':
-			return printImportDeclaration(node, path, options, print);
+			nodeContent = printImportDeclaration(node, path, options, print);
+			break;
 
 		case 'Component':
-			return printComponent(node, path, options, print);
+			nodeContent = printComponent(node, path, options, print);
+			break;
 
 
 
@@ -566,8 +577,34 @@ function printRippleNode(node, path, options, print, args) {
 		default:
 			// Fallback for unknown node types
 			console.warn('Unknown node type:', node.type);
-			return '/* Unknown: ' + node.type + ' */';
+			nodeContent = '/* Unknown: ' + node.type + ' */';
+			break;
 	}
+
+	// Handle trailing comments
+	if (node.trailingComments) {
+		const trailingParts = [];
+		for (const comment of node.trailingComments) {
+			if (comment.type === 'Line') {
+				trailingParts.push(' //' + comment.value);
+			} else if (comment.type === 'Block') {
+				trailingParts.push(' /*' + comment.value + '*/');
+			}
+		}
+		if (trailingParts.length > 0) {
+			parts.push(nodeContent);
+			parts.push(...trailingParts);
+			return concat(parts);
+		}
+	}
+
+	// Return with or without leading comments
+	if (parts.length > 0) {
+		parts.push(nodeContent);
+		return concat(parts);
+	}
+	
+	return nodeContent;
 }
 
 function printImportDeclaration(node, path, options, print) {
