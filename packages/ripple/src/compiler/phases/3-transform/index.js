@@ -744,7 +744,13 @@ const visitors = {
 						if (prop_statements === undefined) {
 							prop_statements = [];
 						}
-						prop_statements.push(b.var(name, b.member(b.id('__props'), key)));
+						if (path.has_default_value) {
+							const fallback = path.expression(b.id('__props'));
+
+							prop_statements.push(b.var(name, context.visit(fallback)));
+						} else {
+							prop_statements.push(b.var(name, b.member(b.id('__props'), key)));
+						}
 					} else if (binding !== null && path.has_default_value) {
 						if (prop_statements === undefined) {
 							prop_statements = [];

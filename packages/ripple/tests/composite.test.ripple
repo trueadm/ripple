@@ -261,6 +261,24 @@ describe('composite components', () => {
 		expect(container.querySelectorAll('div')[1].textContent).toBe('123');
 	});
 
+		it('correctly handles default prop values #2', () => {
+		component Child({ foo = 456 }) {
+			<div>{foo}</div>
+		}
+
+		component App(props) {
+			let foo = 123;
+
+			<Child />
+			<Child {foo} />
+		}
+
+		render(App);
+
+		expect(container.querySelectorAll('div')[0].textContent).toBe('456');
+		expect(container.querySelectorAll('div')[1].textContent).toBe('123');
+	});
+
 	it('correctly handles no props', () => {
 		component Child(props) {
 			<div>{props.$foo}</div>
