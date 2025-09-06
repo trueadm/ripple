@@ -1,0 +1,94 @@
+name: Publish to pkg.pr.new
+on:
+  push:
+    branches: [main, develop]
+    tags: ["!**"]
+    paths: ["packages/**"]
+  pull_request:
+    types: [opened, synchronize]
+    paths: ["packages/**"]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  approval-check:
+    name: Check for Collaborator Approval
+    # This job only runs for pull request events, as the review event is handled directly in the next job.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      is-approved: ${{ steps.check_for_approval.outputs.collaborator-approved }}
+    steps:
+      - name: Check for approval by a collaborator
+        id: check-for-approval
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              // This can happen on events that don't have a PR context.
+              return 'false';
+            }
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            const isApproved = reviews.data.some(review =>
+              review.state === 'APPROVED' &&
+              ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(review.author_association)
+            );
+            console.log(`PR is approved by collaborator: ${isApproved}`);
+            return isApproved.toString();
+
+  publish:
+    # Only run if pushed to main, is a PR by a collaborator,
+    # or an external PR approved by a collaborator.
+    needs: approval-check
+    if: >-
+      (github.event_name == 'push') ||
+      (github.event_name == 'pull_request' && (
+        github.event.pull_request.author_association == 'MEMBER' ||
+        github.event.pull_request.author_association == 'OWNER' ||
+        github.event.pull_request.author_association == 'COLLABORATOR'
+      )) ||
+      (needs.approval-check.outputs.approved == 'true') ||
+      (github.event_name == 'pull_request_review' &&
+       github.event.review.state == 'approved' && (
+        github.event.review.author_association == 'MEMBER' ||
+        github.event.review.author_association == 'OWNER' ||
+        github.event.review.author_association == 'COLLABORATOR'
+      ))
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish
+        run: |
+          pnpm dlx pkg-pr-new publish --compact --comment=update --pnpm \
+            './packages/prettier-plugin-ripple' \
+            './packages/ripple' \
+            './packages/rollup-plugin-ripple' \
+            './packages/vite-plugin-ripple' \
