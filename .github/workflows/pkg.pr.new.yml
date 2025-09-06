@@ -13,8 +13,8 @@ on:
 jobs:
   approval-check:
     name: Check for Collaborator Approval
-    # This job only runs for pull request events, as the review event is handled directly in the next job.
-    if: github.event_name == 'pull_request'
+    # Github doesn't support conditional needs, so this needs to run no matter what. :')
+    # if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       is-approved: ${{ steps.check_for_approval.outputs.collaborator-approved }}
@@ -78,12 +78,6 @@ jobs:
         with:
           node-version: 24
           cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm build
 
       - name: Publish
         run: |
