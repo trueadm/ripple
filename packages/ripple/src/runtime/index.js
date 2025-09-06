@@ -11,13 +11,13 @@ export { jsx, jsxs, Fragment } from '../jsx-runtime.js';
 
 /**
  * @param {(anchor: Node, props: Record<string, any>, active_block: Block | null) => void} component
- * @param {{ props?: Record<string, any>, target: HTMLElement }} options
+ * @param {{ props?: undefined | Record<string, any>, target: HTMLElement }} options
  * @returns {() => void}
  */
 export function mount(component, options) {
 	init_operations();
 
-	const props = options.props || {};
+	const props = options.props;
 	const target = options.target;
 	const anchor = create_anchor();
 	target.append(anchor);

@@ -671,7 +671,14 @@ const visitors = {
 				);
 			} else {
 				state.init.push(
-					b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('$.active_block'))),
+					b.stmt(
+						b.call(
+							visit(node.id, state),
+							id,
+							props.length === 0 ? b.void0 : b.object(props),
+							b.id('$.active_block'),
+						),
+					),
 				);
 			}
 		}
@@ -724,13 +731,39 @@ const visitors = {
 			return b.function(node.id, node.params, b.block(body_statements));
 		}
 
-		if (node.params.length > 0) {
-			let props = node.params[0];
+		let props = b.id('__props');
 
-			if (props.type === 'Identifier') {
-				delete props.typeAnnotation;
-			} else if (props.type === 'ObjectPattern') {
-				const paths = extract_paths(props);
+		if (node.params.length > 0) {
+			let props_param = node.params[0];
+
+			if (props_param.type === 'Identifier') {
+				if (prop_statements === undefined) {
+					prop_statements = [];
+				}
+				prop_statements.push(
+					b.var(
+						props_param,
+						b.conditional(b.binary('===', b.id('__props'), b.void0), b.object([]), b.id('__props')),
+					),
+				);
+				delete props_param.typeAnnotation;
+			} else if (props_param.type === 'ObjectPattern') {
+				props = b.id('__props_pattern');
+				if (prop_statements === undefined) {
+					prop_statements = [];
+				}
+				prop_statements.push(
+					b.var(
+						b.id('__props'),
+						b.conditional(
+							b.binary('===', b.id('__props_pattern'), b.void0),
+							b.object([]),
+							b.id('__props_pattern'),
+						),
+					),
+				);
+
+				const paths = extract_paths(props_param);
 
 				for (const path of paths) {
 					const name = path.node.name;
@@ -743,6 +776,24 @@ const visitors = {
 						}
 						prop_statements.push(b.var(name, b.member(b.id('__props'), key)));
 					}
+				}
+			} else if (props_param.type === 'AssignmentPattern') {
+				if (props_param.left.type === 'Identifier') {
+					if (prop_statements === undefined) {
+						prop_statements = [];
+					}
+					prop_statements.push(
+						b.var(
+							props_param.left,
+							b.conditional(
+								b.binary('===', b.id('__props'), b.void0),
+								context.visit(props_param.right),
+								b.id('__props'),
+							),
+						),
+					);
+				} else {
+					throw new Error('TODO complex assignment pattern');
 				}
 			}
 		}
@@ -763,11 +814,7 @@ const visitors = {
 		return b.function(
 			node.id,
 			node.params.length > 0
-				? [
-						b.id('__anchor'),
-						node.params[0].type === 'Identifier' ? node.params[0] : b.id('__props'),
-						b.id('__block'),
-					]
+				? [b.id('__anchor'), props, b.id('__block')]
 				: [b.id('__anchor'), b.id('_'), b.id('__block')],
 			b.block([
 				...(prop_statements ?? []),
