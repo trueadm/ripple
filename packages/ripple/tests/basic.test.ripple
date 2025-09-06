@@ -510,6 +510,20 @@ describe('basic', () => {
 		expect(evenDiv.textContent).toBe('Even');
 	});
 
+	it('renders simple JS expression logic correctly', () => {
+		component Example() {
+			let test = {}
+			let counter = 0;
+			test[counter++] = 'Test';
+
+			<div>{JSON.stringify(test)}</div>
+			<div>{JSON.stringify(counter)}</div>
+		}
+		render(Example);
+
+		expect(container).toMatchSnapshot();
+	});
+
 	it('renders with simple reactive objects', () => {
 		component Basic() {
 			let $user = {

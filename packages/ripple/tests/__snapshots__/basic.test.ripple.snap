@@ -30,3 +30,15 @@ exports[`basic > render static text 1`] = `
   
 </div>
 `;
+
+exports[`basic > renders simple JS expression logic correctly 1`] = `
+<div>
+  <div>
+    {"0":"Test"}
+  </div>
+  <div>
+    1
+  </div>
+  
+</div>
+`;

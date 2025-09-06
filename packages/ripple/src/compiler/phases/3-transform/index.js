@@ -787,8 +787,8 @@ const visitors = {
 
 		if (
 			left.type === 'MemberExpression' &&
-			((left.property.type === 'Identifier' && is_tracked_name(left.property.name)) ||
-				left.computed)
+			left.property.type === 'Identifier' &&
+			is_tracked_name(left.property.name)
 		) {
 			return b.call(
 				'$.set_property',
