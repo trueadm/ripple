@@ -410,7 +410,11 @@ function RipplePlugin(config) {
 				if (this.value === '<' && this.#path.findLast((n) => n.type === 'Component')) {
 					// Check if this looks like JSX by looking ahead
 					const ahead = this.lookahead();
-					if (ahead.type.label === 'name' || ahead.value === '/' || ahead.value === '>') {
+					const curContext = this.curContext();
+					if (
+						curContext.token !== '(' &&
+						(ahead.type.label === 'name' || ahead.value === '/' || ahead.value === '>')
+					) {
 						// This is JSX, rewind to the end of the object expression
 						// and let ASI handle the semicolon insertion naturally
 						this.pos = base.end;

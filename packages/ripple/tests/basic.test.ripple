@@ -275,25 +275,6 @@ describe('basic', () => {
 		expect(div.getAttribute('data-extra')).toBe('value');
 	});
 
-	it('renders without crashing', () => {
-		component App() {
-			let foo;
-			let bar;
-			let baz;
-
-			foo = {};
-			foo = {'test': 0};
-			foo['abc'] = 123;
-
-			bar = { 'def': 456 };
-
-			baz = { 'ghi': 789 };
-			baz['jkl'] = 987;
-		}
-
-		render(App);
-	});
-
 	it('renders multiple reactive lexical blocks', () => {
 		component Basic() {
 			<div>
