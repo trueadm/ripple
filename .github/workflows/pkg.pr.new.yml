@@ -39,6 +39,7 @@ jobs:
               review.state === 'APPROVED' &&
               ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(review.author_association)
             );
+            console.log(`PR is approved by collaborator: ${isApproved}`);
             return isApproved.toString();
 
   publish:
