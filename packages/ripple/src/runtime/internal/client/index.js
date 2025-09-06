@@ -41,6 +41,7 @@ export {
 	pop_component,
 	untrack,
 	use_prop,
+	fallback,
 } from './runtime.js';
 
 export { for_block as for } from './for.js';

@@ -291,6 +291,8 @@ function get_hoisted_params(node, context) {
 		if (binding !== null && !scope.declarations.has(reference) && binding.initial !== node) {
 			if (binding.kind === 'prop') {
 				push_unique(b.id('__props'));
+			} else if (binding.kind === 'prop_fallback') {
+				push_unique(b.id(binding.node.name));
 			} else if (
 				// imports don't need to be hoisted
 				binding.declaration_kind !== 'import'

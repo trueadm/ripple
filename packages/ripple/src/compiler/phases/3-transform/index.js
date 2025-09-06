@@ -671,14 +671,7 @@ const visitors = {
 				);
 			} else {
 				state.init.push(
-					b.stmt(
-						b.call(
-							visit(node.id, state),
-							id,
-							props.length === 0 ? b.void0 : b.object(props),
-							b.id('$.active_block'),
-						),
-					),
+					b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('$.active_block'))),
 				);
 			}
 		}
@@ -737,32 +730,9 @@ const visitors = {
 			let props_param = node.params[0];
 
 			if (props_param.type === 'Identifier') {
-				if (prop_statements === undefined) {
-					prop_statements = [];
-				}
-				prop_statements.push(
-					b.var(
-						props_param,
-						b.conditional(b.binary('===', b.id('__props'), b.void0), b.object([]), b.id('__props')),
-					),
-				);
 				delete props_param.typeAnnotation;
+				props = props_param;
 			} else if (props_param.type === 'ObjectPattern') {
-				props = b.id('__props_pattern');
-				if (prop_statements === undefined) {
-					prop_statements = [];
-				}
-				prop_statements.push(
-					b.var(
-						b.id('__props'),
-						b.conditional(
-							b.binary('===', b.id('__props_pattern'), b.void0),
-							b.object([]),
-							b.id('__props_pattern'),
-						),
-					),
-				);
-
 				const paths = extract_paths(props_param);
 
 				for (const path of paths) {
@@ -775,25 +745,16 @@ const visitors = {
 							prop_statements = [];
 						}
 						prop_statements.push(b.var(name, b.member(b.id('__props'), key)));
+					} else if (binding !== null && path.has_default_value) {
+						if (prop_statements === undefined) {
+							prop_statements = [];
+						}
+						const fallback = path.expression(b.id('__props'));
+
+						prop_statements.push(
+							b.var(name, b.call('$.computed', b.thunk(context.visit(fallback)), b.id('__block'))),
+						);
 					}
-				}
-			} else if (props_param.type === 'AssignmentPattern') {
-				if (props_param.left.type === 'Identifier') {
-					if (prop_statements === undefined) {
-						prop_statements = [];
-					}
-					prop_statements.push(
-						b.var(
-							props_param.left,
-							b.conditional(
-								b.binary('===', b.id('__props'), b.void0),
-								context.visit(props_param.right),
-								b.id('__props'),
-							),
-						),
-					);
-				} else {
-					throw new Error('TODO complex assignment pattern');
 				}
 			}
 		}

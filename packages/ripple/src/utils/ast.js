@@ -201,6 +201,10 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 	return assignments;
 }
 
+export function build_fallback(expression, fallback) {
+	return b.call('$.fallback', expression, fallback);
+}
+
 /**
  * @param {ESTree.AssignmentOperator} operator
  * @param {ESTree.Identifier | ESTree.MemberExpression} left

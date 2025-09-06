@@ -1053,3 +1053,7 @@ export function pop_component() {
 export function use_prop() {
 	return Symbol(USE_PROP);
 }
+
+export function fallback(value, fallback) {
+	return value === undefined ? fallback : value;
+}

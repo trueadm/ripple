@@ -244,8 +244,8 @@ describe('composite components', () => {
 	});
 
 	it('correctly handles default prop values', () => {
-		component Child(props = { $foo: 456 }) {
-			<div>{props.$foo}</div>
+		component Child({ $foo = 456 }) {
+			<div>{$foo}</div>
 		}
 
 		component App(props) {

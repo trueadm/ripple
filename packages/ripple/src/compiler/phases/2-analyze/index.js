@@ -34,7 +34,7 @@ function visit_function(node, context) {
 					if (binding !== null && is_tracked_name(name)) {
 						const id = context.state.scope.generate('arg');
 						node.params[i] = b.id(id);
-						binding.kind = 'prop';
+						binding.kind = path.has_default_value ? 'prop_fallback' : 'prop';
 
 						binding.transform = {
 							read: (_) => b.call('$.get_property', b.id(id), b.literal(name)),
@@ -315,30 +315,57 @@ const visitors = {
 					const binding = context.state.scope.get(name);
 
 					if (binding !== null && is_tracked_name(name)) {
-						binding.kind = 'prop';
+						binding.kind = path.has_default_value ? 'prop_fallback' : 'prop';
 
-						binding.transform = {
-							read: (_) => b.call('$.get_property', b.id('__props'), b.literal(name)),
-							assign: (node, value) => {
-								return b.call(
-									'$.set_property',
-									b.id('__props'),
-									b.literal(name),
-									value,
-									b.id('__block'),
-								);
-							},
-							update: (_) =>
-								b.call(
-									node.prefix ? '$.update_property_pre' : '$.update_property',
-									b.id('__props'),
-									b.literal(name),
-									b.id('__block'),
-									node.operator === '--' && b.literal(-1),
-								),
-						};
+						if (path.has_default_value) {
+							binding.transform = {
+								read: (_) => b.call('$.get_computed', path.node),
+								assign: (node, value) => {
+									return b.call(
+										'$.set',
+										path.node,
+										value,
+										b.id('__block'),
+									);
+								},
+								update: (_) =>
+									b.call(
+										node.prefix ? '$.update_pre' : '$.update',
+										path.node,
+										b.id('__block'),
+										node.operator === '--' && b.literal(-1),
+									),
+							};
+						} else {
+							binding.transform = {
+								read: (_) => b.call('$.get_property', b.id('__props'), b.literal(name)),
+								assign: (node, value) => {
+									return b.call(
+										'$.set_property',
+										b.id('__props'),
+										b.literal(name),
+										value,
+										b.id('__block'),
+									);
+								},
+								update: (_) =>
+									b.call(
+										node.prefix ? '$.update_property_pre' : '$.update_property',
+										b.id('__props'),
+										b.literal(name),
+										b.id('__block'),
+										node.operator === '--' && b.literal(-1),
+									),
+							};
+						}
 					}
 				}
+			} else if (props.type === 'AssignmentPattern') {
+				error(
+					'Props are always an object, use destructured props with default values instead',
+					context.state.analysis.module.filename,
+					props,
+				);
 			}
 		}
 		const elements = [];
