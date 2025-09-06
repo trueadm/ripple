@@ -9,13 +9,9 @@
 			body {
 				margin: 0;
 				padding: 0;
-				height: 100vh;
+				height: 100vh; /* for older browsers */
+				height: 100dvh;
 				overflow: hidden;
-			}
-
-			#container {
-				height: 100%;
-				width: 100%;
 			}
 		</style>
 
@@ -72,6 +68,6 @@ export default component App() {
 		</script>
 	</head>
 	<body>
-		<div id="container" data-default-styles="false"></div>
+		<div id="container" data-default-styles="false" data-height="100%"></div>
 	</body>
 </html>
