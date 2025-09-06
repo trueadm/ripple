@@ -1,0 +1,61 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { mount } from 'ripple';
+
+describe('compiler success tests', () => {
+  let container;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+  it('renders without crashing', () => {
+		component App() {
+			let foo;
+			let bar;
+			let baz;
+
+			foo = {};
+			foo = {'test': 0};
+			foo['abc'] = 123;
+
+			bar = { 'def': 456 };
+
+			baz = { 'ghi': 789 };
+			baz['jkl'] = 987;
+		}
+
+		render(App);
+	});
+
+
+  it('renders without crashing using < character', () => {
+		component App() {
+			function bar() {
+        for (let i = 0; i < 10; i++) {
+          // do nothing
+        }
+        const x = 1 < 1;
+      }
+
+			let x = 5 < 10
+
+      <div>{x}</div>
+		}
+
+		render(App);
+	});
+
+});
