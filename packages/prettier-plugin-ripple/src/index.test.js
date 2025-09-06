@@ -314,5 +314,24 @@ export default component App() {
 			const result = await format(input);
 			expect(result).toBe(expected);
 		});
+
+    it('should handle empty component using cursor', async () => {
+			const input = 'export component Empty() {}';
+			const result = await format(input);
+			expect(result).toBe('export component Empty() {}');
+		});
+
+		it('should handle component with only style', async () => {
+			const input = `export component Styled(){<style>body{background:#fff}</style>}`;
+			const expected = `export component Styled() {
+  <style>
+    body {
+      background: #fff;
+    }
+  </style>
+}`;
+			const result = await formatWithCursorHelper(input, { cursorOffset: 50 });
+			expect(result.formatted).toBe(expected);
+		});
 	});
 });

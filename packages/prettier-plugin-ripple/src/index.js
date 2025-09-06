@@ -49,7 +49,7 @@ export const printers = {
 		},
 		getVisitorKeys(node) {
 			const keys = Object.keys(node).filter((key) => {
-				return key === 'start' || key === 'end' || key === 'loc' || key === 'metadata'
+				return key === 'start' || key === 'end' || key === 'loc' || key === 'metadata' || 'css'
 					? false
 					: typeof node[key] === 'object' && node[key] !== null;
 			});
