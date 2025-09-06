@@ -32,8 +32,6 @@ describe('context', () => {
     component TestContext() {
       const value = MyContext.get();
 
-      console.log(value);
-
       MyContext.set("Hello from context!");
 
       <Child />
