@@ -6398,6 +6398,9 @@
 					"include": "#jsx-tag-attribute-name"
 				},
 				{
+					"include": "#jsx-tag-attribute-prop-accessor-assignment"
+				},
+				{
 					"include": "#jsx-tag-attribute-assignment"
 				},
 				{
@@ -6415,7 +6418,7 @@
 			]
 		},
 		"jsx-tag-attribute-name": {
-			"match": "(?x)\n  \\s*\n  (?:([_$[:alpha:]][-_$[:alnum:].]*)(:))?\n  ([_$[:alpha:]][-_$[:alnum:]]*)\n  (?=\\s|=|/?>|/\\*|//)",
+			"match": "(?x)\n  \\s*\n  (?:([_$[:alpha:]][-_$[:alnum:].]*)(:))?\n  ([_$[:alpha:]][-_$[:alnum:]]*)\n  (?=\\s|=|:=|/?>|/\\*|//)",
 			"captures": {
 				"1": {
 					"name": "entity.other.attribute-name.namespace.js"
@@ -6427,6 +6430,10 @@
 					"name": "entity.other.attribute-name.js"
 				}
 			}
+		},
+		"jsx-tag-attribute-prop-accessor-assignment": {
+			"name": "keyword.keyword.prop-accessor.js",
+			"match": ":=(?=\\s*\\{)"
 		},
 		"jsx-tag-attribute-assignment": {
 			"name": "keyword.operator.assignment.js",
