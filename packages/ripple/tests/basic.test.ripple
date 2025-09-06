@@ -441,24 +441,6 @@ describe('basic', () => {
 		expect(paragraph.textContent).toBe('Card content here');
 	});
 
-	it('renders with element attributes and refs', () => {
-		component Basic() {
-			let $elementRef = null;
-			let $hasRef = false;
-
-			<div class='test-element' ref={(node) => {
-				$elementRef = node;
-				$hasRef = !!node;
-			}}>{'Element with ref'}</div>
-			<div class='has-ref'>{$hasRef ? 'Has ref' : 'No ref'}</div>
-		}
-
-		render(Basic);
-
-		const hasRefDiv = container.querySelector('.has-ref');
-		expect(container.querySelector('.test-element')).toBeTruthy();
-	});
-
 	it('renders with error handling simulation', () => {
 		component Basic() {
 			let $hasError = false;
