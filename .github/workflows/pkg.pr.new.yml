@@ -3,9 +3,10 @@ on:
   push:
     branches: [main, develop]
     tags: ["!**"]
-    paths: ["!**.md", "packages/**"]
+    paths: ["packages/**"]
   pull_request:
     types: [opened, synchronize]
+    paths: ["packages/**"]
   pull_request_review:
     types: [submitted]
 
