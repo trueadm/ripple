@@ -79,12 +79,6 @@ jobs:
           node-version: 24
           cache: "pnpm"
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm build
-
       - name: Publish
         run: |
           pnpm dlx pkg-pr-new publish --compact --comment=update --pnpm \
