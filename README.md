@@ -428,9 +428,9 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 
 > Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
 
-### Element Hooks
+### Decorators
 
-Ripple provides a consistent way to capture the underlying DOM element – element hooks. Specifically, using
+Ripple provides a consistent way to capture the underlying DOM element – decorators. Specifically, using
 the syntax `{@use fn}` where `fn` is a function that captures the DOM element. If you're familiar with other frameworks, then
 this identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React. The hook function will receive
 the reference to the underlying DOM element.
@@ -477,13 +477,13 @@ export component App({ $ms }) {
 }
 ```
 
-Lastly, you can use element hooks on composite components.
+Lastly, you can use decorators on composite components.
 
 ```jsx
 <Image {@use (node) => console.log(node)} {...props} />
 ```
 
-When passing element hooks to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that can be spread to HTML template elements later on, and still work.
+When passing decorators to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that can be spread to HTML template elements later on, and still work.
 
 ### Styling
 
