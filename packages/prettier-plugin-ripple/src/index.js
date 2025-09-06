@@ -21,12 +21,8 @@ export const parsers = {
 	ripple: {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
-			
-
 			return parse(text);
 		},
-
-
 
 		locStart(node) {
 			return node.loc.start.index;
@@ -50,6 +46,15 @@ export const printers = {
 				return concat(parts);
 			}
 			return typeof parts === 'string' ? parts : parts;
+		},
+		getVisitorKeys(node) {
+			const keys = Object.keys(node).filter((key) => {
+				return key === 'start' || key === 'end' || key === 'loc' || key === 'metadata'
+					? false
+					: typeof node[key] === 'object' && node[key] !== null;
+			});
+
+			return keys;
 		},
 	},
 };
@@ -112,7 +117,7 @@ function printRippleNode(node, path, options, print, args) {
 	}
 
 	let nodeContent;
-	
+
 	switch (node.type) {
 		case 'Program': {
 			// Handle the body statements properly with whitespace preservation
@@ -125,29 +130,30 @@ function printRippleNode(node, path, options, print, args) {
 				} else {
 					statements.push(statement);
 				}
-				
+
 				// Add spacing between top-level statements based on original formatting
 				if (i < node.body.length - 1) {
 					const currentStmt = node.body[i];
 					const nextStmt = node.body[i + 1];
-					
+
 					// Use same whitespace detection logic as in components
 					const sourceText = options.originalText || options.source;
 					let hasOriginalBlankLines = false;
-					
+
 					if (sourceText && currentStmt.loc && nextStmt.loc) {
 						const currentEnd = currentStmt.loc.end;
 						const nextStart = nextStmt.loc.start;
-						
+
 						const lines = sourceText.split('\n');
 						const linesBetween = lines.slice(currentEnd.line, nextStart.line - 1);
-						hasOriginalBlankLines = linesBetween.some(line => line.trim() === '');
+						hasOriginalBlankLines = linesBetween.some((line) => line.trim() === '');
 					} else {
 						const currentEndLine = currentStmt.loc?.end?.line;
 						const nextStartLine = nextStmt.loc?.start?.line;
-						hasOriginalBlankLines = nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
+						hasOriginalBlankLines =
+							nextStartLine && currentEndLine && nextStartLine - currentEndLine > 1;
 					}
-					
+
 					// Only add spacing when explicitly needed
 					if (shouldAddBlankLine(currentStmt, nextStmt)) {
 						statements.push(concat([line, line])); // blank line
@@ -167,8 +173,6 @@ function printRippleNode(node, path, options, print, args) {
 		case 'Component':
 			nodeContent = printComponent(node, path, options, print);
 			break;
-
-
 
 		case 'ExportNamedDeclaration':
 			return printExportNamedDeclaration(node, path, options, print);
@@ -378,16 +382,17 @@ function printRippleNode(node, path, options, print, args) {
 		case 'BlockStatement': {
 			// Apply the same block formatting pattern as component bodies
 			if (!node.body || node.body.length === 0) {
-			// Handle innerComments for empty blocks
-			if (innerCommentParts.length > 0) {
-				nodeContent = group([
-					'{',
-					indent([hardline, join(hardline, innerCommentParts)]),
-					hardline,
-					'}'
-				]);
-				break;
-			}				nodeContent = '{}';
+				// Handle innerComments for empty blocks
+				if (innerCommentParts.length > 0) {
+					nodeContent = group([
+						'{',
+						indent([hardline, join(hardline, innerCommentParts)]),
+						hardline,
+						'}',
+					]);
+					break;
+				}
+				nodeContent = '{}';
 				break;
 			}
 
@@ -406,7 +411,7 @@ function printRippleNode(node, path, options, print, args) {
 					// The nextStmt is at index i+1. It's the first statement if i+1 === 0 (impossible)
 					// So in this context, nextStmt is never the first statement
 					// But the rule might apply at a different level
-					const isNextStatementFirst = (i + 1) === 0; // This will always be false
+					const isNextStatementFirst = i + 1 === 0; // This will always be false
 					if (shouldAddBlankLine(currentStmt, nextStmt, isNextStatementFirst)) {
 						statements.push(concat([hardline, hardline])); // Blank line = two hardlines
 					} else {
@@ -416,12 +421,7 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			// Use proper block statement pattern
-			return group([
-				'{',
-				indent([hardline, concat(statements)]),
-				hardline,
-				'}'
-			]);
+			return group(['{', indent([hardline, concat(statements)]), hardline, '}']);
 		}
 
 		case 'ReturnStatement': {
@@ -583,7 +583,7 @@ function printRippleNode(node, path, options, print, args) {
 		parts.push(nodeContent);
 		return concat(parts);
 	}
-	
+
 	return nodeContent;
 }
 
@@ -721,8 +721,6 @@ function printComponent(node, path, options, print) {
 		}
 	}
 
-
-
 	// Process statements to add them to contentParts
 	const contentParts = [];
 	if (statements.length > 0) {
@@ -777,20 +775,13 @@ function printComponent(node, path, options, print) {
 			contentParts.push(...scriptContent);
 		}
 
-			// Join content parts
-	const joinedContent = contentParts.length > 0 ? concat(contentParts) : '';
+		// Join content parts
+		const joinedContent = contentParts.length > 0 ? concat(contentParts) : '';
 
-	// Apply component-level indentation
-	const indentedContent = joinedContent ? indent([hardline, joinedContent]) : indent([hardline]);
+		// Apply component-level indentation
+		const indentedContent = joinedContent ? indent([hardline, joinedContent]) : indent([hardline]);
 
-	parts.push(
-		group([
-			' {',
-			indentedContent,
-			hardline,
-			'}'
-		])
-	);
+		parts.push(group([' {', indentedContent, hardline, '}']));
 	} else {
 		parts.push(' {}');
 	}
@@ -1151,8 +1142,8 @@ function printObjectExpression(node, path, options, print) {
 	return group([
 		'{',
 		indent(content.slice(0, -1)), // Indent the content but not the final hardline
-		content[content.length - 1],   // Add the final hardline without indentation
-		'}'
+		content[content.length - 1], // Add the final hardline without indentation
+		'}',
 	]);
 }
 
@@ -1431,17 +1422,9 @@ function printTSInterfaceBody(node, path, options, print) {
 	const members = path.map(print, 'body');
 
 	// Add semicolons to all members
-	const membersWithSemicolons = members.map(member => concat([member, ';']));
+	const membersWithSemicolons = members.map((member) => concat([member, ';']));
 
-	return group([
-		'{',
-		indent([
-			hardline,
-			join(hardline, membersWithSemicolons)
-		]),
-		hardline,
-		'}'
-	]);
+	return group(['{', indent([hardline, join(hardline, membersWithSemicolons)]), hardline, '}']);
 }
 
 function printTSTypeAliasDeclaration(node, path, options, print) {
@@ -1571,10 +1554,12 @@ function printSequenceExpression(node, path, options, print) {
 
 function getWhitespaceLinesBetween(currentNode, nextNode) {
 	// Return the number of blank lines between two nodes based on their location
-	if (currentNode.loc && nextNode?.loc &&
-		typeof currentNode.loc.end?.line === 'number' && 
-		typeof nextNode.loc.start?.line === 'number') {
-		
+	if (
+		currentNode.loc &&
+		nextNode?.loc &&
+		typeof currentNode.loc.end?.line === 'number' &&
+		typeof nextNode.loc.start?.line === 'number'
+	) {
 		const lineGap = nextNode.loc.start.line - currentNode.loc.end.line;
 		const blankLines = Math.max(0, lineGap - 1);
 		// lineGap = 1 means adjacent lines (no blank lines)
@@ -1582,7 +1567,7 @@ function getWhitespaceLinesBetween(currentNode, nextNode) {
 		// lineGap = 3 means two blank lines between them, etc.
 		return blankLines;
 	}
-	
+
 	// If no location info, assume no whitespace
 	return 0;
 }
@@ -1590,75 +1575,86 @@ function getWhitespaceLinesBetween(currentNode, nextNode) {
 function shouldAddBlankLine(currentNode, nextNode, isFirstStatement = false) {
 	// First check if there was original whitespace between the nodes
 	const originalBlankLines = getWhitespaceLinesBetween(currentNode, nextNode);
-	
+
 	// If there were any blank lines in the original, preserve one blank line
 	if (originalBlankLines > 0) {
 		return true;
 	}
-	
-	// If there were no blank lines originally (originalBlankLines === 0), 
+
+	// If there were no blank lines originally (originalBlankLines === 0),
 	// then apply our formatting rules to decide whether to add one
-	
+
 	// Always add blank line before return statements (unless it's the first statement in a block)
 	if (nextNode.type === 'ReturnStatement' && !isFirstStatement) {
 		return true;
 	}
-	
+
 	// Add blank line before style elements
 	if (nextNode.type === 'Element') {
 		if (nextNode.id && nextNode.id.type === 'Identifier' && nextNode.id.name === 'style') {
 			return true;
 		}
 	}
-	
+
 	// Add blank line after variable declarations when followed by elements or control flow statements
 	if (currentNode.type === 'VariableDeclaration') {
-		if (nextNode.type === 'Element' || 
-			nextNode.type === 'IfStatement' || 
-			nextNode.type === 'TryStatement' || 
+		if (
+			nextNode.type === 'Element' ||
+			nextNode.type === 'IfStatement' ||
+			nextNode.type === 'TryStatement' ||
 			nextNode.type === 'ForStatement' ||
 			nextNode.type === 'ForOfStatement' ||
-			nextNode.type === 'WhileStatement') {
+			nextNode.type === 'WhileStatement'
+		) {
 			return true;
 		}
 	}
-	
+
 	// Add blank line after TypeScript declarations when followed by other statements (not just elements)
-	if (currentNode.type === 'TSInterfaceDeclaration' || currentNode.type === 'TSTypeAliasDeclaration') {
+	if (
+		currentNode.type === 'TSInterfaceDeclaration' ||
+		currentNode.type === 'TSTypeAliasDeclaration'
+	) {
 		// Add blank line before elements, control flow, variable declarations, and expression statements
-		if (nextNode.type === 'Element' || 
-			nextNode.type === 'IfStatement' || 
-			nextNode.type === 'TryStatement' || 
+		if (
+			nextNode.type === 'Element' ||
+			nextNode.type === 'IfStatement' ||
+			nextNode.type === 'TryStatement' ||
 			nextNode.type === 'ForStatement' ||
 			nextNode.type === 'ForOfStatement' ||
 			nextNode.type === 'WhileStatement' ||
 			nextNode.type === 'VariableDeclaration' ||
-			nextNode.type === 'ExpressionStatement') {
+			nextNode.type === 'ExpressionStatement'
+		) {
 			return true;
 		}
 	}
-	
+
 	// Add blank line after if/for/try statements if next is an element
-	if (currentNode.type === 'IfStatement' || 
-		currentNode.type === 'ForStatement' || 
+	if (
+		currentNode.type === 'IfStatement' ||
+		currentNode.type === 'ForStatement' ||
 		currentNode.type === 'ForOfStatement' ||
 		currentNode.type === 'TryStatement' ||
-		currentNode.type === 'WhileStatement') {
+		currentNode.type === 'WhileStatement'
+	) {
 		if (nextNode.type === 'Element') {
 			return true;
 		}
 	}
-	
+
 	// Add blank line before elements when preceded by non-element statements
 	if (nextNode.type === 'Element') {
-		if (currentNode.type === 'VariableDeclaration' ||
+		if (
+			currentNode.type === 'VariableDeclaration' ||
 			currentNode.type === 'ExpressionStatement' ||
 			currentNode.type === 'TSInterfaceDeclaration' ||
-			currentNode.type === 'TSTypeAliasDeclaration') {
+			currentNode.type === 'TSTypeAliasDeclaration'
+		) {
 			return true;
 		}
 	}
-	
+
 	// Fallback: don't add blank lines by default
 	return false;
 }
@@ -1714,15 +1710,7 @@ function printTSTypeLiteral(node, path, options, print) {
 	const members = path.map(print, 'members');
 
 	// Use AST builders for proper formatting with proper semicolons
-	return group([
-		'{',
-		indent([
-			line,
-			join([';', line], members)
-		]),
-		line,
-		'}'
-	]);
+	return group(['{', indent([line, join([';', line], members)]), line, '}']);
 }
 
 function printTSPropertySignature(node, path, options, print) {
@@ -1761,7 +1749,7 @@ function printStyleSheet(node, path, options, print) {
 	// StyleSheet contains CSS rules in the 'body' property
 	if (node.body && node.body.length > 0) {
 		const cssItems = [];
-		
+
 		// Process each item in the stylesheet body
 		for (let i = 0; i < node.body.length; i++) {
 			const item = path.call(print, 'body', i);
@@ -1769,19 +1757,19 @@ function printStyleSheet(node, path, options, print) {
 				cssItems.push(item);
 			}
 		}
-		
-		// Structure the CSS with proper indentation and spacing  
+
+		// Structure the CSS with proper indentation and spacing
 		// CSS rules need exactly 3 more spaces beyond the <style> element's indentation
 		return concat([
 			hardline,
 			indent([
-				'  ',  // 2 spaces (indent gives 3, we need 5 total = +2)
-				join(concat([hardline, '  ']), cssItems)  // 2 spaces for all CSS lines
+				'  ', // 2 spaces (indent gives 3, we need 5 total = +2)
+				join(concat([hardline, '  ']), cssItems), // 2 spaces for all CSS lines
 			]),
-			hardline
+			hardline,
 		]);
 	}
-	
+
 	// If no body, return empty string
 	return '';
 }
@@ -1790,26 +1778,20 @@ function printCSSRule(node, path, options, print) {
 	// CSS Rule has prelude (selector) and block (declarations)
 	const selector = path.call(print, 'prelude');
 	const block = path.call(print, 'block');
-	
-	return group([
-		selector,
-		' {',
-		indent([hardline, block]),
-		hardline,
-		'}'
-	]);
+
+	return group([selector, ' {', indent([hardline, block]), hardline, '}']);
 }
 
 function printCSSDeclaration(node, path, options, print) {
 	// CSS Declaration has property and value
 	const parts = [node.property];
-	
+
 	if (node.value) {
 		parts.push(': ');
 		const value = path.call(print, 'value');
 		parts.push(value);
 	}
-	
+
 	parts.push(';');
 	return concat(parts);
 }
@@ -1817,13 +1799,13 @@ function printCSSDeclaration(node, path, options, print) {
 function printCSSAtrule(node, path, options, print) {
 	// CSS At-rule like @media, @keyframes, etc.
 	const parts = ['@', node.name];
-	
+
 	if (node.prelude) {
 		parts.push(' ');
 		const prelude = path.call(print, 'prelude');
 		parts.push(prelude);
 	}
-	
+
 	if (node.block) {
 		const block = path.call(print, 'block');
 		parts.push(' {');
@@ -1832,7 +1814,7 @@ function printCSSAtrule(node, path, options, print) {
 	} else {
 		parts.push(';');
 	}
-	
+
 	return group(parts);
 }
 
@@ -1916,24 +1898,24 @@ function printElement(node, path, options, print) {
 		// No attributes, but has children - use unified children processing
 		// Build children with whitespace preservation
 		const finalChildren = [];
-		
+
 		// Iterate over the original AST children to analyze whitespace
 		for (let i = 0; i < node.children.length; i++) {
 			const currentChild = node.children[i];
 			const nextChild = node.children[i + 1]; // Can be undefined for last child
-			
+
 			// Print the current child
 			const printedChild = path.call(print, 'children', i);
 			finalChildren.push(printedChild);
-			
+
 			// Only add spacing if this is not the last child
 			if (nextChild) {
 				const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
-					
+
 				// Add blank line if there was original whitespace (> 0 lines) or if formatting rules require it
 				if (whitespaceLinesCount > 0 || shouldAddBlankLine(currentChild, nextChild, false)) {
 					// Double hardline for blank line
-					finalChildren.push(hardline); // Line break 
+					finalChildren.push(hardline); // Line break
 					finalChildren.push(hardline); // Blank line
 				} else {
 					// Single hardline for normal line break
@@ -1941,7 +1923,7 @@ function printElement(node, path, options, print) {
 				}
 			}
 		}
-		
+
 		// For single simple children, try to keep on one line
 		if (finalChildren.length === 1) {
 			const child = finalChildren[0];
@@ -1954,7 +1936,7 @@ function printElement(node, path, options, print) {
 				return group(['<', tagName, '>', child, '</', tagName, '>']);
 			}
 		}
-		
+
 		return group([
 			'<',
 			tagName,
@@ -1987,24 +1969,24 @@ function printElement(node, path, options, print) {
 	// Has children - use unified children processing
 	// Build children with whitespace preservation
 	const finalChildren = [];
-	
+
 	// Iterate over the original AST children to analyze whitespace
 	for (let i = 0; i < node.children.length; i++) {
 		const currentChild = node.children[i];
 		const nextChild = node.children[i + 1]; // Can be undefined for last child
-		
+
 		// Print the current child
 		const printedChild = path.call(print, 'children', i);
 		finalChildren.push(printedChild);
-		
+
 		// Only add spacing if this is not the last child
 		if (nextChild) {
 			const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
-				
+
 			// Add blank line if there was original whitespace (> 0 lines) or if formatting rules require it
 			if (whitespaceLinesCount > 0 || shouldAddBlankLine(currentChild, nextChild, false)) {
 				// Double hardline for blank line
-				finalChildren.push(hardline); // Line break 
+				finalChildren.push(hardline); // Line break
 				finalChildren.push(hardline); // Blank line
 			} else {
 				// Single hardline for normal line break
@@ -2012,7 +1994,7 @@ function printElement(node, path, options, print) {
 			}
 		}
 	}
-	
+
 	const closingTag = concat(['</', tagName, '>']);
 
 	// For single simple children, try to keep on one line
@@ -2068,7 +2050,7 @@ function formatCss(css) {
 		parts.push(hardline);
 
 		// Add properties - handle the case where properties might be on one line
-		const propLines = properties.split(';').filter(prop => prop.trim().length > 0);
+		const propLines = properties.split(';').filter((prop) => prop.trim().length > 0);
 		for (const prop of propLines) {
 			const trimmedProp = prop.trim();
 			if (trimmedProp) {
@@ -2095,5 +2077,3 @@ function formatCss(css) {
 
 	return parts;
 }
-
-

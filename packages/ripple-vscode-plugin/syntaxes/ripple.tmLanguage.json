@@ -6370,26 +6370,6 @@
 				}
 			]
 		},
-		"jsx-square-bracket-expression": {
-			"contentName": "meta.embedded.expression.js source.js.embedded.ripple",
-			"begin": "\\[",
-			"end": "\\]",
-			"beginCaptures": {
-				"0": {
-					"name": "punctuation.section.embedded.begin.js"
-				}
-			},
-			"endCaptures": {
-				"0": {
-					"name": "punctuation.section.embedded.end.js"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#expression"
-				}
-			]
-		},
 		"jsx-entities": {
 			"patterns": [
 				{
@@ -6430,9 +6410,6 @@
 					"include": "#jsx-evaluated-code"
 				},
 				{
-					"include": "#jsx-square-bracket-expression"
-				},
-				{
 					"include": "#jsx-tag-attributes-illegal"
 				}
 			]
@@ -6453,7 +6430,7 @@
 		},
 		"jsx-tag-attribute-assignment": {
 			"name": "keyword.operator.assignment.js",
-			"match": "=(?=\\s*(?:'|\"|{|\\[|/\\*|//|\\n))"
+			"match": "=(?=\\s*(?:'|\"|{|/\\*|//|\\n))"
 		},
 		"jsx-string-double-quoted": {
 			"name": "string.quoted.double.js",

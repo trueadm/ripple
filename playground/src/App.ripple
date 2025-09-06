@@ -1,14 +1,30 @@
+import { effect } from 'ripple';
+
+component Child(props) {
+  
+  effect(() => {
+    console.log(props.$count);
+  });
+
+}
+
 export component App() {
-  let foo;
-  let bar;
-  let baz;
+			const count = '$count';
 
-  foo = {};
-  foo = {'test': 0};
-  foo['abc'] = 123;
+			<div>
+				let obj = {
+					$count: 0
+				};
 
-  bar = { 'def': 456 };
+				<span>{obj[count]}</span>
+			</div>
+			<div>
+				let b = {
+					$count: 0
+				};
 
-  baz = { 'ghi': 789 };
-  baz['jkl'] = 987;
+				<button onClick={() => b[count]--}>{'-'}</button>
+				<span class='count'>{b[count]}</span>
+				<button onClick={() => b[count]++}>{'+'}</button>
+			</div>
 }
