@@ -617,6 +617,8 @@ const visitors = {
 					);
 				} else if (attr.type === 'UseAttribute') {
 					props.push(b.prop('init', b.call('$.use_prop'), visit(attr.argument, state), true));
+				} else if (attr.type === 'AccessorAttribute') {
+					throw new Error('TODO AccessorAttribute');
 				} else {
 					throw new Error('TODO');
 				}
