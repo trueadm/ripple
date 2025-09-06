@@ -245,7 +245,7 @@ export component App() {
     console.log($count);
   });
 
-  <button onClick={() => $count++}>Increment</button>
+  <button onClick={() => $count++}>{'Increment'}</button>
 }
 ```
 
