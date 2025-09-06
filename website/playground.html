@@ -9,22 +9,25 @@
 			body {
 				margin: 0;
 				padding: 0;
-				height: 100vh;
+				height: 100vh; /* for older browsers */
+				height: 100dvh;
 				overflow: hidden;
-			}
-
-			#container {
-				height: 100%;
-				width: 100%;
 			}
 		</style>
 
 		<script type="module">
 			import { createPlayground } from 'https://cdn.jsdelivr.net/npm/livecodes@0.11.1';
+			const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple';
+
+			const pkg = await fetch(apiUrl)
+				.then((res) => res.json())
+				.catch(() => ({}));
+			const latest = pkg.tags?.latest || 'latest';
 
 			createPlayground('#container', {
 				appUrl: 'https://ripple.livecodes.pages.dev',
 				config: {
+					customSettings: { ripple: { version: latest } },
 					activeEditor: 'script',
 					script: {
 						language: 'ripple',
@@ -65,6 +68,6 @@ export default component App() {
 		</script>
 	</head>
 	<body>
-		<div id="container" data-default-styles="false"></div>
+		<div id="container" data-default-styles="false" data-height="100%"></div>
 	</body>
 </html>
