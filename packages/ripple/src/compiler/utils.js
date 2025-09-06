@@ -466,7 +466,13 @@ export function visit_assignment_expression(node, context, build_assignment) {
 		throw new Error(`Unexpected assignment type ${node.left.type}`);
 	}
 
-	return build_assignment(node.operator, node.left, node.right, context);
+	const transformed = build_assignment(node.operator, node.left, node.right, context);
+
+	if (transformed === node.left) {
+		return node;
+	}
+
+	return transformed;
 }
 
 export function build_assignment(operator, left, right, context) {

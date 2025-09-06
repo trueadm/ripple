@@ -1,21 +1,14 @@
-import { effect } from 'ripple';
-import Ripple from 'ripple'
-
-component Child(props) {
-  
-  effect(() => {
-    console.log(props.$count);
-  });
-
-}
-
 export component App() {
-  let $count = 0;
-  
-  // <button onClick={() => $count++}>{"Increment"}</button>
+  let foo;
+  let bar;
+  let baz;
 
-  <Child $count={() => $count} />;
+  foo = {};
+  foo = {'test': 0};
+  foo['abc'] = 123;
 
-  // TODO
-  // <Child $count=[() => $count] />;
+  bar = { 'def': 456 };
+
+  baz = { 'ghi': 789 };
+  baz['jkl'] = 987;
 }
