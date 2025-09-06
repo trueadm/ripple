@@ -245,7 +245,7 @@ export component App() {
     console.log($count);
   });
 
-  <button onClick={() => $count++}>Increment</button>
+  <button onClick={() => $count++}>{'Increment'}</button>
 }
 ```
 
@@ -256,13 +256,8 @@ can only occur _inside_ a `component` body – you can't create JSX inside funct
 
 ```jsx
 <div>
-  // you can create variables inside the template!
-  const str = "hello world";
-
-  console.log(str); // and function calls too!
-
-  debugger; // you can put breakpoints anywhere to help debugging!
-
+  // you can create variables inside the template! const str = "hello world"; console.log(str); //
+  and function calls too! debugger; // you can put breakpoints anywhere to help debugging!
   {str}
 </div>
 ```
