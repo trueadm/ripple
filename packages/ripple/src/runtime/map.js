@@ -1,4 +1,4 @@
-import { get, increment, scope, set, tracked } from './internal/client/runtime.js';
+import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
 
 const introspect_methods = ['entries', 'forEach', 'values', Symbol.iterator];
 
@@ -11,7 +11,7 @@ export class RippleMap extends Map {
 	constructor(iterable) {
 		super();
 
-		var block = scope();
+		var block = safe_scope();
 
 		if (iterable) {
 			for (var [key, value] of iterable) {
@@ -75,7 +75,7 @@ export class RippleMap extends Map {
 	}
 
 	set(key, value) {
-		var block = scope();
+		var block = safe_scope();
 		var tracked_items = this.#tracked_items;
 		var t = tracked_items.get(key);
 		var prev_res = super.get(key);
@@ -93,7 +93,7 @@ export class RippleMap extends Map {
 	}
 
 	delete(key) {
-		var block = scope();
+		var block = safe_scope();
 		var tracked_items = this.#tracked_items;
 		var t = tracked_items.get(key);
 		var result = super.delete(key);
@@ -108,7 +108,7 @@ export class RippleMap extends Map {
 	}
 
 	clear() {
-		var block = scope();
+		var block = safe_scope();
 
 		if (super.size === 0) {
 			return;

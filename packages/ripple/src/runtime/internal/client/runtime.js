@@ -1048,8 +1048,23 @@ export function with_scope(block, fn) {
 	}
 }
 
+/**
+ * @returns {Block | null}
+ */
 export function scope() {
 	return active_scope;
+}
+
+/**
+ * @param {string} [err]
+ * @returns {Block | never}
+ */
+export function safe_scope(err = 'Cannot access outside of a component context') {
+	if (active_scope === null) {
+		throw new Error(err);
+	}
+
+	return /** @type {Block} */ (active_scope);
 }
 
 export function push_component() {

@@ -1,7 +1,7 @@
 /** @import { Block } from '#client' */
 
 import { TRACKED_OBJECT } from './internal/client/constants.js';
-import { get, increment, scope, set, tracked } from './internal/client/runtime.js';
+import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
 
 var symbol_iterator = Symbol.iterator;
 
@@ -36,17 +36,6 @@ const introspect_methods = [
 ];
 
 let init = false;
-
-/**
- * @param {Block | null} block
- * @throws {Error}
- */
-function check_block(block) {
-	if (block === null) {
-		throw new Error('Cannot set $length outside of a reactive context');
-	}
-}
-
 export class RippleArray extends Array {
 	#tracked_elements = [];
 	#tracked_index;
@@ -62,8 +51,7 @@ export class RippleArray extends Array {
 	constructor(...elements) {
 		super(...elements);
 
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
 		for (var i = 0; i < this.length; i++) {
@@ -91,8 +79,7 @@ export class RippleArray extends Array {
 	}
 
 	fill() {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
 		super.fill();
@@ -102,8 +89,7 @@ export class RippleArray extends Array {
 	}
 
 	reverse() {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
 		super.reverse();
@@ -113,8 +99,7 @@ export class RippleArray extends Array {
 	}
 
 	sort(fn) {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
 		super.sort(fn);
@@ -128,8 +113,7 @@ export class RippleArray extends Array {
 	 * @returns {number}
 	 */
 	unshift(...elements) {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
 		super.unshift(...elements);
@@ -144,8 +128,7 @@ export class RippleArray extends Array {
 	}
 
 	shift() {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
 		super.shift();
@@ -162,8 +145,7 @@ export class RippleArray extends Array {
 	 * @returns {number}
 	 */
 	push(...elements) {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var start_index = this.length;
 		var tracked_elements = this.#tracked_elements;
 
@@ -178,8 +160,7 @@ export class RippleArray extends Array {
 	}
 
 	pop() {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
 		super.pop();
@@ -198,8 +179,7 @@ export class RippleArray extends Array {
 	 * @returns {any[]}
 	 */
 	splice(start, delete_count, ...elements) {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
 		super.splice(start, delete_count, ...elements);
@@ -220,11 +200,10 @@ export class RippleArray extends Array {
 	}
 
 	set $length(length) {
-		var block = scope();
-		check_block(block);
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
-		if (length !== this.$length) {
+		if (length !== this.length) {
 			for (var i = 0; i < tracked_elements.length; i++) {
 				increment(tracked_elements[i], block);
 			}
