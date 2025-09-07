@@ -184,6 +184,8 @@ Ripple doesn't constrain reactivity to components only. Reactivity can be used i
 Ripple proides a very nice way to transport reactivity between boundaries so that it's persisted – using objects and arrays. Here's an example using arrays to transport reactivity:
 
 ```jsx
+import { effect } from 'ripple';
+
 function createDouble([ $count ]) {
   const $double = $count * 2;
 
@@ -207,12 +209,15 @@ export component App() {
 You can do the same with objects too:
 
 ```jsx
+import { effect } from 'ripple';
+
 function createDouble({ $count }) {
   const $double = $count * 2;
 
   effect(() => {
     console.log('Count:', $count)
   });
+
   return { $double };
 }
 
