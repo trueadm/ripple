@@ -424,14 +424,22 @@ function RipplePlugin(config) {
 						// This node is used for Prettier, we don't actually need
 						// the node for Ripple's transform process
 						element.children = [component.css];
+						// Ensure we escape JSX <tag></tag> context
+						const tokContexts = this.acornTypeScript.tokContexts;
+						const curContext = this.curContext();
+
+						if (curContext === tokContexts.tc_expr) {
+							this.context.pop();
+						}
+
 						return element;
 					} else {
 						this.enterScope(0);
 						this.parseTemplateBody(element.children);
 						this.exitScope();
 					}
+					// Ensure we escape JSX <tag></tag> context
 					const tokContexts = this.acornTypeScript.tokContexts;
-
 					const curContext = this.curContext();
 
 					if (curContext === tokContexts.tc_expr) {
