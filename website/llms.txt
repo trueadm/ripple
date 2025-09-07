@@ -197,6 +197,8 @@ component DisplayValue(props: { $value: string, label: string }) {
 #### Array Transport Pattern
 
 ```ripple
+import { effect } from 'ripple';
+
 function createDouble([ $count ]) {
   const $double = $count * 2;
 
@@ -220,6 +222,8 @@ export component App() {
 #### Object Transport Pattern
 
 ```ripple
+import { effect } from 'ripple';
+
 function createDouble({ $count }) {
   const $double = $count * 2;
 
