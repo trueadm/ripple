@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+# AI/LLM Documentation
+# For comprehensive framework documentation optimized for AI understanding
+# Visit: https://ripplejs.com/llms.txt
+
 Sitemap: https://ripplejs.dev/sitemap.xml

@@ -1,0 +1,431 @@
+# Ripple Framework - AI/LLM Documentation
+
+## Overview
+
+Ripple is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte into one elegant package. Created by Dominic Gannaway ([@trueadm](https://github.com/trueadm)), Ripple is designed to be JS/TS-first with its own `.ripple` file extension that fully supports TypeScript.
+
+**Key Characteristics:**
+- **Performance**: Fine-grained rendering with industry-leading performance and memory usage
+- **TypeScript-first**: Full TypeScript integration with type checking
+- **JSX-like syntax**: Familiar templating with Ripple-specific enhancements
+- **Reactive state**: Built-in reactivity with `$` prefixed variables
+- **Component-based**: Clean, reusable components with props and children
+
+## Installation & Setup
+
+```bash
+# Create new project from template
+npx degit trueadm/ripple/templates/basic my-app
+cd my-app
+npm i && npm run dev
+
+# Or install in existing project
+npm install ripple
+npm install --save-dev vite-plugin-ripple  # For Vite integration
+```
+
+## Core Syntax & Concepts
+
+### Component Definition
+
+Components are defined using the `component` keyword (not functions that return JSX):
+
+```ripple
+component Button(props: { text: string, onClick: () => void }) {
+  <button onClick={props.onClick}>
+    {props.text}
+  </button>
+}
+
+// Usage
+export component App() {
+  <Button text="Click me" onClick={() => console.log("Clicked!")} />
+}
+```
+
+### Reactive Variables
+
+Variables prefixed with `$` are automatically reactive and trigger re-renders:
+
+```ripple
+export component Counter() {
+  let $count = 0;
+  let $double = $count * 2;  // Derived reactive value
+
+  <div>
+    <p>{"Count: "}{$count}</p>
+    <p>{"Double: "}{$double}</p>
+    <button onClick={() => $count++}>{"Increment"}</button>
+  </div>
+}
+```
+
+Object properties can also be reactive:
+```ripple
+let counter = { $current: 0 };
+counter.$current++;  // Triggers reactivity
+```
+
+### Props and Reactivity
+
+Reactive props must be prefixed with `$`:
+
+```ripple
+component DisplayValue(props: { $value: string, label: string }) {
+  <div>
+    <span>{props.label}{": "}</span>
+    <span>{props.$value}</span>  // Reactive prop
+  </div>
+}
+
+// Usage
+<DisplayValue $value={$someReactiveValue} label="Current Value" />
+```
+
+### Control Flow
+
+#### If Statements
+```ripple
+component Conditional({ $isVisible }) {
+  <div>
+    if ($isVisible) {
+      <span>{"Visible content"}</span>
+    } else {
+      <span>{"Hidden state"}</span>
+    }
+  </div>
+}
+```
+
+#### For Loops
+```ripple
+component List({ items }) {
+  <ul>
+    for (const item of items) {
+      <li>{item.text}</li>
+    }
+  </ul>
+}
+```
+
+#### Try-Catch (Error Boundaries)
+```ripple
+component ErrorBoundary() {
+  <div>
+    try {
+      <ComponentThatMightFail />
+    } catch (e) {
+      <div>{"Error: "}{e.message}</div>
+    }
+  </div>
+}
+```
+
+### Children Components
+
+Use `$children` prop for component composition:
+
+```ripple
+import type { Component } from 'ripple';
+
+component Card(props: { $children: Component }) {
+  <div class="card">
+    <$children />
+  </div>
+}
+
+// Usage
+<Card>
+  <p>{"Card content here"}</p>
+</Card>
+```
+
+### Event Handling
+
+Events follow React-style naming (`onClick`, `onPointerMove`, etc.):
+
+```ripple
+component EventExample() {
+  let $message = "";
+
+  <div>
+    <button onClick={() => $message = "Clicked!"}>{"Click me"}</button>
+    <input onInput={(e) => $message = e.target.value} />
+    <p>{$message}</p>
+  </div>
+}
+```
+
+For capture phase events, add `Capture` suffix:
+- `onClickCapture`
+- `onPointerDownCapture`
+
+### Styling
+
+Components support scoped CSS with `<style>` elements:
+
+```ripple
+component StyledComponent() {
+  <div class="container">
+    <h1>{"Styled Content"}</h1>
+  </div>
+
+  <style>
+    .container {
+      background: blue;
+      padding: 1rem;
+    }
+    h1 {
+      color: white;
+      font-size: 2rem;
+    }
+  </style>
+}
+```
+
+### DOM References (Decorators)
+
+Use `{@use fn}` syntax to capture DOM element references:
+
+```ripple
+export component App() {
+  let $node;
+
+  const ref = (node) => {
+    $node = node;
+    console.log("mounted", node);
+    
+    return () => {
+      console.log("unmounted", node);
+    };
+  };
+
+  <div {@use ref}>{"Hello world"}</div>
+}
+```
+
+Inline decorators:
+```ripple
+<div {@use (node) => console.log(node)}>{"Content"}</div>
+```
+
+## Built-in APIs
+
+### Core Functions
+```typescript
+import { 
+  mount,           // Mount component to DOM
+  untrack,         // Prevent reactivity tracking
+  flushSync,       // Synchronous state updates
+  effect,          // Side effects
+  createContext    // Context API
+} from 'ripple';
+```
+
+### Mount API
+```typescript
+mount(App, {
+  props: { title: 'Hello world!' },
+  target: document.getElementById('root')
+});
+```
+
+### Effects
+```ripple
+import { effect } from 'ripple';
+
+export component App() {
+  let $count = 0;
+
+  effect(() => {
+    console.log("Count changed:", $count);
+  });
+
+  <button onClick={() => $count++}>{"Increment"}</button>
+}
+```
+
+### Context
+```ripple
+import { createContext } from 'ripple';
+
+const ThemeContext = createContext('light');
+
+component Child() {
+  const theme = ThemeContext.get();
+  <div class={theme}>{"Themed content"}</div>
+}
+
+component Parent() {
+  ThemeContext.set('dark');
+  <Child />
+}
+```
+
+### Reactive Collections
+
+#### RippleArray
+```ripple
+import { RippleArray } from 'ripple';
+
+component List() {
+  const items = new RippleArray(1, 2, 3);
+  
+  <div>
+    <p>{"Length: "}{items.$length}</p>  // Reactive length
+    for (const item of items) {
+      <div>{item}</div>
+    }
+    <button onClick={() => items.push(items.$length + 1)}>{"Add"}</button>
+  </div>
+}
+```
+
+#### RippleSet
+```ripple
+import { RippleSet } from 'ripple';
+
+component SetExample() {
+  const mySet = new RippleSet([1, 2, 3]);
+  
+  <div>
+    <p>{"Size: "}{mySet.$size}</p>  // Reactive size
+    <p>{"Has 2: "}{mySet.has(2)}</p>
+    <button onClick={() => mySet.add(4)}>{"Add 4"}</button>
+  </div>
+}
+```
+
+## Advanced Features
+
+### Untracking Reactivity
+```ripple
+import { untrack } from 'ripple';
+
+component Counter({ $startingCount }) {
+  let $count = untrack(() => $startingCount);  // Initialize once, don't track changes
+  let $double = $count * 2;
+  
+  <div>
+    <p>{"Count: "}{$count}</p>
+    <button onClick={() => $count++}>{"Increment"}</button>
+  </div>
+}
+```
+
+### Prop Shortcuts
+```ripple
+// Object spread
+<div {...properties}>{"Content"}</div>
+
+// Shorthand props (when variable name matches prop name)
+<div {onClick} {className}>{"Content"}</div>
+
+// Equivalent to:
+<div onClick={onClick} className={className}>{"Content"}</div>
+```
+
+## TypeScript Integration
+
+### Component Types
+```typescript
+import type { Component } from 'ripple';
+
+interface Props {
+  $value: string;
+  label: string;
+  $children?: Component;
+}
+
+component MyComponent(props: Props) {
+  // Component implementation
+}
+```
+
+### Context Types
+```typescript
+type Theme = 'light' | 'dark';
+const ThemeContext = createContext<Theme>('light');
+```
+
+## File Structure
+
+```
+src/
+  App.ripple          # Main app component
+  components/
+    Button.ripple     # Reusable components
+    Card.ripple
+  index.ts           # Entry point with mount()
+```
+
+## Development Tools
+
+### VSCode Extension
+- **Name**: "Ripple for VS Code"
+- **ID**: `ripplejs.ripple-vscode-plugin`
+- **Features**: Syntax highlighting, diagnostics, TypeScript integration, IntelliSense
+
+### Vite Plugin
+```typescript
+// vite.config.js
+import { defineConfig } from 'vite';
+import ripple from 'vite-plugin-ripple';
+
+export default defineConfig({
+  plugins: [ripple()]
+});
+```
+
+### Prettier Plugin
+```javascript
+// .prettierrc
+{
+  "plugins": ["prettier-plugin-ripple"]
+}
+```
+
+## Key Differences from Other Frameworks
+
+### vs React
+- No JSX functions/returns - components use statement-based templates
+- Built-in reactivity with `$` prefix instead of useState/useEffect
+- Scoped CSS without CSS-in-JS libraries
+- No virtual DOM - fine-grained reactivity
+
+### vs Svelte
+- TypeScript-first approach
+- JSX-like syntax instead of HTML templates
+- `.ripple` extension instead of `.svelte`
+- Similar reactivity concepts but different syntax
+
+### vs Solid
+- Component definition with `component` keyword
+- Built-in collections (RippleArray, RippleSet)
+- Different templating approach within component bodies
+
+## Best Practices
+
+1. **Reactivity**: Always prefix reactive variables and props with `$`
+2. **Strings**: Wrap string literals in `{"string"}` within templates
+3. **Effects**: Use `effect()` for side effects, not direct reactive variable access
+4. **Components**: Keep components focused and use TypeScript interfaces for props
+5. **Styling**: Use scoped `<style>` elements for component-specific styles
+6. **Collections**: Use RippleArray/RippleSet for reactive collections instead of regular arrays/sets
+
+## Current Limitations
+
+- **SSR**: Currently SPA-only (Server-Side Rendering not yet implemented)
+- **Types**: Some areas of the codebase have limited TypeScript coverage
+- **Ecosystem**: Early stage - limited third-party library ecosystem
+- **Production Ready**: Currently in early development/alpha stage
+
+## Resources
+
+- **Website**: https://ripplejs.com
+- **GitHub**: https://github.com/trueadm/ripple
+- **VSCode Extension**: https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin
+
+---
+
+This documentation is optimized for AI/LLM understanding of the Ripple framework. For the most up-to-date information, visit https://ripplejs.com or the GitHub repository.
