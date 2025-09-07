@@ -18,7 +18,6 @@ export class RippleMap extends Map {
 
 		var block = scope();
 
-
 		if (iterable) {
 			for (var [key, value] of iterable) {
 				super.set(key, value);
@@ -100,9 +99,9 @@ export class RippleMap extends Map {
 
 	delete(key) {
 		var block = scope();
-        var tracked_items = this.#tracked_items;
-        var t = tracked_items.get(key);
-        var result = super.delete(key);
+		var tracked_items = this.#tracked_items;
+		var t = tracked_items.get(key);
+		var result = super.delete(key);
 
         if (t) {
             increment(t, block);
