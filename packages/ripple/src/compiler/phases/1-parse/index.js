@@ -93,12 +93,16 @@ function RipplePlugin(config) {
 				const lookahead = this.lookahead();
 
 				if (lookahead.type?.label === ':') {
+					let id = this.startNode();
+					id.name = this.value;
+					node.name = id;
 					this.next();
+					this.finishNode(id, 'Identifier');
+
 					if (this.lookahead().value !== '=') {
 						this.unexpected();
 					}
 					this.next();
-
 					if (this.lookahead().type !== tt.braceL) {
 						this.unexpected();
 					}
@@ -110,7 +114,10 @@ function RipplePlugin(config) {
 
 					if (expression.type == 'SequenceExpression') {
 						node.get = expression.expressions[0];
-						node.set = expression.expressions[0];
+						node.set = expression.expressions[1];
+						if (expression.expressions.length > 2) {
+							this.unexpected();
+						}
 					} else {
 						node.get = expression;
 					}

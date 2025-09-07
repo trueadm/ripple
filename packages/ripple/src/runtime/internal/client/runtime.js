@@ -28,7 +28,7 @@ import {
 	USE_PROP,
 } from './constants';
 import { capture, suspend } from './try.js';
-import { define_property, is_array } from './utils';
+import { define_property, get_descriptor, is_array } from './utils';
 import {
 	object_keys as original_object_keys,
 	object_values as original_object_values,
@@ -192,6 +192,7 @@ function run_computed(computed) {
  * @param {Block} block
  */
 export function handle_error(error, block) {
+	/** @type {Block | null} */
 	var current = block;
 
 	while (current !== null) {
@@ -230,6 +231,7 @@ export function run_block(block) {
 
 		if (typeof res === 'function') {
 			block.t = res;
+			/** @type {Block | null} */
 			let current = block;
 
 			while (current !== null && (current.f & CONTAINS_TEARDOWN) === 0) {
@@ -332,7 +334,7 @@ function is_tracking_dirty(tracking) {
 /**
  * @param {Block} block
  */
-function is_block_dirty(block) {
+export function is_block_dirty(block) {
 	var flags = block.f;
 
 	if ((flags & (ROOT_BLOCK | BRANCH_BLOCK)) !== 0) {
@@ -407,6 +409,7 @@ export function deferred(fn) {
 	var parent = active_block;
 	var block = active_scope;
 	var res = [UNINITIALIZED];
+	// TODO implement DEFERRED flag on tracked
 	var t = tracked(UNINITIALIZED, block, DEFERRED);
 	var tracked_properties = [t];
 	var prev_value = UNINITIALIZED;
@@ -535,7 +538,7 @@ function flush_updates(root_block) {
 			}
 		}
 
-		/** @type {Block} */
+		/** @type {Block | null} */
 		var parent = current.p;
 		current = current.next;
 
@@ -626,7 +629,7 @@ export function schedule_update(block) {
 		if ((flags & ROOT_BLOCK) !== 0) {
 			break;
 		}
-		current = current.p;
+		current = /** @type {Block} */ (current.p);
 	}
 
 	queued_root_blocks.push(current);
@@ -773,6 +776,11 @@ export function flush_sync(fn) {
 	}
 }
 
+/**
+ * @template T
+ * @param {() => T} fn
+ * @returns {T & { [SPREAD_OBJECT]: () => T }}
+ */
 export function tracked_spread_object(fn) {
 	var obj = fn();
 
@@ -784,7 +792,14 @@ export function tracked_spread_object(fn) {
 	return obj;
 }
 
+/**
+ * @param {any} obj
+ * @param {string[]} properties
+ * @param {Block} block
+ * @returns {object}
+ */
 export function tracked_object(obj, properties, block) {
+	/** @type {Record<string, Tracked | Computed>} */
 	var tracked_properties = obj[TRACKED_OBJECT];
 
 	if (tracked_properties === undefined) {
@@ -797,27 +812,42 @@ export function tracked_object(obj, properties, block) {
 
 	for (var i = 0; i < properties.length; i++) {
 		var property = properties[i];
-		var initial = obj[property];
+		/** @type {Tracked | Computed} */
 		var tracked_property;
 
-		if (typeof initial === 'function' && initial[COMPUTED_PROPERTY] === true) {
-			tracked_property = computed(initial, block);
-			initial = run_computed(tracked_property);
+		// accessor passed in, to avoid an expensive get_descriptor call
+		// in the fast path
+		if (property[0] === '#') {
+			property = property.slice(1);
+			var descriptor = /** @type {PropertyDescriptor} */ (get_descriptor(obj, property));
+			var desc_get = descriptor.get;
+			tracked_property = computed(desc_get, block);
+			/** @type {any} */
+			var initial = run_computed(/** @type {Computed} */ (tracked_property));
 			obj[property] = initial;
-			// TODO If nothing is tracked in the computed function, we can make it a standard tracked
-			// however this is more allocations, so we probably want to minimize this
-			// if (tracked_property.d === null) {
-			// 	tracked_property = tracked(initial, block);
-			// }
 		} else {
-			tracked_property = tracked(initial, block);
+			var initial = obj[property];
+
+			if (typeof initial === 'function' && initial[COMPUTED_PROPERTY] === true) {
+				tracked_property = computed(initial, block);
+				initial = run_computed(/** @type {Computed} */ (tracked_property));
+				obj[property] = initial;
+			} else {
+				tracked_property = tracked(initial, block);
+			}
 		}
+
 		tracked_properties[property] = tracked_property;
 	}
 
 	return obj;
 }
 
+/**
+ * @template T
+ * @param {() => T} fn
+ * @returns {() => T}
+ */
 export function computed_property(fn) {
 	define_property(fn, COMPUTED_PROPERTY, {
 		value: true,
@@ -1002,6 +1032,12 @@ export function spread_object(obj) {
 	return values;
 }
 
+/**
+ * @template T
+ * @param {Block} block
+ * @param {() => T} fn
+ * @returns {T}
+ */
 export function with_scope(block, fn) {
 	var previous_scope = active_scope;
 	try {
@@ -1054,6 +1090,12 @@ export function use_prop() {
 	return Symbol(USE_PROP);
 }
 
+/**
+ * @template T
+ * @param {T | undefined} value
+ * @param {T} fallback
+ * @returns {T}
+ */
 export function fallback(value, fallback) {
 	return value === undefined ? fallback : value;
 }

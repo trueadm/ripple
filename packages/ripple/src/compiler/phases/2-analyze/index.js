@@ -321,12 +321,7 @@ const visitors = {
 							binding.transform = {
 								read: (_) => b.call('$.get_computed', path.node),
 								assign: (node, value) => {
-									return b.call(
-										'$.set',
-										path.node,
-										value,
-										b.id('__block'),
-									);
+									return b.call('$.set', path.node, value, b.id('__block'));
 								},
 								update: (_) =>
 									b.call(
@@ -451,6 +446,12 @@ const visitors = {
 							}
 						}
 					}
+				} else if (attr.type === 'AccessorAttribute') {
+					error(
+						'Accessor props are not supported on DOM elements',
+						state.analysis.module.filename,
+						attr,
+					);
 				}
 			}
 		} else {
@@ -459,6 +460,15 @@ const visitors = {
 					if (attr.name.type === 'Identifier') {
 						attribute_names.add(attr.name);
 					}
+				} else if (attr.type === 'AccessorAttribute') {
+					if (!attr.name.name.startsWith('$')) {
+						error(
+							'Accessor props must always be $ prefixed as they are reactive',
+							state.analysis.module.filename,
+							attr,
+						);
+					}
+					attribute_names.add(attr.name);
 				}
 			}
 
@@ -472,7 +482,7 @@ const visitors = {
 						if (implicit_children) {
 							error(
 								'Cannot have both implicit and explicit children',
-								context.state.analysis.module.filename,
+								state.analysis.module.filename,
 								node,
 							);
 						}
@@ -482,7 +492,7 @@ const visitors = {
 					if (explicit_children) {
 						error(
 							'Cannot have both implicit and explicit children',
-							context.state.analysis.module.filename,
+							state.analysis.module.filename,
 							node,
 						);
 					}

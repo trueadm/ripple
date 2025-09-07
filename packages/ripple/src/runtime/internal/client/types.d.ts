@@ -5,7 +5,7 @@ export type Component = {
 	e: null | Array<{
 		b: Block;
 		fn: Function;
-		r: null | Block;
+		r: null | Block | Computed;
 	}>;
 	p: null | Component;
 	m: boolean;
@@ -40,10 +40,11 @@ export type Block = {
 	first: null | Block;
 	f: number;
 	fn: any;
-	last: null;
-	next: null;
+	last: null | Block;
+	next: null | Block;
 	p: null | Block;
-	prev: null;
+	prev: null | Block;
 	s: any;
-	t: Tracked | null;
+	// teardown function
+	t: (() => {}) | null;
 };

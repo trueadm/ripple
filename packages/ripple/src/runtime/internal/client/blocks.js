@@ -18,6 +18,7 @@ import {
 	active_block,
 	active_component,
 	active_reaction,
+	is_block_dirty,
 	run_block,
 	run_teardown,
 	schedule_update,
@@ -93,21 +94,28 @@ export function async(fn) {
 	});
 }
 
+/**
+ * @param {Element} element
+ * @param {() => (element: Element) => (void | (() => void))} get_fn
+ * @returns {Block}
+ */
 export function use(element, get_fn) {
-	var use_obj = undefined;
+	/** @type {(element: Element) => (void | (() => void) | undefined)} */
+	var use_fn;
+	/** @type {Block | null} */
 	var e;
 
 	return block(RENDER_BLOCK, () => {
-		if (use_obj !== (use_obj = get_fn())) {
+		if (use_fn !== (use_fn = get_fn())) {
 			if (e) {
 				destroy_block(e);
 				e = null;
 			}
 
-			if (use_obj) {
+			if (use_fn) {
 				e = branch(() => {
 					effect(() => {
-						return use_obj(element);
+						return use_fn(element);
 					});
 				});
 			}
@@ -115,14 +123,27 @@ export function use(element, get_fn) {
 	});
 }
 
+/**
+ * @param {() => void} fn
+ * @returns {Block}
+ */
 export function root(fn) {
 	return block(ROOT_BLOCK, fn);
 }
 
+/**
+ * @param {() => void} fn
+ * @param {any} state
+ * @returns {Block}
+ */
 export function create_try_block(fn, state) {
 	return block(TRY_BLOCK, fn, state);
 }
 
+/**
+ * @param {Block} block
+ * @param {Block} parent_block
+ */
 function push_block(block, parent_block) {
 	var parent_last = parent_block.last;
 	if (parent_last === null) {
@@ -174,6 +195,10 @@ export function block(flags, fn, state = null) {
 	return block;
 }
 
+/**
+ * @param {Block} parent
+ * @param {boolean} [remove_dom]
+ */
 export function destroy_block_children(parent, remove_dom = false) {
 	var block = parent.first;
 	parent.first = parent.last = null;
@@ -187,6 +212,10 @@ export function destroy_block_children(parent, remove_dom = false) {
 	}
 }
 
+/**
+ * @param {Block} parent
+ * @param {boolean} [remove_dom]
+ */
 export function destroy_non_branch_children(parent, remove_dom = false) {
 	var block = parent.first;
 
@@ -207,6 +236,9 @@ export function destroy_non_branch_children(parent, remove_dom = false) {
 	}
 }
 
+/**
+ * @param {Block} block
+ */
 export function unlink_block(block) {
 	var parent = block.p;
 	var prev = block.prev;
@@ -221,6 +253,9 @@ export function unlink_block(block) {
 	}
 }
 
+/**
+ * @param {Block} block
+ */
 export function pause_block(block) {
 	if ((block.f & PAUSED) !== 0) {
 		return;
@@ -238,6 +273,9 @@ export function pause_block(block) {
 	run_teardown(block);
 }
 
+/**
+ * @param {Block} block
+ */
 export function resume_block(block) {
 	if ((block.f & PAUSED) === 0) {
 		return;
@@ -257,7 +295,12 @@ export function resume_block(block) {
 	}
 }
 
+/**
+ * @param {Block} target_block
+ * @returns {boolean}
+ */
 export function is_destroyed(target_block) {
+	/** @type {Block | null} */
 	var block = target_block;
 
 	while (block !== null) {
@@ -274,6 +317,10 @@ export function is_destroyed(target_block) {
 	return true;
 }
 
+/**
+ * @param {Block} block
+ * @param {boolean} [remove_dom]
+ */
 export function destroy_block(block, remove_dom = true) {
 	block.f ^= DESTROYED;
 
