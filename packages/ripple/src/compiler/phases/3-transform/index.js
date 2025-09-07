@@ -133,6 +133,7 @@ const visitors = {
 		}
 
 		if (
+			!is_inside_component(context, true) ||
 			context.state.to_ts ||
 			(parent?.type === 'MemberExpression' && parent.property === node) ||
 			is_inside_call_expression(context) ||
@@ -162,6 +163,10 @@ const visitors = {
 
 		if (context.state.metadata?.tracking === false) {
 			context.state.metadata.tracking = true;
+		}
+
+		if (!is_inside_component(context, true) || is_inside_call_expression(context)) {
+			return context.next();
 		}
 
 		return b.call(

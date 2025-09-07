@@ -327,15 +327,16 @@ export function build_hoisted_params(node, context) {
 	return params;
 }
 
-export function is_inside_component(context) {
+export function is_inside_component(context, includes_functions = false) {
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const context_node = context.path[i];
 		const type = context_node.type;
 
 		if (
-			type === 'FunctionExpression' ||
-			type === 'ArrowFunctionExpression' ||
-			type === 'FunctionDeclaration'
+			!includes_functions &&
+			(type === 'FunctionExpression' ||
+				type === 'ArrowFunctionExpression' ||
+				type === 'FunctionDeclaration')
 		) {
 			return false;
 		}
