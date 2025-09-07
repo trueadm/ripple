@@ -1,11 +1,6 @@
 import { get, increment, scope, set, tracked } from './internal/client/runtime.js';
 
-const introspect_methods = [
-	'entries',
-	'forEach',
-	'values',
-	Symbol.iterator
-];
+const introspect_methods = ['entries', 'forEach', 'values', Symbol.iterator];
 
 let init = false;
 
@@ -21,7 +16,7 @@ export class RippleMap extends Map {
 		if (iterable) {
 			for (var [key, value] of iterable) {
 				super.set(key, value);
-                this.#tracked_items.set(key, tracked(0, block));
+				this.#tracked_items.set(key, tracked(0, block));
 			}
 		}
 
@@ -40,7 +35,7 @@ export class RippleMap extends Map {
 		for (const method of introspect_methods) {
 			proto[method] = function (...v) {
 				this.$size;
-                this.#read_all();
+				this.#read_all();
 
 				return map_proto[method].apply(this, v);
 			};
@@ -48,7 +43,7 @@ export class RippleMap extends Map {
 	}
 
 	get(key) {
-        var tracked_items = this.#tracked_items;
+		var tracked_items = this.#tracked_items;
 		var t = tracked_items.get(key);
 
 		if (t === undefined) {
@@ -81,16 +76,16 @@ export class RippleMap extends Map {
 
 	set(key, value) {
 		var block = scope();
-        var tracked_items = this.#tracked_items;
+		var tracked_items = this.#tracked_items;
 		var t = tracked_items.get(key);
 		var prev_res = super.get(key);
 
 		super.set(key, value);
 
-        if (!t) {
+		if (!t) {
 			tracked_items.set(key, tracked(0, block));
 			set(this.#tracked_size, this.size, block);
-        } else if (prev_res !== value) {
+		} else if (prev_res !== value) {
 			increment(t, block);
 		}
 
@@ -103,11 +98,11 @@ export class RippleMap extends Map {
 		var t = tracked_items.get(key);
 		var result = super.delete(key);
 
-        if (t) {
-            increment(t, block);
-            tracked_items.delete(key);
-            set(this.#tracked_size, this.size, block);
-        }
+		if (t) {
+			increment(t, block);
+			tracked_items.delete(key);
+			set(this.#tracked_size, this.size, block);
+		}
 
 		return result;
 	}
@@ -115,29 +110,29 @@ export class RippleMap extends Map {
 	clear() {
 		var block = scope();
 
-        if (super.size === 0) {
-            return;
-        }
+		if (super.size === 0) {
+			return;
+		}
 
-        for (var [_, t] of this.#tracked_items) {
-            increment(t, block);
-        }
+		for (var [_, t] of this.#tracked_items) {
+			increment(t, block);
+		}
 
-        super.clear();
-        this.#tracked_items.clear();
-        set(this.#tracked_size, 0, block);
+		super.clear();
+		this.#tracked_items.clear();
+		set(this.#tracked_size, 0, block);
 	}
 
-    keys() {
-        this.$size;
-        return super.keys();
-    }
+	keys() {
+		this.$size;
+		return super.keys();
+	}
 
-    #read_all() {
-        for (const [, t] of this.#tracked_items) {
-            get(t);
-        }
-    }
+	#read_all() {
+		for (const [, t] of this.#tracked_items) {
+			get(t);
+		}
+	}
 
 	get $size() {
 		return get(this.#tracked_size);
@@ -145,7 +140,7 @@ export class RippleMap extends Map {
 
 	toJSON() {
 		this.$size;
-        this.#read_all();
+		this.#read_all();
 
 		return [...this];
 	}

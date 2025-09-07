@@ -1,25 +1,10 @@
 import { get, increment, scope, set, tracked } from './internal/client/runtime.js';
 
-const introspect_methods = [
-	'entries',
-	'forEach',
-	'keys',
-	'values',
-	Symbol.iterator
-];
+const introspect_methods = ['entries', 'forEach', 'keys', 'values', Symbol.iterator];
 
-const compare_other_methods = [
-	'isDisjointFrom',
-	'isSubsetOf',
-	'isSupersetOf',
-];
+const compare_other_methods = ['isDisjointFrom', 'isSubsetOf', 'isSupersetOf'];
 
-const new_other_methods = [
-	'difference',
-	'intersection',
-	'symmetricDifference',
-	'union',
-];
+const new_other_methods = ['difference', 'intersection', 'symmetricDifference', 'union'];
 
 let init = false;
 
@@ -91,9 +76,7 @@ export class RippleSet extends Set {
 					other.$size;
 				}
 
-				return new RippleSet(
-					set_proto[method].apply(this, [other, ...v])
-				);
+				return new RippleSet(set_proto[method].apply(this, [other, ...v]));
 			};
 		}
 	}
@@ -148,9 +131,9 @@ export class RippleSet extends Set {
 	clear() {
 		var block = scope();
 
-        if (super.size === 0) {
-            return;
-        }
+		if (super.size === 0) {
+			return;
+		}
 
 		for (var [_, t] of this.#tracked_items) {
 			increment(t, block);
