@@ -1258,7 +1258,7 @@ function transform_ts_child(node, context) {
 			.filter((attr) => {
 				if (attr.type === 'UseAttribute') {
 					use_attributes.push(attr);
-					return false; // Filter out from JSX attributes
+					return false;
 				}
 				return true;
 			})
@@ -1415,7 +1415,12 @@ function transform_ts_child(node, context) {
 				),
 			),
 		);
+	} else if (node.type === 'Component') {
+		const component = visit(node, context.state);
+
+		state.init.push(component);
 	} else {
+		debugger;
 		throw new Error('TODO');
 	}
 }
