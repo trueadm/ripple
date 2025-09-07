@@ -43,6 +43,26 @@ export component App() {
 }
 ```
 
+### ⚠️ Critical: Text Content Must Be in Expressions
+
+**IMPORTANT**: Unlike HTML or JSX, Ripple elements cannot contain raw text content. All text must be wrapped in JavaScript expressions using curly braces `{}`.
+
+```ripple
+// ❌ WRONG - Raw text not allowed
+<div>Hello World</div>
+<p>This will cause a compilation error</p>
+
+// ✅ CORRECT - Text in expressions
+<div>{"Hello World"}</div>
+<p>{"This works correctly"}</p>
+
+// ✅ CORRECT - Variables and expressions
+<div>{greeting}</div>
+<p>{`Dynamic content: ${value}`}</p>
+```
+
+This is because Ripple needs to distinguish between JavaScript code and literal strings within the template syntax. The parser cannot determine if `Hello` is meant to be a string literal or a JavaScript identifier without explicit expression syntax.
+
 ### Reactive Variables
 
 Variables prefixed with `$` are automatically reactive and trigger re-renders:
