@@ -203,7 +203,7 @@ export class RippleArray extends Array {
 		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
-		if (length !== this.$length) {
+		if (length !== this.length) {
 			for (var i = 0; i < tracked_elements.length; i++) {
 				increment(tracked_elements[i], block);
 			}
