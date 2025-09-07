@@ -1,3 +1,5 @@
+/** @import { Block } from '#client' */
+
 import { TRACKED_OBJECT } from './internal/client/constants.js';
 import { get, increment, scope, set, tracked } from './internal/client/runtime.js';
 
@@ -35,6 +37,16 @@ const introspect_methods = [
 
 let init = false;
 
+/**
+ * @param {Block | null} block
+ * @throws {Error}
+ */
+function check_block(block) {
+	if (block === null) {
+		throw new Error('Cannot set $length outside of a reactive context');
+	}
+}
+
 export class RippleArray extends Array {
 	#tracked_elements = [];
 	#tracked_index;
@@ -51,6 +63,7 @@ export class RippleArray extends Array {
 		super(...elements);
 
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		for (var i = 0; i < this.length; i++) {
@@ -79,6 +92,7 @@ export class RippleArray extends Array {
 
 	fill() {
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		super.fill();
@@ -89,6 +103,7 @@ export class RippleArray extends Array {
 
 	reverse() {
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		super.reverse();
@@ -99,6 +114,7 @@ export class RippleArray extends Array {
 
 	sort(fn) {
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		super.sort(fn);
@@ -107,8 +123,13 @@ export class RippleArray extends Array {
 		}
 	}
 
+	/**
+	 * @param {...any} elements
+	 * @returns {number}
+	 */
 	unshift(...elements) {
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		super.unshift(...elements);
@@ -117,11 +138,14 @@ export class RippleArray extends Array {
 		}
 		tracked_elements.unshift(...elements.map(() => tracked(0, block)));
 
-		set(this.#tracked_index, this.length, block);
+		var length = this.length;
+		set(this.#tracked_index, length, block);
+		return length;
 	}
 
 	shift() {
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		super.shift();
@@ -133,8 +157,13 @@ export class RippleArray extends Array {
 		set(this.#tracked_index, this.length, block);
 	}
 
+	/**
+	 * @param {...any} elements
+	 * @returns {number}
+	 */
 	push(...elements) {
 		var block = scope();
+		check_block(block);
 		var start_index = this.length;
 		var tracked_elements = this.#tracked_elements;
 
@@ -143,11 +172,14 @@ export class RippleArray extends Array {
 		for (var i = 0; i < elements.length; i++) {
 			tracked_elements[start_index + i] = tracked(0, block);
 		}
+		var length = this.length;
 		set(this.#tracked_index, this.length, block);
+		return length;
 	}
 
 	pop() {
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		super.pop();
@@ -159,8 +191,15 @@ export class RippleArray extends Array {
 		set(this.#tracked_index, this.length, block);
 	}
 
+	/**
+	 * @param {number} start
+	 * @param {number} [delete_count]
+	 * @param {...any} elements
+	 * @returns {any[]}
+	 */
 	splice(start, delete_count, ...elements) {
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		super.splice(start, delete_count, ...elements);
@@ -182,6 +221,7 @@ export class RippleArray extends Array {
 
 	set $length(length) {
 		var block = scope();
+		check_block(block);
 		var tracked_elements = this.#tracked_elements;
 
 		if (length !== this.$length) {
@@ -191,12 +231,10 @@ export class RippleArray extends Array {
 			this.length = length;
 			set(this.#tracked_index, length, block);
 			tracked_elements.length = length;
-
-			return true;
 		}
-		return false;
 	}
 
+	/** @param {number} _ */
 	set length(_) {
 		throw new Error('Cannot set length on RippleArray, use $length instead');
 	}
@@ -207,6 +245,10 @@ export class RippleArray extends Array {
 	}
 }
 
+/**
+ * @param {RippleArray} array
+ * @returns {any[]}
+ */
 export function get_all_elements(array) {
 	var tracked_elements = array[TRACKED_OBJECT];
 	var arr = [];
