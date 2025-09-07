@@ -189,6 +189,7 @@ export class RippleArray extends Array {
 				increment(tracked_elements[i], block);
 			}
 			this.length = length;
+			set(this.#tracked_index, length, block);
 			tracked_elements.length = length;
 
 			return true;
