@@ -1,0 +1,134 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, RippleMap } from 'ripple';
+
+describe('RippleMap', () => {
+  let container;
+
+  function render(component) {
+    mount(component, {
+      target: container
+    });
+  }
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    document.body.removeChild(container);
+    container = null;
+  });
+
+  it('handles set with update and delete operations with a reactive $size var', () => {
+    component MapTest() {
+      let map = new RippleMap([['a', 1], ['b', 2], ['c', 3]]);
+      let $value = map.get('a');
+      let $size = map.$size;
+
+      <button onClick={() => map.set('d', 4)}>{'set'}</button>
+      <button onClick={() => map.delete('b')}>{'delete'}</button>
+      <button onClick={() => map.set('a', 5)}>{'update'}</button>
+
+      <pre>{map.get('d')}</pre>
+      <pre>{$size}</pre>
+      <pre>{$value}</pre>
+    }
+
+    render(MapTest);
+
+    const setButton = container.querySelectorAll('button')[0];
+    const deleteButton = container.querySelectorAll('button')[1];
+    const updateButton = container.querySelectorAll('button')[2];
+
+    setButton.click();
+    flushSync();
+
+    expect(container.querySelectorAll('pre')[0].textContent).toBe('4');
+    expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+    expect(container.querySelectorAll('pre')[2].textContent).toBe('1');
+
+    deleteButton.click();
+    flushSync();
+
+    expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+    updateButton.click();
+    flushSync();
+
+    expect(container.querySelectorAll('pre')[2].textContent).toBe('5');
+  });
+
+  it('handles clear operation', () => {
+    component MapTest() {
+      let map = new RippleMap([['a', 1], ['b', 2], ['c', 3]]);
+
+      <button onClick={() => map.clear()}>{'clear'}</button>
+      <pre>{map.$size}</pre>
+    }
+
+    render(MapTest);
+
+    const clearButton = container.querySelector('button');
+
+    clearButton.click();
+    flushSync();
+
+    expect(container.querySelector('pre').textContent).toBe('0');
+  });
+
+  it('handles has operation and tracks reactive $has', () => {
+    component MapTest() {
+      let map = new RippleMap([['a', 1], ['b', 2], ['c', 3]]);
+      let $has = map.has('b');
+
+      <button onClick={() => map.delete('b')}>{'delete'}</button>
+      <pre>{$has}</pre>
+    }
+
+    render(MapTest);
+
+    const deleteButton = container.querySelector('button');
+    expect(container.querySelector('pre').textContent).toBe('true');
+
+    deleteButton.click();
+    flushSync();
+
+    expect(container.querySelector('pre').textContent).toBe('false');
+  });
+
+  it('handles reactivity of keys, values, and entries', () => {
+    component MapTest() {
+        let map = new RippleMap([['x', 10], ['y', 20]]);
+        let $keys = Array.from(map.keys());
+        let $values = Array.from(map.values());
+        let $entries = Array.from(map.entries());
+
+        <button onClick={() => map.delete('x')}>{'delete'}</button>
+
+        <pre>{JSON.stringify($keys)}</pre>
+        <pre>{JSON.stringify($values)}</pre>
+        <pre>{JSON.stringify($entries)}</pre>
+    }
+
+    render(MapTest);
+
+    const deleteButton = container.querySelector('button');
+
+    expect(container.querySelectorAll('pre')[0].textContent).toBe('["x","y"]');
+    expect(container.querySelectorAll('pre')[1].textContent).toBe('[10,20]');
+    expect(container.querySelectorAll('pre')[2].textContent).toBe('[["x",10],["y",20]]');
+
+    deleteButton.click();
+    flushSync();
+
+    expect(container.querySelectorAll('pre')[0].textContent).toBe('["y"]');
+    expect(container.querySelectorAll('pre')[1].textContent).toBe('[20]');
+    expect(container.querySelectorAll('pre')[2].textContent).toBe('[["y",20]]');
+  });
+
+  it('toJSON returns correct object', () => {
+    let map = new RippleMap([['foo', 1], ['bar', 2]]);
+    expect(JSON.stringify(map)).toEqual('[["foo",1],["bar",2]]');
+  });
+});

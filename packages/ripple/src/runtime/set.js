@@ -113,21 +113,17 @@ export class RippleSet extends Set {
 	delete(value) {
 		var block = scope();
 
-		if (super.has(value)) {
-			super.delete(value);
-			var t = this.#tracked_items.get(value);
-
-			if (t) {
-				increment(t, block);
-			}
-
-			this.#tracked_items.delete(value);
-			set(this.#tracked_size, this.size, block);
-
-			return true;
+		if (!super.delete(value)) {
+			return false;
 		}
 
-		return false;
+		var t = this.#tracked_items.get(value);
+
+		increment(t, block);
+		this.#tracked_items.delete(value);
+		set(this.#tracked_size, this.size, block);
+
+		return true;
 	}
 
 	has(value) {
@@ -137,34 +133,32 @@ export class RippleSet extends Set {
 		var t = tracked_items.get(value);
 
 		if (t === undefined) {
-			if (!has) {
-				// If the value doesn't exist, track the size in case it's added later
-				// but don't create tracked entries willy-nilly to track all possible values
-				this.$size;
-
-				return false;
-			}
-
-			t = tracked(0, block);
-			tracked_items.set(value, t);
+			// if no tracked it also means super didn't have it
+			// It's not possible to have a disconnect, we track each value
+			// If the value doesn't exist, track the size in case it's added later
+			// but don't create tracked entries willy-nilly to track all possible values
+			this.$size;
+		} else {
+			get(t);
 		}
 
-		get(t);
 		return has;
 	}
 
 	clear() {
 		var block = scope();
 
-		if (this.size > 0) {
-			for (var [value, t] of this.#tracked_items) {
-				increment(t, block);
-			}
+        if (super.size === 0) {
+            return;
+        }
 
-			super.clear();
-			this.#tracked_items.clear();
-			set(this.#tracked_size, 0, block);
+		for (var [_, t] of this.#tracked_items) {
+			increment(t, block);
 		}
+
+		super.clear();
+		this.#tracked_items.clear();
+		set(this.#tracked_size, 0, block);
 	}
 
 	get $size() {

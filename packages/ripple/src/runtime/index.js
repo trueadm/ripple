@@ -42,6 +42,8 @@ export { RippleArray } from './array.js';
 
 export { RippleSet } from './set.js';
 
+export { RippleMap } from './map.js';
+
 export { keyed } from './internal/client/for.js';
 
 export { user_effect as effect } from './internal/client/blocks.js';
