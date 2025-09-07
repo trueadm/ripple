@@ -177,6 +177,56 @@ Now `$count` will only reactively create its value on initialization.
 
 > Note: you cannot define reactive variables in module/global scope, they have to be created on access from an active component
 
+#### Transporting Reactivity
+
+Ripple doesn't constrain reactivity to components only. Reactivity can be used inside other functions (and classes in the future) and be composed in a way to improve expressitivity and co-location.
+
+Ripple proides a very nice way to transport reactivity between boundaries so that it's persisted – using objects and arrays. Here's an example using arrays to transport reactivity:
+
+```jsx
+function createDouble([ $count ]) {
+  const $double = $count * 2;
+
+  effect(() => {
+    console.log('Count:', $count)
+  });
+
+  return [ $double ];
+}
+
+export component App() {
+  let $count = 0;
+  
+  const [ $double ] = createDouble([ $count ]);
+
+  <div>{'Double: ' + $double}</div>
+  <button onClick={() => { $count++; }}>{'Increment'}</button>
+}
+```
+
+You can do the same with objects too:
+
+```jsx
+function createDouble({ $count }) {
+  const $double = $count * 2;
+
+  effect(() => {
+    console.log('Count:', $count)
+  });
+  return { $double };
+}
+
+export component App() {
+  let $count = 0;
+  const { $double } = createDouble({ $count });
+
+  <div>{'Double: ' + $double}</div>
+  <button onClick={() => { $count++; }}>{'Increment'}</button>
+}
+```
+
+Just remember, reactive state must be connected to a component and it can't be global or created within the top-level of a module – because then Ripple won't be able to link it to your component tree.
+
 #### Reactive Arrays
 
 When creating state that contains arrays you should use the reactive alternative for arrays that Ripple provides.
