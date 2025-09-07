@@ -82,7 +82,7 @@ describe('RippleSet', () => {
       let $hasValue = items.has(2);
 
       <button onClick={() => items.delete(2)}>{'delete'}</button>
-      <pre>{JSON.stringify($hasValue)}</pre>
+      <pre>{$hasValue}</pre>
     }
 
     render(SetTest);

@@ -198,7 +198,7 @@ function createDouble([ $count ]) {
 
 export component App() {
   let $count = 0;
-  
+
   const [ $double ] = createDouble([ $count ]);
 
   <div>{'Double: ' + $double}</div>
@@ -262,7 +262,7 @@ accessing the `size` property of a `RippleSet` will be not be reactive, instead 
 ```js
 import { RippleSet } from 'ripple';
 
-const arr = new RippleSet([1, 2, 3]);
+const set = new RippleSet([1, 2, 3]);
 ```
 
 RippleSet's reactive methods or properties can be used directly or assigned to reactive variables.
@@ -271,17 +271,48 @@ RippleSet's reactive methods or properties can be used directly or assigned to r
 import { RippleSet } from 'ripple';
 
 export component App() {
-  const mySet = new RippleSet([1, 2, 3]);
+  const set = new RippleSet([1, 2, 3]);
 
   // direct usage
-  <p>{"Direct usage: mySet contains 2: "}{mySet.has(2)}</p>
+  <p>{"Direct usage: set contains 2: "}{set.has(2)}</p>
 
   // reactive assignment with prefixed `$`
-  let $has = mySet.has(2);
-  <p>{"Assigned usage: mySet contains 2: "}{$has}</p>
+  let $has = set.has(2);
+  <p>{"Assigned usage: set contains 2: "}{$has}</p>
 
-  <button onClick={() => mySet.delete(2)}>{"Delete 2"}</button>
-  <button onClick={() => mySet.add(2)}>{"Add 2"}</button>
+  <button onClick={() => set.delete(2)}>{"Delete 2"}</button>
+  <button onClick={() => set.add(2)}>{"Add 2"}</button>
+}
+```
+
+#### Reactive Map
+
+The `RippleMap` extends the standard JS `Map` class, and supports all of its methods and properties. However,
+accessing the `size` property of a `RippleMap` will be not be reactive, instead you should use `$size`.
+
+```js
+import { RippleMap } from 'ripple';
+
+const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
+```
+
+RippleMap's reactive methods or properties can be used directly or assigned to reactive variables.
+
+```jsx
+import { RippleMap } from 'ripple';
+
+export component App() {
+  const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
+
+  // direct usage
+  <p>{"Direct usage: map has an item with key 2: "}{map.has(2)}</p>
+
+  // reactive assignment with prefixed `$`
+  let $has = map.has(2);
+  <p>{"Assigned usage: map has an item with key 2: "}{$has}</p>
+
+  <button onClick={() => map.delete(2)}>{"Delete item with key 2"}</button>
+  <button onClick={() => map.set(2, 2)}>{"Add key 2 with value 2"}</button>
 }
 ```
 

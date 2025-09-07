@@ -50,3 +50,8 @@ export class RippleSet<T> extends Set<T> {
   union(other: RippleSet<T> | Set<T>): RippleSet<T>;
   toJSON(): T[];
 }
+
+export class RippleMap<K, V> extends Map<K, V> {
+    get $size(): number;
+    toJSON(): [K, V][];
+}
