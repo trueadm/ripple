@@ -1064,7 +1064,7 @@ export function safe_scope(err = 'Cannot access outside of a component context')
 		throw new Error(err);
 	}
 
-	return /** @type {Block} */ (active_block);
+	return /** @type {Block} */ (active_scope);
 }
 
 export function push_component() {
