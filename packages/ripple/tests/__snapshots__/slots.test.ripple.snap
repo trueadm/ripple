@@ -1,0 +1,23 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`slot syntax > handles slot-annotated components 1`] = `
+<div>
+  <!---->
+  <div>
+    <div>
+      I am A
+    </div>
+    <!---->
+    <div>
+      other text
+    </div>
+    <!---->
+    <div>
+      I am B
+    </div>
+    <!---->
+  </div>
+  <!---->
+  
+</div>
+`;

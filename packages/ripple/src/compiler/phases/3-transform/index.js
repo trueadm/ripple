@@ -628,6 +628,17 @@ const visitors = {
 				if (child.type === 'Component') {
 					const id = child.id;
 					props.push(b.prop('init', id, visit(child, state)));
+				} else if (
+					child.type === 'Element' &&
+					child.id?.type === 'Identifier' &&
+					context.state.analysis?.slots?.has(child.id.name)
+				) {
+					// Transform slot-annotated element into slot prop
+					const component_name = child.id.name;
+					const slot_name = context.state.analysis.slots.get(component_name);
+					const slot_id = b.id('$' + slot_name);
+
+					props.push(b.prop('init', slot_id, b.id(component_name)));
 				} else {
 					children_filtered.push(child);
 				}
@@ -1202,6 +1213,12 @@ function transform_ts_child(node, context) {
 		state.init.push(b.stmt(visit(node.expression, { ...state })));
 	} else if (node.type === 'Element') {
 		const type = node.id.name;
+
+		// Skip slot-annotated elements - handled by parent
+		if (context.state.analysis?.slots?.has(type)) {
+			return;
+		}
+
 		const children = [];
 		let has_children_props = false;
 
@@ -1244,25 +1261,55 @@ function transform_ts_child(node, context) {
 		if (!node.selfClosing && !has_children_props && node.children.length > 0) {
 			const is_dom_element = type[0].toLowerCase() === type[0] && type[0] !== '$';
 
-			const component_scope = context.state.scopes.get(node);
-			const thunk = b.thunk(
-				b.block(
-					transform_body(node.children, {
-						...context,
-						state: { ...state, scope: component_scope },
-					}),
-				),
-			);
+			// Separate slot-annotated children from regular children
+			const slot_children = [];
+			const regular_children = [];
 
-			if (is_dom_element) {
-				children.push(b.jsx_expression_container(b.call(thunk)));
-			} else {
-				const children_name = context.state.scope.generate('component');
-				const children_id = b.id(children_name);
-				const jsx_id = b.jsx_id('$children');
-				jsx_id.loc = node.id.loc;
-				state.init.push(b.const(children_id, thunk));
-				attributes.push(b.jsx_attribute(jsx_id, b.jsx_expression_container(children_id)));
+			for (const child of node.children) {
+				if (
+					child.type === 'Element' &&
+					child.id?.type === 'Identifier' &&
+					context.state.analysis?.slots?.has(child.id.name)
+				) {
+					slot_children.push(child);
+				} else {
+					regular_children.push(child);
+				}
+			}
+
+			// Transform slot-annotated children into slot props
+			for (const slot_child of slot_children) {
+				const component_name = slot_child.id.name;
+				const slot_name = context.state.analysis.slots.get(component_name);
+				const slot_prop_name = '$' + slot_name;
+
+				const jsx_id = b.jsx_id(slot_prop_name);
+				jsx_id.loc = slot_child.id.loc;
+				attributes.push(b.jsx_attribute(jsx_id, b.jsx_expression_container(b.id(component_name))));
+			}
+
+			// Handle regular children (non-slot)
+			if (regular_children.length > 0) {
+				const component_scope = context.state.scopes.get(node);
+				const thunk = b.thunk(
+					b.block(
+						transform_body(regular_children, {
+							...context,
+							state: { ...state, scope: component_scope },
+						}),
+					),
+				);
+
+				if (is_dom_element) {
+					children.push(b.jsx_expression_container(b.call(thunk)));
+				} else {
+					const children_name = context.state.scope.generate('component');
+					const children_id = b.id(children_name);
+					const jsx_id = b.jsx_id('$children');
+					jsx_id.loc = node.id.loc;
+					state.init.push(b.const(children_id, thunk));
+					attributes.push(b.jsx_attribute(jsx_id, b.jsx_expression_container(children_id)));
+				}
 			}
 		}
 
@@ -1581,6 +1628,7 @@ export function transform(filename, source, analysis, to_ts) {
 		scopes: analysis.scopes,
 		stylesheets: [],
 		to_ts,
+		analysis,
 	};
 
 	const program = /** @type {ESTree.Program} */ (walk(analysis.ast, state, visitors));
