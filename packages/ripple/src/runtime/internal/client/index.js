@@ -16,6 +16,7 @@ export { event, delegate } from './events.js';
 export {
 	active_block,
 	scope,
+	safe_scope,
 	with_scope,
 	get_tracked,
 	get_computed,

@@ -1,4 +1,4 @@
-import { get, increment, scope, set, tracked } from './internal/client/runtime.js';
+import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
 
 const introspect_methods = ['entries', 'forEach', 'keys', 'values', Symbol.iterator];
 
@@ -15,7 +15,7 @@ export class RippleSet extends Set {
 	constructor(iterable) {
 		super();
 
-		var block = scope();
+		var block = safe_scope();
 
 		if (iterable) {
 			for (var item of iterable) {
@@ -82,7 +82,7 @@ export class RippleSet extends Set {
 	}
 
 	add(value) {
-		var block = scope();
+		var block = safe_scope();
 
 		if (!super.has(value)) {
 			super.add(value);
@@ -94,7 +94,7 @@ export class RippleSet extends Set {
 	}
 
 	delete(value) {
-		var block = scope();
+		var block = safe_scope();
 
 		if (!super.delete(value)) {
 			return false;
@@ -110,7 +110,7 @@ export class RippleSet extends Set {
 	}
 
 	has(value) {
-		var block = scope();
+		var block = safe_scope();
 		var has = super.has(value);
 		var tracked_items = this.#tracked_items;
 		var t = tracked_items.get(value);
@@ -129,7 +129,7 @@ export class RippleSet extends Set {
 	}
 
 	clear() {
-		var block = scope();
+		var block = safe_scope();
 
 		if (super.size === 0) {
 			return;

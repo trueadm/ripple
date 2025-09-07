@@ -128,7 +128,14 @@ describe('RippleMap', () => {
     });
 
     it('toJSON returns correct object', () => {
-        let map = new RippleMap([['foo', 1], ['bar', 2]]);
-        expect(JSON.stringify(map)).toEqual('[["foo",1],["bar",2]]');
+        component MapTest() {
+            let map = new RippleMap([['foo', 1], ['bar', 2]]);
+
+            <pre>{JSON.stringify(map)}</pre>
+        }
+
+        render(MapTest);
+
+        expect(container.querySelectorAll('pre')[0].textContent).toBe('[["foo",1],["bar",2]]');
     });
 });

@@ -1052,6 +1052,14 @@ export function scope() {
 	return active_scope;
 }
 
+export function safe_scope(err = 'Cannot access outside of a component context') {
+	if (active_scope === null) {
+		throw new Error(err);
+	}
+
+	return scope();
+}
+
 export function push_component() {
 	var component = {
 		c: null,
