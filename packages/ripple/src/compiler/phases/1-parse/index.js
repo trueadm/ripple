@@ -426,7 +426,9 @@ function RipplePlugin(config) {
 						element.children = [component.css];
 						return element;
 					} else {
+						this.enterScope(0);
 						this.parseTemplateBody(element.children);
+						this.exitScope();
 					}
 					const tokContexts = this.acornTypeScript.tokContexts;
 

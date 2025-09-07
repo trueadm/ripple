@@ -151,6 +151,13 @@ const visitors = {
 		const { state, visit, path } = context;
 
 		for (const declarator of node.declarations) {
+			if (is_inside_component(context) && node.kind === 'var') {
+				error(
+					'var declarations are not allowed in components, use let or const instead',
+					state.analysis.module.filename,
+					declarator,
+				);
+			}
 			const metadata = { tracking: false, await: false };
 			const parent = path.at(-1);
 			const init_is_untracked =

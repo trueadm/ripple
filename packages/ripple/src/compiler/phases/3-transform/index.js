@@ -572,7 +572,18 @@ const visitors = {
 				);
 			}
 
-			transform_children(node.children, { visit, state, root: false });
+			const init = [];
+			const update = [];
+
+			transform_children(node.children, { visit, state: { ...state, init, update }, root: false });
+
+			if (init.length > 0) {
+				state.init.push(b.block(init));
+			}
+
+			if (update.length > 0) {
+				state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update)))));
+			}
 
 			state.template.push(`</${node.id.name}>`);
 		} else {

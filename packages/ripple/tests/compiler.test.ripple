@@ -58,4 +58,25 @@ describe('compiler success tests', () => {
 		render(App);
 	});
 
+	it('render lexical blocks without crashing', () => {
+		component App() {
+			<div>
+				const a = 1;
+				<div>
+					const b = 1;
+				</div>
+				<div>
+					const b = 1;
+				</div>
+			</div>
+			<div>
+				const a = 2;
+				<div>
+					const b = 1;
+				</div>
+			</div>
+		}
+
+		render(App);
+	})
 });
