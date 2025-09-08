@@ -20,6 +20,7 @@ import {
 	is_declared_within_component,
 	is_inside_call_expression,
 	is_tracked_computed_property,
+	is_value_static,
 } from '../../utils.js';
 import is_reference from 'is-reference';
 import { extract_paths, object } from '../../../utils/ast.js';
@@ -167,6 +168,10 @@ const visitors = {
 		}
 
 		if (!is_inside_component(context, true) || is_inside_call_expression(context)) {
+			return context.next();
+		}
+
+		if (is_value_static(node)) {
 			return context.next();
 		}
 
