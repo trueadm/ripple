@@ -6,6 +6,7 @@ import {
 	is_event_attribute,
 	is_inside_component,
 	is_ripple_import,
+	is_tracked_computed_property,
 	is_tracked_name,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
@@ -101,15 +102,21 @@ const visitors = {
 	MemberExpression(node, context) {
 		const parent = context.path.at(-1);
 
-		if (
-			context.state.metadata?.tracking === false &&
-			node.property.type === 'Identifier' &&
-			!node.computed &&
-			is_tracked_name(node.property.name) &&
-			parent.type !== 'AssignmentExpression'
-		) {
-			context.state.metadata.tracking = true;
+		if (context.state.metadata?.tracking === false && parent.type !== 'AssignmentExpression') {
+			if (
+				node.property.type === 'Identifier' &&
+				!node.computed &&
+				is_tracked_name(node.property.name)
+			) {
+				context.state.metadata.tracking = true;
+			} else if (
+				node.computed &&
+				is_tracked_computed_property(node.object, node.property, context)
+			) {
+				context.state.metadata.tracking = true;
+			}
 		}
+
 		context.next();
 	},
 
@@ -212,7 +219,7 @@ const visitors = {
 										if (!computed) {
 											return node;
 										}
-										return b.call('$.set_property', node, visit(computed), value, b.id('__block'));
+										return b.call('$.set_property', node, computed, value, b.id('__block'));
 									},
 								};
 								break;

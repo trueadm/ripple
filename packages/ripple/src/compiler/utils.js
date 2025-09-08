@@ -370,6 +370,47 @@ export function is_tracked_name(name) {
 	return typeof name === 'string' && name.startsWith('$') && name.length > 1 && name[1] !== '$';
 }
 
+export function is_value_static(node) {
+	if (node.type === 'Literal') {
+		return true;
+	}
+	if (node.type === 'ArrayExpression') {
+		return true;
+	}
+	if (node.type === 'NewExpression') {
+		if (node.callee.type === 'Identifier' && node.callee.name === 'Array') {
+			return true;
+		}
+		return false;
+	}
+
+	return false;
+}
+
+export function is_tracked_computed_property(object, property, context) {
+	const binding = context.state.scope.get(object.name);
+
+	if (binding) {
+		const initial = binding.initial;
+		if (initial && is_value_static(initial)) {
+			return false;
+		}
+	}
+	if (property.type === 'Identifier') {
+		return true;
+	}
+	if (
+		property.type === 'Literal' &&
+		typeof property.value === 'string' &&
+		is_tracked_name(property.value)
+	) {
+		return true;
+	}
+
+	// TODO: do we need to handle more logic here? default to false for now
+	return true;
+}
+
 export function is_ripple_import(callee, context) {
 	if (callee.type === 'Identifier') {
 		const binding = context.state.scope.get(callee.name);
@@ -507,7 +548,7 @@ export function build_assignment(operator, left, right, context) {
 		return transform.assign(
 			object,
 			value,
-			left.type === 'MemberExpression' && left.computed ? left.property : undefined,
+			left.type === 'MemberExpression' && left.computed ? context.visit(left.property) : undefined,
 		);
 	}
 

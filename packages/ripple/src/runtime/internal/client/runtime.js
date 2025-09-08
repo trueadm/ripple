@@ -900,7 +900,7 @@ export function set_property(obj, property, value, block) {
 
 	if (tracked === undefined) {
 		// Handle computed assignments to arrays
-		if (obj.$length && tracked_properties !== undefined && is_array(obj)) {
+		if (is_array(obj) && obj.$length && tracked_properties !== undefined) {
 			with_scope(block, () => {
 				obj.splice(/** @type {number} */ (property), 1, value);
 			});
@@ -969,14 +969,19 @@ export function update_pre(tracked, block, d = 1) {
 export function update_property(obj, property, block, d = 1) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked = tracked_properties?.[property];
-	var value = get(tracked);
+	var tracked_exists = tracked !== undefined;
+	var value = tracked_exists ? get(tracked) : obj[property];
 
 	if (d === 1) {
 		value++;
-		increment(tracked, block);
+		if (tracked_exists) {
+			increment(tracked, block);
+		}
 	} else {
 		value--;
-		decrement(tracked, block);
+		if (tracked_exists) {
+			decrement(tracked, block);
+		}
 	}
 
 	obj[property] = value
@@ -994,14 +999,19 @@ export function update_property(obj, property, block, d = 1) {
 export function update_pre_property(obj, property, block, d = 1) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked = tracked_properties?.[property];
-	var value = get(tracked);
+	var tracked_exists = tracked !== undefined;
+	var value = tracked_exists ? get(tracked) : obj[property];
 
 	if (d === 1) {
 		++value
-		increment(tracked, block);
+		if (tracked_exists) {
+			increment(tracked, block);
+		}
 	} else {
 		--value
-		decrement(tracked, block);
+		if (tracked_exists) {
+			decrement(tracked, block);
+		}
 	}
 
 	obj[property] = value;

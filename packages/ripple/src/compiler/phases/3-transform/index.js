@@ -19,6 +19,7 @@ import {
 	is_ripple_import,
 	is_declared_within_component,
 	is_inside_call_expression,
+	is_tracked_computed_property,
 } from '../../utils.js';
 import is_reference from 'is-reference';
 import { extract_paths, object } from '../../../utils/ast.js';
@@ -192,7 +193,10 @@ const visitors = {
 					: property.type === 'Literal' && is_tracked_name(property.value);
 
 			// TODO should we enforce that the identifier is tracked too?
-			if ((node.computed && property.type === 'Identifier') || tracked_name) {
+			if (
+				(node.computed && is_tracked_computed_property(node.object, node.property, context)) ||
+				tracked_name
+			) {
 				if (context.state.metadata?.tracking === false) {
 					context.state.metadata.tracking = true;
 				}
@@ -861,19 +865,20 @@ const visitors = {
 
 		const left = node.left;
 
-		if (
-			left.type === 'MemberExpression' &&
-			left.property.type === 'Identifier' &&
-			is_tracked_name(left.property.name) &&
-			left.property.name !== '$length'
-		) {
-			return b.call(
-				'$.set_property',
-				context.visit(left.object),
-				left.computed ? context.visit(left.property) : b.literal(left.property.name),
-				visit_assignment_expression(node, context, build_assignment) ?? context.next(),
-				b.id('__block'),
-			);
+		if (left.type === 'MemberExpression') {
+			if (left.property.type === 'Identifier' && is_tracked_name(left.property.name)) {
+				if (left.property.name !== '$length') {
+					return b.call(
+						'$.set_property',
+						context.visit(left.object),
+						left.computed ? context.visit(left.property) : b.literal(left.property.name),
+						visit_assignment_expression(node, context, build_assignment) ?? context.next(),
+						b.id('__block'),
+					);
+				}
+			} else if (!is_tracked_computed_property(left.object, left.property, context)) {
+				return context.next();
+			}
 		}
 
 		const visited = visit_assignment_expression(node, context, build_assignment) ?? context.next();
@@ -900,7 +905,8 @@ const visitors = {
 		if (
 			argument.type === 'MemberExpression' &&
 			((argument.property.type === 'Identifier' && is_tracked_name(argument.property.name)) ||
-				argument.computed)
+				(argument.computed &&
+					is_tracked_computed_property(argument.object, argument.property, context)))
 		) {
 			return b.call(
 				node.prefix ? '$.update_pre_property' : '$.update_property',
