@@ -78,11 +78,11 @@ export class RippleArray extends Array {
 		}
 	}
 
-	fill() {
+	fill(val, start, end) {
 		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 
-		super.fill();
+		super.fill(val, start, end);
 		for (var i = 0; i < this.length; i++) {
 			increment(tracked_elements[i], block);
 		}
