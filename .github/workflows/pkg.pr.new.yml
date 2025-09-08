@@ -81,7 +81,12 @@ jobs:
 
       - name: Publish
         run: |
-          pnpm dlx pkg-pr-new publish --compact --comment=update --pnpm \
+          pnpm dlx pkg-pr-new publish
+            --compact \
+            --comment=update \
+            --template './templates/edge'
+            --packageManager=pnpm \
+            --pnpm \
             './packages/prettier-plugin-ripple' \
             './packages/ripple' \
             './packages/rollup-plugin-ripple' \
