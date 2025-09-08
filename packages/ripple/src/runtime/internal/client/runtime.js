@@ -1,4 +1,5 @@
 /** @import { Block, Component, Dependency, Computed, Tracked } from '#client' */
+/** @import { RippleArray } from 'ripple' */
 
 import {
 	destroy_block,
@@ -777,9 +778,8 @@ export function flush_sync(fn) {
 }
 
 /**
- * @template T
- * @param {() => T} fn
- * @returns {T & { [SPREAD_OBJECT]: () => T }}
+ * @param {() => Object} fn
+ * @returns {Object}
  */
 export function tracked_spread_object(fn) {
 	var obj = fn();
@@ -856,6 +856,12 @@ export function computed_property(fn) {
 	return fn;
 }
 
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {boolean} [chain=false]
+ * @returns {any}
+ */
 export function get_property(obj, property, chain = false) {
 	if (chain && obj == null) {
 		return undefined;
@@ -875,6 +881,13 @@ export function get_property(obj, property, chain = false) {
 	return value;
 }
 
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {any} value
+ * @param {Block} block
+ * @returns {any}
+ */
 export function set_property(obj, property, value, block) {
 	var res = (obj[property] = value);
 	var tracked_properties = obj[TRACKED_OBJECT];
@@ -884,7 +897,7 @@ export function set_property(obj, property, value, block) {
 		// Handle computed assignments to arrays
 		if (obj.$length && tracked_properties !== undefined && is_array(obj)) {
 			with_scope(block, () => {
-				obj.splice(property, 1, value);
+				obj.splice(/** @type {number} */ (property), 1, value);
 			});
 		}
 		return res;
@@ -893,6 +906,12 @@ export function set_property(obj, property, value, block) {
 	set(tracked, value, block);
 }
 
+/**
+ * @param {Tracked} tracked
+ * @param {Block} block
+ * @param {number} [d]
+ * @returns {number}
+ */
 export function update(tracked, block, d = 1) {
 	var value = get(tracked);
 	var result = d === 1 ? value++ : value--;
@@ -902,20 +921,46 @@ export function update(tracked, block, d = 1) {
 	return result;
 }
 
+/**
+ * @param {Tracked} tracked
+ * @param {Block} block
+ * @returns {void}
+ */
 export function increment(tracked, block) {
 	set(tracked, tracked.v + 1, block);
 }
 
+/**
+ * @param {Tracked} tracked
+ * @param {Block} block
+ * @returns {void}
+ */
 export function decrement(tracked, block) {
 	set(tracked, tracked.v - 1, block);
 }
 
+/**
+ * @param {Tracked} tracked
+ * @param {Block} block
+ * @param {number} [d]
+ * @returns {number}
+ */
 export function update_pre(tracked, block, d = 1) {
 	var value = get(tracked);
+	var new_value = d === 1 ? ++value : --value;
 
-	return set(tracked, d === 1 ? ++value : --value, block);
+	set(tracked, new_value, block);
+
+	return new_value;
 }
 
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {Block} block
+ * @param {number} [d]
+ * @returns {number}
+ */
 export function update_property(obj, property, block, d = 1) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked = tracked_properties?.[property];
@@ -936,6 +981,13 @@ export function update_property(obj, property, block, d = 1) {
 	return result;
 }
 
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {Block} block
+ * @param {number} [d]
+ * @returns {number}
+ */
 export function update_pre_property(obj, property, block, d = 1) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked = tracked_properties?.[property];
@@ -956,12 +1008,17 @@ export function update_pre_property(obj, property, block, d = 1) {
 	return result;
 }
 
+/**
+ * @param {any} val
+ * @param {StructuredSerializeOptions} [options]
+ * @returns {any}
+ */
 export function structured_clone(val, options) {
 	if (typeof val === 'object' && val !== null) {
 		var tracked_properties = val[TRACKED_OBJECT];
 		if (tracked_properties !== undefined) {
 			if (is_array(val)) {
-				val.$length;
+				/** @type {RippleArray<any>} */ (val).$length;
 			}
 			return structured_clone(object_values(val), options);
 		}
