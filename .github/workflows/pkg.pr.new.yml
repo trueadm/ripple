@@ -9,6 +9,8 @@ on:
     paths: ["packages/**"]
   pull_request_review:
     types: [submitted]
+  workflow_dispatch:
+
 
 jobs:
   approval-check:
@@ -81,13 +83,13 @@ jobs:
 
       - name: Publish
         run: |
-          pnpm dlx pkg-pr-new publish
-            --compact \
-            --comment=update \
-            --template './templates/edge'
-            --packageManager=pnpm \
-            --pnpm \
+          pnpm dlx pkg-pr-new publish \
             './packages/prettier-plugin-ripple' \
             './packages/ripple' \
             './packages/rollup-plugin-ripple' \
             './packages/vite-plugin-ripple' \
+            --compact \
+            --comment=update \
+            --packageManager=pnpm \
+            --pnpm \
+            --template './templates/basic'
