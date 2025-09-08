@@ -815,8 +815,7 @@ export function tracked_object(obj, properties, block) {
 		/** @type {Tracked | Computed} */
 		var tracked_property;
 
-		// accessor passed in, to avoid an expensive get_descriptor call
-		// in the fast path
+		// accessor passed in, to avoid an expensive get_descriptor call in the fast path
 		if (property[0] === '#') {
 			property = property.slice(1);
 			var descriptor = /** @type {PropertyDescriptor} */ (get_descriptor(obj, property));
@@ -824,7 +823,10 @@ export function tracked_object(obj, properties, block) {
 			tracked_property = computed(desc_get, block);
 			/** @type {any} */
 			var initial = run_computed(/** @type {Computed} */ (tracked_property));
-			obj[property] = initial;
+			// If there's a setter, we need to set the initial value
+			if (descriptor.set !== undefined) {
+				obj[property] = initial;
+			}
 		} else {
 			var initial = obj[property];
 

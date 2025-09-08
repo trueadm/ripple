@@ -496,23 +496,78 @@ component Card(props: { $children: Component }) {
 </Card>
 ```
 
-### Events
+### Accessor Props
 
-Like React, events are props that start with `on` and then continue with an uppercase character, such as:
+When working with props on composite components (`<Foo>` rather than `<div>`), it can sometimes be difficult to debug why a certain value is a certain way. JavaScript gives us a way to do this on objects using the `get` syntax:
 
-- `onClick`
-- `onPointerMove`
-- `onPointerDown`
-- `onKeyDown`
+```js
+let name = 'Bob';
 
-For `capture` phase events, just add `Capture` to the end of the prop name:
+const object = {
+  get name() {
+    // I can easily debug when this property gets
+    // access and track it easily
+    console.log(name);
+    return name;
+  }
+}
+```
 
-- `onClickCapture`
-- `onPointerMoveCapture`
-- `onPointerDownCapture`
-- `onKeyDownCapture`
+So Ripple provides similar capabilities when working with composite components in a template, specifcally using `$prop:={}` rather than the typical `$prop={}`.
 
-> Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
+In fact, when you use an accessor, you must pass a function:
+
+```jsx
+let $name = 'Bob';
+
+const getName = () => {
+  // I can easily debug when this property gets
+  // access and track it easily
+  console.log(name);
+  return $name;
+};
+
+<Person $name:={getName} />
+```
+
+You can also inline the function too:
+
+```jsx
+let $name = 'Bob';
+
+<Person $name:={() => {
+  // I can easily debug when this property gets
+  // access and track it easily
+  console.log(name);
+  return $name;
+}} />
+```
+
+Furthermore, just property accessors in JavaScript, Ripple provides a way of capturing the `set` too, enabling two-way data-flow on composite component props. You just need to provide a second function after the first, separated using a commma:
+
+```jsx
+let $name = 'Bob';
+
+const getName = () => {
+  return $name;
+}
+
+const setName = (newName) => {
+  $name = newName;
+}
+
+<Person $name:={getName, setName} />
+```
+
+Or an inlined version:
+
+```jsx
+let $name = 'Bob';
+
+<Person $name:={() => $name, (newName) => $name = $newName} />
+```
+
+Now changes in the `Person` to its `props` will propagate to its parent component.
 
 ### Decorators
 
@@ -570,6 +625,24 @@ Lastly, you can use decorators on composite components.
 ```
 
 When passing decorators to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that can be spread to HTML template elements later on, and still work.
+
+### Event Props
+
+Like React, events are props that start with `on` and then continue with an uppercase character, such as:
+
+- `onClick`
+- `onPointerMove`
+- `onPointerDown`
+- `onKeyDown`
+
+For `capture` phase events, just add `Capture` to the end of the prop name:
+
+- `onClickCapture`
+- `onPointerMoveCapture`
+- `onPointerDownCapture`
+- `onKeyDownCapture`
+
+> Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
 
 ### Styling
 
