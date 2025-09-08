@@ -467,7 +467,7 @@ import type { Component } from 'ripple';
 
 component Card(props: { $children: Component }) {
   <div class="card">
-    <$children />
+    <props.$children />
   </div>
 }
 
@@ -484,7 +484,7 @@ import type { Component } from 'ripple';
 
 component Card(props: { $children: Component }) {
   <div class="card">
-    <$children />
+    <props.$children />
   </div>
 }
 
