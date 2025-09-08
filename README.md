@@ -515,7 +515,7 @@ const object = {
 
 So Ripple provides similar capabilities when working with composite components in a template, specifcally using `$prop:={}` rather than the typical `$prop={}`.
 
-In fact, when you use an accessor, you must pass a function:
+In fact, when you use an accessor, you must pass a function, and the prop must be `$` prefixed, as Ripple considers accessor props as reactive:
 
 ```jsx
 let $name = 'Bob';
@@ -567,7 +567,17 @@ let $name = 'Bob';
 <Person $name:={() => $name, (newName) => $name = $newName} />
 ```
 
-Now changes in the `Person` to its `props` will propagate to its parent component.
+Now changes in the `Person` to its `props` will propagate to its parent component:
+
+```jsx
+component Person(props) {
+  const updateName = (newName) => {
+    props.$name = newName;
+  }
+
+  <NameInput onChange={updateName}>
+}
+```
 
 ### Decorators
 
