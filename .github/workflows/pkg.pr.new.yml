@@ -81,7 +81,7 @@ jobs:
 
       - name: Publish
         run: |
-          pnpm dlx pkg-pr-new publish
+          pnpm dlx pkg-pr-new publish \
             --compact \
             --comment=update \
             --template './templates/edge'
