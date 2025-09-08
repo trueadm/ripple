@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-
 import { mount, flushSync, effect } from 'ripple';
 
 describe('passing reactivity between boundaries tests', () => {

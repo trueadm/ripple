@@ -871,7 +871,10 @@ export function get_property(obj, property, chain = false) {
 	var tracked_property = tracked_properties?.[property];
 
 	if (tracked_property !== undefined) {
-		value = obj[property] = get(tracked_property);
+		value = get(tracked_property);
+		if (obj[property] !== value) {
+			obj[property] = value;
+		}
 	} else if (SPREAD_OBJECT in obj) {
 		var spread_fn = obj[SPREAD_OBJECT];
 		var properties = spread_fn();
@@ -964,21 +967,19 @@ export function update_pre(tracked, block, d = 1) {
 export function update_property(obj, property, block, d = 1) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked = tracked_properties?.[property];
-
-	if (tracked === undefined) {
-		return d === 1 ? obj[property]++ : obj[property]--;
-	}
-
 	var value = get(tracked);
-	var result = d === 1 ? value++ : value--;
 
 	if (d === 1) {
+		value++;
 		increment(tracked, block);
 	} else {
+		value--;
 		decrement(tracked, block);
 	}
 
-	return result;
+	obj[property] = value
+
+	return value;
 }
 
 /**
@@ -991,21 +992,19 @@ export function update_property(obj, property, block, d = 1) {
 export function update_pre_property(obj, property, block, d = 1) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked = tracked_properties?.[property];
-
-	if (tracked === undefined) {
-		return d === 1 ? ++obj[property] : --obj[property];
-	}
-
 	var value = get(tracked);
-	var result = d === 1 ? ++value : --value;
 
 	if (d === 1) {
+		++value
 		increment(tracked, block);
 	} else {
+		--value
 		decrement(tracked, block);
 	}
 
-	return result;
+	obj[property] = value;
+
+	return value;
 }
 
 /**

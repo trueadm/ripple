@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-
 import { mount, flushSync } from 'ripple';
 
 describe('composite components', () => {

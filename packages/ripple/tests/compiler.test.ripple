@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-
 import { mount } from 'ripple';
 
 describe('compiler success tests', () => {
