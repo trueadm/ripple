@@ -49,6 +49,11 @@ export class RippleArray extends Array {
 	}
 
 	constructor(...elements) {
+		// RippleArray(1, 2, 3) or RippleArray([1, 2, 3])
+		if(Array.isArray(elements[0]) && elements.length === 1) {
+			elements = elements[0];
+		}
+
 		super(...elements);
 
 		var block = safe_scope();
