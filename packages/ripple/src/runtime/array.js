@@ -55,7 +55,7 @@ export class RippleArray extends Array {
 		var tracked_elements = this.#tracked_elements;
 
 		for (var i = 0; i < this.length; i++) {
-			tracked_elements[i] = tracked(0, block);
+			tracked_elements[i] = tracked(elements[i], block);
 		}
 		this.#tracked_index = tracked(this.length, block);
 
@@ -132,10 +132,10 @@ export class RippleArray extends Array {
 		var tracked_elements = this.#tracked_elements;
 
 		super.shift();
-		for (var i = 0; i < tracked_elements.length; i++) {
-			increment(tracked_elements[i], block);
+		for (var i = 0; i < tracked_elements.length - 1; i++) {
+			set(tracked_elements[i], tracked_elements[i + 1].v, block);
 		}
-		tracked_elements.shift();
+		tracked_elements.pop();
 
 		set(this.#tracked_index, this.length, block);
 	}
@@ -239,4 +239,3 @@ export function get_all_elements(array) {
 
 	return arr;
 }
-
