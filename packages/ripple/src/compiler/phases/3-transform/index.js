@@ -398,6 +398,7 @@ const visitors = {
 
 		if (is_dom_element) {
 			let class_attribute = null;
+			const local_updates = [];
 
 			state.template.push(`<${node.id.name}`);
 
@@ -422,7 +423,7 @@ const visitors = {
 							const expression = visit(attr.value, state);
 
 							if (name === '$value') {
-								state.update.push(b.stmt(b.call('$.set_value', id, expression)));
+								local_updates.push(b.stmt(b.call('$.set_value', id, expression)));
 							} else {
 								state.init.push(b.stmt(b.call('$.set_value', id, expression)));
 							}
@@ -435,7 +436,7 @@ const visitors = {
 							const expression = visit(attr.value, state);
 
 							if (name === '$checked') {
-								state.update.push(b.stmt(b.call('$.set_checked', id, expression)));
+								local_updates.push(b.stmt(b.call('$.set_checked', id, expression)));
 							} else {
 								state.init.push(b.stmt(b.call('$.set_checked', id, expression)));
 							}
@@ -447,7 +448,7 @@ const visitors = {
 							const expression = visit(attr.value, state);
 
 							if (name === '$selected') {
-								state.update.push(b.stmt(b.call('$.set_selected', id, expression)));
+								local_updates.push(b.stmt(b.call('$.set_selected', id, expression)));
 							} else {
 								state.init.push(b.stmt(b.call('$.set_selected', id, expression)));
 							}
@@ -523,9 +524,9 @@ const visitors = {
 							const expression = visit(attr.value, state);
 
 							if (is_dom_property(attribute)) {
-								state.update.push(b.stmt(b.assignment('=', b.member(id, attribute), expression)));
+								local_updates.push(b.stmt(b.assignment('=', b.member(id, attribute), expression)));
 							} else {
-								state.update.push(
+								local_updates.push(
 									b.stmt(b.call('$.set_attribute', id, b.literal(attribute), expression)),
 								);
 							}
@@ -566,7 +567,7 @@ const visitors = {
 					}
 
 					if (class_attribute.name.name === '$class') {
-						state.update.push(b.stmt(b.call('$.set_class', id, expression)));
+						local_updates.push(b.stmt(b.call('$.set_class', id, expression)));
 					} else {
 						state.init.push(b.stmt(b.call('$.set_class', id, expression)));
 					}
@@ -590,6 +591,8 @@ const visitors = {
 			const update = [];
 
 			transform_children(node.children, { visit, state: { ...state, init, update }, root: false });
+
+			update.push(...local_updates);
 
 			if (init.length > 0) {
 				state.init.push(b.block(init));
