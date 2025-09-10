@@ -816,12 +816,12 @@ describe('basic', () => {
 		component App() {
 			let $value = 'parent-class';
 
-			<p class={$value}>{'Colored parent value'}</p>
+			<p $class={$value}>{'Colored parent value'}</p>
 
 			<div>
 				let $nested = 'nested-class';
 
-				<p class={$nested}>{'Colored nested value'}</p>
+				<p $class={$nested}>{'Colored nested value'}</p>
 			</div>
 		}
 
