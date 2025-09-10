@@ -1182,3 +1182,17 @@ export function use_prop() {
 export function fallback(value, fallback) {
 	return value === undefined ? fallback : value;
 }
+
+/**
+ * @param {Record<string, unknown>} obj
+ * @param {string[]} keys
+ * @returns {Record<string, unknown>}
+ */
+export function exclude_from_object(obj, keys) {
+	obj = { ...obj };
+	let key;
+	for (key of keys) {
+		delete obj[key];
+	}
+	return obj;
+}
