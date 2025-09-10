@@ -811,4 +811,25 @@ describe('basic', () => {
 		flushSync();
 		expect(greetingP.textContent).toBe('Hello, User!');
 	});
+
+	it('renders with reactive attributes with nested reactive attributes', () => {
+		component App() {
+			let $value = 'parent-class';
+
+			<p class={$value}>{'Colored parent value'}</p>
+
+			<div>
+				let $nested = 'nested-class';
+
+				<p class={$nested}>{'Colored nested value'}</p>
+			</div>
+		}
+
+		render(App);
+
+		const paragraphs = container.querySelectorAll('p');
+
+		expect(paragraphs[0].className).toBe('parent-class');
+		expect(paragraphs[1].className).toBe('nested-class');
+	});
 });
