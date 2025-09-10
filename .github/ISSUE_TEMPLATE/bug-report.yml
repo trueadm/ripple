@@ -1,0 +1,81 @@
+name: "🐛 Bug Report"
+description: "Report a bug or unexpected behavior in Ripple"
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this issue! Please search existing issues first to avoid duplicates.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Issue Category"
+      description: "What type of issue is this?"
+      options:
+        - "UI/UX Bug"
+        - "Performance Issue"
+        - "API/Backend Issue"
+        - "Documentation Issue"
+        - "Build/Deployment Issue"
+        - "Security Concern"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Bug Description"
+      description: "A clear description of what the bug is and what you expected to happen."
+      placeholder: "When I do X, Y happens, but I expected Z..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Reproduction Steps"
+      description: "Provide a minimal reproducible example. Link to a repo, CodePen, or detailed steps."
+      placeholder: |
+        1. Go to...
+        2. Click on...
+        3. See error...
+        
+        OR provide a link to reproduction: https://...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment"
+      description: "Share relevant environment details"
+      placeholder: |
+        - OS: [e.g. macOS 13.1, Windows 11, Ubuntu 22.04]
+        - Browser: [e.g. Chrome 118, Firefox 119, Safari 16]
+        - Ripple Version: [e.g. 1.2.3]
+        - Node Version: [e.g. 18.17.0]
+      render: markdown
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: "Additional Context"
+      description: "Screenshots, logs, or any other context that might help"
+      placeholder: "Add any other context, screenshots, or logs here..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Checklist"
+      options:
+        - label: "I've searched for existing issues"
+          required: true
+        - label: "I'm willing to help implement a fix"
+          required: false
