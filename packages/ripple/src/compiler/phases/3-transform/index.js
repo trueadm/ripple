@@ -1581,7 +1581,7 @@ function transform_children(children, { visit, state, root }) {
 					state.update.push(b.stmt(b.call('$.set_text', id, expression)));
 				} else if (normalized.length === 1) {
 					if (expression.type === 'Literal') {
-						state.template.push(expression.value);
+						state.template.push(escape_html(expression.value));
 					} else {
 						const id = state.flush_node();
 						state.init.push(
