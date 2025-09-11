@@ -43,6 +43,7 @@ export {
 	untrack,
 	use_prop,
 	fallback,
+	exclude_from_object,
 } from './runtime.js';
 
 export { for_block as for } from './for.js';

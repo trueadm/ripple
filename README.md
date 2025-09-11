@@ -412,7 +412,7 @@ reactive, but rather its properties are instead.
 
 ### Try statements
 
-Try blocks work to building the foundation for **error boundaries**, when the runtime encounters
+Try blocks work to build the foundation for **error boundaries**, when the runtime encounters
 an error in the `try` block, you can easily render a fallback in the `catch` block.
 
 ```jsx
@@ -543,7 +543,7 @@ let $name = 'Bob';
 }} />
 ```
 
-Furthermore, just property accessors in JavaScript, Ripple provides a way of capturing the `set` too, enabling two-way data-flow on composite component props. You just need to provide a second function after the first, separated using a commma:
+Furthermore, just like property accessors in JavaScript, Ripple provides a way of capturing the `set` too, enabling two-way data-flow on composite component props. You just need to provide a second function after the first, separated using a comma:
 
 ```jsx
 let $name = 'Bob';
@@ -583,7 +583,7 @@ component Person(props) {
 
 Ripple provides a consistent way to capture the underlying DOM element – decorators. Specifically, using
 the syntax `{@use fn}` where `fn` is a function that captures the DOM element. If you're familiar with other frameworks, then
-this identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React. The hook function will receive
+this is identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React. The hook function will receive
 the reference to the underlying DOM element.
 
 ```jsx
@@ -634,7 +634,7 @@ Lastly, you can use decorators on composite components.
 <Image {@use (node) => console.log(node)} {...props} />
 ```
 
-When passing decorators to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that can be spread to HTML template elements later on, and still work.
+When passing decorators to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that it can be spread to HTML template elements later on, and still work.
 
 ### Event Props
 

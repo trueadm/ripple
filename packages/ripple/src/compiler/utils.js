@@ -570,7 +570,7 @@ export function build_assignment(operator, left, right, context) {
 const ATTR_REGEX = /[&"<]/g;
 const CONTENT_REGEX = /[&<]/g;
 
-export function escape_html(value, is_attr) {
+export function escape_html(value, is_attr = false) {
 	const str = String(value ?? '');
 
 	const pattern = is_attr ? ATTR_REGEX : CONTENT_REGEX;
