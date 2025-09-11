@@ -1,4 +1,4 @@
-import type { Parser, Node, TokenType, SourceLocation, AnyNode, Expression, Token, Position } from 'acorn';
+import type { Parser, Node, TokenType, SourceLocation, AnyNode, Expression, Token, Position, Statement, TryStatement, Pattern } from 'acorn';
 
 type AcornNodes = AnyNode;
 
@@ -70,22 +70,43 @@ export declare class BaseParser extends Parser {
     // I use 'public' - can you tell I started out with Java yet?
     //  - Redstone
 
+    public lineStart: number;
+    public curLine: number;
     public start: number;
     public end: number;
     public pos: number;
     public input: string;
-
+    public type: TokenType;
+    public containsEsc: boolean;
+    public startLoc: SourceLocation | Position;
+    public endLoc: SourceLocation | Position;
+    public lastTokEndLoc: SourceLocation;
+    public lastTokStartLoc: SourceLocation;
+    public lastTokEnd: number;
+    public lastTokStart: number;
     public context: TokContext[];
+    public exprAllowed: boolean;
+    public inModule: boolean;
+    public strict: boolean;
+    public potentialArrowAt: number;
+    public potentialArrowInForAwait: boolean;
+    public yieldPos: number;
+    public awaitPos: number;
+    public awaitIdentPos: number;
+    public labels: unknown[];
+    public undefinedExports: unknown;
     public scopeStack: Scope[];
+    public regexpState: unknown | null;
+    public privateNameStack: { declared: unknown; used: unknown; }[];
 
     public static tokTypes?: AcornTokenTypes;
     public static tokContexts?: AcornContexts;
 
-    public startNode(): Node;
-    public startNodeAt(pos: number, loc: SourceLocation): Node;
+    public startNode(): AcornNodes;
+    public startNodeAt(pos: number, loc: SourceLocation): AcornNodes;
 
-    public finishNode<K extends keyof AcornNodesMap>(node: AcornNodesMap[K] | AnyNode, type: K): AcornNodesMap[K];
-    public finishNodeAt<K extends keyof AcornNodesMap>(node: AcornNodesMap[K] | AnyNode, type: K, pos: number, loc: SourceLocation): AcornNodesMap[K];
+    public finishNode<K extends keyof AcornNodesMap>(node: AcornNodesMap[K] | AcornNodes, type: K): AcornNodesMap[K];
+    public finishNodeAt<K extends keyof AcornNodesMap>(node: AcornNodesMap[K] | AcornNodes, type: K, pos: number, loc: SourceLocation): AcornNodesMap[K];
 
     public copyNode(node: Node): Node;
 
@@ -94,10 +115,17 @@ export declare class BaseParser extends Parser {
 
     public parseIdent(liberal?: boolean): AcornNodesMap['Identifier'];
     public parseFunctionParams(node: Node): void;
-    public parseExportDefaultDeclaration(): Node;
+    public parseExportDefaultDeclaration(): AcornNodes;
     public parseExpression(forInit?: boolean, refDestructuringErrors?: boolean): Expression;
-    public parseMaybeAssign(forInit?: boolean, refDestructuringErrors?: boolean, afterLeftParse?: (this: BaseParser, left: Node, startPos: number, startLoc: SourceLocation) => Node): Node;
+    public parseMaybeAssign(forInit?: boolean, refDestructuringErrors?: boolean, afterLeftParse?: (this: BaseParser, left: Node, startPos: number, startLoc: SourceLocation) => Node): AcornNodes;
     public parseIdentNode(): AcornNodesMap['Identifier'];
+    public parseSubscript(base: AcornNodes, startPos: number, startLoc: SourceLocation, noCalls: boolean, maybeAsyncArrow: boolean, optionalChained: boolean, forInit: boolean): AcornNodes;
+    public parseStatement(context?: string | null, topLevel?: boolean, exports?: Record<string, boolean>): Statement;
+    public parseBlock(createNewLexicalScope?: boolean, node?: Node, exitStrict?: boolean): AcornNodesMap['BlockStatement'];
+    public parseExprAtom(refDestructuringErrors?: boolean, forInit?: boolean, forNew?: boolean): Expression;
+    public parseTryStatemenet(node: TryStatement): TryStatement;
+    public parseBindingAtom(): Pattern;
+    public parseCatchClauseParam(): Pattern;
 
     public shouldParseExportStatement(): boolean;
 
@@ -105,15 +133,24 @@ export declare class BaseParser extends Parser {
     public expect(type: TokenType): void;
     public next(ignoreEscapeSequenceInKeyword?: boolean): void;
     public unexpected(pos?: unknown): void;
-    public lookahead(): Token & { value?: string }; // I can't even find this one in the acorn repo :(
     public raise(pos: number, message: string): never;
     public raiseRecoverable(pos: number, message: string): void;
-    public curPosition(): Position;
+    public curPosition(): Position & { index: number; };
     public curContext(): TokContext;
 
+    public lookahead(): Token & { value?: string }; // I can't even find this one in the acorn repo :(
     public readToken(code: number): Token;
+    public finishToken(type: TokenType, val?: string): void;
+    public getTokenFromCode(code: number): Token;
 }
+
+export type OnComment = (
+    isBlock: boolean, text: string, start: number, end: number, startLoc?: Position,
+    endLoc?: Position
+) => void;
 
 declare module 'acorn' {
     const tokContexts: AcornContexts;
+
+    function isNewLine(code: number): boolean;
 }

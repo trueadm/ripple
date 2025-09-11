@@ -1,3 +1,5 @@
+/** @import * as s from '#style' */
+
 import { hash } from '../../utils.js';
 
 const REGEX_COMMENT_CLOSE = /\*\//;
@@ -86,15 +88,18 @@ class Parser {
 	}
 }
 
+/**
+ * @param {string} content
+ */
 export function parse_style(content) {
 	const parser = new Parser(content, false);
 
-	return {
+	return /** @type {s.StyleBlock} */ ({
 		source: content,
 		hash: `ripple-${hash(content)}`,
 		type: 'StyleSheet',
 		body: read_body(parser),
-	};
+	});
 }
 
 function allow_comment_or_whitespace(parser) {

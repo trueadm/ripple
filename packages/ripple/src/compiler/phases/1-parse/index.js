@@ -10,7 +10,7 @@ import { walk } from 'zimmerframe';
 const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
 
 /**
- * @param {ESTree.Node} node 
+ * @param {a.AcornNodes} node
  */
 function convert_from_jsx(node) {
 	if (node.type === 'JSXIdentifier') {
@@ -24,12 +24,13 @@ function convert_from_jsx(node) {
 		// @ts-ignore
 		node.property = convert_from_jsx(node.property);
 	}
+
 	return node;
 }
 
 /**
- * @param {unknown} config 
- * @returns {((BaseParser: typeof a.BetterParser) => typeof a.BetterParser)}
+ * @param {unknown} config
+ * @returns {((BaseParser: typeof a.BetterParser) => typeof a.BetterParser & any)}
  */
 function RipplePlugin(config) {
 	return (Parser) => {
@@ -47,11 +48,15 @@ function RipplePlugin(config) {
 		 */
 		class RippleParser extends Parser {
 			/**
-			 * @type {acorn.Node[]}
+			 * @type {s.Element[]}
 			 */
 			#path = [];
 
 			// Helper method to get the element name from a JSX identifier or member expression
+			/**
+			 * @param {a.AcornNodes} node
+			 * @returns {string | null}
+			 */
 			getElementName(node) {
 				if (!node) return null;
 				if (node.type === 'Identifier' || node.type === 'JSXIdentifier') {
@@ -66,10 +71,7 @@ function RipplePlugin(config) {
 			parseExportDefaultDeclaration() {
 				// Check if this is "export default component"
 				if (this.value === 'component') {
-					/**
-					 * @type {a.AcornNodesMap['Component']}
-					 */
-					const node = this.startNode();
+					const node = /** @type {a.AcornNodesMap['Component']} */ (this.startNode());
 					node.type = 'Component';
 					node.css = null;
 					node.default = true;
@@ -102,7 +104,7 @@ function RipplePlugin(config) {
 				if (super.shouldParseExportStatement()) {
 					return true;
 				}
-				
+
 				if (this.value === 'component') {
 					return true;
 				}
@@ -124,7 +126,7 @@ function RipplePlugin(config) {
 			}
 
 			jsx_parseTupleContainer() {
-				var t = this.startNode();
+				var t = /** @type {a.AcornNodesMap['JSXExpressionContainer']} */ (this.startNode());
 				return (
 					this.next(),
 					(t.expression =
@@ -153,12 +155,12 @@ function RipplePlugin(config) {
 						this.unexpected();
 					}
 					this.next();
-					const value = this.jsx_parseAttributeValue();
+					const value = /** @type {acorn.ExpressionStatement | a.AcornNodesMap['JSXExpressionContainer']} */ (this.jsx_parseAttributeValue());
 					const expression = value.expression;
 					node.get = null;
 					node.set = null;
 
-					if (expression.type == 'SequenceExpression') {
+					if (expression.type === 'SequenceExpression') {
 						node.get = expression.expressions[0];
 						node.set = expression.expressions[1];
 						if (expression.expressions.length > 2) {
@@ -195,15 +197,16 @@ function RipplePlugin(config) {
 						const id = this.parseIdentNode();
 						this.finishNode(id, 'Identifier');
 						node.name = id;
-						node.value = id;
+						(/** @type {a.AcornNodesMap['Attribute']} */ (/** @type {unknown} */ (node))).value = id;
 						this.next();
 						this.expect(tt.braceR);
 						return this.finishNode(node, 'Attribute');
 					}
 				}
-				node.name = this.jsx_parseNamespacedName();
-				node.value = this.eat(tt.eq) ? this.jsx_parseAttributeValue() : null;
-				return this.finishNode(node, 'JSXAttribute');
+				const jsxNode = /** @type {a.AcornNodesMap['JSXAttribute']} */ (/** @type {unknown} */ (node));
+				jsxNode.name = this.jsx_parseNamespacedName();
+				jsxNode.value = this.eat(tt.eq) ? this.jsx_parseAttributeValue() : null;
+				return this.finishNode(jsxNode, 'JSXAttribute');
 			}
 
 			jsx_parseAttributeValue() {
@@ -225,17 +228,20 @@ function RipplePlugin(config) {
 				}
 			}
 
+			/**
+			 * @param {a.AsyncTryStatement} node
+			 */
 			parseTryStatement(node) {
 				this.next();
 				node.block = this.parseBlock();
 				node.handler = null;
 				if (this.type === tt._catch) {
-					var clause = this.startNode();
+					var clause = /** @type {a.AcornNodesMap['CatchClause']} */ (this.startNode());
 					this.next();
 					if (this.eat(tt.parenL)) {
 						clause.param = this.parseCatchClauseParam();
 					} else {
-						if (this.options.ecmaVersion < 10) {
+						if ((/** @type {Exclude<acorn.ecmaVersion, 'latest'>} */ (this.options.ecmaVersion)) < 10) {
 							this.unexpected();
 						}
 						clause.param = null;
@@ -259,6 +265,7 @@ function RipplePlugin(config) {
 				}
 				return this.finishNode(node, 'TryStatement');
 			}
+
 			jsx_readToken() {
 				let out = '',
 					chunkStart = this.pos;
@@ -302,7 +309,7 @@ function RipplePlugin(config) {
 
 								// Call onComment if it exists
 								if (this.options.onComment) {
-									this.options.onComment(
+									(/** @type {a.OnComment} */ (this.options.onComment))(
 										false,
 										commentText,
 										commentStart,
@@ -339,7 +346,7 @@ function RipplePlugin(config) {
 
 								// Call onComment if it exists
 								if (this.options.onComment) {
-									this.options.onComment(
+									(/** @type {a.OnComment} */ (this.options.onComment))(
 										true,
 										commentText,
 										commentStart,
@@ -410,26 +417,26 @@ function RipplePlugin(config) {
 				const position = this.curPosition();
 				this.pos = prev_pos;
 
-				const element = this.startNode();
+				const element = /** @type {a.Element} */ (this.startNode());
 				element.start = position.index;
-				element.loc.start = position;
+				(/** @type {acorn.SourceLocation} */ (element.loc)).start = position;
 				element.type = 'Element';
 				this.#path.push(element);
 				element.children = [];
 				const open = this.jsx_parseOpeningElementAt();
 				for (const attr of open.attributes) {
 					if (attr.type === 'JSXAttribute') {
-						attr.type = 'Attribute';
+						attr.type = /** @type {'JSXAttribute'} */ ('Attribute');
 						if (attr.name.type === 'JSXIdentifier') {
-							attr.name.type = 'Identifier';
+							attr.name.type = /** @type {'JSXIdentifier'} */ ('Identifier');
 						}
-						if (attr.value.type === 'JSXExpressionContainer') {
+						if (attr.value && attr.value.type === 'JSXExpressionContainer') {
 							attr.value = attr.value.expression;
 						}
 					}
 				}
 				if (open.name.type === 'JSXIdentifier') {
-					open.name.type = 'Identifier';
+					open.name.type = /** @type {'JSXIdentifier'} */ ('Identifier');
 				}
 
 				element.id = convert_from_jsx(open.name);
@@ -445,7 +452,7 @@ function RipplePlugin(config) {
 						this.next();
 					}
 				} else {
-					if (open.name.name === 'style') {
+					if (open.name.type === 'JSXIdentifier' && open.name.name === 'style') {
 						const start = this.start;
 						const input = this.input.slice(start);
 						const end = input.indexOf('</style>');
@@ -484,7 +491,7 @@ function RipplePlugin(config) {
 						this.enterScope(0);
 						this.parseTemplateBody(element.children);
 						this.exitScope();
-						
+
 						// Check if this element was properly closed
 						// If we reach here and this element is still in the path, it means it was never closed
 						if (this.#path[this.#path.length - 1] === element) {
@@ -506,15 +513,13 @@ function RipplePlugin(config) {
 			}
 
 			/**
-			 * 
-			 * @param {acorn.Node} base 
-			 * @param {number} startPos 
-			 * @param {acorn.SourceLocation} startLoc 
-			 * @param {boolean} noCalls 
-			 * @param {boolean} maybeAsyncArrow 
-			 * @param {boolean} optionalChained 
-			 * @param {boolean} forInit 
-			 * @returns 
+			 * @param {a.AcornNodes} base
+			 * @param {number} startPos
+			 * @param {acorn.SourceLocation} startLoc
+			 * @param {boolean} noCalls
+			 * @param {boolean} maybeAsyncArrow
+			 * @param {boolean} optionalChained
+			 * @param {boolean} forInit
 			 */
 			parseSubscript(base, startPos, startLoc, noCalls, maybeAsyncArrow, optionalChained, forInit) {
 				if (this.value === '<' && this.#path.findLast((n) => n.type === 'Component')) {
@@ -558,7 +563,7 @@ function RipplePlugin(config) {
 			}
 
 			/**
-			 * @param {unknown[]} body 
+			 * @param {unknown[]} body
 			 */
 			parseTemplateBody(body) {
 				var inside_func =
@@ -589,20 +594,20 @@ function RipplePlugin(config) {
 						this.next();
 						const closingTag = this.jsx_parseElementName();
 						this.exprAllowed = true;
-						
+
 						// Validate that the closing tag matches the opening tag
 						const currentElement = this.#path[this.#path.length - 1];
 						if (!currentElement || currentElement.type !== 'Element') {
 							this.raise(this.start, 'Unexpected closing tag');
 						}
-						
+
 						const openingTagName = this.getElementName(currentElement.id);
 						const closingTagName = this.getElementName(closingTag);
-						
+
 						if (openingTagName !== closingTagName) {
 							this.raise(this.start, `Expected closing tag to match opening tag. Expected '</${openingTagName}>' but found '</${closingTagName}>'`);
 						}
-						
+
 						this.#path.pop();
 						this.next();
 						return;
@@ -618,6 +623,12 @@ function RipplePlugin(config) {
 				this.parseTemplateBody(body);
 			}
 
+			/**
+			 * @param {string | null | undefined} [context] 
+			 * @param {boolean | undefined} [topLevel ]
+			 * @param {Record<string, boolean> | undefined} [exports]
+			 * @returns {acorn.Statement}
+			 */
 			parseStatement(context, topLevel, exports) {
 				const tok = this.acornTypeScript.tokContexts;
 
@@ -630,15 +641,17 @@ function RipplePlugin(config) {
 				) {
 					this.next();
 					const node = this.jsx_parseExpressionContainer();
-					node.type = 'Text';
+
+					node.type = /** @type {'JSXExpressionContainer'} */ ('Text');
 					this.next();
 					this.context.pop();
 					this.context.pop();
-					return node;
+
+					return /** @type {acorn.Statement} */ (/** @type {unknown} */ (node));
 				}
 
 				if (this.value === 'component') {
-					const node = this.startNode();
+					const node = /** @type {a.AcornNodesMap['Component']} */ (this.startNode());
 					node.type = 'Component';
 					node.css = null;
 					this.next();
@@ -658,20 +671,27 @@ function RipplePlugin(config) {
 					this.finishNode(node, 'Component');
 					this.awaitPos = 0;
 
-					return node;
+					return /** @type {acorn.Statement} */ (/** @type {unknown} */ (node));
 				}
 
 				return super.parseStatement(context, topLevel, exports);
 			}
 
+			/**
+			 * @param {boolean | undefined} [createNewLexicalScope] 
+			 * @param {a.AcornNodesMap['Component'] | undefined} [node] 
+			 * @param {boolean | undefined} [exitStrict]
+			 */
 			parseBlock(createNewLexicalScope, node, exitStrict) {
 				const parent = this.#path.at(-1);
 
 				if (parent?.type === 'Component' || parent?.type === 'Element') {
 					if (createNewLexicalScope === void 0) createNewLexicalScope = true;
-					if (node === void 0) node = this.startNode();
+					if (node === void 0) node = /** @type {a.AcornNodesMap['Component']} */ (this.startNode());
 
+					node = /** @type {a.AcornNodesMap['Component']} */ (node);
 					node.body = [];
+
 					this.expect(tt.braceL);
 					if (createNewLexicalScope) {
 						this.enterScope(0);
@@ -708,6 +728,14 @@ function RipplePlugin(config) {
  */
 function get_comment_handlers(source, comments, index = 0) {
 	return {
+		/**
+		 * @param {boolean} block 
+		 * @param {string} value 
+		 * @param {number} start 
+		 * @param {number} end 
+		 * @param {acorn.Position | undefined} start_loc 
+		 * @param {acorn.Position | undefined} end_loc 
+		 */
 		onComment: (block, value, start, end, start_loc, end_loc) => {
 			if (block && /\n/.test(value)) {
 				let a = start;
@@ -731,6 +759,10 @@ function get_comment_handlers(source, comments, index = 0) {
 				},
 			});
 		},
+
+		/**
+		 * @param {a.CommentedNode} ast
+		 */
 		add_comments: (ast) => {
 			if (comments.length === 0) return;
 
@@ -757,6 +789,7 @@ function get_comment_handlers(source, comments, index = 0) {
 								return;
 							}
 						}
+
 						const parent = /** @type {any} */ (path.at(-1));
 
 						if (parent === undefined || node.end !== parent.end) {
@@ -803,8 +836,15 @@ function get_comment_handlers(source, comments, index = 0) {
  * @param {string} source
  */
 export function parse(source) {
+	/**
+	 * @type {CommentWithLocation[]}
+	 */
 	const comments = [];
 	const { onComment, add_comments } = get_comment_handlers(source, comments);
+
+	/**
+	 * @type {acorn.Program}
+	 */
 	let ast;
 
 	try {
