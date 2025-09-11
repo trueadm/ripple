@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, flushSync } from 'ripple';
+import { compile } from 'ripple/compiler';
 
 describe('basic', () => {
 	let container;
@@ -831,5 +832,24 @@ describe('basic', () => {
 
 		expect(paragraphs[0].className).toBe('parent-class');
 		expect(paragraphs[1].className).toBe('nested-class');
+	});
+
+	it('should throw error for unclosed tag', () => {
+		const malformedCode = `export default component Example() {
+	<div></span>
+}`;
+		expect(() => {
+			compile(malformedCode, 'test.ripple', 'test.ripple');
+		}).toThrow('Expected closing tag to match opening tag');
+	});
+
+	it('should throw error for completely unclosed tag', () => {
+		const malformedCode = `export default component Example() {
+	<div>content
+}`;
+
+		expect(() => {
+			compile(malformedCode, 'test.ripple', 'test.ripple');
+		}).toThrow('Unclosed tag');
 	});
 });
