@@ -234,7 +234,20 @@ Just remember, reactive state must be connected to a component and it can't be g
 
 #### Reactive Arrays
 
-When creating state that contains arrays you should use the reactive alternative for arrays that Ripple provides.
+Just like, objects, you can use the `$` prefix in an array literal to specify that the field is reactive.
+
+```js
+let $first = 0;
+let $second = 0;
+const arr = [$first, $second];
+
+const $total = arr.reduce((a, b) => a + b, 0);
+```
+
+Like shown in the above example, you can compose normal arrays with reactivity and pass them through props or boundaries.
+
+However, if you need the entire array to be fully reactive, including when
+new elements get added, you should use the reactive array that Ripple provides.
 
 You'll need to import the `RippleArray` class from Ripple. It extends the standard JS `Array` class, and supports all of its methods and properties.
 

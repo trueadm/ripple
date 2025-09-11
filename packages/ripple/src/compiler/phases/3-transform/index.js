@@ -21,6 +21,7 @@ import {
 	is_inside_call_expression,
 	is_tracked_computed_property,
 	is_value_static,
+	is_void_element,
 } from '../../utils.js';
 import is_reference from 'is-reference';
 import { extract_paths, object } from '../../../utils/ast.js';
@@ -146,6 +147,45 @@ const visitors = {
 			is_declared_within_component(callee, context)
 		) {
 			return context.next();
+		}
+
+		// Handle array methods that access the array
+		if (
+			callee.type === 'MemberExpression' &&
+			!callee.optional &&
+			callee.property.type === 'Identifier'
+		) {
+			const name = callee.property.name;
+			if (
+				// TODO support the missing array methods
+				name === 'reduce' ||
+				name === 'map' ||
+				name === 'forEach' ||
+				name === 'join' ||
+				name === 'includes' ||
+				name === 'indexOf' ||
+				name === 'lastIndexOf' ||
+				name === 'filter' ||
+				name === 'every' ||
+				name === 'some' ||
+				name === 'toSpliced' ||
+				name === 'toSorted' ||
+				name === 'toString' ||
+				name === 'values' ||
+				name === 'entries'
+			) {
+				return b.call(
+					'$.with_scope',
+					b.id('__block'),
+					b.thunk(
+						b.call(
+							'$.array_' + name,
+							context.visit(callee.object),
+							...node.arguments.map((arg) => context.visit(arg)),
+						),
+					),
+				);
+			}
 		}
 
 		return b.call(
@@ -399,6 +439,7 @@ const visitors = {
 		if (is_dom_element) {
 			let class_attribute = null;
 			const local_updates = [];
+			const is_void = is_void_element(node.id.name);
 
 			state.template.push(`<${node.id.name}`);
 
@@ -590,7 +631,14 @@ const visitors = {
 			const init = [];
 			const update = [];
 
-			transform_children(node.children, { visit, state: { ...state, init, update }, root: false });
+			if (!is_void) {
+				transform_children(node.children, {
+					visit,
+					state: { ...state, init, update },
+					root: false,
+				});
+				state.template.push(`</${node.id.name}>`);
+			}
 
 			update.push(...local_updates);
 
@@ -601,8 +649,6 @@ const visitors = {
 			if (update.length > 0) {
 				state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update)))));
 			}
-
-			state.template.push(`</${node.id.name}>`);
 		} else {
 			const id = state.flush_node();
 
@@ -975,43 +1021,37 @@ const visitors = {
 	},
 
 	ArrayExpression(node, context) {
-		// const elements = [];
-		// const tracked = [];
-		// let i = 0;
+		// TODO we can bail out of all of this if we know we're inside a computed fn expression
+		// as the reactivity will hold from the reference of the $ binding itself
+		const elements = [];
+		const tracked = [];
+		let i = 0;
 
-		// for (const element of node.elements) {
-		// 	if (element === null) {
-		// 		elements.push(null);
-		// 	} else if (element.type === 'Element') {
-		// 		const metadata = { tracking: false, await: false };
-		// 		const tracked_element = context.visit(element, { ...context.state, metadata });
+		for (const element of node.elements) {
+			if (element === null) {
+				elements.push(null);
+			} else if (element.type === 'Identifier' && is_tracked_name(element.name)) {
+				const metadata = { tracking: false, await: false };
+				const tracked_identifier = context.visit(element, { ...context.state, metadata });
 
-		// 		if (metadata.tracking) {
-		// 			tracked.push(b.literal(i));
-		// 			elements.push(tracked_element);
-		// 		} else {
-		// 			elements.push(tracked_element);
-		// 		}
-		// 	} else if (element.type === 'SpreadElement') {
-		// 		const metadata = { tracking: false, await: false };
-		// 		const tracked_element = context.visit(element, { ...context.state, metadata });
+				if (metadata.tracking) {
+					tracked.push(b.literal(i));
+					elements.push(
+						b.call('$.computed_property', b.thunk(tracked_identifier), b.id('__block')),
+					);
+				} else {
+					elements.push(tracked_identifier);
+				}
+			} else {
+				const metadata = { tracking: false, await: false };
+				elements.push(context.visit(element, { ...context.state, metadata }));
+			}
+			i++;
+		}
 
-		// 		if (metadata.tracking) {
-		// 			tracked.push(b.spread(tracked_element.argument));
-		// 			elements.push(tracked_element);
-		// 		} else {
-		// 			elements.push(tracked_element);
-		// 		}
-		// 	} else {
-		// 		const metadata = { tracking: false, await: false };
-		// 		elements.push(context.visit(element, { ...context.state, metadata }));
-		// 	}
-		// 	i++;
-		// }
-
-		// if (tracked.length > 0) {
-		// 	return b.call('$.tracked_object', { ...node, elements }, b.array(tracked), b.id('__block'));
-		// }
+		if (tracked.length > 0) {
+			return b.call('$.tracked_object', { ...node, elements }, b.array(tracked), b.id('__block'));
+		}
 
 		context.next();
 	},

@@ -46,6 +46,24 @@ export {
 	exclude_from_object,
 } from './runtime.js';
 
+export {
+	array_reduce,
+	array_join,
+	array_map,
+	array_filter,
+	array_forEach,
+	array_includes,
+	array_indexOf,
+	array_lastIndexOf,
+	array_every,
+	array_some,
+	array_toString,
+	array_toSorted,
+	array_toSpliced,
+	array_values,
+	array_entries,
+} from './array.js';
+
 export { for_block as for } from './for.js';
 
 export { if_block as if } from './if.js';

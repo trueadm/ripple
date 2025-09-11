@@ -3,6 +3,33 @@ import * as b from '../utils/builders.js';
 
 const regex_return_characters = /\r/g;
 
+const VOID_ELEMENT_NAMES = [
+	'area',
+	'base',
+	'br',
+	'col',
+	'command',
+	'embed',
+	'hr',
+	'img',
+	'input',
+	'keygen',
+	'link',
+	'meta',
+	'param',
+	'source',
+	'track',
+	'wbr'
+];
+
+/**
+ * Returns `true` if `name` is of a void element
+ * @param {string} name
+ */
+export function is_void_element(name) {
+	return VOID_ELEMENT_NAMES.includes(name) || name.toLowerCase() === '!doctype';
+}
+
 const RESERVED_WORDS = [
 	'arguments',
 	'await',
