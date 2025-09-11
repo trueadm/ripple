@@ -5,7 +5,9 @@ import {
 	getTemplateNames,
 	getTemplateChoices,
 	validateTemplate,
-	getTemplatePath,
+	getLocalTemplatePath,
+	isLocalDevelopment,
+	downloadTemplate
 } from '../../src/lib/templates.js';
 
 // Mock the constants
@@ -94,70 +96,65 @@ describe('getTemplateChoices', () => {
 });
 
 describe('validateTemplate', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		// Reset the mock to a default state for CI compatibility
-		const mockExistsSync = vi.mocked(existsSync);
-		mockExistsSync.mockReturnValue(false);
-	});
-
-	it('should return true for valid existing template', () => {
-		const mockExistsSync = vi.mocked(existsSync);
-		mockExistsSync.mockReturnValue(true);
+	it('should return true for valid template', () => {
 		const isValid = validateTemplate('basic');
 		expect(isValid).toBe(true);
-		expect(mockExistsSync).toHaveBeenCalledWith('/mock/templates/basic');
-	});
-
-	it('should return false for valid template that does not exist on filesystem', () => {
-		const mockExistsSync = vi.mocked(existsSync);
-		mockExistsSync.mockReturnValue(false);
-		const isValid = validateTemplate('basic');
-		expect(isValid).toBe(false);
 	});
 
 	it('should return false for invalid template name', () => {
-		const mockExistsSync = vi.mocked(existsSync);
 		const isValid = validateTemplate('non-existent');
 		expect(isValid).toBe(false);
-		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for undefined template name', () => {
-		const mockExistsSync = vi.mocked(existsSync);
 		const isValid = validateTemplate();
 		expect(isValid).toBe(false);
-		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for null template name', () => {
-		const mockExistsSync = vi.mocked(existsSync);
 		const isValid = validateTemplate(null);
 		expect(isValid).toBe(false);
-		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for empty string template name', () => {
-		const mockExistsSync = vi.mocked(existsSync);
 		const isValid = validateTemplate('');
 		expect(isValid).toBe(false);
-		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 });
 
-describe('getTemplatePath', () => {
-	it('should return correct template path', () => {
-		const path = getTemplatePath('basic');
-		expect(path).toBe('/mock/templates/basic');
+describe('getLocalTemplatePath', () => {
+	it('should return correct local template path', () => {
+		const path = getLocalTemplatePath('basic');
+		expect(path).toContain('templates/basic');
 	});
 
 	it('should return path even for non-existent template', () => {
-		const path = getTemplatePath('non-existent');
-		expect(path).toBe('/mock/templates/non-existent');
+		const path = getLocalTemplatePath('non-existent');
+		expect(path).toContain('templates/non-existent');
 	});
 
 	it('should handle special characters in template name', () => {
-		const path = getTemplatePath('my-template.name');
-		expect(path).toBe('/mock/templates/my-template.name');
+		const path = getLocalTemplatePath('my-template.name');
+		expect(path).toContain('templates/my-template.name');
+	});
+});
+
+describe('isLocalDevelopment', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('should return true when templates directory exists', () => {
+		const mockExistsSync = vi.mocked(existsSync);
+		mockExistsSync.mockReturnValue(true);
+		const isDev = isLocalDevelopment();
+		expect(isDev).toBe(true);
+	});
+
+	it('should return false when templates directory does not exist', () => {
+		const mockExistsSync = vi.mocked(existsSync);
+		mockExistsSync.mockReturnValue(false);
+		const isDev = isLocalDevelopment();
+		expect(isDev).toBe(false);
 	});
 });

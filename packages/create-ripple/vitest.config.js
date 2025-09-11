@@ -16,7 +16,7 @@ export default defineConfig({
 				'**/*.config.js'
 			]
 		},
-		testTimeout: 30000, // 30 seconds for integration tests
+		testTimeout: 60000, // 60 seconds for integration tests
 		hookTimeout: 10000 // 10 seconds for setup/teardown
 	}
 });

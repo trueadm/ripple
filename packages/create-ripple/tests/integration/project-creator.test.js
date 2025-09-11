@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createProject } from '../../src/lib/project-creator.js';
+import { getLocalTemplatePath, isLocalDevelopment, validateTemplate } from '../../src/lib/templates.js';
 
 // Mock ora for cleaner test output
 vi.mock('ora', () => ({
@@ -20,6 +21,21 @@ vi.mock('node:child_process', () => ({
 		execSync: vi.fn()
 	},
 	execSync: vi.fn()
+}));
+
+// Mock degit to prevent actual network calls
+vi.mock('degit', () => ({
+	default: vi.fn(() => ({
+		clone: vi.fn().mockResolvedValue(undefined)
+	}))
+}));
+
+// Mock template functions globally
+vi.mock('../../src/lib/templates.js', () => ({
+	getLocalTemplatePath: vi.fn(),
+	isLocalDevelopment: vi.fn(),
+	downloadTemplate: vi.fn(),
+	validateTemplate: vi.fn()
 }));
 
 describe('createProject integration tests', () => {
@@ -64,10 +80,10 @@ describe('createProject integration tests', () => {
 		writeFileSync(join(templatePath, 'src', 'App.ripple'), '<h1>Hello Ripple!</h1>');
 		writeFileSync(join(templatePath, 'README.md'), '# Template Project');
 
-		// Mock the getTemplatePath function
-		vi.doMock('../../src/lib/templates.js', () => ({
-			getTemplatePath: () => templatePath
-		}));
+		// Set up mocks for each test
+		vi.mocked(getLocalTemplatePath).mockReturnValue(templatePath);
+		vi.mocked(isLocalDevelopment).mockReturnValue(true);
+		vi.mocked(validateTemplate).mockReturnValue(true);
 	});
 
 	afterEach(() => {
@@ -150,20 +166,19 @@ describe('createProject integration tests', () => {
 	it('should handle missing template directory', async () => {
 		const invalidTemplatePath = join(testDir, 'non-existent-template');
 		
-		vi.doMock('../../src/lib/templates.js', () => ({
-			getTemplatePath: () => invalidTemplatePath
-		}));
+		// Override the mock for this specific test
+		vi.mocked(getLocalTemplatePath).mockReturnValue(invalidTemplatePath);
 
 		await expect(
 			createProject({
 				projectName: 'test-project',
 				projectPath,
-				template: 'non-existent',
+				template: 'basic',
 				packageManager: 'npm',
 				typescript: true,
 				gitInit: false
 			})
-		).rejects.toThrow('Template "non-existent" not found');
+		).rejects.toThrow('Local template "basic" not found');
 	});
 
 	it('should filter out unwanted files during copy', async () => {

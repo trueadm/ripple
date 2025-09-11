@@ -1,10 +1,10 @@
 import { join } from 'node:path';
-import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { green, dim } from 'kleur/colors';
 import ora from 'ora';
 
-import { getTemplatePath } from './templates.js';
+import { downloadTemplate, getLocalTemplatePath, isLocalDevelopment } from './templates.js';
 
 /**
  * Create a new Ripple project
@@ -29,24 +29,46 @@ export async function createProject({
 	console.log(dim(`Package manager: ${packageManager}`));
 	console.log();
 
-	const templatePath = getTemplatePath(template);
+	let templatePath;
+	let isTemporary = false;
 
-	if (!existsSync(templatePath)) {
-		throw new Error(`Template "${template}" not found at ${templatePath}`);
-	}
-
-	// Step 1: Create project directory
-	const spinner1 = ora('Creating project directory...').start();
+	// Step 1: Get or download template
+	const spinner1 = ora('Preparing template...').start();
 	try {
-		mkdirSync(projectPath, { recursive: true });
-		spinner1.succeed('Project directory created');
+		if (isLocalDevelopment()) {
+			// Use local template for development
+			templatePath = getLocalTemplatePath(template);
+			if (!existsSync(templatePath)) {
+				throw new Error(`Local template "${template}" not found at ${templatePath}`);
+			}
+			spinner1.succeed('Local template located');
+		} else {
+			// Download template from GitHub
+			spinner1.text = 'Downloading template from GitHub...';
+			templatePath = await downloadTemplate(template);
+			isTemporary = true;
+			spinner1.succeed('Template downloaded');
+		}
 	} catch (error) {
-		spinner1.fail('Failed to create project directory');
+		spinner1.fail('Failed to prepare template');
 		throw error;
 	}
 
-	// Step 2: Copy template files
-	const spinner2 = ora('Copying template files...').start();
+	// Step 2: Create project directory
+	const spinner2 = ora('Creating project directory...').start();
+	try {
+		mkdirSync(projectPath, { recursive: true });
+		spinner2.succeed('Project directory created');
+	} catch (error) {
+		spinner2.fail('Failed to create project directory');
+		if (isTemporary) {
+			rmSync(templatePath, { recursive: true, force: true });
+		}
+		throw error;
+	}
+
+	// Step 3: Copy template files
+	const spinner3 = ora('Copying template files...').start();
 	try {
 		cpSync(templatePath, projectPath, {
 			recursive: true,
@@ -61,32 +83,47 @@ export async function createProject({
 				);
 			}
 		});
-		spinner2.succeed('Template files copied');
+		spinner3.succeed('Template files copied');
 	} catch (error) {
-		spinner2.fail('Failed to copy template files');
+		spinner3.fail('Failed to copy template files');
+		if (isTemporary) {
+			rmSync(templatePath, { recursive: true, force: true });
+		}
 		throw error;
 	}
 
-	// Step 3: Update package.json
-	const spinner3 = ora('Configuring package.json...').start();
+	// Step 4: Update package.json
+	const spinner4 = ora('Configuring package.json...').start();
 	try {
 		updatePackageJson(projectPath, projectName, packageManager, typescript);
-		spinner3.succeed('Package.json configured');
+		spinner4.succeed('Package.json configured');
 	} catch (error) {
-		spinner3.fail('Failed to configure package.json');
+		spinner4.fail('Failed to configure package.json');
+		if (isTemporary) {
+			rmSync(templatePath, { recursive: true, force: true });
+		}
 		throw error;
 	}
 
-	// Step 4: Initialize Git (if requested)
+	// Step 5: Initialize Git (if requested)
 	if (gitInit) {
-		const spinner4 = ora('Initializing Git repository...').start();
+		const spinner5 = ora('Initializing Git repository...').start();
 		try {
 			execSync('git init', { cwd: projectPath, stdio: 'ignore' });
 			execSync('git add .', { cwd: projectPath, stdio: 'ignore' });
 			execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: 'ignore' });
-			spinner4.succeed('Git repository initialized');
+			spinner5.succeed('Git repository initialized');
 		} catch (error) {
-			spinner4.warn('Git initialization failed (optional)');
+			spinner5.warn('Git initialization failed (optional)');
+		}
+	}
+
+	// Clean up temporary template directory
+	if (isTemporary) {
+		try {
+			rmSync(templatePath, { recursive: true, force: true });
+		} catch (error) {
+			// Ignore cleanup errors
 		}
 	}
 

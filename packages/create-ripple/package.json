@@ -1,6 +1,6 @@
 {
   "name": "create-ripple",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Interactive CLI tool for creating Ripple applications",
   "type": "module",
   "license": "MIT",

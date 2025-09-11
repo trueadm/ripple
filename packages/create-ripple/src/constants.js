@@ -1,9 +1,3 @@
-import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 /**
  * Available templates configuration
  */
@@ -15,6 +9,9 @@ export const TEMPLATES = [
 	}
 ];
 
-// Get the root directory of the monorepo
-export const REPO_ROOT = resolve(__dirname, '../../../');
-export const TEMPLATES_DIR = join(REPO_ROOT, 'templates');
+/**
+ * GitHub repository configuration
+ */
+export const GITHUB_REPO = 'trueadm/ripple';
+export const GITHUB_BRANCH = 'main'; // or whatever the default branch is
+export const GITHUB_TEMPLATES_DIRECTORY = 'templates';
