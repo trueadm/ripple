@@ -1,0 +1,51 @@
+{
+  "name": "create-ripple",
+  "version": "0.1.1",
+  "description": "Interactive CLI tool for creating Ripple applications",
+  "type": "module",
+  "license": "MIT",
+  "author": "Ripple Team",
+  "keywords": [
+    "ripple",
+    "cli",
+    "scaffold",
+    "template",
+    "create-app"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/create-ripple"
+  },
+  "bugs": {
+    "url": "https://github.com/trueadm/ripple/issues"
+  },
+  "homepage": "https://ripplejs.com",
+  "bin": {
+    "create-ripple": "./src/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "prompts": "^2.4.2",
+    "kleur": "^4.1.5",
+    "degit": "^2.8.4",
+    "ora": "^8.1.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "vitest": "catalog:",
+    "jsdom": "catalog:",
+    "@types/prompts": "^2.4.9"
+  }
+}

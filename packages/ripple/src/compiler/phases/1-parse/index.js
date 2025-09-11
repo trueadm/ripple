@@ -25,6 +25,18 @@ function RipplePlugin(config) {
 		class RippleParser extends Parser {
 			#path = [];
 
+			// Helper method to get the element name from a JSX identifier or member expression
+			getElementName(node) {
+				if (!node) return null;
+				if (node.type === 'Identifier' || node.type === 'JSXIdentifier') {
+					return node.name;
+				} else if (node.type === 'MemberExpression' || node.type === 'JSXMemberExpression') {
+					// For components like <Foo.Bar>, return "Foo.Bar"
+					return this.getElementName(node.object) + '.' + this.getElementName(node.property);
+				}
+				return null;
+			}
+
 			parseExportDefaultDeclaration() {
 				// Check if this is "export default component"
 				if (this.value === 'component') {
@@ -438,6 +450,13 @@ function RipplePlugin(config) {
 						this.enterScope(0);
 						this.parseTemplateBody(element.children);
 						this.exitScope();
+						
+						// Check if this element was properly closed
+						// If we reach here and this element is still in the path, it means it was never closed
+						if (this.#path[this.#path.length - 1] === element) {
+							const tagName = this.getElementName(element.id);
+							this.raise(this.start, `Unclosed tag '<${tagName}>'. Expected '</${tagName}>' before end of component.`);
+						}
 					}
 					// Ensure we escape JSX <tag></tag> context
 					const tokContexts = this.acornTypeScript.tokContexts;
@@ -518,8 +537,22 @@ function RipplePlugin(config) {
 					this.next();
 					if (this.value === '/') {
 						this.next();
-						this.jsx_parseElementName();
+						const closingTag = this.jsx_parseElementName();
 						this.exprAllowed = true;
+						
+						// Validate that the closing tag matches the opening tag
+						const currentElement = this.#path[this.#path.length - 1];
+						if (!currentElement || currentElement.type !== 'Element') {
+							this.raise(this.start, 'Unexpected closing tag');
+						}
+						
+						const openingTagName = this.getElementName(currentElement.id);
+						const closingTagName = this.getElementName(closingTag);
+						
+						if (openingTagName !== closingTagName) {
+							this.raise(this.start, `Expected closing tag to match opening tag. Expected '</${openingTagName}>' but found '</${closingTagName}>'`);
+						}
+						
 						this.#path.pop();
 						this.next();
 						return;
