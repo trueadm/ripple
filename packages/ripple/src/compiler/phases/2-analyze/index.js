@@ -8,6 +8,7 @@ import {
 	is_ripple_import,
 	is_tracked_computed_property,
 	is_tracked_name,
+	is_void_element,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
 import is_reference from 'is-reference';
@@ -432,6 +433,8 @@ const visitors = {
 		const attribute_names = new Set();
 
 		if (is_dom_element) {
+			const is_void = is_void_element(node.id.name);
+
 			if (state.elements) {
 				state.elements.push(node);
 			}
@@ -467,6 +470,14 @@ const visitors = {
 						attr,
 					);
 				}
+			}
+
+			if (is_void && node.children.length > 0) {
+				error(
+					`The <${node.id.name}> element is a void element and cannot have children`,
+					state.analysis.module.filename,
+					node,
+				);
 			}
 		} else {
 			for (const attr of node.attributes) {

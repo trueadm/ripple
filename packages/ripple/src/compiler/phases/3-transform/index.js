@@ -21,6 +21,7 @@ import {
 	is_inside_call_expression,
 	is_tracked_computed_property,
 	is_value_static,
+	is_void_element,
 } from '../../utils.js';
 import is_reference from 'is-reference';
 import { extract_paths, object } from '../../../utils/ast.js';
@@ -438,6 +439,7 @@ const visitors = {
 		if (is_dom_element) {
 			let class_attribute = null;
 			const local_updates = [];
+			const is_void = is_void_element(node.id.name);
 
 			state.template.push(`<${node.id.name}`);
 
@@ -629,7 +631,14 @@ const visitors = {
 			const init = [];
 			const update = [];
 
-			transform_children(node.children, { visit, state: { ...state, init, update }, root: false });
+			if (!is_void) {
+				transform_children(node.children, {
+					visit,
+					state: { ...state, init, update },
+					root: false,
+				});
+				state.template.push(`</${node.id.name}>`);
+			}
 
 			update.push(...local_updates);
 
@@ -640,8 +649,6 @@ const visitors = {
 			if (update.length > 0) {
 				state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update)))));
 			}
-
-			state.template.push(`</${node.id.name}>`);
 		} else {
 			const id = state.flush_node();
 
