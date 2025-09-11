@@ -1,7 +1,11 @@
 {
 	"compilerOptions": {
 		"module": "esnext",
-		"lib": ["esnext", "dom", "dom.iterable"],
+		"lib": [
+			"esnext",
+			"dom",
+			"dom.iterable"
+		],
 		"target": "esnext",
 		"noEmit": true,
 		"moduleResolution": "bundler",
@@ -10,14 +14,18 @@
 		"noErrorTruncation": true,
 		"allowSyntheticDefaultImports": true,
 		"verbatimModuleSyntax": true,
-		"types": ["node"],
-    "jsx": "preserve",
+		"types": [
+			"node"
+		],
+		"jsx": "preserve",
 		"jsxImportSource": "ripple",
 		"strict": true,
 		"allowJs": true,
 		"checkJs": true,
 		"paths": {
-			"ripple": ["./types/index.d.ts"],
+			"ripple": [
+				"./types/index.d.ts"
+			],
 		}
 	},
 	"include": [

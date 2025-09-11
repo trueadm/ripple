@@ -1,4 +1,5 @@
 /** @import * as ESTree from 'estree' */
+
 import { regex_is_valid_identifier } from './patterns.js';
 import { sanitize_template_string } from './sanitize_template_string.js';
 
@@ -30,7 +31,7 @@ export function assignment_pattern(left, right) {
 /**
  * @param {Array<ESTree.Pattern>} params
  * @param {ESTree.BlockStatement | ESTree.Expression} body
- * @returns {ESTree.ArrowFunctionExpression}
+ * @returns {ESTree.ArrowFunctionExpression & { metadata?: any }}
  */
 export function arrow(params, body, async = false) {
 	return {
@@ -223,7 +224,7 @@ export function export_default(declaration) {
  * @param {ESTree.Identifier} id
  * @param {ESTree.Pattern[]} params
  * @param {ESTree.BlockStatement} body
- * @returns {ESTree.FunctionDeclaration}
+ * @returns {ESTree.FunctionDeclaration & { metadata?: any }}
  */
 export function function_declaration(id, params, body) {
 	return {
@@ -580,7 +581,7 @@ export function method(kind, key, params, body, computed = false, is_static = fa
  * @param {ESTree.Identifier | null} id
  * @param {ESTree.Pattern[]} params
  * @param {ESTree.BlockStatement} body
- * @returns {ESTree.FunctionExpression}
+ * @returns {ESTree.FunctionExpression & { metadata?: any }}
  */
 function function_builder(id, params, body) {
 	return {
@@ -607,7 +608,7 @@ function if_builder(test, consequent, alternate) {
 /**
  * @param {string} as
  * @param {string} source
- * @returns {ESTree.ImportDeclaration}
+ * @returns {ESTree.ImportDeclaration & { metadata?: any }}
  */
 export function import_all(as, source) {
 	return {
@@ -620,7 +621,7 @@ export function import_all(as, source) {
 /**
  * @param {Array<[string, string]>} parts
  * @param {string} source
- * @returns {ESTree.ImportDeclaration}
+ * @returns {ESTree.ImportDeclaration & { metadata?: any }}
  */
 export function imports(parts, source) {
 	return {
