@@ -1,11 +1,12 @@
 /** @import * as ESTree from '#estree' */
-/** @import * as BAcorn from '#acorn' */
+/** @import * as a from '#acorn' */
 
 import * as acorn from 'acorn';
 import { tsPlugin } from 'acorn-typescript';
 import { parse_style } from './style.js';
 import { walk } from 'zimmerframe';
 
+// @ts-ignore It's fine.
 const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
 
 /**
@@ -28,24 +29,34 @@ function convert_from_jsx(node) {
 
 /**
  * @param {unknown} config 
- * @returns {((BaseParser: typeof BAcorn.BetterParser) => typeof BAcorn.BetterParser)}
+ * @returns {((BaseParser: typeof a.BetterParser) => typeof a.BetterParser)}
  */
 function RipplePlugin(config) {
-	/**
-	 * @param {typeof BAcorn.BetterParser} Parser
-	 * @returns {typeof BAcorn.BetterParser}
-	 */
 	return (Parser) => {
+		/**
+		 * @type {a.BaseParser}
+		 */
+		// @ts-ignore
 		const original = acorn.Parser.prototype;
 		const tt = Parser.tokTypes || acorn.tokTypes;
 		const tc = Parser.tokContexts || acorn.tokContexts;
 
+		/**
+		 * @property {string} value
+		 * @property {acorn.TokenType} type
+		 */
 		class RippleParser extends Parser {
+			/**
+			 * @type {acorn.Node[]}
+			 */
 			#path = [];
 
 			parseExportDefaultDeclaration() {
 				// Check if this is "export default component"
 				if (this.value === 'component') {
+					/**
+					 * @type {a.AcornNodesMap['Component']}
+					 */
 					const node = this.startNode();
 					node.type = 'Component';
 					node.css = null;
@@ -79,20 +90,25 @@ function RipplePlugin(config) {
 				if (super.shouldParseExportStatement()) {
 					return true;
 				}
+				
 				if (this.value === 'component') {
 					return true;
 				}
+
 				return this.type.keyword === 'var';
 			}
 
 			jsx_parseExpressionContainer() {
-				let node = this.startNode();
+				let node = /** @type {a.AcornNodesMap['JSXExpressionContainer']} */ (this.startNode());
+
 				this.next();
 
 				node.expression =
 					this.type === tt.braceR ? this.jsx_parseEmptyExpression() : this.parseExpression();
+
 				this.expect(tt.braceR);
-				return this.finishNode(node, 'JSX');
+
+				return this.finishNode(node, 'JSXExpressionContainer');
 			}
 
 			jsx_parseTupleContainer() {
@@ -107,12 +123,12 @@ function RipplePlugin(config) {
 			}
 
 			jsx_parseAttribute() {
-				let node = this.startNode();
+				let node = /** @type {a.AcornNodesMap['AccessorAttribute']} */ (this.startNode());
 				const lookahead = this.lookahead();
 
 				if (lookahead.type?.label === ':') {
-					let id = this.startNode();
-					id.name = this.value;
+					let id = /** @type {a.AcornNodesMap['Identifier']} */ (this.startNode());
+					id.name = /** @type {string} */ (this.value);
 					node.name = id;
 					this.next();
 					this.finishNode(id, 'Identifier');
@@ -186,7 +202,7 @@ function RipplePlugin(config) {
 						var t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
-								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+							this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
 					case tok.jsxTagStart:
@@ -236,7 +252,7 @@ function RipplePlugin(config) {
 					chunkStart = this.pos;
 				const tok = this.acornTypeScript.tokTypes;
 
-				for (;;) {
+				for (; ;) {
 					if (this.pos >= this.input.length) this.raise(this.start, 'Unterminated JSX contents');
 					let ch = this.input.charCodeAt(this.pos);
 
@@ -347,14 +363,14 @@ function RipplePlugin(config) {
 							this.raise(
 								this.pos,
 								'Unexpected token `' +
-									this.input[this.pos] +
-									'`. Did you mean `' +
-									(ch === 62 ? '&gt;' : '&rbrace;') +
-									'` or ' +
-									'`{"' +
-									this.input[this.pos] +
-									'"}' +
-									'`?',
+								this.input[this.pos] +
+								'`. Did you mean `' +
+								(ch === 62 ? '&gt;' : '&rbrace;') +
+								'` or ' +
+								'`{"' +
+								this.input[this.pos] +
+								'"}' +
+								'`?',
 							);
 						}
 
@@ -422,11 +438,12 @@ function RipplePlugin(config) {
 						const input = this.input.slice(start);
 						const end = input.indexOf('</style>');
 						const content = input.slice(0, end);
+						const component = /** @type {a.AcornNodesMap['Component']} */ (this.#path.findLast((n) => n.type === 'Component'));
 
-						const component = this.#path.findLast((n) => n.type === 'Component');
 						if (component.css !== null) {
 							throw new Error('Components can only have one style tag');
 						}
+
 						component.css = parse_style(content);
 
 						this.pos = start + end + 1;
@@ -469,6 +486,17 @@ function RipplePlugin(config) {
 				return element;
 			}
 
+			/**
+			 * 
+			 * @param {acorn.Node} base 
+			 * @param {number} startPos 
+			 * @param {acorn.SourceLocation} startLoc 
+			 * @param {boolean} noCalls 
+			 * @param {boolean} maybeAsyncArrow 
+			 * @param {boolean} optionalChained 
+			 * @param {boolean} forInit 
+			 * @returns 
+			 */
 			parseSubscript(base, startPos, startLoc, noCalls, maybeAsyncArrow, optionalChained, forInit) {
 				if (this.value === '<' && this.#path.findLast((n) => n.type === 'Component')) {
 					// Check if this looks like JSX by looking ahead
@@ -491,13 +519,14 @@ function RipplePlugin(config) {
 						// Avoid triggering onComment handlers, as they will have
 						// already been triggered when parsing the subscript before
 						const onComment = this.options.onComment;
-						this.options.onComment = () => {};
+						this.options.onComment = () => { };
 						this.next();
 						this.options.onComment = onComment;
 
 						return base;
 					}
 				}
+
 				return super.parseSubscript(
 					base,
 					startPos,
@@ -509,6 +538,9 @@ function RipplePlugin(config) {
 				);
 			}
 
+			/**
+			 * @param {unknown[]} body 
+			 */
 			parseTemplateBody(body) {
 				var inside_func =
 					this.context.some((n) => n.token === 'function') || this.scopeStack.length > 1;
@@ -527,6 +559,7 @@ function RipplePlugin(config) {
 
 				if (this.type.label === '{') {
 					const node = this.jsx_parseExpressionContainer();
+					// @ts-ignore
 					node.type = 'Text';
 					body.push(node);
 				} else if (this.type.label === '}') {
@@ -733,6 +766,9 @@ function get_comment_handlers(source, comments, index = 0) {
 	};
 }
 
+/**
+ * @param {string} source
+ */
 export function parse(source) {
 	const comments = [];
 	const { onComment, add_comments } = get_comment_handlers(source, comments);
