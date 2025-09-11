@@ -1,5 +1,5 @@
 {
-  "name": "create-ripple-app",
+  "name": "create-ripple",
   "version": "0.1.0",
   "description": "Interactive CLI tool for creating Ripple applications",
   "type": "module",
@@ -15,14 +15,14 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trueadm/ripple.git",
-    "directory": "packages/create-ripple-app"
+    "directory": "packages/create-ripple"
   },
   "bugs": {
     "url": "https://github.com/trueadm/ripple/issues"
   },
   "homepage": "https://ripplejs.com",
   "bin": {
-    "create-ripple-app": "./src/index.js"
+    "create-ripple": "./src/index.js"
   },
   "engines": {
     "node": ">=18.0.0"
