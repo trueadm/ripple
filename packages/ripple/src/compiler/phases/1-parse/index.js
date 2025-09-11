@@ -432,6 +432,7 @@ function RipplePlugin(config) {
 							this.context.pop();
 						}
 
+						this.finishNode(element, 'Element');
 						return element;
 					} else {
 						this.enterScope(0);
