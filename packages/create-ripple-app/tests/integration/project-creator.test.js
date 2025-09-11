@@ -16,6 +16,9 @@ vi.mock('ora', () => ({
 
 // Mock execSync to prevent actual git commands during tests
 vi.mock('node:child_process', () => ({
+	default: {
+		execSync: vi.fn()
+	},
 	execSync: vi.fn()
 }));
 

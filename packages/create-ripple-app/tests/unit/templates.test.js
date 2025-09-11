@@ -27,6 +27,9 @@ vi.mock('../../src/constants.js', () => ({
 
 // Mock fs.existsSync
 vi.mock('node:fs', () => ({
+	default: {
+		existsSync: vi.fn()
+	},
 	existsSync: vi.fn()
 }));
 
