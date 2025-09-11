@@ -181,7 +181,7 @@ Now `$count` will only reactively create its value on initialization.
 
 Ripple doesn't constrain reactivity to components only. Reactivity can be used inside other functions (and classes in the future) and be composed in a way to improve expressitivity and co-location.
 
-Ripple proides a very nice way to transport reactivity between boundaries so that it's persisted – using objects and arrays. Here's an example using arrays to transport reactivity:
+Ripple provides a very nice way to transport reactivity between boundaries so that it's persisted – using objects and arrays. Here's an example using arrays to transport reactivity:
 
 ```jsx
 import { effect } from 'ripple';
