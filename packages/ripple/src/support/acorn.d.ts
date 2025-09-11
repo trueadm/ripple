@@ -53,7 +53,10 @@ type AcornTS = ReturnType<ReturnType<typeof tsPlugin>> & {
  * It's not complete, just enough to make the types work.
  */
 export declare class BetterParser extends Parser {
-    acornTypeScript: AcornTS;
+    // I use 'public' - can you tell I started out with Java yet?
+    //  - Redstone
+
+    public acornTypeScript: AcornTS;
 
     public startNode(): Node;
     public startNodeAt(pos: unknown, loc: unknown): Node;

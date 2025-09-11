@@ -1,4 +1,4 @@
-/** @import * as ESTree from '../../../estree.js' */
+/** @import * as ESTree from '#estree' */
 /** @import * as Types from './types.js' */
 
 import { walk } from 'zimmerframe';
