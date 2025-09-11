@@ -37,7 +37,7 @@ For significant new features or substantial changes, we encourage discussion bef
 
 Ripple is in early alpha, so our priorities are:
 1. Stabilizing core functionality
-2. Improving TypeScript integration
+2. Improving TypeScript integration (note that the internal codebase is still being migrated from JS, so some TypeScript errors are expected)
 3. Expanding test coverage
 4. Building and maintaining essential tooling
 
@@ -92,7 +92,7 @@ Since Ripple is in early development, the build process may evolve. Currently:
 
 - Run development builds and watch for changes as needed
 - Test your changes thoroughly
-- Ensure TypeScript compilation succeeds
+- Ensure TypeScript compilation succeeds (if working with TS code)
 
 ### Testing
 
