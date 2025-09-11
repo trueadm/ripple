@@ -8,7 +8,7 @@
  * @returns {object} - Object with valid boolean and message string
  */
 export function validateProjectName(name) {
-	if (!name || typeof name !== 'string') {
+	if (typeof name !== 'string' || name === null || name === undefined) {
 		return {
 			valid: false,
 			message: 'Project name is required'

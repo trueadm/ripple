@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { TEMPLATES, TEMPLATES_DIR } from '../constants';
+import { TEMPLATES, TEMPLATES_DIR } from '../constants.js';
 
 /**
  * Get template by name
@@ -53,12 +53,4 @@ export function validateTemplate(templateName) {
  */
 export function getTemplatePath(templateName) {
 	return join(TEMPLATES_DIR, templateName);
-}
-
-/**
- * Get templates directory path
- * @returns {string} - Absolute path to templates directory
- */
-export function getTemplatesDir() {
-	return TEMPLATES_DIR;
 }

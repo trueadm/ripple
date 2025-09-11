@@ -42,7 +42,7 @@ export async function createCommand(projectName, options) {
 		// Validate template
 		if (!validateTemplate(template)) {
 			console.error(red(`✖ Template "${template}" not found`));
-			console.log(`Available templates: ${getTemplateNames().join(', ')}`);
+			console.error(`Available templates: ${getTemplateNames().join(', ')}`);
 			process.exit(1);
 		}
 	}
