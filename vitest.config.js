@@ -8,6 +8,7 @@ export default defineConfig({
 			'packages/ripple/tests/*.test.ts',
 			'packages/prettier-plugin-ripple/src/*.test.js',
 			'packages/ripple/tests/*.test.ripple',
+			'packages/create-ripple-app/tests/**/*.test.js',
 		],
 		environment: 'jsdom',
 		...configDefaults.test,
