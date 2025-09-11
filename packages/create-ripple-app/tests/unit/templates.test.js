@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import * as fs from 'node:fs';
+import { existsSync } from 'node:fs';
 import {
 	getTemplate,
 	getTemplateNames,
@@ -96,7 +96,7 @@ describe('validateTemplate', () => {
 	});
 
 	it('should return true for valid existing template', () => {
-		const mockExistsSync = vi.mocked(fs.existsSync);
+		const mockExistsSync = vi.mocked(existsSync);
 		mockExistsSync.mockReturnValue(true);
 		const isValid = validateTemplate('basic');
 		expect(isValid).toBe(true);
@@ -104,35 +104,35 @@ describe('validateTemplate', () => {
 	});
 
 	it('should return false for valid template that does not exist on filesystem', () => {
-		const mockExistsSync = vi.mocked(fs.existsSync);
+		const mockExistsSync = vi.mocked(existsSync);
 		mockExistsSync.mockReturnValue(false);
 		const isValid = validateTemplate('basic');
 		expect(isValid).toBe(false);
 	});
 
 	it('should return false for invalid template name', () => {
-		const mockExistsSync = vi.mocked(fs.existsSync);
+		const mockExistsSync = vi.mocked(existsSync);
 		const isValid = validateTemplate('non-existent');
 		expect(isValid).toBe(false);
 		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for undefined template name', () => {
-		const mockExistsSync = vi.mocked(fs.existsSync);
+		const mockExistsSync = vi.mocked(existsSync);
 		const isValid = validateTemplate();
 		expect(isValid).toBe(false);
 		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for null template name', () => {
-		const mockExistsSync = vi.mocked(fs.existsSync);
+		const mockExistsSync = vi.mocked(existsSync);
 		const isValid = validateTemplate(null);
 		expect(isValid).toBe(false);
 		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for empty string template name', () => {
-		const mockExistsSync = vi.mocked(fs.existsSync);
+		const mockExistsSync = vi.mocked(existsSync);
 		const isValid = validateTemplate('');
 		expect(isValid).toBe(false);
 		expect(mockExistsSync).not.toHaveBeenCalled();
