@@ -1014,6 +1014,8 @@ const visitors = {
 	},
 
 	ArrayExpression(node, context) {
+		// TODO we can bail out of all of this if we know we're inside a computed fn expression
+		// as the reactivity will hold from the reference of the $ binding itself
 		const elements = [];
 		const tracked = [];
 		let i = 0;
