@@ -1,3 +1,5 @@
+/** @import * as ESTree from '../../../estree.js' */
+
 import { walk } from 'zimmerframe';
 import path from 'node:path';
 import { print } from 'esrap';
@@ -44,7 +46,7 @@ function visit_function(node, context) {
 	if (metadata?.hoisted === true) {
 		const params = build_hoisted_params(node, context);
 
-		return /** @type {FunctionExpression} */ ({
+		return /** @type {ESTree.FunctionExpression} */ ({
 			...node,
 			params,
 			body: context.visit(node.body, state),
@@ -54,7 +56,7 @@ function visit_function(node, context) {
 	let body = context.visit(node.body, state);
 
 	if (metadata?.tracked === true) {
-		return /** @type {FunctionExpression} */ ({
+		return /** @type {ESTree.FunctionExpression} */ ({
 			...node,
 			params: node.params.map((param) => context.visit(param, state)),
 			body:
@@ -422,10 +424,9 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${
-					is_boolean_attribute(name) && value === true
-						? ''
-						: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${is_boolean_attribute(name) && value === true
+					? ''
+					: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -742,6 +743,9 @@ const visitors = {
 				}
 			}
 
+			/**
+			 * @type {unknown}
+			 */
 			const children_filtered = [];
 
 			for (const child of node.children) {
@@ -1145,12 +1149,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-											b.call(
-												b.id('__render'),
-												b.id(alternate_id),
-												node.alternate ? b.literal(false) : undefined,
-											),
-										)
+										b.call(
+											b.id('__render'),
+											b.id(alternate_id),
+											node.alternate ? b.literal(false) : undefined,
+										),
+									)
 									: undefined,
 							),
 						]),
@@ -1189,9 +1193,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-								b.block(transform_body(node.handler.body.body, context)),
-							),
+							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+							b.block(transform_body(node.handler.body.body, context)),
+						),
 					node.async === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.async.body, context))),
@@ -1294,7 +1298,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
 	}
 
 	quasi.tail = true;

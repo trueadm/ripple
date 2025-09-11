@@ -1,4 +1,4 @@
-/** @import * as ESTree from 'estree' */
+/** @import * as ESTree from '../estree.js'*/
 
 import { regex_is_valid_identifier } from './patterns.js';
 import { sanitize_template_string } from './sanitize_template_string.js';
@@ -45,6 +45,11 @@ export function arrow(params, body, async = false) {
 	};
 }
 
+/**
+ * @param {ESTree.Identifier} id 
+ * @param {unknown} params
+ * @param {unknown} body
+ */
 export function component(id, params, body) {
 	return {
 		type: 'Component',
@@ -608,20 +613,21 @@ function if_builder(test, consequent, alternate) {
 /**
  * @param {string} as
  * @param {string} source
- * @returns {ESTree.ImportDeclaration & { metadata?: any }}
+ * @returns {ESTree.ImportDeclaration}
  */
 export function import_all(as, source) {
 	return {
 		type: 'ImportDeclaration',
 		source: literal(source),
 		specifiers: [import_namespace(as)],
+		attributes: [], // I found this in the type declaration, should this not be there?
 	};
 }
 
 /**
  * @param {Array<[string, string]>} parts
  * @param {string} source
- * @returns {ESTree.ImportDeclaration & { metadata?: any }}
+ * @returns {ESTree.ImportDeclaration}
  */
 export function imports(parts, source) {
 	return {
@@ -632,6 +638,7 @@ export function imports(parts, source) {
 			imported: id(p[0]),
 			local: id(p[1]),
 		})),
+		attributes: [], // I found this in the type declaration, should this not be there?
 	};
 }
 
@@ -710,7 +717,7 @@ export function jsx_attribute(name, value = null) {
  * @param {Array<ESTree.JSXAttribute | ESTree.JSXSpreadAttribute>} attributes
  * @param {Array<ESTree.JSXText | ESTree.JSXExpressionContainer | ESTree.JSXSpreadChild | ESTree.JSXElement | ESTree.JSXFragment>} children
  * @param {boolean} self_closing
- * @returns {{ element: ESTree.JSXElement, opening_element: ESTree.JSXOpeningElement }}
+ * @returns {ESTree.JSXElement}
  */
 export function jsx_element(
 	name,
@@ -719,6 +726,9 @@ export function jsx_element(
 	self_closing = false,
 	closing_name = name,
 ) {
+	/**
+	 * @type {ESTree.JSXOpeningElement}
+	 */
 	const opening_element = {
 		type: 'JSXOpeningElement',
 		name,
@@ -726,6 +736,9 @@ export function jsx_element(
 		selfClosing: self_closing,
 	};
 
+	/**
+	 * @type {ESTree.JSXElement}
+	 */
 	const element = {
 		type: 'JSXElement',
 		openingElement: opening_element,

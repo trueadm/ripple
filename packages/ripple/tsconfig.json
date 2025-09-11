@@ -15,7 +15,9 @@
 		"allowSyntheticDefaultImports": true,
 		"verbatimModuleSyntax": true,
 		"types": [
-			"node"
+			"node",
+			"estree",
+			"estree-jsx"
 		],
 		"jsx": "preserve",
 		"jsxImportSource": "ripple",
