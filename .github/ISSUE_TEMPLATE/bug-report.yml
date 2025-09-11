@@ -14,6 +14,8 @@ body:
       label: "Issue Category"
       description: "What type of issue is this?"
       options:
+        - "Compilation Bug"
+        - "Behavioral Bug"
         - "Performance Issue"
         - "Documentation Issue"
         - "Security Concern"
