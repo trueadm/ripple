@@ -14,7 +14,6 @@ body:
       label: "Issue Category"
       description: "What type of issue is this?"
       options:
-        - "UI/UX Bug"
         - "Performance Issue"
         - "Documentation Issue"
         - "Security Concern"
