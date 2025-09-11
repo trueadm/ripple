@@ -852,7 +852,6 @@ describe('basic', () => {
 			compile(malformedCode, 'test.ripple', 'test.ripple');
 		}).toThrow('Unclosed tag');
 	});
-});
 
 	it('basic reactivity with standard arrays should work', () => {
 		let logs = [];
@@ -918,5 +917,5 @@ describe('basic', () => {
 		expect(divs[2].textContent).toBe('Number to string: 1,1');
 		expect(divs[3].textContent).toBe('Even numbers: ');
 		expect(logs).toEqual(['0, 0', '1, 0', 'arr includes 1', '1, 1']);
-	})
+	});
 });
