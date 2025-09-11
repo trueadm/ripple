@@ -16,9 +16,7 @@ body:
       options:
         - "UI/UX Bug"
         - "Performance Issue"
-        - "API/Backend Issue"
         - "Documentation Issue"
-        - "Build/Deployment Issue"
         - "Security Concern"
         - "Other"
     validations:
@@ -56,7 +54,7 @@ body:
         - OS: [e.g. macOS 13.1, Windows 11, Ubuntu 22.04]
         - Browser: [e.g. Chrome 118, Firefox 119, Safari 16]
         - Ripple Version: [e.g. 1.2.3]
-        - Node Version: [e.g. 18.17.0]
+        - Node Version: [e.g. 22.19.0]
       render: markdown
     validations:
       required: false

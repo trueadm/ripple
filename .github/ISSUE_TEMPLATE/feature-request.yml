@@ -14,10 +14,10 @@ body:
       label: "Feature Category"
       description: "What area does this feature relate to?"
       options:
-        - "UI/UX Enhancement"
-        - "Performance Improvement"
-        - "New API Feature"
+        - "Performance Enhancement"
         - "Developer Experience"
+        - "Syntax/Language Improvement"
+        - "Tooling Integration"
         - "Documentation"
         - "Testing/Quality"
         - "Other"
