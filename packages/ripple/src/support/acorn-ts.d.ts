@@ -1,5 +1,5 @@
 import type { TokenType } from "acorn";
-import type { tsPlugin } from "@sveltejs/acorn-typescript";
+import type tsPlugin from "acorn-typescript";
 import type { TokContext } from "./acorn-base";
 
 // see https://github.com/TyrealHu/acorn-typescript/blob/master/src/tokenType.ts
