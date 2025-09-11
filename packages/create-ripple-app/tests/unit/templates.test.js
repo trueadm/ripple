@@ -96,40 +96,46 @@ describe('validateTemplate', () => {
 	});
 
 	it('should return true for valid existing template', () => {
-		fs.existsSync.mockReturnValue(true);
+		const mockExistsSync = vi.mocked(fs.existsSync);
+		mockExistsSync.mockReturnValue(true);
 		const isValid = validateTemplate('basic');
 		expect(isValid).toBe(true);
-		expect(fs.existsSync).toHaveBeenCalledWith('/mock/templates/basic');
+		expect(mockExistsSync).toHaveBeenCalledWith('/mock/templates/basic');
 	});
 
 	it('should return false for valid template that does not exist on filesystem', () => {
-		fs.existsSync.mockReturnValue(false);
+		const mockExistsSync = vi.mocked(fs.existsSync);
+		mockExistsSync.mockReturnValue(false);
 		const isValid = validateTemplate('basic');
 		expect(isValid).toBe(false);
 	});
 
 	it('should return false for invalid template name', () => {
+		const mockExistsSync = vi.mocked(fs.existsSync);
 		const isValid = validateTemplate('non-existent');
 		expect(isValid).toBe(false);
-		expect(fs.existsSync).not.toHaveBeenCalled();
+		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for undefined template name', () => {
+		const mockExistsSync = vi.mocked(fs.existsSync);
 		const isValid = validateTemplate();
 		expect(isValid).toBe(false);
-		expect(fs.existsSync).not.toHaveBeenCalled();
+		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for null template name', () => {
+		const mockExistsSync = vi.mocked(fs.existsSync);
 		const isValid = validateTemplate(null);
 		expect(isValid).toBe(false);
-		expect(fs.existsSync).not.toHaveBeenCalled();
+		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 
 	it('should return false for empty string template name', () => {
+		const mockExistsSync = vi.mocked(fs.existsSync);
 		const isValid = validateTemplate('');
 		expect(isValid).toBe(false);
-		expect(fs.existsSync).not.toHaveBeenCalled();
+		expect(mockExistsSync).not.toHaveBeenCalled();
 	});
 });
 
