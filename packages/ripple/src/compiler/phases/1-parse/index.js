@@ -48,7 +48,7 @@ function RipplePlugin(config) {
 		 */
 		class RippleParser extends Parser {
 			/**
-			 * @type {s.Element[]}
+			 * @type {(a.Element | a.ComponentNode)[]}
 			 */
 			#path = [];
 
@@ -723,7 +723,7 @@ function RipplePlugin(config) {
  * to add them after the fact. They are needed in order to support `ripple-ignore` comments
  * in JS code and so that `prettier-plugin-ripple` doesn't remove all comments when formatting.
  * @param {string} source
- * @param {CommentWithLocation[]} comments
+ * @param {a.CommentWithLocation[]} comments
  * @param {number} index
  */
 function get_comment_handlers(source, comments, index = 0) {
@@ -775,7 +775,7 @@ function get_comment_handlers(source, comments, index = 0) {
 					let comment;
 
 					while (comments[0] && comments[0].start < node.start) {
-						comment = /** @type {CommentWithLocation} */ (comments.shift());
+						comment = /** @type {a.CommentWithLocation} */ (comments.shift());
 						(node.leadingComments ||= []).push(comment);
 					}
 
@@ -784,7 +784,7 @@ function get_comment_handlers(source, comments, index = 0) {
 					if (comments[0]) {
 						if (node.type === 'BlockStatement' && node.body.length === 0) {
 							if (comments[0].start < node.end && comments[0].end < node.end) {
-								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								comment = /** @type {a.CommentWithLocation} */ (comments.shift());
 								(node.innerComments ||= []).push(comment);
 								return;
 							}
@@ -816,7 +816,7 @@ function get_comment_handlers(source, comments, index = 0) {
 									end = comment.end;
 								}
 							} else if (node.end <= comments[0].start && /^[,) \t]*$/.test(slice)) {
-								node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+								node.trailingComments = [/** @type {a.CommentWithLocation} */ (comments.shift())];
 							}
 						}
 					}
@@ -837,7 +837,7 @@ function get_comment_handlers(source, comments, index = 0) {
  */
 export function parse(source) {
 	/**
-	 * @type {CommentWithLocation[]}
+	 * @type {a.CommentWithLocation[]}
 	 */
 	const comments = [];
 	const { onComment, add_comments } = get_comment_handlers(source, comments);
