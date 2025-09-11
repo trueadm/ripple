@@ -1,5 +1,5 @@
 /** @import * as ESTree from 'estree' */
-/** @import * as AST from './ast.js' */
+/** @import * as AST from './ast-types.js' */
 
 import * as b from './builders.js';
 
