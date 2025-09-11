@@ -723,3 +723,11 @@ pnpm i && cd playground && pnpm dev
 ```
 
 The playground uses Ripple's Vite plugin, where you can play around with things inside the `playground/src` directory.
+
+## Contributing
+
+We are happy for your interest in contributing. Please see our [contributing guidelines](CONTRIBUTING.md) for more information.
+
+## License
+
+See the [MIT license](LICENSE).
