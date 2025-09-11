@@ -148,6 +148,45 @@ const visitors = {
 			return context.next();
 		}
 
+		// Handle array methods that access the array
+		if (
+			callee.type === 'MemberExpression' &&
+			!callee.optional &&
+			callee.property.type === 'Identifier'
+		) {
+			const name = callee.property.name;
+			if (
+				// TODO support the missing array methods
+				name === 'reduce' ||
+				name === 'map' ||
+				name === 'forEach' ||
+				name === 'join' ||
+				name === 'includes' ||
+				name === 'indexOf' ||
+				name === 'lastIndexOf' ||
+				name === 'filter' ||
+				name === 'every' ||
+				name === 'some' ||
+				name === 'toSpliced' ||
+				name === 'toSorted' ||
+				name === 'toString' ||
+				name === 'values' ||
+				name === 'entries'
+			) {
+				return b.call(
+					'$.with_scope',
+					b.id('__block'),
+					b.thunk(
+						b.call(
+							'$.array_' + name,
+							context.visit(callee.object),
+							...node.arguments.map((arg) => context.visit(arg)),
+						),
+					),
+				);
+			}
+		}
+
 		return b.call(
 			'$.with_scope',
 			b.id('__block'),
@@ -975,43 +1014,35 @@ const visitors = {
 	},
 
 	ArrayExpression(node, context) {
-		// const elements = [];
-		// const tracked = [];
-		// let i = 0;
+		const elements = [];
+		const tracked = [];
+		let i = 0;
 
-		// for (const element of node.elements) {
-		// 	if (element === null) {
-		// 		elements.push(null);
-		// 	} else if (element.type === 'Element') {
-		// 		const metadata = { tracking: false, await: false };
-		// 		const tracked_element = context.visit(element, { ...context.state, metadata });
+		for (const element of node.elements) {
+			if (element === null) {
+				elements.push(null);
+			} else if (element.type === 'Identifier' && is_tracked_name(element.name)) {
+				const metadata = { tracking: false, await: false };
+				const tracked_identifier = context.visit(element, { ...context.state, metadata });
 
-		// 		if (metadata.tracking) {
-		// 			tracked.push(b.literal(i));
-		// 			elements.push(tracked_element);
-		// 		} else {
-		// 			elements.push(tracked_element);
-		// 		}
-		// 	} else if (element.type === 'SpreadElement') {
-		// 		const metadata = { tracking: false, await: false };
-		// 		const tracked_element = context.visit(element, { ...context.state, metadata });
+				if (metadata.tracking) {
+					tracked.push(b.literal(i));
+					elements.push(
+						b.call('$.computed_property', b.thunk(tracked_identifier), b.id('__block')),
+					);
+				} else {
+					elements.push(tracked_identifier);
+				}
+			} else {
+				const metadata = { tracking: false, await: false };
+				elements.push(context.visit(element, { ...context.state, metadata }));
+			}
+			i++;
+		}
 
-		// 		if (metadata.tracking) {
-		// 			tracked.push(b.spread(tracked_element.argument));
-		// 			elements.push(tracked_element);
-		// 		} else {
-		// 			elements.push(tracked_element);
-		// 		}
-		// 	} else {
-		// 		const metadata = { tracking: false, await: false };
-		// 		elements.push(context.visit(element, { ...context.state, metadata }));
-		// 	}
-		// 	i++;
-		// }
-
-		// if (tracked.length > 0) {
-		// 	return b.call('$.tracked_object', { ...node, elements }, b.array(tracked), b.id('__block'));
-		// }
+		if (tracked.length > 0) {
+			return b.call('$.tracked_object', { ...node, elements }, b.array(tracked), b.id('__block'));
+		}
 
 		context.next();
 	},
