@@ -6,21 +6,9 @@ settings:
 
 catalogs:
   default:
-    jsdom:
-      specifier: ^26.1.0
-      version: 26.1.0
-    prettier:
-      specifier: ^3.6.2
-      version: 3.6.2
     typescript:
       specifier: ^5.9.2
       version: 5.9.2
-    vite:
-      specifier: ^7.1.4
-      version: 7.1.4
-    vitest:
-      specifier: ^3.2.4
-      version: 3.2.4
 
 importers:
 

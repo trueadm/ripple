@@ -50,7 +50,9 @@
   },
   "imports": {
     "#client": "./src/runtime/internal/client/types.d.ts",
-    "#client/constants": "./src/internal/client/constants.js"
+    "#client/constants": "./src/internal/client/constants.js",
+    "#estree": "./src/estree.d.ts",
+    "#acorn": "./src/support/acorn.d.ts"
   },
   "dependencies": {
     "@jridgewell/sourcemap-codec": "^1.5.5",

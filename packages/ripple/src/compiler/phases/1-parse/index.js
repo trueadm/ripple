@@ -1,3 +1,6 @@
+/** @import * as ESTree from '#estree' */
+/** @import * as BAcorn from '#acorn' */
+
 import * as acorn from 'acorn';
 import { tsPlugin } from 'acorn-typescript';
 import { parse_style } from './style.js';
@@ -5,18 +8,33 @@ import { walk } from 'zimmerframe';
 
 const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
 
+/**
+ * @param {ESTree.Node} node 
+ */
 function convert_from_jsx(node) {
 	if (node.type === 'JSXIdentifier') {
+		// @ts-ignore We're essentially tricking it into thinking it's a regular ident
 		node.type = 'Identifier';
 	} else if (node.type === 'JSXMemberExpression') {
+		// @ts-ignore Same thing here, just converting the member expression
 		node.type = 'MemberExpression';
+		// @ts-ignore
 		node.object = convert_from_jsx(node.object);
+		// @ts-ignore
 		node.property = convert_from_jsx(node.property);
 	}
 	return node;
 }
 
+/**
+ * @param {unknown} config 
+ * @returns {((BaseParser: typeof BAcorn.BetterParser) => typeof BAcorn.BetterParser)}
+ */
 function RipplePlugin(config) {
+	/**
+	 * @param {typeof BAcorn.BetterParser} Parser
+	 * @returns {typeof BAcorn.BetterParser}
+	 */
 	return (Parser) => {
 		const original = acorn.Parser.prototype;
 		const tt = Parser.tokTypes || acorn.tokTypes;
@@ -74,7 +92,7 @@ function RipplePlugin(config) {
 				node.expression =
 					this.type === tt.braceR ? this.jsx_parseEmptyExpression() : this.parseExpression();
 				this.expect(tt.braceR);
-				return this.finishNode(node, 'JSXExpressionContainer');
+				return this.finishNode(node, 'JSX');
 			}
 
 			jsx_parseTupleContainer() {
