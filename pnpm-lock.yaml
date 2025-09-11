@@ -6,9 +6,21 @@ settings:
 
 catalogs:
   default:
+    jsdom:
+      specifier: ^26.1.0
+      version: 26.1.0
+    prettier:
+      specifier: ^3.6.2
+      version: 3.6.2
     typescript:
       specifier: ^5.9.2
       version: 5.9.2
+    vite:
+      specifier: ^7.1.4
+      version: 7.1.4
+    vitest:
+      specifier: ^3.2.4
+      version: 3.2.4
 
 importers:
 
@@ -44,12 +56,12 @@ importers:
       '@jridgewell/sourcemap-codec':
         specifier: ^1.5.5
         version: 1.5.5
+      '@sveltejs/acorn-typescript':
+        specifier: ^1.0.5
+        version: 1.0.5(acorn@8.15.0)
       acorn:
         specifier: ^8.15.0
         version: 8.15.0
-      acorn-typescript:
-        specifier: ^1.4.13
-        version: 1.4.13(acorn@8.15.0)
       esrap:
         specifier: ^2.1.0
         version: 2.1.0
@@ -477,6 +489,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@sveltejs/acorn-typescript@1.0.5':
+    resolution: {integrity: sha512-IwQk4yfwLdibDlrXVE04jTZYlLnwsTT2PIOQQGNLWfjavGifnk1JD1LcZjZaBTRcxZu2FfPfNLOE04DSu9lqtQ==}
+    peerDependencies:
+      acorn: ^8.9.0
+
   '@tailwindcss/node@4.1.12':
     resolution: {integrity: sha512-3hm9brwvQkZFe++SBt+oLjo4OLDtkvlE8q2WalaD/7QWaeM7KEJbAiY/LJZUaCs7Xa8aUu4xy3uoyX4q54UVdQ==}
 
@@ -628,11 +645,6 @@ packages:
 
   '@volar/vscode@2.4.23':
     resolution: {integrity: sha512-rLghFmq5+pEpEkuMZtnFUVZFagYxas9q9U4U8ErcJ5Qv4bZ7AZ2oj5Wz4gx0O79ZgdOblDZIgttokw2Pc+VtnQ==}
-
-  acorn-typescript@1.4.13:
-    resolution: {integrity: sha512-xsc9Xv0xlVfwp2o7sQ+GCQ1PgbkdcpWdTzrwXxO3xDMTAywVS3oXVOcOHuRjAPkS4P9b+yc/qNF15460v+jp4Q==}
-    peerDependencies:
-      acorn: '>=8.9.0'
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
@@ -1415,6 +1427,10 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.50.0':
     optional: true
 
+  '@sveltejs/acorn-typescript@1.0.5(acorn@8.15.0)':
+    dependencies:
+      acorn: 8.15.0
+
   '@tailwindcss/node@4.1.12':
     dependencies:
       '@jridgewell/remapping': 2.3.5
@@ -1580,10 +1596,6 @@ snapshots:
       path-browserify: 1.0.1
       vscode-languageclient: 9.0.1
       vscode-nls: 5.2.0
-
-  acorn-typescript@1.4.13(acorn@8.15.0):
-    dependencies:
-      acorn: 8.15.0
 
   acorn@8.15.0: {}
 

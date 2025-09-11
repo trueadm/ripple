@@ -2,7 +2,7 @@
 /** @import * as a from '#acorn' */
 
 import * as acorn from 'acorn';
-import { tsPlugin } from 'acorn-typescript';
+import { tsPlugin } from '@sveltejs/acorn-typescript';
 import { parse_style } from './style.js';
 import { walk } from 'zimmerframe';
 
