@@ -25,13 +25,16 @@ vi.mock('../../src/constants.js', () => ({
 	TEMPLATES_DIR: '/mock/templates'
 }));
 
-// Mock fs.existsSync
-vi.mock('node:fs', () => ({
-	default: {
-		existsSync: vi.fn()
-	},
-	existsSync: vi.fn()
-}));
+// Mock fs.existsSync - ensure consistent behavior across environments
+vi.mock('node:fs', () => {
+	const mockFn = vi.fn();
+	return {
+		default: {
+			existsSync: mockFn
+		},
+		existsSync: mockFn
+	};
+});
 
 describe('getTemplate', () => {
 	it('should return template by name', () => {
@@ -93,6 +96,9 @@ describe('getTemplateChoices', () => {
 describe('validateTemplate', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Reset the mock to a default state for CI compatibility
+		const mockExistsSync = vi.mocked(existsSync);
+		mockExistsSync.mockReturnValue(false);
 	});
 
 	it('should return true for valid existing template', () => {
