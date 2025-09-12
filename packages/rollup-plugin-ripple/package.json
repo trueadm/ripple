@@ -3,7 +3,7 @@
   "description": "Rollup plugin for Ripple",
   "license": "MIT",
   "author": "Dominic Gannaway",
-  "version": "0.2.35",
+  "version": "0.2.36",
   "type": "module",
   "main": "index.js",
   "homepage": "https://ripplejs.com",
