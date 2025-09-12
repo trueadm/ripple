@@ -990,7 +990,8 @@ const visitors = {
 		const left = node.left;
 
 		if (left.type === 'MemberExpression') {
-			if (left.property.type === 'Identifier' && is_tracked_name(left.property.name)) {
+			// need to capture setting length of array to throw a runtime error
+			if (left.property.type === 'Identifier' && (is_tracked_name(left.property.name) || left.property.name === 'length')) {
 				if (left.property.name !== '$length') {
 					return b.call(
 						'$.set_property',

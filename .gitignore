@@ -24,6 +24,12 @@ playground/src
 # OS-specific
 .DS_Store
 
+# VS Code settings
+.vscode/
+
+# Chrome Debugger
+.chrome-debug-profile/
+
 tmp
 dist
 debug
