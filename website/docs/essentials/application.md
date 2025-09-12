@@ -18,7 +18,7 @@ mount(App, {
 
 # The Root Component
 
-The `App` "object" we've imported is actually a component. Every app requires a 
+The `App` "object" we've imported is actually a component. Every app requires a
 "root component" that can contain other components as its children.
 
 While many examples in this guide only need a single component, most real
@@ -43,8 +43,8 @@ a single component.
 # Mounting the App
 
 To bring the app to life, we'll use the `mount` function that we imported to
-attach the application to the DOM. 
+attach the application to the DOM.
 
 `mount()` expects a component, and an options object. Inside the options object,
 we'll use `document.getElementById()` to acquire a reference to the DOM element
-we want the app to be attached to.
+we want the app to be attached to for the `target` property.
