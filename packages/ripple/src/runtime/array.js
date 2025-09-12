@@ -500,14 +500,6 @@ export class RippleArray extends Array {
 
 		for (let i = start; i < range_end; i++) {
 			this.#update_tracked_at_index({array: this, i, block, tracked_elements});
-
-			// if (tracked_elements[i] === undefined) {
-            //     tracked_elements[i] = tracked(this[i], block);
-			// } else if (i < after_len) {
-			// 	set(tracked_elements[i], this[i], block);
-			// } else {
-			// 	set(tracked_elements[i], undefined, block);
-			// }
 		}
 
 		tracked_elements.length = after_len;
