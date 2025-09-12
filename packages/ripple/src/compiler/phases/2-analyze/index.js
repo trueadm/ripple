@@ -26,20 +26,24 @@ function visit_function(node, context) {
 	if (node.params.length > 0) {
 		for (let i = 0; i < node.params.length; i += 1) {
 			const param = node.params[i];
-			if (param.type === 'ObjectPattern') {
+
+			if (param.type === 'ObjectPattern' || param.type === 'ArrayPattern') {
 				const paths = extract_paths(param);
+				const id = context.state.scope.generate('__arg');
+				const arg_id = b.id(id);
 
 				for (const path of paths) {
 					const name = path.node.name;
+
+					const expression = path.expression(arg_id);
 					const binding = context.state.scope.get(name);
 
 					if (binding !== null && is_tracked_name(name)) {
-						const id = context.state.scope.generate('arg');
 						node.params[i] = b.id(id);
 						binding.kind = path.has_default_value ? 'prop_fallback' : 'prop';
 
 						binding.transform = {
-							read: (_) => b.call('$.get_property', b.id(id), b.literal(name)),
+							read: (_, __, visit) => visit(expression),
 						};
 					}
 				}
@@ -55,7 +59,7 @@ function visit_function(node, context) {
 }
 
 function mark_as_tracked(path) {
-	for (let i = 0; i < path.length; i += 1) {
+	for (let i = path.length - 1; i >= 0; i -= 1) {
 		const node = path[i];
 
 		if (node.type === 'Component') {

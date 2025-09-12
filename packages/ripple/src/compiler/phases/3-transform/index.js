@@ -75,7 +75,7 @@ function build_getter(node, context) {
 
 		// don't transform the declaration itself
 		if (node !== binding?.node && binding?.transform?.read) {
-			return binding.transform.read(node, context.state?.metadata?.spread);
+			return binding.transform.read(node, context.state?.metadata?.spread, context.visit);
 		}
 	}
 
