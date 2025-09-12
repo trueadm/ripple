@@ -3,8 +3,23 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    tags: ["!**"]
+    paths:
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "vitest.config.js"
+
   pull_request:
     branches: [main, develop]
+    tags: ["!**"]
+    paths:
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "vitest.config.js"
 
 jobs:
   test:
