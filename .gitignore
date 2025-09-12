@@ -11,6 +11,9 @@ coverage
 packages/ripple-vscode-plugin/*.vsix
 playground/src
 
+website/.vitepress/dist/
+website/.vitepress/cache/
+
 # Optional eslint cache
 .eslintcache
 
