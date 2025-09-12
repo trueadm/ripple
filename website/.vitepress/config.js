@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 import { npmCommandsMarkdownPlugin } from 'vitepress-plugin-npm-commands'
+/** @import { DefaultTheme } from 'vitepress'; */
 
 import rippleGrammar from "../../packages/ripple-vscode-plugin/syntaxes/ripple.tmLanguage.json"
 const modifiedGrammar = {
@@ -40,8 +41,7 @@ export default defineConfig({
 		nav: nav(),
 
 		sidebar: {
-			'/guide/': { base: '/guide/', items: sidebarGuide() },
-			'/reference/': { base: '/reference/', items: sidebarReference() }
+			'/docs/': { base: '/docs/', items: docs_sidebar() }
 		},
 
 		editLink: {
@@ -88,91 +88,31 @@ function nav() {
 		},
 		{
 			text: 'Docs',
-			link: '/docs/intro',
+			link: '/docs/introdcution',
+			activeMatch: '/docs/*'
 		}
 	]
 }
 
 /** @type {DefaultTheme.SidebarItem[]} */
-function sidebarGuide() {
+function docs_sidebar() {
 	return [
 		{
-			text: 'Introduction',
+			text: 'Getting Started',
 			collapsed: false,
 			items: [
-				{ text: 'What is VitePress?', link: 'what-is-vitepress' },
-				{ text: 'Getting Started', link: 'getting-started' },
-				{ text: 'Routing', link: 'routing' },
-				{ text: 'Deploy', link: 'deploy' }
+				{ text: 'Introduction', link: 'introduction' },
+				{ text: 'Quick Start', link: 'quick-start' },
 			]
 		},
 		{
-			text: 'Writing',
+			text: 'Essentials',
 			collapsed: false,
 			items: [
-				{ text: 'Markdown Extensions', link: 'markdown' },
-				{ text: 'Asset Handling', link: 'asset-handling' },
-				{ text: 'Frontmatter', link: 'frontmatter' },
-				{ text: 'Using Vue in Markdown', link: 'using-vue' },
-				{ text: 'Internationalization', link: 'i18n' }
+				{ text: 'Creating an Application', link: 'essentials/application' },
+				{ text: 'Template Syntax', link: 'essentials/syntax' },
+				{ text: 'Reactivity', link: 'essentials/reactivity' },
 			]
 		},
-		{
-			text: 'Customization',
-			collapsed: false,
-			items: [
-				{ text: 'Using a Custom Theme', link: 'custom-theme' },
-				{
-					text: 'Extending the Default Theme',
-					link: 'extending-default-theme'
-				},
-				{ text: 'Build-Time Data Loading', link: 'data-loading' },
-				{ text: 'SSR Compatibility', link: 'ssr-compat' },
-				{ text: 'Connecting to a CMS', link: 'cms' }
-			]
-		},
-		{
-			text: 'Experimental',
-			collapsed: false,
-			items: [
-				{ text: 'MPA Mode', link: 'mpa-mode' },
-				{ text: 'Sitemap Generation', link: 'sitemap-generation' }
-			]
-		},
-		{ text: 'Config & API Reference', base: '/reference/', link: 'site-config' }
-	]
-}
-
-/** @type {DefaultTheme.SidebarItem[]} */
-function sidebarReference() {
-	return [
-		{
-			text: 'Reference',
-			items: [
-				{ text: 'Site Config', link: 'site-config' },
-				{ text: 'Frontmatter Config', link: 'frontmatter-config' },
-				{ text: 'Runtime API', link: 'runtime-api' },
-				{ text: 'CLI', link: 'cli' },
-				{
-					text: 'Default Theme',
-					base: '/reference/default-theme-',
-					items: [
-						{ text: 'Overview', link: 'config' },
-						{ text: 'Nav', link: 'nav' },
-						{ text: 'Sidebar', link: 'sidebar' },
-						{ text: 'Home Page', link: 'home-page' },
-						{ text: 'Footer', link: 'footer' },
-						{ text: 'Layout', link: 'layout' },
-						{ text: 'Badge', link: 'badge' },
-						{ text: 'Team Page', link: 'team-page' },
-						{ text: 'Prev / Next Links', link: 'prev-next-links' },
-						{ text: 'Edit Link', link: 'edit-link' },
-						{ text: 'Last Updated Timestamp', link: 'last-updated' },
-						{ text: 'Search', link: 'search' },
-						{ text: 'Carbon Ads', link: 'carbon-ads' }
-					]
-				}
-			]
-		}
 	]
 }
