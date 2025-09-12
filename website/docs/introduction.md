@@ -45,11 +45,11 @@ needed. Prior experience with other frameworks helps, but is not required.
 
 ## Features
 
-- Idiomatic reactive state management: Precise, natural and fuss-free updates
-- Component-Based Architecture: Clean, reusable components with props and children
-- JSX-like Syntax: Familiar templating with Ripple-specific enhancements
-- TypeScript Support: Full TypeScript integration with type checking
-- VSCode Integration: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
+- **Performant**: Fine-grained rendering with industry-leading performance and memory usage
+- **TypeScript-first**: Full TypeScript integration with type checking
+- **JSX-like syntax**: Familiar templating with Ripple-specific enhancements
+- **Reactive-first**: Reactivity is a built-in language feature
+- **Component-based**: Clean, reusable components with props and children
 
 ::: info Please Note!
 Ripple is a new project, and is not production-ready.
