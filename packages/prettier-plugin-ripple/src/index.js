@@ -1184,6 +1184,11 @@ function printTryStatement(node, path, options, print) {
 		parts.push(path.call(print, 'finalizer'));
 	}
 
+	if (node.async) {
+		parts.push(' async ');
+		parts.push(path.call(print, 'async'));
+	}
+
 	return parts;
 }
 
