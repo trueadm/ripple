@@ -948,7 +948,7 @@ function printFunctionExpression(node, path, options, print) {
 
 	// Handle return type annotation
 	if (node.returnType) {
-		parts.push(path.call(print, 'returnType'));
+		parts.push(': ', path.call(print, 'returnType'));
 	}
 
 	parts.push(' ');
@@ -1033,7 +1033,7 @@ function printFunctionDeclaration(node, path, options, print) {
 
 	// Handle return type annotation
 	if (node.returnType) {
-		parts.push(path.call(print, 'returnType'));
+		parts.push(': ', path.call(print, 'returnType'));
 	}
 
 	parts.push(' ');
@@ -1184,6 +1184,11 @@ function printTryStatement(node, path, options, print) {
 		parts.push(path.call(print, 'finalizer'));
 	}
 
+	if (node.async) {
+		parts.push(' async ');
+		parts.push(path.call(print, 'async'));
+	}
+
 	return parts;
 }
 
@@ -1286,7 +1291,7 @@ function printMethodDefinition(node, path, options, print) {
 
 	// Return type
 	if (node.value && node.value.returnType) {
-		parts.push(path.call(print, 'value', 'returnType'));
+		parts.push(': ', path.call(print, 'value', 'returnType'));
 	}
 
 	// Method body

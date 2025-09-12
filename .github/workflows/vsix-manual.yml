@@ -1,0 +1,46 @@
+on: workflow_dispatch
+
+name: Publish VSC Extension (Manual)
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: "pnpm"
+
+            - name: Install deps w/ npm
+              working-directory: ./packages/ripple-vscode-plugin
+              run: npm ci
+
+            - name: Build VSIX
+              working-directory: ./packages/ripple-vscode-plugin
+              run: pnpx vsce package
+
+            - name: Upload VSIX
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ripple-vscode-plugin VSIX
+                  path: ./packages/ripple-vscode-plugin/*.vsix
+
+            - name: Publish to VSM
+              working-directory: ./packages/ripple-vscode-plugin
+              run: pnpx vsce publish
+              env:
+                  VSCE_PAT: ${{ secrets.VSM_TOKEN }}
+
+            - name: Publish to OVSX
+              working-directory: ./packages/ripple-vscode-plugin
+              run: pnpx ovsx publish *.vsix
+              env:
+                  OVSX_PAT: ${{ secrets.OVSX_TOKEN }}

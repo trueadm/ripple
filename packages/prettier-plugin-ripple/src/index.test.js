@@ -293,6 +293,28 @@ export default component App() {
 			const result = await format(input, { singleQuote: true });
 			expect(result).toBe(expected);
 		});
+
+    it('should handle TypeScript function return type', async () => {
+      const input = `export component FooBar() { function Foo() : string { return ""; }}`;
+      const expected = `export component FooBar() {
+  function Foo(): string {
+    return '';
+  }
+}`;
+        const result = await format(input, { singleQuote: true });
+        expect(result).toBe(expected);
+      });
+
+    it('should handle TypeScript method return type', async () => {
+        const input = `class Foo { bar() : number { return 1; }}`;
+        const expected = `class Foo {
+  bar(): number {
+    return 1;
+  }
+}`;
+        const result = await format(input, { singleQuote: true });
+        expect(result).toBe(expected);
+    });
 	});
 
 	describe('edge cases', () => {

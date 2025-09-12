@@ -35,7 +35,7 @@ describe('passing reactivity between boundaries tests', () => {
 
     component App() {
       let $count = 0;
-      
+
       const [ $double ] = createDouble([ $count ]);
 
       <div>{'Double: ' + $double}</div>
