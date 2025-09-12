@@ -49,6 +49,10 @@ export interface JSXOpeningElement extends Node {
     selfClosing: boolean;
 }
 
+export interface JSXElement extends Node {
+    type: 'JSXElement';
+}
+
 export declare class JSXParser extends BaseParser {
     // see https://github.com/acornjs/acorn-jsx/blob/main/index.d.ts#L44
     // (but also modified, like, a lot.)
@@ -74,6 +78,6 @@ export declare class JSXParser extends BaseParser {
 
 declare module 'acorn' {
     interface NodeTypes {
-        jsx: JSXExpressionContainer | Text | JSXIdentifier | JSXMemberExpression | JSXAttribute | JSXSpreadAttribute | JSXNamespacedName | JSXEmptyExpression | JSXOpeningElement;
+        jsx: JSXExpressionContainer | Text | JSXIdentifier | JSXMemberExpression | JSXAttribute | JSXSpreadAttribute | JSXNamespacedName | JSXEmptyExpression | JSXOpeningElement | JSXElement;
     }
 }

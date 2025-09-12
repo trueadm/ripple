@@ -1,3 +1,8 @@
+/** @import * as ESTree from '#estree' */
+/** @import * as a from '#acorn' */
+/** @import * as t from './types.js' */
+/** @import * as z from 'zimmerframe' */
+
 import * as b from '../../../utils/builders.js';
 import { walk } from 'zimmerframe';
 import { create_scopes, ScopeRoot } from '../../scope.js';
@@ -15,6 +20,10 @@ import is_reference from 'is-reference';
 import { prune_css } from './prune.js';
 import { error } from '../../errors.js';
 
+/**
+ * @param {a.Function} node
+ * @param {z.Context<a.RippleNode, t.VisitContext>} context
+ */
 function visit_function(node, context) {
 	node.metadata = {
 		hoisted: false,
@@ -39,7 +48,7 @@ function visit_function(node, context) {
 					const binding = context.state.scope.get(name);
 
 					if (binding !== null && is_tracked_name(name)) {
-						node.params[i] = b.id(id);
+						node.params[i] = /** @type {a.Identifier} */ (b.id(id));
 						binding.kind = path.has_default_value ? 'prop_fallback' : 'prop';
 
 						binding.transform = {
@@ -76,6 +85,9 @@ function mark_as_tracked(path) {
 	}
 }
 
+/**
+ * @type {z.Visitors<a.RippleNode, t.VisitContext>}
+ */
 const visitors = {
 	_(node, { state, next, path }) {
 		// Set up metadata.path for each node (needed for CSS pruning)
@@ -93,7 +105,7 @@ const visitors = {
 		const parent = context.path.at(-1);
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {ESTree.Node} */ (parent)) &&
 			context.state.metadata?.tracking === false &&
 			is_tracked_name(node.name) &&
 			binding?.node !== node
@@ -506,7 +518,7 @@ const visitors = {
 
 			for (const child of node.children) {
 				if (child.type === 'Component') {
-					if (child.id.name === '$children') {
+					if (child.id?.name === '$children') {
 						explicit_children = true;
 						if (implicit_children) {
 							error(
@@ -578,6 +590,10 @@ const visitors = {
 	},
 };
 
+/**
+ * @param {a.Program} ast
+ * @param {string} filename
+ */
 export function analyze(ast, filename) {
 	const scope_root = new ScopeRoot();
 

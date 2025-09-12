@@ -1,4 +1,3 @@
-/** @import * as ESTree from '#estree' */
 /** @import * as a from '#acorn' */
 
 import * as acorn from 'acorn';

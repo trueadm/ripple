@@ -1,14 +1,15 @@
 /** @import * as ESTree from 'estree' */
+/** @import * as a from '#acorn' */
 /** @import * as AST from './ast-types.js' */
 
 import * as b from './builders.js';
 
 /**
- * @param {ESTree.Expression} expression 
+ * @param {ESTree.Expression | a.Expression} expression 
  */
 export function object(expression) {
 	while (expression.type === 'MemberExpression') {
-		expression = /** @type {ESTree.MemberExpression | ESTree.Identifier} */ (expression.object);
+		expression = /** @type {ESTree.MemberExpression | ESTree.Identifier | a.MemberExpression | a.Identifier} */ (expression.object);
 	}
 
 	if (expression.type !== 'Identifier') {
@@ -19,7 +20,7 @@ export function object(expression) {
 }
 
 /**
- * @param {ESTree.Pattern} pattern 
+ * @param {ESTree.Pattern | a.Pattern} pattern 
  * @param {(ESTree.Identifier | ESTree.MemberExpression)[]} nodes
  */
 export function unwrap_pattern(pattern, nodes = []) {
@@ -31,7 +32,7 @@ export function unwrap_pattern(pattern, nodes = []) {
 		case 'MemberExpression':
 			// member expressions can be part of an assignment pattern, but not a binding pattern
 			// see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment#binding_and_assignment
-			nodes.push(pattern);
+			nodes.push(/** @type {ESTree.MemberExpression} */ (pattern));
 			break;
 
 		case 'ObjectPattern':
@@ -65,19 +66,19 @@ export function unwrap_pattern(pattern, nodes = []) {
 }
 
 /**
- * @param {ESTree.Pattern} pattern 
+ * @param {ESTree.Pattern | a.Pattern} pattern 
  */
 export function extract_identifiers(pattern) {
 	return unwrap_pattern(pattern, []).filter((node) => node.type === 'Identifier');
 }
 
 /**
- * @param {ESTree.Pattern} param
+ * @param {ESTree.Pattern | a.Pattern} param
  */
 export function extract_paths(param) {
 	return _extract_paths(
 		[],
-		param,
+		/** @type {ESTree.Pattern} */ (param),
 		(node) => /** @type {ESTree.Identifier | ESTree.MemberExpression} */ (node),
 		(node) => /** @type {ESTree.Identifier | ESTree.MemberExpression} */ (node),
 		false,
@@ -85,7 +86,6 @@ export function extract_paths(param) {
 }
 
 /**
- * 
  * @param {AST.Assignment[]} assignments 
  * @param {ESTree.Pattern} param 
  * @param {AST.ExpressionProcessor} expression 

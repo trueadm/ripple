@@ -165,6 +165,7 @@ function read_body(parser) {
 
 /**
  * @param {Parser} parser 
+ * @return {AST.CSS.AtRule}
  */
 function read_at_rule(parser) {
 	const start = parser.index;

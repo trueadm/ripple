@@ -1,3 +1,5 @@
+/** @import * as a from '#acorn' */
+
 import { build_assignment_value } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
 
@@ -81,6 +83,9 @@ const RESERVED_WORDS = [
 	'yield',
 ];
 
+/**
+ * @param {string} word
+ */
 export function is_reserved(word) {
 	return RESERVED_WORDS.includes(word);
 }
@@ -120,6 +125,9 @@ const DOM_BOOLEAN_ATTRIBUTES = [
 	'disableremoteplayback',
 ];
 
+/**
+ * @param {string} name
+ */
 export function is_boolean_attribute(name) {
 	return DOM_BOOLEAN_ATTRIBUTES.includes(name);
 }
@@ -142,6 +150,9 @@ const DOM_PROPERTIES = [
 	'disableRemotePlayback',
 ];
 
+/**
+ * @param {string} name
+ */
 export function is_dom_property(name) {
 	return DOM_PROPERTIES.includes(name);
 }
@@ -173,29 +184,43 @@ const DELEGATED_EVENTS = [
 	'touchstart',
 ];
 
+/**
+ * @param {string} event_name
+ */
 export function is_delegated(event_name) {
 	return DELEGATED_EVENTS.includes(event_name);
 }
 
 const PASSIVE_EVENTS = ['touchstart', 'touchmove'];
 
+/**
+ * @param {string} name
+ */
 export function is_passive_event(name) {
 	return PASSIVE_EVENTS.includes(name);
 }
 
+/**
+ * @param {string} attr
+ */
 export function is_event_attribute(attr) {
 	return attr.startsWith('on') && attr.length > 2 && attr[2] === attr[2].toUpperCase();
 }
 
 const unhoisted = { hoisted: false };
 
+/**
+ * @param {string} event_name 
+ * @param {*} handler 
+ * @param {*} state
+ */
 export function get_delegated_event(event_name, handler, state) {
 	// Handle delegated event handlers. Bail out if not a delegated event.
 	if (!handler || !is_delegated(event_name)) {
 		return null;
 	}
 
-	/** @type {FunctionExpression | FunctionDeclaration | ArrowFunctionExpression | null} */
+	/** @type {(a.FunctionExpression | a.FunctionDeclaration | a.ArrowFunctionExpression) & { metadata?: a.RippleMeta } | null} */
 	let target_function = null;
 	let binding = null;
 
@@ -268,12 +293,12 @@ export function get_delegated_event(event_name, handler, state) {
 	}
 
 	const visited_references = new Set();
-	const scope = target_function.metadata.scope;
-	for (const [reference] of scope.references) {
+	const scope = target_function.metadata?.scope;
+	for (const [reference] of scope?.references ?? []) {
 		// Bail out if the arguments keyword is used or $host is referenced
 		if (reference === 'arguments') return unhoisted;
 
-		const binding = scope.get(reference);
+		const binding = scope?.get(reference);
 		const local_binding = state.scope.get(reference);
 
 		// If we are referencing a binding that is shadowed in another scope then bail out.
@@ -346,7 +371,7 @@ export function build_hoisted_params(node, context) {
 		}
 	} else {
 		for (const param of node.params) {
-			params.push(/** @type {Pattern} */ (context.visit(param)));
+			params.push(/** @type {Pattern} */(context.visit(param)));
 		}
 	}
 
@@ -500,8 +525,8 @@ export function visit_assignment_expression(node, context, build_assignment) {
 				assignment ??
 				b.assignment(
 					'=',
-					/** @type {Pattern} */ (context.visit(path.node)),
-					/** @type {Expression} */ (context.visit(value)),
+					/** @type {Pattern} */(context.visit(path.node)),
+					/** @type {Expression} */(context.visit(value)),
 				)
 			);
 		});
@@ -585,8 +610,8 @@ export function build_assignment(operator, left, right, context) {
 			object,
 			b.assignment(
 				operator,
-				/** @type {Pattern} */ (context.visit(left)),
-				/** @type {Expression} */ (context.visit(right)),
+				/** @type {a.Pattern} */(context.visit(left)),
+				/** @type {a.Expression} */(context.visit(right)),
 			),
 		);
 	}

@@ -1,4 +1,6 @@
-export interface StyleBlock {
+import type { Node } from '#acorn';
+
+export interface StyleBlock extends Node {
     source: string;
     hash: `ripple-${string}`;
     type: 'StyleSheet';

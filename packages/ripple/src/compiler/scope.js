@@ -1,18 +1,38 @@
+/** @import * as a from '#acorn' */
+/** @import * as z from 'zimmerframe' */
+/** @import * as ESTree from '#estree' */
+/** @import * as AST from './types.js' */
+/** @import { Binding } from './types.js' */
+
 import is_reference from 'is-reference';
 import { extract_identifiers, object, unwrap_pattern } from '../utils/ast.js';
 import { walk } from 'zimmerframe';
 import { is_reserved } from './utils.js';
 import * as b from '../utils/builders.js';
 
+/**
+ * @param {a.Program} ast
+ * @param {ScopeRoot} root
+ * @param {Scope | null} parent
+ */
 export function create_scopes(ast, root, parent) {
 	const scopes = new Map();
 	const scope = new Scope(root, parent, false);
+
 	scopes.set(ast, scope);
 
 	const state = { scope };
+
+	/** @type {[Scope, { node: a.Identifier; path: a.AcornNodes[] }][]} */
 	const references = [];
+
+	/** @type {[Scope, a.Pattern][]} */
 	const updates = [];
 
+	/**
+	 * @param {Scope} scope 
+	 * @param {a.Pattern[]} params 
+	 */
 	function add_params(scope, params) {
 		for (const param of params) {
 			for (const node of extract_identifiers(param)) {
@@ -21,6 +41,11 @@ export function create_scopes(ast, root, parent) {
 		}
 	}
 
+	/**
+	 * @template {keyof a.AcornNodesMap} K
+	 * @param {a.AcornNodesMap[K]} node 
+	 * @param {z.Context<a.AcornNodes, { scope: Scope }>} state 
+	 */
 	const create_block_scope = (node, { state, next }) => {
 		const scope = state.scope.child(true);
 		scopes.set(node, scope);
@@ -28,13 +53,13 @@ export function create_scopes(ast, root, parent) {
 		next({ scope });
 	};
 
-	walk(ast, state, {
+	walk(/** @type {a.AcornNodes} */ (ast), state, {
 		// references
 		Identifier(node, { path, state }) {
 			const parent = path.at(-1);
 			if (
 				parent &&
-				is_reference(node, /** @type {Node} */ (parent)) &&
+				is_reference(node, /** @type {ESTree.Node} */ (parent)) &&
 				// TSTypeAnnotation, TSInterfaceDeclaration etc - these are normally already filtered out,
 				// but for the migration they aren't, so we need to filter them out here
 				// TODO -> once migration script is gone we can remove this check
@@ -50,7 +75,7 @@ export function create_scopes(ast, root, parent) {
 		},
 
 		UpdateExpression(node, { state, next }) {
-			updates.push([state.scope, /** @type {Identifier | MemberExpression} */ (node.argument)]);
+			updates.push([state.scope, /** @type {a.Identifier | a.MemberExpression} */ (node.argument)]);
 			next();
 		},
 
@@ -222,14 +247,14 @@ export class Scope {
 
 	/**
 	 * A map of declarators to the bindings they declare
-	 * @type {Map<VariableDeclarator | AST.LetDirective, Binding[]>}
+	 * @type {Map<a.VariableDeclarator | AST.LetDirective, Binding[]>}
 	 */
 	declarators = new Map();
 
 	/**
 	 * A set of all the names referenced with this scope
 	 * — useful for generating unique names
-	 * @type {Map<string, { node: Identifier; path: AST.Node[] }[]>}
+	 * @type {Map<string, { node: a.Identifier; path: a.AcornNodes[] }[]>}
 	 */
 	references = new Map();
 
@@ -241,7 +266,7 @@ export class Scope {
 
 	/**
 	 * If tracing of reactive dependencies is enabled for this scope
-	 * @type {null | Expression}
+	 * @type {null | a.Expression}
 	 */
 	tracing = null;
 
@@ -259,10 +284,10 @@ export class Scope {
 	}
 
 	/**
-	 * @param {Identifier} node
+	 * @param {a.Identifier | ESTree.Identifier} node
 	 * @param {Binding['kind']} kind
-	 * @param {DeclarationKind} declaration_kind
-	 * @param {null | Expression | FunctionDeclaration | ClassDeclaration | ImportDeclaration | AST.EachBlock | AST.SnippetBlock} initial
+	 * @param {AST.DeclarationKind} declaration_kind
+	 * @param {null | a.Expression | a.FunctionDeclaration | a.ClassDeclaration | a.ImportDeclaration} initial
 	 * @returns {Binding}
 	 */
 	declare(node, kind, declaration_kind, initial = null) {
@@ -341,7 +366,7 @@ export class Scope {
 	}
 
 	/**
-	 * @param {VariableDeclarator | AST.LetDirective} node
+	 * @param {a.VariableDeclarator | AST.LetDirective} node
 	 * @returns {Binding[]}
 	 */
 	get_bindings(node) {
@@ -361,8 +386,8 @@ export class Scope {
 	}
 
 	/**
-	 * @param {Identifier} node
-	 * @param {AST.Node[]} path
+	 * @param {a.Identifier} node
+	 * @param {a.AcornNodes[]} path
 	 */
 	reference(node, path) {
 		path = [...path]; // ensure that mutations to path afterwards don't affect this reference

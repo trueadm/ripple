@@ -1,6 +1,7 @@
 import type { StyleBlock } from '#style';
+import type { Scope } from '../compiler/scope';
 import type { AcornNodes } from './acorn-base';
-import type { BlockStatement, Expression, Identifier, Node, TryStatement } from 'acorn';
+import type { BlockStatement, Identifier, Node, TryStatement } from 'acorn';
 
 export interface ComponentNode extends Node {
     type: 'Component';
@@ -37,15 +38,29 @@ interface AsyncTryStatement extends TryStatement {
 
 interface Element extends Node {
     type: 'Element';
-    id: AcornNodes;
-    attributes: AcornNodes[];
-    children: (AcornNodes | StyleBlock | null)[];
+    id: Identifier;
+    attributes: RippleNode[];
+    children: RippleNode[];
     selfClosing: boolean;
     metadata: unknown;
 }
 
+interface RippleMeta {
+    hoisted?: boolean;
+    hoisted_params?: unknown[];
+    scope?: Scope;
+    tracked?: boolean;
+    path?: RippleNode[];
+    delegated?: boolean;
+    function?: Function & { metadata?: RippleMeta; };
+}
+
+type RippleNode = AcornNodes & {
+    metadata?: RippleMeta;
+};
+
 declare module 'acorn' {
     interface NodeTypes {
-        ripple: ComponentNode | AccessorAttribute | UseAttribute | SpreadAttribute | Attribute | Element;
+        ripple: ComponentNode | AccessorAttribute | UseAttribute | SpreadAttribute | Attribute | Element | StyleBlock;
     }
 }

@@ -4,6 +4,7 @@ import type { JSXParser } from './acorn-jsx';
 import type { AcornNodes } from './acorn-base';
 import type { Comment } from 'acorn';
 
+export * from 'acorn';
 export * from './acorn-ripple';
 export * from './acorn-base';
 
