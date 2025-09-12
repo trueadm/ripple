@@ -3,8 +3,23 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    tags: ["!**"]
+    paths:
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "vitest.config.js"
+
   pull_request:
     branches: [main, develop]
+    tags: ["!**"]
+    paths:
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "vitest.config.js"
 
 jobs:
   test:
@@ -12,7 +27,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [20, 22, 24]
 
     steps:
       - name: Checkout code
