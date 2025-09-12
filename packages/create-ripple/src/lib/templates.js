@@ -1,8 +1,13 @@
 import { join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import degit from 'degit';
 import { GITHUB_REPO, GITHUB_TEMPLATES_DIRECTORY, TEMPLATES } from '../constants.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Get template by name
@@ -81,7 +86,8 @@ export async function downloadTemplate(templateName) {
  */
 export function getLocalTemplatePath(templateName) {
 	// This is used for local development in the monorepo
-	const repoRoot = join(process.cwd(), '../../../');
+	// Navigate from packages/create-ripple/src/lib/ to templates/
+	const repoRoot = join(__dirname, '../../../../');
 	return join(repoRoot, 'templates', templateName);
 }
 
@@ -91,7 +97,8 @@ export function getLocalTemplatePath(templateName) {
  */
 export function isLocalDevelopment() {
 	// Check if we're in the monorepo by looking for the templates directory
-	const repoRoot = join(process.cwd(), '../../../');
+	// Navigate from packages/create-ripple/src/lib/ to templates/
+	const repoRoot = join(__dirname, '../../../../');
 	const templatesDir = join(repoRoot, 'templates');
 	return existsSync(templatesDir);
 }
