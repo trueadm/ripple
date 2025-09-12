@@ -66,12 +66,16 @@ declare global {
 
     /**
      * Ripple runtime namespace - injected by the compiler
+     * These functions are available in compiled Ripple components for TypeScript analysis
      */
-    namespace $ {
-        function tracked<T>(value: T, block?: any): T;
-        function tracked_object<T extends Record<string, any>>(obj: T, props: string[], block?: any): T;
-        function computed<T>(fn: () => T, block?: any): T;
-        function scope(): any;
-        // Add other $ runtime functions as needed
-    }
+    var $: {
+        tracked<T>(value: T, block?: any): T;
+        tracked_object<T extends Record<string, any>>(obj: T, props: string[], block?: any): T;
+        computed<T>(fn: () => T, block?: any): T;
+        scope(): any;
+        get_tracked(node: any): any;
+        get_computed(node: any): any;
+        set(node: any, value: any, block?: any): any;
+        // Add other runtime functions as needed for TypeScript analysis
+    };
 }
