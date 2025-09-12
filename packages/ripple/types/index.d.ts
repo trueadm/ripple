@@ -55,3 +55,23 @@ export class RippleMap<K, V> extends Map<K, V> {
     get $size(): number;
     toJSON(): [K, V][];
 }
+
+// Compiler-injected runtime symbols (for Ripple component development)
+declare global {
+    /**
+     * Runtime block context injected by the Ripple compiler.
+     * This is automatically available in component scopes and passed to runtime functions.
+     */
+    var __block: any;
+
+    /**
+     * Ripple runtime namespace - injected by the compiler
+     */
+    namespace $ {
+        function tracked<T>(value: T, block?: any): T;
+        function tracked_object<T extends Record<string, any>>(obj: T, props: string[], block?: any): T;
+        function computed<T>(fn: () => T, block?: any): T;
+        function scope(): any;
+        // Add other $ runtime functions as needed
+    }
+}

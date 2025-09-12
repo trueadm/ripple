@@ -328,34 +328,52 @@ const visitors = {
 					delete declarator.id.typeAnnotation;
 				}
 
-				if (binding !== null && binding.kind === 'tracked' && !context.state.to_ts) {
+				if (binding !== null && binding.kind === 'tracked') {
 					let expression;
 
-					if (metadata.tracking && metadata.await) {
-						expression = b.call(
-							b.await(
-								b.call(
-									'$.resume_context',
+					if (context.state.to_ts) {
+						// TypeScript mode: lighter transformation
+						if (metadata.tracking && !metadata.await) {
+							expression = b.call(
+								'$.computed',
+								b.thunk(context.visit(declarator.init)),
+								b.id('__block'),
+							);
+						} else {
+							expression = b.call(
+								'$.tracked',
+								declarator.init === null ? undefined : context.visit(declarator.init),
+								b.id('__block'),
+							);
+						}
+					} else {
+						// Runtime mode: full transformation
+						if (metadata.tracking && metadata.await) {
+							expression = b.call(
+								b.await(
 									b.call(
-										'$.async_computed',
-										b.thunk(context.visit(declarator.init), true),
-										b.id('__block'),
+										'$.resume_context',
+										b.call(
+											'$.async_computed',
+											b.thunk(context.visit(declarator.init), true),
+											b.id('__block'),
+										),
 									),
 								),
-							),
-						);
-					} else if (metadata.tracking && !metadata.await) {
-						expression = b.call(
-							'$.computed',
-							b.thunk(context.visit(declarator.init)),
-							b.id('__block'),
-						);
-					} else {
-						expression = b.call(
-							'$.tracked',
-							declarator.init === null ? undefined : context.visit(declarator.init),
-							b.id('__block'),
-						);
+							);
+						} else if (metadata.tracking && !metadata.await) {
+							expression = b.call(
+								'$.computed',
+								b.thunk(context.visit(declarator.init)),
+								b.id('__block'),
+							);
+						} else {
+							expression = b.call(
+								'$.tracked',
+								declarator.init === null ? undefined : context.visit(declarator.init),
+								b.id('__block'),
+							);
+						}
 					}
 
 					declarations.push(b.declarator(declarator.id, expression));
@@ -372,8 +390,33 @@ const visitors = {
 					delete declarator.id.typeAnnotation;
 				}
 
-				if (!has_tracked || context.state.to_ts) {
+				if (!has_tracked) {
 					declarations.push(context.visit(declarator));
+					continue;
+				}
+				
+				// For TypeScript mode, we still need to transform tracked variables
+				// but use a lighter approach that maintains type information
+				if (context.state.to_ts) {
+					const transformed = declarator.transformed || declarator.id;
+					let expression;
+					
+					if (metadata.tracking && !metadata.await) {
+						expression = b.call(
+							'$.computed',
+							b.thunk(context.visit(declarator.init)),
+							b.id('__block'),
+						);
+					} else {
+						// Simple tracked variable - always use $.tracked for $ prefixed variables
+						expression = b.call(
+							'$.tracked',
+							context.visit(declarator.init),
+							b.id('__block'),
+						);
+					}
+					
+					declarations.push(b.declarator(transformed, expression));
 					continue;
 				}
 

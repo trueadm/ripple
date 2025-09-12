@@ -21,5 +21,19 @@ export function compile_to_volar_mappings(source, filename) {
 	const analysis = analyze(ast, filename);
 	const transformed = transform(filename, source, analysis, true);
 
-	return convert_source_map_to_mappings(transformed.js.map, source, transformed.js.code);
+	// For VS Code TypeScript analysis, we need to add the import statement
+	// and ensure proper global declarations are available
+	let code = transformed.js.code;
+	
+	// Add import statement if not already present and if the code uses $ namespace
+	if (code.includes('$.') && !code.includes('import * as $ from')) {
+		code = `import * as $ from 'ripple/internal/client';\n${code}`;
+	}
+	
+	// For global declarations like __block, add a reference directive
+	if (code.includes('__block')) {
+		code = `/// <reference types="ripple" />\n${code}`;
+	}
+
+	return convert_source_map_to_mappings(transformed.js.map, source, code);
 }
