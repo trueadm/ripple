@@ -19,6 +19,18 @@ component Conditional({ $isVisible }) {
 }
 ```
 
+### Async (Suspense boundaries)
+```ripple
+component SuspenseBoundary() {
+	try {
+		<AsyncComponent />
+	} async {
+		<p>Loading...</p> // fallback
+	}
+}
+```
+
+
 ### For Loops
 ```ripple
 component List({ items }) {
