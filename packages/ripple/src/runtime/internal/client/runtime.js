@@ -834,6 +834,12 @@ export function tracked_object(obj, properties, block) {
 				tracked_property = computed(initial, block);
 				initial = run_computed(/** @type {Computed} */ (tracked_property));
 				obj[property] = initial;
+			} else if (initial && typeof initial === 'object' && initial.f !== undefined && (initial.f & TRACKED) !== 0) {
+				// If the initial value is already a tracked node, use it directly
+				tracked_property = /** @type {Tracked | Computed} */ (initial);
+				// Update the plain property to reflect current tracked value
+				var current_value = get(tracked_property);
+				obj[property] = current_value;
 			} else {
 				tracked_property = tracked(initial, block);
 			}
