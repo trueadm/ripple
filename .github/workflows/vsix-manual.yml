@@ -19,9 +19,9 @@ jobs:
                   node-version: 24
                   cache: "pnpm"
 
-            - name: Install deps w/ npm
+            - name: Install deps w/ yarn
               working-directory: ./packages/ripple-vscode-plugin
-              run: npm ci
+              run: yarn install
 
             - name: Build VSIX
               working-directory: ./packages/ripple-vscode-plugin
