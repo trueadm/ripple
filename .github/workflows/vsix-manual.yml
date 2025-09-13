@@ -2,7 +2,7 @@ on: workflow_dispatch
 
 name: Publish VSC Extension (Manual)
 jobs:
-    publish:
+    build:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
@@ -19,13 +19,13 @@ jobs:
                   node-version: 24
                   cache: "pnpm"
 
-            - name: Install deps w/ npm
+            - name: Install deps w/ yarn
               working-directory: ./packages/ripple-vscode-plugin
-              run: npm ci
+              run: yarn install
 
             - name: Build VSIX
               working-directory: ./packages/ripple-vscode-plugin
-              run: pnpx vsce package
+              run: pnpx @vscode/vsce package
 
             - name: Upload VSIX
               uses: actions/upload-artifact@v4
@@ -33,14 +33,40 @@ jobs:
                   name: ripple-vscode-plugin VSIX
                   path: ./packages/ripple-vscode-plugin/*.vsix
 
+    publish-vsm:
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+            - name: Download VSIX
+              uses: actions/download-artifact@v5
+              with:
+                  name: ripple-vscode-plugin VSIX
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
             - name: Publish to VSM
-              working-directory: ./packages/ripple-vscode-plugin
-              run: pnpx vsce publish
+              run: pnpx -- @vscode/vsce publish -i *.vsix
               env:
                   VSCE_PAT: ${{ secrets.VSM_TOKEN }}
 
+    publish-ovsx:
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+            - name: Download VSIX
+              uses: actions/download-artifact@v5
+              with:
+                  name: ripple-vscode-plugin VSIX
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
             - name: Publish to OVSX
-              working-directory: ./packages/ripple-vscode-plugin
               run: pnpx ovsx publish *.vsix
               env:
                   OVSX_PAT: ${{ secrets.OVSX_TOKEN }}
