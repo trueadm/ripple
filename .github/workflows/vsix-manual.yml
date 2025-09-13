@@ -25,7 +25,7 @@ jobs:
 
             - name: Build VSIX
               working-directory: ./packages/ripple-vscode-plugin
-              run: pnpx vsce package
+              run: pnpx @vscode/vsce package
 
             - name: Upload VSIX
               uses: actions/upload-artifact@v4
@@ -35,7 +35,7 @@ jobs:
 
             - name: Publish to VSM
               working-directory: ./packages/ripple-vscode-plugin
-              run: pnpx vsce publish
+              run: pnpx @vscode/vsce publish
               env:
                   VSCE_PAT: ${{ secrets.VSM_TOKEN }}
 
