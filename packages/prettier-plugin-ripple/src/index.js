@@ -522,7 +522,7 @@ function printRippleNode(node, path, options, print, args) {
 		case 'Declaration':
 			return printCSSDeclaration(node, path, options, print);
 
-		case 'Atrule':
+		case 'AtRule':
 			return printCSSAtrule(node, path, options, print);
 
 		case 'SelectorList':

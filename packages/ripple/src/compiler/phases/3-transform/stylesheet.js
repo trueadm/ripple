@@ -82,7 +82,7 @@ function is_empty(rule, is_in_global_block) {
 			}
 		}
 
-		if (child.type === 'Atrule') {
+		if (child.type === 'AtRule') {
 			if (child.block === null || child.block.children.length > 0) return false;
 		}
 	}
@@ -96,7 +96,7 @@ const visitors = {
 		context.state.code.addSourcemapLocation(node.end);
 		context.next();
 	},
-	Atrule(node, { state, next, path }) {
+	AtRule(node, { state, next, path }) {
 		if (is_keyframes_node(node)) {
 			let start = node.start + node.name.length + 1;
 			while (state.code.original[start] === ' ') start += 1;

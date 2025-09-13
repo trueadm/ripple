@@ -1,4 +1,5 @@
-/** @import * as ESTree from 'estree' */
+/** @import * as ESTree from '#estree'*/
+
 import { regex_is_valid_identifier } from './patterns.js';
 import { sanitize_template_string } from './sanitize_template_string.js';
 
@@ -30,7 +31,7 @@ export function assignment_pattern(left, right) {
 /**
  * @param {Array<ESTree.Pattern>} params
  * @param {ESTree.BlockStatement | ESTree.Expression} body
- * @returns {ESTree.ArrowFunctionExpression}
+ * @returns {ESTree.ArrowFunctionExpression & { metadata?: any }}
  */
 export function arrow(params, body, async = false) {
 	return {
@@ -44,6 +45,11 @@ export function arrow(params, body, async = false) {
 	};
 }
 
+/**
+ * @param {ESTree.Identifier} id 
+ * @param {unknown} params
+ * @param {unknown} body
+ */
 export function component(id, params, body) {
 	return {
 		type: 'Component',
@@ -223,7 +229,7 @@ export function export_default(declaration) {
  * @param {ESTree.Identifier} id
  * @param {ESTree.Pattern[]} params
  * @param {ESTree.BlockStatement} body
- * @returns {ESTree.FunctionDeclaration}
+ * @returns {ESTree.FunctionDeclaration & { metadata?: any }}
  */
 export function function_declaration(id, params, body) {
 	return {
@@ -580,7 +586,7 @@ export function method(kind, key, params, body, computed = false, is_static = fa
  * @param {ESTree.Identifier | null} id
  * @param {ESTree.Pattern[]} params
  * @param {ESTree.BlockStatement} body
- * @returns {ESTree.FunctionExpression}
+ * @returns {ESTree.FunctionExpression & { metadata?: any }}
  */
 function function_builder(id, params, body) {
 	return {
@@ -614,6 +620,7 @@ export function import_all(as, source) {
 		type: 'ImportDeclaration',
 		source: literal(source),
 		specifiers: [import_namespace(as)],
+		attributes: [], // I found this in the type declaration, should this not be there?
 	};
 }
 
@@ -631,6 +638,7 @@ export function imports(parts, source) {
 			imported: id(p[0]),
 			local: id(p[1]),
 		})),
+		attributes: [], // I found this in the type declaration, should this not be there?
 	};
 }
 
@@ -709,7 +717,7 @@ export function jsx_attribute(name, value = null) {
  * @param {Array<ESTree.JSXAttribute | ESTree.JSXSpreadAttribute>} attributes
  * @param {Array<ESTree.JSXText | ESTree.JSXExpressionContainer | ESTree.JSXSpreadChild | ESTree.JSXElement | ESTree.JSXFragment>} children
  * @param {boolean} self_closing
- * @returns {{ element: ESTree.JSXElement, opening_element: ESTree.JSXOpeningElement }}
+ * @returns {ESTree.JSXElement}
  */
 export function jsx_element(
 	name,
@@ -718,6 +726,9 @@ export function jsx_element(
 	self_closing = false,
 	closing_name = name,
 ) {
+	/**
+	 * @type {ESTree.JSXOpeningElement}
+	 */
 	const opening_element = {
 		type: 'JSXOpeningElement',
 		name,
@@ -725,6 +736,9 @@ export function jsx_element(
 		selfClosing: self_closing,
 	};
 
+	/**
+	 * @type {ESTree.JSXElement}
+	 */
 	const element = {
 		type: 'JSXElement',
 		openingElement: opening_element,

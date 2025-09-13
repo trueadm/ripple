@@ -1,8 +1,15 @@
+/** @import * as ESTree from 'estree' */
+/** @import * as a from '#acorn' */
+/** @import * as AST from './ast-types.js' */
+
 import * as b from './builders.js';
 
+/**
+ * @param {ESTree.Expression | a.Expression} expression 
+ */
 export function object(expression) {
 	while (expression.type === 'MemberExpression') {
-		expression = /** @type {ESTree.MemberExpression | ESTree.Identifier} */ (expression.object);
+		expression = /** @type {ESTree.MemberExpression | ESTree.Identifier | a.MemberExpression | a.Identifier} */ (expression.object);
 	}
 
 	if (expression.type !== 'Identifier') {
@@ -12,6 +19,10 @@ export function object(expression) {
 	return expression;
 }
 
+/**
+ * @param {ESTree.Pattern | a.Pattern} pattern 
+ * @param {(ESTree.Identifier | ESTree.MemberExpression)[]} nodes
+ */
 export function unwrap_pattern(pattern, nodes = []) {
 	switch (pattern.type) {
 		case 'Identifier':
@@ -21,7 +32,7 @@ export function unwrap_pattern(pattern, nodes = []) {
 		case 'MemberExpression':
 			// member expressions can be part of an assignment pattern, but not a binding pattern
 			// see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment#binding_and_assignment
-			nodes.push(pattern);
+			nodes.push(/** @type {ESTree.MemberExpression} */ (pattern));
 			break;
 
 		case 'ObjectPattern':
@@ -54,20 +65,33 @@ export function unwrap_pattern(pattern, nodes = []) {
 	return nodes;
 }
 
+/**
+ * @param {ESTree.Pattern | a.Pattern} pattern 
+ */
 export function extract_identifiers(pattern) {
 	return unwrap_pattern(pattern, []).filter((node) => node.type === 'Identifier');
 }
 
+/**
+ * @param {ESTree.Pattern | a.Pattern} param
+ */
 export function extract_paths(param) {
 	return _extract_paths(
 		[],
-		param,
+		/** @type {ESTree.Pattern} */ (param),
 		(node) => /** @type {ESTree.Identifier | ESTree.MemberExpression} */ (node),
 		(node) => /** @type {ESTree.Identifier | ESTree.MemberExpression} */ (node),
 		false,
 	);
 }
 
+/**
+ * @param {AST.Assignment[]} assignments 
+ * @param {ESTree.Pattern} param 
+ * @param {AST.ExpressionProcessor} expression 
+ * @param {AST.ExpressionProcessor} update_expression 
+ * @param {boolean} has_default_value
+ */
 function _extract_paths(assignments = [], param, expression, update_expression, has_default_value) {
 	switch (param.type) {
 		case 'Identifier':
@@ -84,7 +108,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 		case 'ObjectPattern':
 			for (const prop of param.properties) {
 				if (prop.type === 'RestElement') {
-					/** @type {DestructuredAssignment['expression']} */
+					/** @type {AST.DestructuredAssignment['expression']} */
 					const rest_expression = (object) => {
 						/** @type {ESTree.Expression[]} */
 						const props = [];
@@ -122,7 +146,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 						);
 					}
 				} else {
-					/** @type {DestructuredAssignment['expression']} */
+					/** @type {AST.DestructuredAssignment['expression']} */
 					const object_expression = (object) =>
 						b.member(expression(object), prop.key, prop.computed || prop.key.type !== 'Identifier');
 					_extract_paths(
@@ -142,7 +166,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 				const element = param.elements[i];
 				if (element) {
 					if (element.type === 'RestElement') {
-						/** @type {DestructuredAssignment['expression']} */
+						/** @type {AST.DestructuredAssignment['expression']} */
 						const rest_expression = (object) =>
 							b.call(b.member(expression(object), 'slice'), b.literal(i));
 						if (element.argument.type === 'Identifier') {
@@ -163,7 +187,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 							);
 						}
 					} else {
-						/** @type {DestructuredAssignment['expression']} */
+						/** @type {AST.DestructuredAssignment['expression']} */
 						const array_expression = (object) => b.member(expression(object), b.literal(i), true);
 						_extract_paths(
 							assignments,
@@ -179,7 +203,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 			break;
 
 		case 'AssignmentPattern': {
-			/** @type {DestructuredAssignment['expression']} */
+			/** @type {AST.DestructuredAssignment['expression']} */
 			const fallback_expression = (object) => build_fallback(expression(object), param.right);
 
 			if (param.left.type === 'Identifier') {
@@ -201,6 +225,10 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 	return assignments;
 }
 
+/**
+ * @param {ESTree.Expression} expression 
+ * @param {ESTree.Expression} fallback
+ */
 export function build_fallback(expression, fallback) {
 	return b.call('$.fallback', expression, fallback);
 }

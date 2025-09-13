@@ -50,7 +50,10 @@
   },
   "imports": {
     "#client": "./src/runtime/internal/client/types.d.ts",
-    "#client/constants": "./src/internal/client/constants.js"
+    "#client/constants": "./src/internal/client/constants.js",
+    "#estree": "./src/estree.d.ts",
+    "#acorn": "./src/support/acorn.d.ts",
+    "#style": "./src/support/style.d.ts"
   },
   "dependencies": {
     "@jridgewell/sourcemap-codec": "^1.5.5",
@@ -64,6 +67,7 @@
   },
   "devDependencies": {
     "@types/estree": "^1.0.8",
+    "@types/estree-jsx": "^1.0.5",
     "@types/node": "^24.3.0",
     "typescript": "catalog:"
   }

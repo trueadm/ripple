@@ -1,31 +1,61 @@
+/** @import * as a from '#acorn' */
+
 import * as acorn from 'acorn';
 import { tsPlugin } from 'acorn-typescript';
 import { parse_style } from './style.js';
 import { walk } from 'zimmerframe';
 
+// @ts-ignore It's fine.
 const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
 
+/**
+ * @param {a.AcornNodes} node
+ */
 function convert_from_jsx(node) {
 	if (node.type === 'JSXIdentifier') {
+		// @ts-ignore We're essentially tricking it into thinking it's a regular ident
 		node.type = 'Identifier';
 	} else if (node.type === 'JSXMemberExpression') {
+		// @ts-ignore Same thing here, just converting the member expression
 		node.type = 'MemberExpression';
+		// @ts-ignore
 		node.object = convert_from_jsx(node.object);
+		// @ts-ignore
 		node.property = convert_from_jsx(node.property);
 	}
+
 	return node;
 }
 
+/**
+ * @param {unknown} config
+ * @returns {((BaseParser: typeof a.BetterParser) => typeof a.BetterParser & any)}
+ */
 function RipplePlugin(config) {
 	return (Parser) => {
+		/**
+		 * @type {a.BaseParser}
+		 */
+		// @ts-ignore
 		const original = acorn.Parser.prototype;
 		const tt = Parser.tokTypes || acorn.tokTypes;
 		const tc = Parser.tokContexts || acorn.tokContexts;
 
+		/**
+		 * @property {string} value
+		 * @property {acorn.TokenType} type
+		 */
 		class RippleParser extends Parser {
+			/**
+			 * @type {(a.Element | a.ComponentNode)[]}
+			 */
 			#path = [];
 
 			// Helper method to get the element name from a JSX identifier or member expression
+			/**
+			 * @param {a.AcornNodes} node
+			 * @returns {string | null}
+			 */
 			getElementName(node) {
 				if (!node) return null;
 				if (node.type === 'Identifier' || node.type === 'JSXIdentifier') {
@@ -40,7 +70,7 @@ function RipplePlugin(config) {
 			parseExportDefaultDeclaration() {
 				// Check if this is "export default component"
 				if (this.value === 'component') {
-					const node = this.startNode();
+					const node = /** @type {a.AcornNodesMap['Component']} */ (this.startNode());
 					node.type = 'Component';
 					node.css = null;
 					node.default = true;
@@ -73,24 +103,29 @@ function RipplePlugin(config) {
 				if (super.shouldParseExportStatement()) {
 					return true;
 				}
+
 				if (this.value === 'component') {
 					return true;
 				}
+
 				return this.type.keyword === 'var';
 			}
 
 			jsx_parseExpressionContainer() {
-				let node = this.startNode();
+				let node = /** @type {a.AcornNodesMap['JSXExpressionContainer']} */ (this.startNode());
+
 				this.next();
 
 				node.expression =
 					this.type === tt.braceR ? this.jsx_parseEmptyExpression() : this.parseExpression();
+
 				this.expect(tt.braceR);
+
 				return this.finishNode(node, 'JSXExpressionContainer');
 			}
 
 			jsx_parseTupleContainer() {
-				var t = this.startNode();
+				var t = /** @type {a.AcornNodesMap['JSXExpressionContainer']} */ (this.startNode());
 				return (
 					this.next(),
 					(t.expression =
@@ -101,12 +136,12 @@ function RipplePlugin(config) {
 			}
 
 			jsx_parseAttribute() {
-				let node = this.startNode();
+				let node = /** @type {a.AcornNodesMap['AccessorAttribute']} */ (this.startNode());
 				const lookahead = this.lookahead();
 
 				if (lookahead.type?.label === ':') {
-					let id = this.startNode();
-					id.name = this.value;
+					let id = /** @type {a.AcornNodesMap['Identifier']} */ (this.startNode());
+					id.name = /** @type {string} */ (this.value);
 					node.name = id;
 					this.next();
 					this.finishNode(id, 'Identifier');
@@ -119,12 +154,12 @@ function RipplePlugin(config) {
 						this.unexpected();
 					}
 					this.next();
-					const value = this.jsx_parseAttributeValue();
+					const value = /** @type {acorn.ExpressionStatement | a.AcornNodesMap['JSXExpressionContainer']} */ (this.jsx_parseAttributeValue());
 					const expression = value.expression;
 					node.get = null;
 					node.set = null;
 
-					if (expression.type == 'SequenceExpression') {
+					if (expression.type === 'SequenceExpression') {
 						node.get = expression.expressions[0];
 						node.set = expression.expressions[1];
 						if (expression.expressions.length > 2) {
@@ -161,15 +196,16 @@ function RipplePlugin(config) {
 						const id = this.parseIdentNode();
 						this.finishNode(id, 'Identifier');
 						node.name = id;
-						node.value = id;
+						(/** @type {a.AcornNodesMap['Attribute']} */ (/** @type {unknown} */ (node))).value = id;
 						this.next();
 						this.expect(tt.braceR);
 						return this.finishNode(node, 'Attribute');
 					}
 				}
-				node.name = this.jsx_parseNamespacedName();
-				node.value = this.eat(tt.eq) ? this.jsx_parseAttributeValue() : null;
-				return this.finishNode(node, 'JSXAttribute');
+				const jsxNode = /** @type {a.AcornNodesMap['JSXAttribute']} */ (/** @type {unknown} */ (node));
+				jsxNode.name = this.jsx_parseNamespacedName();
+				jsxNode.value = this.eat(tt.eq) ? this.jsx_parseAttributeValue() : null;
+				return this.finishNode(jsxNode, 'JSXAttribute');
 			}
 
 			jsx_parseAttributeValue() {
@@ -180,7 +216,7 @@ function RipplePlugin(config) {
 						var t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
-								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+							this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
 					case tok.jsxTagStart:
@@ -191,17 +227,20 @@ function RipplePlugin(config) {
 				}
 			}
 
+			/**
+			 * @param {a.AsyncTryStatement} node
+			 */
 			parseTryStatement(node) {
 				this.next();
 				node.block = this.parseBlock();
 				node.handler = null;
 				if (this.type === tt._catch) {
-					var clause = this.startNode();
+					var clause = /** @type {a.AcornNodesMap['CatchClause']} */ (this.startNode());
 					this.next();
 					if (this.eat(tt.parenL)) {
 						clause.param = this.parseCatchClauseParam();
 					} else {
-						if (this.options.ecmaVersion < 10) {
+						if ((/** @type {Exclude<acorn.ecmaVersion, 'latest'>} */ (this.options.ecmaVersion)) < 10) {
 							this.unexpected();
 						}
 						clause.param = null;
@@ -225,12 +264,13 @@ function RipplePlugin(config) {
 				}
 				return this.finishNode(node, 'TryStatement');
 			}
+
 			jsx_readToken() {
 				let out = '',
 					chunkStart = this.pos;
 				const tok = this.acornTypeScript.tokTypes;
 
-				for (;;) {
+				for (; ;) {
 					if (this.pos >= this.input.length) this.raise(this.start, 'Unterminated JSX contents');
 					let ch = this.input.charCodeAt(this.pos);
 
@@ -268,7 +308,7 @@ function RipplePlugin(config) {
 
 								// Call onComment if it exists
 								if (this.options.onComment) {
-									this.options.onComment(
+									(/** @type {a.OnComment} */ (this.options.onComment))(
 										false,
 										commentText,
 										commentStart,
@@ -305,7 +345,7 @@ function RipplePlugin(config) {
 
 								// Call onComment if it exists
 								if (this.options.onComment) {
-									this.options.onComment(
+									(/** @type {a.OnComment} */ (this.options.onComment))(
 										true,
 										commentText,
 										commentStart,
@@ -341,14 +381,14 @@ function RipplePlugin(config) {
 							this.raise(
 								this.pos,
 								'Unexpected token `' +
-									this.input[this.pos] +
-									'`. Did you mean `' +
-									(ch === 62 ? '&gt;' : '&rbrace;') +
-									'` or ' +
-									'`{"' +
-									this.input[this.pos] +
-									'"}' +
-									'`?',
+								this.input[this.pos] +
+								'`. Did you mean `' +
+								(ch === 62 ? '&gt;' : '&rbrace;') +
+								'` or ' +
+								'`{"' +
+								this.input[this.pos] +
+								'"}' +
+								'`?',
 							);
 						}
 
@@ -376,26 +416,26 @@ function RipplePlugin(config) {
 				const position = this.curPosition();
 				this.pos = prev_pos;
 
-				const element = this.startNode();
+				const element = /** @type {a.Element} */ (this.startNode());
 				element.start = position.index;
-				element.loc.start = position;
+				(/** @type {acorn.SourceLocation} */ (element.loc)).start = position;
 				element.type = 'Element';
 				this.#path.push(element);
 				element.children = [];
 				const open = this.jsx_parseOpeningElementAt();
 				for (const attr of open.attributes) {
 					if (attr.type === 'JSXAttribute') {
-						attr.type = 'Attribute';
+						attr.type = /** @type {'JSXAttribute'} */ ('Attribute');
 						if (attr.name.type === 'JSXIdentifier') {
-							attr.name.type = 'Identifier';
+							attr.name.type = /** @type {'JSXIdentifier'} */ ('Identifier');
 						}
-						if (attr.value.type === 'JSXExpressionContainer') {
+						if (attr.value && attr.value.type === 'JSXExpressionContainer') {
 							attr.value = attr.value.expression;
 						}
 					}
 				}
 				if (open.name.type === 'JSXIdentifier') {
-					open.name.type = 'Identifier';
+					open.name.type = /** @type {'JSXIdentifier'} */ ('Identifier');
 				}
 
 				element.id = convert_from_jsx(open.name);
@@ -411,16 +451,17 @@ function RipplePlugin(config) {
 						this.next();
 					}
 				} else {
-					if (open.name.name === 'style') {
+					if (open.name.type === 'JSXIdentifier' && open.name.name === 'style') {
 						const start = this.start;
 						const input = this.input.slice(start);
 						const end = input.indexOf('</style>');
 						const content = input.slice(0, end);
+						const component = /** @type {a.AcornNodesMap['Component']} */ (this.#path.findLast((n) => n.type === 'Component'));
 
-						const component = this.#path.findLast((n) => n.type === 'Component');
 						if (component.css !== null) {
 							throw new Error('Components can only have one style tag');
 						}
+
 						component.css = parse_style(content);
 
 						this.pos = start + end + 1;
@@ -450,7 +491,7 @@ function RipplePlugin(config) {
 						this.enterScope(0);
 						this.parseTemplateBody(element.children);
 						this.exitScope();
-						
+
 						// Check if this element was properly closed
 						// If we reach here and this element is still in the path, it means it was never closed
 						if (this.#path[this.#path.length - 1] === element) {
@@ -471,6 +512,15 @@ function RipplePlugin(config) {
 				return element;
 			}
 
+			/**
+			 * @param {a.AcornNodes} base
+			 * @param {number} startPos
+			 * @param {acorn.SourceLocation} startLoc
+			 * @param {boolean} noCalls
+			 * @param {boolean} maybeAsyncArrow
+			 * @param {boolean} optionalChained
+			 * @param {boolean} forInit
+			 */
 			parseSubscript(base, startPos, startLoc, noCalls, maybeAsyncArrow, optionalChained, forInit) {
 				if (this.value === '<' && this.#path.findLast((n) => n.type === 'Component')) {
 					// Check if this looks like JSX by looking ahead
@@ -493,13 +543,14 @@ function RipplePlugin(config) {
 						// Avoid triggering onComment handlers, as they will have
 						// already been triggered when parsing the subscript before
 						const onComment = this.options.onComment;
-						this.options.onComment = () => {};
+						this.options.onComment = () => { };
 						this.next();
 						this.options.onComment = onComment;
 
 						return base;
 					}
 				}
+
 				return super.parseSubscript(
 					base,
 					startPos,
@@ -511,6 +562,9 @@ function RipplePlugin(config) {
 				);
 			}
 
+			/**
+			 * @param {unknown[]} body
+			 */
 			parseTemplateBody(body) {
 				var inside_func =
 					this.context.some((n) => n.token === 'function') || this.scopeStack.length > 1;
@@ -529,6 +583,7 @@ function RipplePlugin(config) {
 
 				if (this.type.label === '{') {
 					const node = this.jsx_parseExpressionContainer();
+					// @ts-ignore
 					node.type = 'Text';
 					body.push(node);
 				} else if (this.type.label === '}') {
@@ -539,20 +594,20 @@ function RipplePlugin(config) {
 						this.next();
 						const closingTag = this.jsx_parseElementName();
 						this.exprAllowed = true;
-						
+
 						// Validate that the closing tag matches the opening tag
 						const currentElement = this.#path[this.#path.length - 1];
 						if (!currentElement || currentElement.type !== 'Element') {
 							this.raise(this.start, 'Unexpected closing tag');
 						}
-						
+
 						const openingTagName = this.getElementName(currentElement.id);
 						const closingTagName = this.getElementName(closingTag);
-						
+
 						if (openingTagName !== closingTagName) {
 							this.raise(this.start, `Expected closing tag to match opening tag. Expected '</${openingTagName}>' but found '</${closingTagName}>'`);
 						}
-						
+
 						this.#path.pop();
 						this.next();
 						return;
@@ -568,6 +623,12 @@ function RipplePlugin(config) {
 				this.parseTemplateBody(body);
 			}
 
+			/**
+			 * @param {string | null | undefined} [context] 
+			 * @param {boolean | undefined} [topLevel ]
+			 * @param {Record<string, boolean> | undefined} [exports]
+			 * @returns {acorn.Statement}
+			 */
 			parseStatement(context, topLevel, exports) {
 				const tok = this.acornTypeScript.tokContexts;
 
@@ -580,15 +641,17 @@ function RipplePlugin(config) {
 				) {
 					this.next();
 					const node = this.jsx_parseExpressionContainer();
-					node.type = 'Text';
+
+					node.type = /** @type {'JSXExpressionContainer'} */ ('Text');
 					this.next();
 					this.context.pop();
 					this.context.pop();
-					return node;
+
+					return /** @type {acorn.Statement} */ (/** @type {unknown} */ (node));
 				}
 
 				if (this.value === 'component') {
-					const node = this.startNode();
+					const node = /** @type {a.AcornNodesMap['Component']} */ (this.startNode());
 					node.type = 'Component';
 					node.css = null;
 					this.next();
@@ -608,20 +671,27 @@ function RipplePlugin(config) {
 					this.finishNode(node, 'Component');
 					this.awaitPos = 0;
 
-					return node;
+					return /** @type {acorn.Statement} */ (/** @type {unknown} */ (node));
 				}
 
 				return super.parseStatement(context, topLevel, exports);
 			}
 
+			/**
+			 * @param {boolean | undefined} [createNewLexicalScope] 
+			 * @param {a.AcornNodesMap['Component'] | undefined} [node] 
+			 * @param {boolean | undefined} [exitStrict]
+			 */
 			parseBlock(createNewLexicalScope, node, exitStrict) {
 				const parent = this.#path.at(-1);
 
 				if (parent?.type === 'Component' || parent?.type === 'Element') {
 					if (createNewLexicalScope === void 0) createNewLexicalScope = true;
-					if (node === void 0) node = this.startNode();
+					if (node === void 0) node = /** @type {a.AcornNodesMap['Component']} */ (this.startNode());
 
+					node = /** @type {a.AcornNodesMap['Component']} */ (node);
 					node.body = [];
+
 					this.expect(tt.braceL);
 					if (createNewLexicalScope) {
 						this.enterScope(0);
@@ -653,11 +723,19 @@ function RipplePlugin(config) {
  * to add them after the fact. They are needed in order to support `ripple-ignore` comments
  * in JS code and so that `prettier-plugin-ripple` doesn't remove all comments when formatting.
  * @param {string} source
- * @param {CommentWithLocation[]} comments
+ * @param {a.CommentWithLocation[]} comments
  * @param {number} index
  */
 function get_comment_handlers(source, comments, index = 0) {
 	return {
+		/**
+		 * @param {boolean} block 
+		 * @param {string} value 
+		 * @param {number} start 
+		 * @param {number} end 
+		 * @param {acorn.Position | undefined} start_loc 
+		 * @param {acorn.Position | undefined} end_loc 
+		 */
 		onComment: (block, value, start, end, start_loc, end_loc) => {
 			if (block && /\n/.test(value)) {
 				let a = start;
@@ -681,6 +759,10 @@ function get_comment_handlers(source, comments, index = 0) {
 				},
 			});
 		},
+
+		/**
+		 * @param {a.CommentedNode} ast
+		 */
 		add_comments: (ast) => {
 			if (comments.length === 0) return;
 
@@ -693,7 +775,7 @@ function get_comment_handlers(source, comments, index = 0) {
 					let comment;
 
 					while (comments[0] && comments[0].start < node.start) {
-						comment = /** @type {CommentWithLocation} */ (comments.shift());
+						comment = /** @type {a.CommentWithLocation} */ (comments.shift());
 						(node.leadingComments ||= []).push(comment);
 					}
 
@@ -702,11 +784,12 @@ function get_comment_handlers(source, comments, index = 0) {
 					if (comments[0]) {
 						if (node.type === 'BlockStatement' && node.body.length === 0) {
 							if (comments[0].start < node.end && comments[0].end < node.end) {
-								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								comment = /** @type {a.CommentWithLocation} */ (comments.shift());
 								(node.innerComments ||= []).push(comment);
 								return;
 							}
 						}
+
 						const parent = /** @type {any} */ (path.at(-1));
 
 						if (parent === undefined || node.end !== parent.end) {
@@ -733,7 +816,7 @@ function get_comment_handlers(source, comments, index = 0) {
 									end = comment.end;
 								}
 							} else if (node.end <= comments[0].start && /^[,) \t]*$/.test(slice)) {
-								node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+								node.trailingComments = [/** @type {a.CommentWithLocation} */ (comments.shift())];
 							}
 						}
 					}
@@ -749,9 +832,19 @@ function get_comment_handlers(source, comments, index = 0) {
 	};
 }
 
+/**
+ * @param {string} source
+ */
 export function parse(source) {
+	/**
+	 * @type {a.CommentWithLocation[]}
+	 */
 	const comments = [];
 	const { onComment, add_comments } = get_comment_handlers(source, comments);
+
+	/**
+	 * @type {acorn.Program}
+	 */
 	let ast;
 
 	try {
