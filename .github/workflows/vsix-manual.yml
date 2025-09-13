@@ -42,6 +42,17 @@ jobs:
               with:
                   name: ripple-vscode-plugin VSIX
 
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: "pnpm"
+
             - name: Publish to VSM
               run: pnpx -- @vscode/vsce publish
               env:
@@ -55,6 +66,17 @@ jobs:
               uses: actions/download-artifact@v5
               with:
                   name: ripple-vscode-plugin VSIX
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: "pnpm"
 
             - name: Publish to OVSX
               run: pnpx ovsx publish *.vsix
