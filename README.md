@@ -19,11 +19,11 @@ I wrote Ripple as a love letter for frontend web – and this is largely a proje
 
 Personally, I ([@trueadm](https://github.com/trueadm)) have been involved in some truly amazing frontend frameworks along their journeys – from [Inferno](https://github.com/infernojs/inferno), where it all began, to [React](https://github.com/facebook/react) and the journey of React Hooks, to creating [Lexical](https://github.com/facebook/lexical), to [Svelte 5](https://github.com/sveltejs/svelte) and its new compiler and signal-based reactivity runtime. Along that journey, I collected ideas, and intriguing thoughts that may or may not pay off. Given my time between roles, I decided it was the best opportunity to try them out, and for open source to see what I was cooking.
 
-Ripple was designed to be a JS/TS-first framework, rather than HTML-first. Ripple modules have their own `.ripple` extension and these modules
-fully support TypeScript. By introducing a new extension, it affords Ripple to invent its own superset language, that plays really nicely with
+Ripple was designed to be a JS/TS-first framework, rather than HTML-first. Ripple modules have their own `.ripple` extension, and these modules
+fully support TypeScript. By introducing a new extension, it allows Ripple to invent its own superset language, which plays really nicely with
 TypeScript and JSX, but with a few interesting touches. In my experience, this has led to better DX not only for humans, but also for LLMs.
 
-Right now, there will be plenty of bugs, things just won't work either and you'll find TODOs everywhere. At this stage, Ripple is more of an early alpha version of something that _might_ be, rather than something you should try and adopt. If anything, maybe some of the ideas can be shared and incubated back into other frameworks. There's also a lot of similarities with Svelte 5, and that's not by accident, that's because of my recent time working on Svelte 5.
+Right now, there will be plenty of bugs, things just won't work either and you'll find TODOs everywhere. At this stage, Ripple is more of an early alpha version of something that _might_ be, rather than something you should try and adopt. If anything, maybe some of the ideas can be shared and incubated back into other frameworks. There's also a lot of similarities with Svelte 5, and that's not by accident; that's because of my recent time working on Svelte 5.
 
 If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySrh2W).
 
@@ -32,7 +32,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 - **Reactive State Management**: Built-in reactivity with `$` prefixed variables and object properties
 - **Component-Based Architecture**: Clean, reusable components with props and children
 - **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
-- **Performance**: Fine-grain rendering, with industry leading performance and memory usage
+- **Performance**: Fine-grain rendering, with industry-leading performance and memory usage
 - **TypeScript Support**: Full TypeScript integration with type checking
 - **VSCode Integration**: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
 - **Prettier Support**: Full Prettier formatting support for `.ripple` modules
@@ -40,7 +40,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 ## Missing Features
 
 - **SSR**: Ripple is currently an SPA only, this is because I haven't gotten around to it
-- **Types**: The codebase is very raw with limited types, we're getting around to it
+- **Types**: The codebase is very raw with limited types; we're getting around to it
 
 ## Getting Started
 
@@ -647,7 +647,7 @@ Lastly, you can use decorators on composite components.
 <Image {@use (node) => console.log(node)} {...props} />
 ```
 
-When passing decorators to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that it can be spread to HTML template elements later on, and still work.
+When passing decorators to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that it can be spread to HTML template elements later on and still work.
 
 ### Event Props
 
