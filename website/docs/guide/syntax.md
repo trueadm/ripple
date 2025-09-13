@@ -2,7 +2,7 @@
 title: Ripple Component Syntax
 ---
 
-# {{ $frontmatter.title }}
+# Component Syntax
 
 Ripple's syntax is a superset of JSX, with one notable difference: components
 and elements (which we'll call templates) are written as statements rather than

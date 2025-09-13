@@ -2,7 +2,7 @@
 title: Creating a Ripple application
 ---
 
-# {{ $frontmatter.title }}
+# Creating a Ripple application
 
 We'll start with this code snippet, and break it down step by step.
 

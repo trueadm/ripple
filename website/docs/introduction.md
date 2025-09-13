@@ -2,7 +2,7 @@
 title: Introduction
 ---
 
-# {{ $frontmatter.title }}
+# Introduction
 
 Ripple is an elegant, compiler-driven language and view library for the web based on a superset of JSX, by Dominic Gannaway ([@trueadm](https://github.com/trueadm)).
 

@@ -1,8 +1,8 @@
 ---
-title: Data-binding in Ripple
+title: Data Binding in Ripple
 ---
 
-# {{ $frontmatter.title }}
+# Data Binding
 
 ### Accessor Props
 
