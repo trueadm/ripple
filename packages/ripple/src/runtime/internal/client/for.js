@@ -385,3 +385,27 @@ export function keyed(collection, key_fn) {
 
 	return b_array;
 }
+
+// Doesn't render anthing, just creates a reactive context for the duration of the loop
+export function for_effect(get_collection, fn) {
+	render(() => {
+		var block = active_block;
+		var collection = get_collection();
+		var array = is_array(collection)
+			? collection
+			: collection == null
+				? []
+				: array_from(collection);
+
+		if (array[TRACKED_OBJECT] !== undefined) {
+			array = get_all_elements(collection);
+			collection.$length;
+		}
+
+		untrack(() => {
+			for (const item of array) {
+				fn(item);
+			}
+		});
+	});
+}

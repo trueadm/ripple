@@ -394,13 +394,13 @@ const visitors = {
 					declarations.push(context.visit(declarator));
 					continue;
 				}
-				
+
 				// For TypeScript mode, we still need to transform tracked variables
 				// but use a lighter approach that maintains type information
 				if (context.state.to_ts) {
 					const transformed = declarator.transformed || declarator.id;
 					let expression;
-					
+
 					if (metadata.tracking && !metadata.await) {
 						expression = b.call(
 							'$.computed',
@@ -409,13 +409,9 @@ const visitors = {
 						);
 					} else {
 						// Simple tracked variable - always use $.tracked for $ prefixed variables
-						expression = b.call(
-							'$.tracked',
-							context.visit(declarator.init),
-							b.id('__block'),
-						);
+						expression = b.call('$.tracked', context.visit(declarator.init), b.id('__block'));
 					}
-					
+
 					declarations.push(b.declarator(transformed, expression));
 					continue;
 				}
@@ -1111,6 +1107,31 @@ const visitors = {
 			context.state.template.push('<!>');
 		}
 
+		// If the for loop does not actual render anything, then we can
+		// instead create a for loop in a render effect to emulate a relative for loop
+		if (!node.metadata.has_template) {
+			const pattern = node.left.declarations[0].id;
+			const body_scope = context.state.scopes.get(node.body);
+
+			context.state.init.push(
+				b.stmt(
+					b.call(
+						'$.for_effect',
+						b.thunk(context.visit(node.right)),
+						b.arrow(
+							[pattern],
+							b.block(
+								transform_body(node.body.body, {
+									...context,
+									state: { ...context.state, scope: body_scope },
+								}),
+							),
+						),
+					),
+				),
+			);
+			return;
+		}
 		const id = context.state.flush_node(is_controlled);
 		const pattern = node.left.declarations[0].id;
 		const body_scope = context.state.scopes.get(node.body);

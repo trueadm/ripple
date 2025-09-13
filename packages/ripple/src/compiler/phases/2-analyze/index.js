@@ -15,6 +15,29 @@ import is_reference from 'is-reference';
 import { prune_css } from './prune.js';
 import { error } from '../../errors.js';
 
+function mark_for_loop_has_template(path) {
+	for (let i = path.length - 1; i >= 0; i -= 1) {
+		const node = path[i];
+
+		if (
+			node.type === 'Component' ||
+			node.type === 'FunctionExpression' ||
+			node.type === 'ArrowFunctionExpression' ||
+			node.type === 'FunctionDeclaration'
+		) {
+			break;
+		}
+		if (
+			node.type === 'ForStatement' ||
+			node.type === 'ForInStatement' ||
+			node.type === 'ForOfStatement'
+		) {
+			node.metadata.has_template = true;
+			break;
+		}
+	}
+}
+
 function visit_function(node, context) {
 	node.metadata = {
 		hoisted: false,
@@ -407,6 +430,13 @@ const visitors = {
 		context.next();
 	},
 
+	ForOfStatement(node, context) {
+		node.metadata = {
+			has_template: false,
+		};
+		context.next();
+	},
+
 	ForInStatement(node, context) {
 		if (is_inside_component(context)) {
 			error(
@@ -429,12 +459,14 @@ const visitors = {
 		}
 	},
 
-	Element(node, { state, visit }) {
+	Element(node, { state, visit, path }) {
 		const is_dom_element =
 			node.id.type === 'Identifier' &&
 			node.id.name[0].toLowerCase() === node.id.name[0] &&
 			node.id.name[0] !== '$';
 		const attribute_names = new Set();
+
+		mark_for_loop_has_template(path);
 
 		if (is_dom_element) {
 			const is_void = is_void_element(node.id.name);
@@ -565,6 +597,11 @@ const visitors = {
 			...node,
 			children: node.children.map((child) => visit(child)),
 		};
+	},
+
+	Text(node, context) {
+		mark_for_loop_has_template(context.path);
+		context.next();
 	},
 
 	AwaitExpression(node, context) {

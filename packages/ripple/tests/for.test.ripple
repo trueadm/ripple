@@ -56,4 +56,40 @@ describe('for statements', () => {
 
 		expect(container).toMatchSnapshot();
 	});
+
+	it('supports for of loops that do not render anything', () => {
+		component App() {
+			let items = new RippleArray(1, 2, 3);
+			let $sum = 0;
+
+			for (const item of items) {
+				$sum += item;
+			}
+
+			<button onClick={() => items.push(4)}>{'add item'}</button>
+			<button onClick={() => items[0] = 10}>{'change first item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$sum}</pre>
+		}
+
+		render(App);
+
+		const addButton = container.querySelectorAll('button')[0];
+		const changeButton = container.querySelectorAll('button')[1];
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('6');
+
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('16');
+
+		changeButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[10,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('35');
+	});
 });
