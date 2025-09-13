@@ -4,63 +4,89 @@ title: Data Binding in Ripple
 
 # Data Binding
 
-### Accessor Props
+## Accessor Props
 
-**Advanced Feature**: Ripple provides accessor props for debugging and two-way data binding on composite components using `$prop:={}` syntax (note the colon before equals).
+When working with props on composite components (`<Foo>` rather than `<div>`), it can sometimes be difficult to debug why a certain value is a certain way. JavaScript gives us a way to do this on objects using the `get` syntax:
 
-#### Basic Accessor (Getter Only)
-```ripple
-component Person(props) {
-  <div>{"Hello, "}{props.$name}</div>
-}
+```js
+let name = 'Bob';
 
-// Accessor syntax requires a function and $ prefix (reactive)
-component App() {
-  let $name = 'Bob';
-
-  const getName = () => {
-    console.log('name accessed'); // Debugging capability
-    return $name;
-  };
-
-  // Use := instead of = for accessor props
-  <Person $name:={getName} />
-
-  // Or inline:
-  <Person $name:={() => {
-    console.log('name accessed');
-    return $name;
-  }} />
+const object = {
+  get name() {
+    // I can easily debug when this property gets
+    // access and track it easily
+    console.log(name);
+    return name;
+  }
 }
 ```
 
-#### Two-Way Binding (Getter + Setter)
-```ripple
+So Ripple provides similar capabilities when working with composite components in a template, specifcally using `$prop:={}` rather than the typical `$prop={}`.
+
+In fact, when you use an accessor, you must pass a function, and the prop must be `$` prefixed, as Ripple considers accessor props as reactive:
+
+```jsx
+let $name = 'Bob';
+
+const getName = () => {
+  // I can easily debug when this property gets
+  // access and track it easily
+  console.log(name);
+  return $name;
+};
+
+<Person $name:={getName} />
+```
+
+You can also inline the function too:
+
+```jsx
+let $name = 'Bob';
+
+<Person $name:={() => {
+  // I can easily debug when this property gets
+  // access and track it easily
+  console.log(name);
+  return $name;
+}} />
+```
+
+Furthermore, just like property accessors in JavaScript, Ripple provides a way of capturing the `set` too, enabling two-way data-flow on composite component props. You just need to provide a second function after the first, separated using a comma:
+
+```jsx
+let $name = 'Bob';
+
+const getName = () => {
+  return $name;
+}
+
+const setName = (newName) => {
+  $name = newName;
+}
+
+<Person $name:={getName, setName} />
+```
+
+Or an inlined version:
+
+```jsx
+let $name = 'Bob';
+
+<Person $name:={() => $name, (newName) => $name = $newName} />
+```
+
+Now changes in the `Person` to its `props` will propagate to its parent component:
+
+```jsx
 component Person(props) {
   const updateName = (newName) => {
-    // Component can directly assign to trigger setter
     props.$name = newName;
   }
 
-  <div>
-    <span>{"Hello, "}{props.$name}</span>
-    <button onClick={() => updateName("Alice")}>{"Change Name"}</button>
-  </div>
-}
-
-component App() {
-  let $name = 'Bob';
-
-  const getName = () => $name;
-  const setName = (newName) => $name = newName;
-
-  // Provide both getter and setter functions
-  <Person $name:={getName, setName} />
-
-  // Or inline version:
-  <Person $name:={() => $name, (newName) => $name = newName} />
+  <NameInput onChange={updateName}>
 }
 ```
+
 
 **Key Rules:**
 - Accessor props use `$prop:={}` syntax (colon before equals)
