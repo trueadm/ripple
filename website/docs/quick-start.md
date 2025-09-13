@@ -27,8 +27,11 @@ npm run dev // [!=npm auto]
 ## Editor Integration
 
 Ripple maintains a Volar-based [VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin).
+
 It provides syntax highlighting for `.ripple` files, real-time diagnostics for
 compilation errors, typescript integration for type checking and autocompletion.
+
+If you're using a fork of VSCode, the extension is also available on [OpenVSX](https://open-vsx.org/extension/ripplejs/ripple-vscode-plugin).
 
 ::: info Are you a Zed, NeoVim, or IntelliJ/WebStorm user?
 Help us port the Ripple extension to your platforms!
