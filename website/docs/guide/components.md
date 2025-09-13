@@ -2,7 +2,7 @@
 title: Components in Ripple
 ---
 
-# {{ $frontmatter.title }}
+# Components
 
 
 ### Children Components

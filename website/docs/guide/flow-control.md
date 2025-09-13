@@ -1,8 +1,8 @@
 ---
-title: Reactivity in Ripple
+title: Flow Control in Ripple
 ---
 
-# {{ $frontmatter.title }}
+# Flow Control
 
 ## Control Flow
 

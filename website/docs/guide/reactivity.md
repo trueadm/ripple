@@ -2,7 +2,7 @@
 title: Reactivity in Ripple
 ---
 
-# {{ $frontmatter.title }}
+# Reactivity
 
 ## Reactive Variables
 
