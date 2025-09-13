@@ -2,7 +2,7 @@
 title: Quick Start
 ---
 
-# {{ $frontmatter.title }}
+# Quick Start
 
 ## Try Ripple Online
 You can try VitePress directly in your browser on [StackBlitz](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic).

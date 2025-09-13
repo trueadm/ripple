@@ -2,7 +2,7 @@
 title: Comparison to other frameworks
 ---
 
-# {{ $frontmatter.title }}
+# Comparison to other frameworks
 
 ## vs React
 - No JSX functions/returns - components use statement-based templates

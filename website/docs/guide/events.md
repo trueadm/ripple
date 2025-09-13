@@ -2,7 +2,7 @@
 title: Events in Ripple
 ---
 
-# {{ $frontmatter.title }}
+# Events
 
 
 ### Event Handling
