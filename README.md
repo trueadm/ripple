@@ -179,7 +179,7 @@ Now `$count` will only reactively create its value on initialization.
 
 #### Transporting Reactivity
 
-Ripple doesn't constrain reactivity to components only. Reactivity can be used inside other functions (and classes in the future) and be composed in a way to improve expressitivity and co-location.
+Ripple doesn't constrain reactivity to components only. Reactivity can be used inside other functions (and classes in the future) and be composed in a way to improve expressivity and co-location.
 
 Ripple provides a very nice way to transport reactivity between boundaries so that it's persisted – using objects and arrays. Here's an example using arrays to transport reactivity:
 
@@ -526,7 +526,7 @@ const object = {
 }
 ```
 
-So Ripple provides similar capabilities when working with composite components in a template, specifcally using `$prop:={}` rather than the typical `$prop={}`.
+So Ripple provides similar capabilities when working with composite components in a template, specifically using `$prop:={}` rather than the typical `$prop={}`.
 
 In fact, when you use an accessor, you must pass a function, and the prop must be `$` prefixed, as Ripple considers accessor props as reactive:
 
