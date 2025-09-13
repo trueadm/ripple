@@ -48,7 +48,7 @@ jobs:
                   version: 10
 
             - name: Publish to VSM
-              run: pnpx -- @vscode/vsce publish
+              run: pnpx -- @vscode/vsce publish -i *.vsix
               env:
                   VSCE_PAT: ${{ secrets.VSM_TOKEN }}
 
