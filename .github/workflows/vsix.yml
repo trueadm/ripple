@@ -23,7 +23,7 @@ jobs:
               run: |
                   # jq -r returns raw string
                   CURRENT_VERSION=$(jq -r .version package.json)
-                  PREVIOUS_VERSION=$(git show HEAD~1:package.json | jq -r .version)
+                  PREVIOUS_VERSION=$(git show HEAD~1:./package.json | jq -r .version)
 
                   echo "Current version:  ${CURRENT_VERSION}"
                   echo "Previous version: ${PREVIOUS_VERSION}"
