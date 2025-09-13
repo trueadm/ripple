@@ -33,6 +33,8 @@ export default defineConfig({
 	},
 
 	themeConfig: {
+		search: { provider: 'local' },
+
 		socialLinks: [
 			{ icon: 'github', link: 'https://github.com/trueadm/ripple' },
 			{ icon: 'discord', link: 'https://discord.gg/JBF2ySrh2W' },
