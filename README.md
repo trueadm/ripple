@@ -258,10 +258,10 @@ import { RippleArray } from 'ripple';
 const arr = new RippleArray(1, 2, 3);
 
 // using static from method
-const arr = Ripple.from([1, 2, 3]);
+const arr = RippleArray.from([1, 2, 3]);
 
 // using static of method
-const arr = Ripple.of(1, 2, 3);
+const arr = RippleArray.of(1, 2, 3);
 ```
 
 The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index. However,
