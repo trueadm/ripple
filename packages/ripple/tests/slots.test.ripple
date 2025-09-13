@@ -1,0 +1,110 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { mount, flushSync } from 'ripple';
+
+describe('slot syntax', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+	it('handles slot-annotated components', () => {
+		component Button({ $A, $B, $children }) {
+			<div>
+				<$A />
+				<$children />
+				<$B />
+			</div>
+		}
+
+		component Counter() {
+			<div>{"I am A"}</div>
+		}
+
+		Counter.$$slot = 'A';
+
+		component Footer() {
+			<div>{"I am B"}</div>
+		}
+
+		Footer.$$slot = 'B';
+
+		component App() {
+			<Button>
+				<Counter />
+				<div>{"other text"}</div>
+				<Footer />
+			</Button>
+		}
+
+		render(App);
+
+		expect(container).toMatchSnapshot();
+	});
+
+	it('passes props to slot components', () => {
+		component Layout({ $sidebar }) {
+			<div>
+				<$sidebar width="200px" />
+			</div>
+		}
+
+		component Sidebar({ width }) {
+			<div style={"width: " + width}>{"Sidebar"}</div>
+		}
+
+		Sidebar.$$slot = 'sidebar';
+
+		component App() {
+			<Layout>
+				<Sidebar />
+			</Layout>
+		}
+
+		render(App);
+
+		const sidebar = container.querySelector('div[style]');
+		expect(sidebar.style.width).toBe('200px');
+		expect(sidebar.textContent).toBe('Sidebar');
+	});
+
+	it('handles mixed slot and regular children', () => {
+		component Panel({ $title, $children }) {
+			<div>
+				<$title />
+				<$children />
+			</div>
+		}
+
+		component Title() {
+			<h1>{"Panel Title"}</h1>
+		}
+
+		Title.$$slot = 'title';
+
+		component App() {
+			<Panel>
+				<Title />
+				<p>{"Regular content"}</p>
+			</Panel>
+		}
+
+		render(App);
+
+		expect(container.querySelector('h1').textContent).toBe('Panel Title');
+		expect(container.querySelector('p').textContent).toBe('Regular content');
+	});
+});

@@ -620,6 +620,25 @@ const visitors = {
 
 		context.next();
 	},
+
+	AssignmentExpression(node, context) {
+		// Track `Component.$$slot = 'slotName'` assignments
+		if (
+			node.left.type === 'MemberExpression' &&
+			node.left.object.type === 'Identifier' &&
+			node.left.property.type === 'Identifier' &&
+			node.left.property.name === '$$slot' &&
+			!node.left.computed &&
+			node.right.type === 'Literal' &&
+			typeof node.right.value === 'string'
+		) {
+			const component_name = node.left.object.name;
+			const slot_name = node.right.value;
+			context.state.slots.set(component_name, slot_name);
+		}
+
+		context.next();
+	},
 };
 
 export function analyze(ast, filename) {
@@ -632,6 +651,7 @@ export function analyze(ast, filename) {
 		ast,
 		scope,
 		scopes,
+		slots: new Map(),
 	};
 
 	walk(
@@ -640,6 +660,7 @@ export function analyze(ast, filename) {
 			scope,
 			scopes,
 			analysis,
+			slots: analysis.slots,
 		},
 		visitors,
 	);
