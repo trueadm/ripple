@@ -1,5 +1,4 @@
 /** @import { Block, Component, Dependency, Computed, Tracked } from '#client' */
-/** @import { RippleArray } from 'ripple' */
 
 import {
 	destroy_block,
@@ -27,9 +26,10 @@ import {
 	TRY_BLOCK,
 	UNINITIALIZED,
 	USE_PROP,
+	ARRAY_SET_INDEX_AT,
 } from './constants';
 import { capture, suspend } from './try.js';
-import { define_property, get_descriptor, is_array } from './utils';
+import { define_property, get_descriptor, is_ripple_array, is_positive_integer } from './utils';
 import {
 	object_keys as original_object_keys,
 	object_values as original_object_values,
@@ -881,6 +881,8 @@ export function get_property(obj, property, chain = false) {
 		var spread_fn = obj[SPREAD_OBJECT];
 		var properties = spread_fn();
 		return get_property(properties, property, chain);
+	} else if (is_ripple_array(obj)) {
+		obj.$length;
 	}
 
 	return value;
@@ -894,19 +896,29 @@ export function get_property(obj, property, chain = false) {
  * @returns {any}
  */
 export function set_property(obj, property, value, block) {
-	var res = (obj[property] = value);
 	var tracked_properties = obj[TRACKED_OBJECT];
-	var tracked = tracked_properties?.[property];
+	var rip_arr = is_ripple_array(obj);
+	var tracked = !(rip_arr && property === 'length') ? tracked_properties?.[property] : undefined;
 
 	if (tracked === undefined) {
 		// Handle computed assignments to arrays
-		if (is_array(obj) && obj.$length && tracked_properties !== undefined) {
-			with_scope(block, () => {
-				obj.splice(/** @type {number} */ (property), 1, value);
-			});
+		if (rip_arr) {
+			if (property === 'length') {
+				// overriding `length` in RippleArray class doesn't work
+				// placing it here instead
+				throw new Error('Cannot set length on RippleArray, use $length instead');
+			} else if (is_positive_integer(property)) {
+				// for any other type we use obj[property] = value below as per native JS
+				return with_scope(block, () => {
+					obj[ARRAY_SET_INDEX_AT](property, value);
+				});
+			}
 		}
-		return res;
+
+		return (obj[property] = value);
 	}
+
+	obj[property] = value;
 
 	set(tracked, value, block);
 }
@@ -1028,8 +1040,8 @@ export function structured_clone(val, options) {
 	if (typeof val === 'object' && val !== null) {
 		var tracked_properties = val[TRACKED_OBJECT];
 		if (tracked_properties !== undefined) {
-			if (is_array(val)) {
-				/** @type {RippleArray<any>} */ (val).$length;
+			if (is_ripple_array(val)) {
+				val.$length;
 			}
 			return structured_clone(object_values(val), options);
 		}
@@ -1038,7 +1050,7 @@ export function structured_clone(val, options) {
 }
 
 export function object_keys(obj) {
-	if (is_array(obj) && TRACKED_OBJECT in obj) {
+	if (is_ripple_array(obj)) {
 		obj.$length;
 	}
 	return original_object_keys(obj);
@@ -1050,7 +1062,7 @@ export function object_values(obj) {
 	if (tracked_properties === undefined) {
 		return original_object_values(obj);
 	}
-	if (is_array(obj)) {
+	if (is_ripple_array(obj)) {
 		obj.$length;
 	}
 	var keys = original_object_keys(obj);
@@ -1069,7 +1081,7 @@ export function object_entries(obj) {
 	if (tracked_properties === undefined) {
 		return original_object_entries(obj);
 	}
-	if (is_array(obj)) {
+	if (is_ripple_array(obj)) {
 		obj.$length;
 	}
 	var keys = original_object_keys(obj);

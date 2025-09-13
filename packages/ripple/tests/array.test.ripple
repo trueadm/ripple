@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-
 import { mount, flushSync, RippleArray } from 'ripple';
+import { ARRAY_SET_INDEX_AT } from '../src/runtime/internal/client/constants.js';
 
-describe('array', () => {
+describe('RippleArray', () => {
 	let container;
 
 	function render(component) {
 		mount(component, {
-			target: container
+		target: container
 		});
 	}
 
@@ -21,11 +21,11 @@ describe('array', () => {
 		container = null;
 	});
 
-	it('handles direct assignment', () => {
+	it('handles direct assignment and length tracking', () => {
 		component ArrayTest() {
 			let items = new RippleArray(1, 2, 3);
 
-			<button onClick={() => items[items.$length] = items.$length + 1}>{'increment'}</button>
+			<button onClick={() => items[items.length] = items.length + 1}>{'increment'}</button>
 
 			<Child items={items} />
 		}
@@ -35,20 +35,1428 @@ describe('array', () => {
 			<pre>{items.$length}</pre>
 		}
 
-		render(ArrayTest);
+			render(ArrayTest);
 
-		const button = container.querySelector('button');
+			const button = container.querySelector('button');
 
-		button.click();
+			button.click();
+			flushSync();
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+
+			button.click();
+			flushSync();
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+	});
+
+	it('handles push and pop operations with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+			let $lastItem = items[items.$length - 1];
+
+			<button onClick={() => items.push(4)}>{'push'}</button>
+			<button onClick={() => items.pop()}>{'pop'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.$length}</pre>
+			<pre>{$lastItem}</pre>
+		}
+
+    	render(ArrayTest);
+
+		const pushButton = container.querySelectorAll('button')[0];
+		const popButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+		// Test push operation
+		pushButton.click();
 		flushSync();
 
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('4');
 
-		button.click();
+		// Test pop operation
+		popButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+  });
+
+	it('handles shift and unshift operations with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(2, 3, 4);
+			let $firstItem = items[0];
+
+			<button onClick={() => items.unshift(1)}>{'unshift'}</button>
+			<button onClick={() => items.shift()}>{'shift'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.$length}</pre>
+			<pre>{$firstItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const unshiftButton = container.querySelectorAll('button')[0];
+		const shiftButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('2');
+
+		// Test unshift operation
+		unshiftButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('1');
+
+		// Test shift operation
+		shiftButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('2');
+	});
+
+	it('handles splice operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4, 5);
+			let $middleItem = items[2];
+
+			<button onClick={() => items.splice(1, 2, 'a', 'b')}>{'splice'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.$length}</pre>
+			<pre>{$middleItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const spliceButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+		// Test splice operation
+		spliceButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,"a","b",4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('b');
+	});
+
+	it('handles fill operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4, 5);
+			let $secondItem = items[1];
+
+			<button onClick={() => items.fill(0, 1, 4)}>{'fill'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$secondItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const fillButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+		// Test fill operation
+		fillButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,0,0,0,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+	});
+
+	it('handles reverse operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4, 5);
+			let $firstItem = items[0];
+			let $lastItem = items[4];
+
+			<button onClick={() => items.reverse()}>{'reverse'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$firstItem}</pre>
+			<pre>{$lastItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const reverseButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('5');
+
+		// Test reverse operation
+		reverseButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[5,4,3,2,1]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('1');
+	});
+
+	it('handles sort operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(5, 3, 1, 4, 2);
+			let $secondItem = items[1];
+
+			<button onClick={() => items.sort()}>{'sort ascending'}</button>
+			<button onClick={() => items.sort((a, b) => b - a)}>{'sort descending'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$secondItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const sortAscButton = container.querySelectorAll('button')[0];
+		const sortDescButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[5,3,1,4,2]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+		// Test sort ascending
+		sortAscButton.click();
 		flushSync();
 
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+		// Test sort descending
+		sortDescButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[5,4,3,2,1]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+	});
+
+	it('handles array methods that return values (map, filter, etc.)', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4, 5);
+			let $doubled = items.map(x => x * 2);
+			let $filtered = items.filter(x => (x % 2) === 0);
+			let $reduced = items.reduce((acc, val) => acc + val, 0);
+			let $includes = items.includes(3);
+
+			<button onClick={() => items.push(6)}>{'add item'}</button>
+			<pre>{JSON.stringify($doubled)}</pre>
+			<pre>{JSON.stringify($filtered)}</pre>
+			<pre>{$reduced}</pre>
+			<pre>{$includes.toString()}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[2,4,6,8,10]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[2,4]');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('15');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('true');
+
+		// Test reactivity with these methods
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[2,4,6,8,10,12]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[2,4,6]');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('21');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('true');
+	});
+
+	it('handles array modification through forEach()', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+
+			<button onClick={() => items.forEach((item, i) => items[i] = item * 2)}>{'double all'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const doubleButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('[1,2,3]');
+
+		// Test iteration with side effects
+		doubleButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('[2,4,6]');
+	});
+
+	it('handles entries method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray('a', 'b', 'c');
+			let $entries = Array.from(items.entries());
+
+			<button onClick={() => items.push('d')}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($entries)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[[0,"a"],[1,"b"],[2,"c"]]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c","d"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[[0,"a"],[1,"b"],[2,"c"],[3,"d"]]');
+	});
+
+	it('handles concat method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+			let $concatenated = items.concat([4, 5], 6, [7, 8]);
+
+			<button onClick={() => items.push(3.5)}>{'add to original'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($concatenated)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3,4,5,6,7,8]');
+
+		// Test adding to original array
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,3.5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3,3.5,4,5,6,7,8]');
+	});
+
+	it('handles array modification through iterator', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+
+			<button onClick={() => items.forEach((item, i) => items[i] = item * 2)}>{'double all'}</button>
+
+			for (const item of items) {
+				<pre>{item}</pre>
+			}
+		}
+
+		render(ArrayTest);
+
+		const doubleButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('1');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+		// Test iteration with side effects
+		doubleButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('2');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('6');
+	});
+
+	it('handles $length property for reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+			let $length = items.$length;
+
+			<button onClick={() => items.$length = 5}>{'expand'}</button>
+			<button onClick={() => items.$length = 2}>{'shrink'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$length}</pre>
+		}
+
+		render(ArrayTest);
+
+		const expandButton = container.querySelectorAll('button')[0];
+		const shrinkButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+		// Test expand
+		expandButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,null,null]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+
+		// Test shrink
+		shrinkButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+	});
+
+	it('handles static methods - from and of', () => {
+		component ArrayTest() {
+			let itemsFrom = RippleArray.from([1, 2, 3], x => x * 2);
+			let itemsOf = RippleArray.of(4, 5, 6);
+
+			<button onClick={() => itemsFrom.push(8)}>{'add to from'}</button>
+			<button onClick={() => itemsOf.push(7)}>{'add to of'}</button>
+			<pre>{JSON.stringify(itemsFrom)}</pre>
+			<pre>{JSON.stringify(itemsOf)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addFromButton = container.querySelectorAll('button')[0];
+		const addOfButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[2,4,6]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[4,5,6]');
+
+		// Test adding to from-created array
+		addFromButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[2,4,6,8]');
+
+		// Test adding to of-created array
+		addOfButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[4,5,6,7]');
+	});
+
+	it('handles toJSON method', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+
+			<button onClick={() => items.push(4)}>{'add'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state - toJSON is implicitly called by JSON.stringify
+		expect(container.querySelector('pre').textContent).toBe('[1,2,3]');
+
+		// Test reactivity with JSON serialization
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('[1,2,3,4]');
+	});
+
+	it('handles array index access with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(10, 20, 30);
+			let $firstItem = items[0];
+			let $secondItem = items[1];
+
+			<button onClick={() => items[0] = 100}>{'change first'}</button>
+			<pre>{$firstItem}</pre>
+			<pre>{$secondItem}</pre>
+			<pre>{items[0]}</pre>
+			<pre>{items[1]}</pre>
+		}
+
+		render(ArrayTest);
+
+		const changeButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('10');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('20');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('10');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('20');
+
+		// Test changing array element directly
+		changeButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('100');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('20');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('100');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('20');
+	});
+
+	it('handles array slice method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4, 5);
+			let $sliced = items.slice(1, 4);
+
+			<button onClick={() => items[2] = 30}>{'change middle'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($sliced)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const changeButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[2,3,4]');
+
+		// Test reactivity with slice
+		changeButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,30,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[2,30,4]');
+	});
+
+	it('handles find and findIndex methods with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(5, 10, 15, 20, 25);
+			let $found = items.find(x => x > 12);
+			let $foundIndex = items.findIndex(x => x > 12);
+
+			<button onClick={() => {
+				items[1] = 13;
+				items[0] = 6;
+			}}>{'update values'}</button>
+			<pre>{$found}</pre>
+			<pre>{$foundIndex}</pre>
+		}
+
+		render(ArrayTest);
+
+		const updateButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('15');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+		// Test reactivity with find methods
+		updateButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('13');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+	});
+
+	// Additional tests for RippleArray methods
+
+	it('handles findLast and findLastIndex methods with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(5, 15, 10, 20, 15);
+			let $foundLast = items.findLast(x => x === 15);
+			let $foundLastIndex = items.findLastIndex(x => x === 15);
+
+			<button onClick={() => {
+				items[1] = 25;
+				items[4] = 15;
+			}}>{'update values'}</button>
+			<pre>{$foundLast}</pre>
+			<pre>{$foundLastIndex}</pre>
+		}
+
+		render(ArrayTest);
+
+		const updateButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('15');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+
+		// Test reactivity with findLast methods
+		updateButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('15');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+	});
+
+	it('handles every method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(2, 4, 6, 8);
+			let $allEven = items.every(x => x % 2 === 0);
+
+			<button onClick={() => items.push(3)}>{'add odd'}</button>
+			<button onClick={() => {
+				items.pop();
+				items.push(10);
+			}}>{'ensure all even'}</button>
+			<pre>{$allEven.toString()}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addOddButton = container.querySelectorAll('button')[0];
+		const makeEvenButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('true');
+
+		// Test adding an odd number
+		addOddButton.click();
+		flushSync();
+		expect(container.querySelector('pre').textContent).toBe('false');
+
+		// Test fixing the array to all even
+		makeEvenButton.click();
+		flushSync();
+		expect(container.querySelector('pre').textContent).toBe('true');
+	});
+
+	it('handles flat method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray([1, 2], [3, 4], 5);
+			let $flattened = items.flat();
+
+			<button onClick={() => items[0] = [6, 7, 8]}>{'change nested'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($flattened)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const changeButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[[1,2],[3,4],5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3,4,5]');
+
+		// Test changing a nested array
+		changeButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[[6,7,8],[3,4],5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[6,7,8,3,4,5]');
+	});
+
+	it('handles flatMap method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+			let $flatMapped = items.flatMap(x => [x, x * 2]);
+
+			<button onClick={() => items.push(4)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($flatMapped)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,2,4,3,6]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,2,4,3,6,4,8]');
+	});
+
+	it('handles join method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray('apple', 'banana', 'cherry');
+			let $joined = items.join(', ');
+
+			<button onClick={() => items.push('date')}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$joined}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["apple","banana","cherry"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('apple, banana, cherry');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["apple","banana","cherry","date"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('apple, banana, cherry, date');
+	});
+
+	it('handles keys method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray('a', 'b', 'c');
+			let $keys = Array.from(items.keys());
+
+			<button onClick={() => items.push('d')}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($keys)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[0,1,2]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c","d"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[0,1,2,3]');
+	});
+
+	it('handles lastIndexOf method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 2, 1);
+			let $lastIndex = items.lastIndexOf(2);
+
+			<button onClick={() => {
+				items.push(2);
+			}}>{'add duplicate'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$lastIndex}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,2,1]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+		// Test adding a duplicate
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,2,1,2]');
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
 	});
+
+	it('handles reduceRight method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray('a', 'b', 'c');
+			let $reduced = items.reduceRight((acc, val) => acc + val, '');
+
+			<button onClick={() => items.push('d')}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$reduced}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('cba');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c","d"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('dcba');
+	});
+
+	it('handles some method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 3, 5, 7);
+			let $hasEven = items.some(x => x % 2 === 0);
+
+			<button onClick={() => items.push(2)}>{'add even'}</button>
+			<button onClick={() => {
+				items.pop();
+				items.push(9);
+			}}>{'ensure all odd'}</button>
+			<pre>{$hasEven.toString()}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addEvenButton = container.querySelectorAll('button')[0];
+		const makeOddButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('false');
+
+		// Test adding an even number
+		addEvenButton.click();
+		flushSync();
+		expect(container.querySelector('pre').textContent).toBe('true');
+
+		// Test fixing the array to all odd
+		makeOddButton.click();
+		flushSync();
+		expect(container.querySelector('pre').textContent).toBe('false');
+	});
+
+	it('handles toLocaleString method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1000, 2000, 3000);
+			let $localized = items.toLocaleString('en-US');
+
+			<button onClick={() => items.push(4000)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$localized}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1000,2000,3000]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1,000,2,000,3,000');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1000,2000,3000,4000]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1,000,2,000,3,000,4,000');
+	});
+
+	it('handles toReversed method with reactivity', (context) => {
+		if (!('toReversed' in Array.prototype)) {
+			context.skip();
+		}
+
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4);
+			let $reversed = items.toReversed();
+
+			<button onClick={() => items.push(5)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($reversed)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[4,3,2,1]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[5,4,3,2,1]');
+	});
+
+	it('handles toSorted method with reactivity', () => {
+		if (!('toSorted' in Array.prototype)) {
+			context.skip();
+		}
+
+		component ArrayTest() {
+			let items = new RippleArray(3, 1, 4, 2);
+			let $sorted = items.toSorted();
+
+			<button onClick={() => items.push(0)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($sorted)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[3,1,4,2]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3,4]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[3,1,4,2,0]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[0,1,2,3,4]');
+	});
+
+	it('handles toSpliced method with reactivity', () => {
+		if (!('toSpliced' in Array.prototype)) {
+			context.skip();
+		}
+
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4, 5);
+			let $spliced = items.toSpliced(1, 2, 'a', 'b');
+
+			<button onClick={() => items[2] = 30}>{'change item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($spliced)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const changeButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,"a","b",4,5]');
+
+		// Test changing an item
+		changeButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,30,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,"a","b",4,5]');
+	});
+
+	it('handles toString method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+			let $string = items.toString();
+
+			<button onClick={() => items.push(4)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$string}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1,2,3');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1,2,3,4');
+	});
+
+	it.only('handles Symbol.iterator with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+			let $sum = 0;
+
+			for (const item of items) {
+				$sum += item;
+			}
+
+			<button onClick={() => items.push(4)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$sum}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelectorAll('button')[0];
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('6');
+
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('10');
+	});
+
+	it('handles values method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray('a', 'b', 'c');
+			let $values = Array.from(items.values());
+
+			<button onClick={() => items.push('d')}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($values)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('["a","b","c"]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c","d"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('["a","b","c","d"]');
+	});
+
+	it('handles with method with reactivity', (context) => {
+		if (!('with' in Array.prototype)) {
+			context.skip();
+		}
+
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4);
+			let $withReplaced = items.with(2, 30);
+
+			<button onClick={() => items[2] = 50}>{'change original'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify($withReplaced)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const changeButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,30,4]');
+
+		// Test changing the original array
+		changeButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,50,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,30,4]');
+	});
+
+	it('handles at method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(10, 20, 30, 40, 50);
+			let $atIndex2 = items.at(2);
+			let $atNegative1 = items.at(-1);
+			let $atNegative2 = items.at(-2);
+
+			<button onClick={() => items[2] = 300}>{'change index 2'}</button>
+			<button onClick={() => items[items.length - 1] = 500}>{'change last'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{$atIndex2}</pre>
+			<pre>{$atNegative1}</pre>
+			<pre>{$atNegative2}</pre>
+		}
+
+		render(ArrayTest);
+
+		const changeIndex2Button = container.querySelectorAll('button')[0];
+		const changeLastButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[10,20,30,40,50]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('30');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('50');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('40');
+
+		// Test changing index 2
+		changeIndex2Button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[10,20,300,40,50]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('300');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('50');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('40');
+
+		// Test changing last item
+		changeLastButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[10,20,300,40,500]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('300');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('500');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('40');
+	});
+
+	it('handles ARRAY_SET_INDEX_AT method with reactivity', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4, 5);
+			let $thirdItem = items[2];
+
+			<button onClick={() => items[ARRAY_SET_INDEX_AT](2, 30)}>{'set index 2'}</button>
+			<button onClick={() => items[ARRAY_SET_INDEX_AT](-1, 50)}>{'set last with negative'}</button>
+			<button onClick={() => items[ARRAY_SET_INDEX_AT](6, 60)}>{'extend array'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.$length}</pre>
+			<pre>{$thirdItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const setIndex2Button = container.querySelectorAll('button')[0];
+		const setLastButton = container.querySelectorAll('button')[1];
+		const extendButton = container.querySelectorAll('button')[2];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+		// Test setting index 2
+		setIndex2Button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,30,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('30');
+
+		// Test setting with negative index
+		setLastButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,30,4,50]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+
+		// Test extending array
+		extendButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,30,4,50,null,60]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('7');
+	});
+
+	it('handles ARRAY_SET_INDEX_AT error cases', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+			let $error = null;
+
+			<button onClick={() => {
+				try {
+					items[ARRAY_SET_INDEX_AT](1.5, 10);
+				} catch (e) {
+					$error = e.message;
+				}
+			}}>{'try non-integer'}</button>
+			<button onClick={() => {
+				try {
+					$error = null;
+					items[ARRAY_SET_INDEX_AT](-5, 10);
+				} catch (e) {
+					$error = e.message;
+				}
+			}}>{'try out of bounds negative'}</button>
+			<pre>{$error}</pre>
+		}
+
+		render(ArrayTest);
+
+		const nonIntegerButton = container.querySelectorAll('button')[0];
+		const outOfBoundsButton = container.querySelectorAll('button')[1];
+
+		// Test non-integer index
+		nonIntegerButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('index must be a valid integer');
+
+		// Test out of bounds negative index
+		outOfBoundsButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('Provided negative index out of bounds');
+	});
+
+	it('handles setting $length property and resizing the array', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3, 4, 5);
+
+			<button onClick={() => items.$length = 3}>{'truncate'}</button>
+			<button onClick={() => items.$length = 7}>{'expand'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.$length}</pre>
+		}
+
+		render(ArrayTest);
+
+		const truncateButton = container.querySelectorAll('button')[0];
+		const expandButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+
+		// Test truncating
+		truncateButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+		// Test expanding
+		expandButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,null,null,null,null]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('7');
+	});
+
+	it('throws error when trying to set length property directly', () => {
+		component ArrayTest() {
+			let items = new RippleArray(1, 2, 3);
+			let $error = null;
+
+			<button onClick={() => {
+				try {
+					items.length = 5;
+				} catch (e) {
+					$error = e.message;
+				}
+			}}>{'try set length'}</button>
+			<pre>{$error}</pre>
+		}
+
+		render(ArrayTest);
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('Cannot set length on RippleArray, use $length instead');
+	});
+
+	('fromAsync' in Array.prototype ? describe : describe.skip)('RippleArray fromAsync', () => {
+		it('handles static fromAsync method with reactivity', async () => {
+			component ArrayTest() {
+				let itemsPromise = RippleArray.fromAsync(Promise.resolve([1, 2, 3]));
+				let items = null;
+				let error = null;
+
+				try {
+					items = await itemsPromise;
+				} catch (e) {
+					error = e.message;
+				}
+
+				<button onClick={() => {
+				if (items) items.push(4);
+				}}>{'add item'}</button>
+				<pre>{error ? 'Error: ' + error : 'Loaded'}</pre>
+				<pre>{items ? JSON.stringify(items) : 'Loading...'}</pre>
+			}
+
+			render(ArrayTest);
+
+			// Wait for promise to resolve
+			await new Promise(resolve => setTimeout(resolve, 50));
+			flushSync();
+
+			const addButton = container.querySelector('button');
+
+			// Check that the promise resolved correctly
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('Loaded');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3]');
+
+			// Test adding an item to the async-created array
+			addButton.click();
+			flushSync();
+
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3,4]');
+		});
+
+		it('handles static fromAsync method with mapping function', async () => {
+			component ArrayTest() {
+				let itemsPromise = RippleArray.fromAsync(
+				Promise.resolve([1, 2, 3]),
+				x => x * 2
+				);
+				let items = null;
+
+				items = await itemsPromise;
+
+				<button onClick={() => {
+				if (items) items.push(8);
+				}}>{'add item'}</button>
+				<pre>{items ? JSON.stringify(items) : 'Loading...'}</pre>
+			}
+
+			render(ArrayTest);
+
+			// Wait for promise to resolve
+			await new Promise(resolve => setTimeout(resolve, 50));
+			flushSync();
+
+			const addButton = container.querySelector('button');
+
+			// Check that the promise resolved correctly with mapping applied
+			expect(container.querySelector('pre').textContent).toBe('[2,4,6]');
+
+			// Test adding an item to the async-created array
+			addButton.click();
+			flushSync();
+
+			expect(container.querySelector('pre').textContent).toBe('[2,4,6,8]');
+		});
+
+		it('handles error in fromAsync method', async () => {
+			component ArrayTest() {
+				let itemsPromise = RippleArray.fromAsync(Promise.reject(new Error('Async error')));
+				let items = null;
+				let error = null;
+
+				try {
+					items = await itemsPromise;
+				} catch (e) {
+					error = e.message;
+				}
+
+				<pre>{error ? 'Error: ' + error : 'No error'}</pre>
+				<pre>{items ? JSON.stringify(items) : 'No items'}</pre>
+			}
+
+			render(ArrayTest);
+
+			// Wait for promise to reject
+			await new Promise(resolve => setTimeout(resolve, 50));
+			flushSync();
+
+			// Check that the error was caught correctly
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('Error: Async error');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('No items');
+		});
+	});
+
+	describe('RippleArray copyWithin', () => {
+		it('handles copyWithin operation with reactivity', () => {
+			component ArrayTest() {
+				let items = new RippleArray(1, 2, 3, 4, 5);
+				let $firstItem = items[0];
+				let $thirdItem = items[2];
+				let $fourthItem = items[3];
+
+				<button onClick={() => items.copyWithin(0, 3)}>{'copy end to start'}</button>
+				<button onClick={() => items.copyWithin(2, 0, 2)}>{'copy start to middle'}</button>
+				<pre>{JSON.stringify(items)}</pre>
+				<pre>{$firstItem}</pre>
+				<pre>{$thirdItem}</pre>
+				<pre>{$fourthItem}</pre>
+			}
+
+			render(ArrayTest);
+
+			const copyEndToStartButton = container.querySelectorAll('button')[0];
+			const copyStartToMiddleButton = container.querySelectorAll('button')[1];
+
+			// Initial state
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+			expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+			expect(container.querySelectorAll('pre')[3].textContent).toBe('4');
+
+			// Test copyWithin from end to start
+			copyEndToStartButton.click();
+			flushSync();
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[4,5,3,4,5]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+			expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+			expect(container.querySelectorAll('pre')[3].textContent).toBe('4');
+
+			// Test copyWithin from start to middle
+			copyStartToMiddleButton.click();
+			flushSync();
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[4,5,4,5,5]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+			expect(container.querySelectorAll('pre')[2].textContent).toBe('4');
+			expect(container.querySelectorAll('pre')[3].textContent).toBe('5');
+		});
+
+		it('handles copyWithin with negative indexes and reactivity', () => {
+			component ArrayTest() {
+				let items = new RippleArray(1, 2, 3, 4, 5);
+				let $secondItem = items[1];
+				let $thirdItem = items[2];
+
+				<button onClick={() => items.copyWithin(-4, -2)}>{'copy with negative indexes'}</button>
+				<pre>{JSON.stringify(items)}</pre>
+				<pre>{$secondItem}</pre>
+				<pre>{$thirdItem}</pre>
+			}
+
+			render(ArrayTest);
+
+			const copyButton = container.querySelector('button');
+
+			// Initial state
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+			expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+			// Test copyWithin with negative indexes
+			copyButton.click();
+			flushSync();
+
+			// copyWithin(-4, -2) should copy [4,5] to positions [1,2]
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,4,5,4,5]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+			expect(container.querySelectorAll('pre')[2].textContent).toBe('5');
+		});
+
+		it('handles copyWithin with overlapping ranges', () => {
+			component ArrayTest() {
+				let items = new RippleArray(1, 2, 3, 4, 5);
+				let $entries = items.entries();
+
+				<button onClick={() => items.copyWithin(2, 1, 4)}>{'copy with overlap'}</button>
+				<pre>{JSON.stringify(items)}</pre>
+
+				for (const [i, value] of $entries) {
+					<pre>{`items[${i}]: ${value}`}</pre>
+				}
+			}
+
+			render(ArrayTest);
+
+			const copyButton = container.querySelector('button');
+
+			// Initial state
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+
+			// Test values from reactive bindings
+			for (let i = 0; i < 5; i++) {
+				expect(container.querySelectorAll('pre')[i + 1].textContent).toBe(`items[${i}]: ${i + 1}`);
+			}
+
+			// Test copyWithin with overlapping ranges
+			copyButton.click();
+			flushSync();
+
+			// copyWithin(2, 1, 4) should copy [2,3,4] to positions [2,3,4]
+			// resulting in [1,2,2,3,4]
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,2,3,4]');
+
+			// Test that reactive bindings updated
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('items[0]: 1');
+			expect(container.querySelectorAll('pre')[2].textContent).toBe('items[1]: 2');
+			expect(container.querySelectorAll('pre')[3].textContent).toBe('items[2]: 2');
+			expect(container.querySelectorAll('pre')[4].textContent).toBe('items[3]: 3');
+			expect(container.querySelectorAll('pre')[5].textContent).toBe('items[4]: 4');
+		});
+	});
 });
+
+
