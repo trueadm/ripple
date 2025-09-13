@@ -15,5 +15,11 @@ const { Layout } = DefaultTheme
 			</div>
 			<br>
 		</template>
+		<template #not-found>
+			<div>
+				<h1>404 Not Found</h1>
+				<a href="/" target="_self">Home</a>
+			</div>
+		</template>
 	</Layout>
 </template>

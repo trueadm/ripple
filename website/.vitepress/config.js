@@ -33,6 +33,14 @@ export default defineConfig({
 	},
 
 	themeConfig: {
+		logoLink: { target: '_self' },
+		notFound: {
+			link: '/docs/introduction',
+			linkLabel: 'Back to docs home',
+			linkText: 'Back to docs home',
+			quote: '',
+		},
+
 		search: { provider: 'local' },
 
 		socialLinks: [
