@@ -8,10 +8,11 @@ const { Layout } = DefaultTheme
 	<Layout>
 		<template #doc-before>
 			<div class="warning custom-block">
-				<span>
-					Most of the docs are currently bulk imported from llms.txt.
+				<p></p>
+				<p class="custom-block-title">
+					The documentation is a work in progress.
 					Expect terse and incomplete information!
-				</span>
+				</p>
 			</div>
 			<br>
 		</template>

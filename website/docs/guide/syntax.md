@@ -166,7 +166,21 @@ component TemplateScope() {
 
 ## Attribute Binding
 
-TODO
+Attribute Binding in Ripple is acheieved the same way as JSX. To bind an
+expression to an attribute, we write the attribute's name and an equal sign,
+like plain HTML, but instead of quotes, we use {braces}, within which, we can
+write a JS expression that evaluates to our desired value.
+
+```ripple
+<span data-my-attr={attr_val}>Hi there!</span>
+```
+
+::: note
+Plain attributes can still be used.
+```ripple
+<input type="textarea" />
+```
+:::
 
 ## Raw HTML
 

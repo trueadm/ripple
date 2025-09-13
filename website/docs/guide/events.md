@@ -1,13 +1,26 @@
 ---
-title: Events in Ripple
+title: Event Handling in Ripple
 ---
 
 # Events
 
+Like React, Ripple deviates from the standard with event handlers. Here, events
+are camelCased props that start with 'on', unlike standard HTML.
 
-### Event Handling
+- `onClick`
+- `onPointerMove`
+- `onPointerDown`
+- `onKeyDown`
 
-Events follow React-style naming (`onClick`, `onPointerMove`, etc.):
+For `capture` phase events, just add `Capture` to the end of the prop name:
+
+- `onClickCapture`
+- `onPointerMoveCapture`
+- `onPointerDownCapture`
+- `onKeyDownCapture`
+
+> Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
+
 
 ```ripple
 component EventExample() {
@@ -20,7 +33,3 @@ component EventExample() {
   </div>
 }
 ```
-
-For capture phase events, add `Capture` suffix:
-- `onClickCapture`
-- `onPointerDownCapture`
