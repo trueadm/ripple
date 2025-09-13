@@ -38,36 +38,36 @@ templates and regular JavaScript logic, making code more predictable and easier
 to analyze.
 
 ```ripple
-// ❌ WRONG - Templates outside component
+// ❌ Wrong - Templates outside component
 const element = <div>{"Hello"}</div>;  // Compilation error
 
 function regularFunction() {
-  return <span>{"Not allowed"}</span>;  // Compilation error
+	return <span>{"Not allowed"}</span>;  // Compilation error
 }
 
 const myTemplate = (
-  <div>{"Cannot assign JSX"}</div>  // Compilation error
+	<div>{"Cannot assign JSX"}</div>  // Compilation error
 );
 
-// ✅ CORRECT - Templates only inside components
+// ✅ Correct - Templates only inside components
 component MyComponent() {
-  // Template syntax is valid here
-  <div>{"Hello World"}</div>
+	// Template syntax is valid here
+	<div>{"Hello World"}</div>
 
-  // You can have JavaScript code mixed with templates
-  const message = "Dynamic content";
-  console.log("This JavaScript works");
+	// You can have JavaScript code mixed with templates
+	const message = "Dynamic content";
+	console.log("This JavaScript works");
 
-  <p>{message}</p>
+	<p>{message}</p>
 }
 
-// ✅ CORRECT - Helper functions return data, not templates
+// ✅ Correct - Helper functions return data, not templates
 function getMessage() {
-  return "Hello from function";  // Return data, not JSX
+	return "Hello from function";  // Return data, not JSX
 }
 
 component App() {
-  <div>{getMessage()}</div>  // Use function result in template
+	<div>{getMessage()}</div>  // Use function result in template
 }
 ```
 
@@ -90,7 +90,7 @@ writing text in the middle of your code.
 // ✅ Correct - Text is an expression
 <span>{'Hello World!'}</span>
 
-// ❌ WRONG -
+// ❌ Wrong - Compilation error
 <span>Hello World!</span>
 ```
 ```js
@@ -99,6 +99,7 @@ let greet_text = 'Hello World!';
 // compared to this:
 let greet_text = Hello World!;
 ```
+
 ## Example: Text Interpolation
 
 The most basic form of data-binding is text interpolation. In the below example,
@@ -111,7 +112,7 @@ in plain JavaScript.
 <span>{'Message: ' + msg}</span>
 ```
 
-## Template Lexical Scoping
+## Concept: Templates as Lexical Scopes
 
 TODO: Rewrite for humans
 
@@ -121,33 +122,33 @@ similar to block statements in regular JavaScript.
 
 ```ripple
 component TemplateScope() {
-  <div>
-    // Variable declarations inside templates
-    const message = "Hello from template scope";
-    let count = 42;
+	<div>
+		// Variable declarations inside templates
+		const message = "Hello from template scope";
+		let count = 42;
 
-    // Function calls and expressions
-    console.log("This runs during render");
+		// Function calls and expressions
+		console.log("This runs during render");
 
-    // Conditional logic
-    const isEven = count % 2 === 0;
+		// Conditional logic
+		const isEven = count % 2 === 0;
 
-    <h1>{message}</h1>
-    <p>{"Count is: "}{count}</p>
+		<h1>{message}</h1>
+		<p>{"Count is: "}{count}</p>
 
-    if (isEven) {
-      <span>{"Count is even"}</span>
-    }
+		if (isEven) {
+			<span>{"Count is even"}</span>
+		}
 
-    // Nested scopes work too
-    <section>
-      const sectionData = "Nested scope variable";
-      <p>{sectionData}</p>
-    </section>
+		// Nested scopes work too
+		<section>
+			const sectionData = "Nested scope variable";
+			<p>{sectionData}</p>
+		</section>
 
-    // You can even put debugger statements
-    debugger;
-  </div>
+		// You can even put debugger statements
+		debugger;
+	</div>
 }
 ```
 
