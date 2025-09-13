@@ -16,7 +16,7 @@ mount(App, {
 });
 ````
 
-# The Root Component
+## The Root Component
 
 The `App` "object" we've imported is actually a component. Every app requires a
 "root component" that can contain other components as its children.
@@ -40,7 +40,7 @@ In later sections of the guide, we will discuss how to define and compose
 multiple components together. Before that, we will focus on what happens inside
 a single component.
 
-# Mounting the App
+## Mounting the App
 
 To bring the app to life, we'll use the `mount` function that we imported to
 attach the application to the DOM.

@@ -88,7 +88,7 @@ function nav() {
 		},
 		{
 			text: 'Docs',
-			link: '/docs/introdcution',
+			link: '/docs/introduction',
 			activeMatch: '/docs/*'
 		}
 	]
@@ -106,12 +106,25 @@ function docs_sidebar() {
 			]
 		},
 		{
-			text: 'Essentials',
+			text: 'Guide',
 			collapsed: false,
 			items: [
-				{ text: 'Creating an Application', link: 'essentials/application' },
-				{ text: 'Template Syntax', link: 'essentials/syntax' },
-				{ text: 'Reactivity', link: 'essentials/reactivity' },
+				{ text: 'Creating an Application', link: 'guide/application' },
+				{ text: 'Template Syntax', link: 'guide/syntax' },
+				{ text: 'Components', link: 'guide/components' },
+				{ text: 'Flow Control', link: 'guide/flow-control' },
+				{ text: 'Reactivity', link: 'guide/reactivity' },
+				{ text: 'Data Binding', link: 'guide/data-binding' },
+				{ text: 'Events', link: 'guide/events' },
+				{ text: 'State Management', link: 'guide/state-management' },
+			]
+		},
+		{
+			text: 'Good to Know',
+			collapsed: false,
+			items: [
+				{ text: 'Comparison to Other Frameworks', link: 'comparison' },
+				{ text: 'Best Practices', link: 'best-practices' },
 			]
 		},
 	]
