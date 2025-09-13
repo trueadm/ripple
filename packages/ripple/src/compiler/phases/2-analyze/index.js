@@ -435,6 +435,13 @@ const visitors = {
 			has_template: false,
 		};
 		context.next();
+		if (!node.metadata.has_template) {
+			error(
+				'For...of loops must contain a template in their body. Move the for loop into an effect if it does not render anything.',
+				context.state.analysis.module.filename,
+				node,
+			);
+		}
 	},
 
 	ForInStatement(node, context) {

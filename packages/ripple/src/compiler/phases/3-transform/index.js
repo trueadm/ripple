@@ -1107,31 +1107,6 @@ const visitors = {
 			context.state.template.push('<!>');
 		}
 
-		// If the for loop does not actual render anything, then we can
-		// instead create a for loop in a render effect to emulate a relative for loop
-		if (!node.metadata.has_template) {
-			const pattern = node.left.declarations[0].id;
-			const body_scope = context.state.scopes.get(node.body);
-
-			context.state.init.push(
-				b.stmt(
-					b.call(
-						'$.for_effect',
-						b.thunk(context.visit(node.right)),
-						b.arrow(
-							[pattern],
-							b.block(
-								transform_body(node.body.body, {
-									...context,
-									state: { ...context.state, scope: body_scope },
-								}),
-							),
-						),
-					),
-				),
-			);
-			return;
-		}
 		const id = context.state.flush_node(is_controlled);
 		const pattern = node.left.declarations[0].id;
 		const body_scope = context.state.scopes.get(node.body);
