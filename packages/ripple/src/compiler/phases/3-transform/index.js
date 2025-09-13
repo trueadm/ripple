@@ -1666,6 +1666,7 @@ function transform_children(children, { visit, state, root }) {
 						state.template.push(escape_html(expression.value));
 					} else {
 						const id = state.flush_node();
+						state.template.push(' ');
 						state.init.push(
 							b.stmt(b.assignment('=', b.member(id, b.id('textContent')), expression)),
 						);
