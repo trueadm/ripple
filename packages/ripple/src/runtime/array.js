@@ -96,8 +96,7 @@ export class RippleArray extends Array {
 		var tracked_elements = this.#tracked_elements;
 
 		for (var i = 0; i < this.length; i++) {
-			// skip holes
-			if (!(i in elements)) {
+			if (!(i in this)) {
 				continue;
 			}
 			tracked_elements[i] = tracked(this[i], block);
@@ -129,18 +128,17 @@ export class RippleArray extends Array {
 
 					if (tracked_elements.length != result.length) {
 						for (var i = 0; i < result.length; i++) {
-							if (tracked_elements[i] === undefined && (i in result)) {
+							if ((i in result) && tracked_elements[i] === undefined) {
 								tracked_elements[i] = tracked(result[i], block);
-								// must register deps, otherwise no reactivity for things like
-								// JSON.stringify on the result of slice
-								get(tracked_elements[i]);
 							}
 						}
 					}
 				}
 
+				// the caller reruns on length changes
 				this.$length;
-
+				// the caller reruns on element changes
+				get_all_elements(this);
 				return result;
 			};
 		}
@@ -416,7 +414,7 @@ export class RippleArray extends Array {
 		var init_index = index;
 
 		if (!Number.isInteger(index)) {
-			throw new TypeError('index must be a valid integer');
+			throw new TypeError('Provided index must be a valid integer');
 		}
 
 		index = index < 0 ? index + length : index;
@@ -445,6 +443,12 @@ export class RippleArray extends Array {
 	 * @returns {T | undefined}
 	 */
 	at(index) {
+		var tracked_elements = this.#tracked_elements;
+		var normalized = index < 0 ? index + this.length : index;
+
+		if (tracked_elements[normalized] !== undefined) {
+			get(tracked_elements[normalized]);
+		}
 		this.$length;
 
 		return super.at(index);
