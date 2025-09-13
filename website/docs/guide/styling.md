@@ -23,6 +23,6 @@ component MyComponent() {
   </style>
 }
 ```
-::: note
+::: info
 Note: the `<style>` element must be top-level within a `component`.
 :::
