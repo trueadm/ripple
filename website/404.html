@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page Not Found | RippleJS</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <style>
+        body {
+            font-family:
+                'Recursive',
+                -apple-system,
+                BlinkMacSystemFont,
+                'Segoe UI',
+                Roboto,
+                sans-serif;
+            background: #0a0a0f;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-y: hidden;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -667;
+            background:
+                radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.15), transparent),
+                radial-gradient(1px 1px at 40px 70px, rgba(120, 219, 226, 0.4), transparent),
+                radial-gradient(1px 1px at 90px 40px, rgba(255, 119, 198, 0.3), transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.1), transparent),
+                radial-gradient(2px 2px at 160px 30px, rgba(120, 219, 226, 0.2), transparent);
+            background-repeat: repeat;
+            background-size:
+                200px 100px,
+                200px 100px,
+                200px 100px,
+                200px 100px,
+                200px 100px;
+            animation: starTwinkle 8s linear infinite;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: -666;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
+        }
+
+        @keyframes starTwinkle {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes atmosphericShift {
+
+            0%,
+            100% {
+                transform: translateX(0) translateY(0) scale(1);
+                opacity: 0.8;
+            }
+
+            25% {
+                transform: translateX(20px) translateY(-15px) scale(1.05);
+                opacity: 0.9;
+            }
+
+            50% {
+                transform: translateX(-10px) translateY(-25px) scale(0.95);
+                opacity: 1;
+            }
+
+            75% {
+                transform: translateX(-15px) translateY(10px) scale(1.02);
+                opacity: 0.85;
+            }
+        }
+
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            font-variation-settings:
+                'CASL' 1,
+                'slnt' -15;
+            letter-spacing: -0.02em;
+            color: white;
+            text-shadow:
+                0 0 30px rgba(120, 219, 226, 0.8),
+                0 0 60px rgba(255, 119, 198, 0.6),
+                0 0 90px rgba(120, 119, 198, 0.4);
+            animation: glowFadeOut 3s ease-in-out forwards;
+        }
+
+        p {
+            font-size: 1.25rem;
+            font-weight: 400;
+            margin-bottom: 3rem;
+            opacity: 0.8;
+            line-height: 1.6;
+            font-variation-settings: 'CASL' 0.5;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 20px rgba(120, 219, 226, 0.2);
+        }
+
+        a.button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s ease;
+        }
+
+        a.button:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>404 - Page Not Found</h1>
+    <p>Oops! The page you’re looking for doesn’t exist.</p>
+    <a href="/index.html" class="button">Go back home</a>
+</body>
+
+</html>
