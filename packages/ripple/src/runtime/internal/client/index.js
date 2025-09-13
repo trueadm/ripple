@@ -64,7 +64,7 @@ export {
 	array_entries,
 } from './array.js';
 
-export { for_block as for, for_effect } from './for.js';
+export { for_block as for } from './for.js';
 
 export { if_block as if } from './if.js';
 
