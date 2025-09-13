@@ -1,0 +1,68 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { mount, flushSync } from 'ripple';
+
+describe('reactive tuple arrays', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+	it('should update reactive variables when tuple array is modified by index', () => {
+		component App() {
+			let $first = 0;
+			let $second = 0;
+			const arr = [$first, $second];
+
+			<button onClick={() => arr[0]++}>{'arr[0]: ' + arr[0]}</button>
+			<pre class="first">{'$first: ' + $first}</pre>
+			<pre class="second">{'$second: ' + $second}</pre>
+			<pre class="array">{'arr: ' + JSON.stringify(arr)}</pre>
+		}
+
+		render(App);
+
+		const button = container.querySelector('button');
+		const firstPre = container.querySelector('.first');
+		const secondPre = container.querySelector('.second');
+		const arrayPre = container.querySelector('.array');
+
+		// Initial state
+		expect(button.textContent).toBe('arr[0]: 0');
+		expect(firstPre.textContent).toBe('$first: 0');
+		expect(secondPre.textContent).toBe('$second: 0');
+		expect(arrayPre.textContent).toBe('arr: [0,0]');
+
+		// Click to increment arr[0]
+		button.click();
+		flushSync();
+
+		// Both the array element AND the original reactive variable should be updated
+		expect(button.textContent).toBe('arr[0]: 1');
+		expect(firstPre.textContent).toBe('$first: 1');
+		expect(secondPre.textContent).toBe('$second: 0'); // Should remain unchanged
+		expect(arrayPre.textContent).toBe('arr: [1,0]');
+
+		// Click again to increment arr[0] once more
+		button.click();
+		flushSync();
+
+		expect(button.textContent).toBe('arr[0]: 2');
+		expect(firstPre.textContent).toBe('$first: 2');
+		expect(secondPre.textContent).toBe('$second: 0');
+		expect(arrayPre.textContent).toBe('arr: [2,0]');
+	});
+});

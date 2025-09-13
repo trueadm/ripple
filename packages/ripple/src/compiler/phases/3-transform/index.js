@@ -1074,17 +1074,9 @@ const visitors = {
 			if (element === null) {
 				elements.push(null);
 			} else if (element.type === 'Identifier' && is_tracked_name(element.name)) {
-				const metadata = { tracking: false, await: false };
-				const tracked_identifier = context.visit(element, { ...context.state, metadata });
-
-				if (metadata.tracking) {
-					tracked.push(b.literal(i));
-					elements.push(
-						b.call('$.computed_property', b.thunk(tracked_identifier), b.id('__block')),
-					);
-				} else {
-					elements.push(tracked_identifier);
-				}
+				// Preserve reference to the original tracked node rather than its value
+				tracked.push(b.literal(i));
+				elements.push(context.visit(element));
 			} else {
 				const metadata = { tracking: false, await: false };
 				elements.push(context.visit(element, { ...context.state, metadata }));
