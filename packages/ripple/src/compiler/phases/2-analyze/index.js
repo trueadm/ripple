@@ -431,6 +431,10 @@ const visitors = {
 	},
 
 	ForOfStatement(node, context) {
+		if (!is_inside_component(context)) {
+			return context.next();
+		}
+
 		node.metadata = {
 			has_template: false,
 		};
