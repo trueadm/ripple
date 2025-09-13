@@ -667,7 +667,7 @@ function get_comment_handlers(source, comments, index = 0) {
 				while (/[ \t]/.test(source[b])) b += 1;
 
 				const indentation = source.slice(a, b);
-				value = value.replace(new RegExp(`^${indentation}`, 'gm'), '');
+				value = value.replace(/`^${indentation}`, 'gm'/g, '');
 			}
 
 			comments.push({
