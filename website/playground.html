@@ -17,6 +17,8 @@
 
 		<script type="module">
 			import { createPlayground } from 'https://cdn.jsdelivr.net/npm/livecodes@0.11.1';
+
+			const playgroundUrl = 'https://ripple.livecodes.pages.dev';
 			const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple';
 
 			const pkg = await fetch(apiUrl)
@@ -24,16 +26,7 @@
 				.catch(() => ({}));
 			const latest = pkg.tags?.latest || 'latest';
 
-			createPlayground('#container', {
-				appUrl: 'https://ripple.livecodes.pages.dev',
-				loading: 'eager',
-				config: {
-					customSettings: { ripple: { version: latest } },
-					activeEditor: 'script',
-					script: {
-						language: 'ripple',
-						content: `import type { Component } from "ripple"
-
+			const code = `
 export default component App() {
   <div class="container">
     let $count = 0;
@@ -41,7 +34,7 @@ export default component App() {
     <button onClick={() => $count++}>{$count}</button>
 
     if ($count > 1) {
-      <div>{'Greater than 1!'}</div>
+      <div>{"Greater than 1!"}</div>
     }
   </div>
 
@@ -53,18 +46,37 @@ export default component App() {
     }
   </style>
 }
-`,
-					},
-					markup: {
-						language: 'html',
-						hideTitle: true,
-					},
-					style: {
-						language: 'css',
-						hideTitle: true,
-						content: `body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background: hsl(0, 0%, 18%); color: #fff }`,
-					},
+`.trimStart();
+
+			const defaultConfig = {
+				customSettings: { ripple: { version: latest } },
+				activeEditor: 'script',
+				script: {
+					language: 'ripple',
+					content: code,
 				},
+				markup: {
+					language: 'html',
+					hideTitle: true,
+				},
+				style: {
+					language: 'css',
+					hideTitle: true,
+					content: `body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background: hsl(0, 0%, 18%); color: #fff }`,
+				},
+			};
+
+			const hash = window.location.hash;
+
+			const playground = await createPlayground('#container', {
+				appUrl: hash ? `${playgroundUrl}${hash.replace('#', '?')}` : playgroundUrl,
+				loading: 'eager',
+				config: hash ? undefined : defaultConfig,
+			});
+
+			playground.watch('code', async () => {
+				const shareUrl = await playground.getShareUrl();
+				window.location.hash = new URL(shareUrl).hash;
 			});
 		</script>
 	</head>
