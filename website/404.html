@@ -16,7 +16,7 @@
                 Roboto,
                 sans-serif;
             background: #0a0a0f;
-
+            text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -127,19 +127,44 @@
             text-shadow: 0 0 20px rgba(120, 219, 226, 0.2);
         }
 
-        a.button {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            background: #2563eb;
-            color: white;
+        .home-link {
+            color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
             font-weight: 500;
-            transition: background 0.2s ease;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid rgba(120, 219, 226, 0.3);
+            border-radius: 50px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+            line-height: 1.2;
+            font-size: 1rem;
+            height: 48px;
         }
 
-        a.button:hover {
-            background: #1d4ed8;
+        .home-link:hover {
+            color: white;
+            transform: translateY(-2px);
+            border-color: rgba(120, 219, 226, 0.6);
+            box-shadow: 0 10px 30px rgba(120, 219, 226, 0.2);
+            background: rgba(120, 219, 226, 0.1);
+        }
+
+        .home-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
         }
     </style>
 </head>
@@ -147,7 +172,13 @@
 <body>
     <h1>404 - Page Not Found</h1>
     <p>Oops! The page you’re looking for doesn’t exist.</p>
-    <a href="/index.html" class="button">Go back home</a>
+    <a href="/index.html" class="home-link">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"
+            style="vertical-align: middle; margin-right: 6px;">
+            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-6v-6H10v6H4a1 1 0 0 1-1-1V9.5z" />
+        </svg>
+        Go back home
+    </a>
 </body>
 
 </html>
