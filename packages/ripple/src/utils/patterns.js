@@ -12,6 +12,7 @@ export const regex_whitespaces_strict = /[ \t\n\r\f]+/g;
 
 export const regex_only_whitespaces = /^[ \t\n\r\f]+$/;
 
+export const regex_newline_characters = /\n/g;
 export const regex_not_newline_characters = /[^\n]/g;
 
 export const regex_is_valid_identifier = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;

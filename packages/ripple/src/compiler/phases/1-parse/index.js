@@ -2,6 +2,7 @@ import * as acorn from 'acorn';
 import { tsPlugin } from 'acorn-typescript';
 import { parse_style } from './style.js';
 import { walk } from 'zimmerframe';
+import { regex_newline_characters } from '../../../utils/patterns.js';
 
 const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
 
@@ -412,7 +413,9 @@ function RipplePlugin(config) {
 					}
 				} else {
 					if (open.name.name === 'style') {
-						const start = this.start;
+						// jsx_parseOpeningElementAt can treat a html element selector as an identifier and read it
+						// In that case, need to backtrack to include it in the css content
+						const start = this.pos - (this.value?.length ?? 1)
 						const input = this.input.slice(start);
 						const end = input.indexOf('</style>');
 						const content = input.slice(0, end);
@@ -423,7 +426,13 @@ function RipplePlugin(config) {
 						}
 						component.css = parse_style(content);
 
-						this.pos = start + end + 1;
+						const newLines = content.match(regex_newline_characters)?.length;
+						if (newLines) {
+							this.curLine += newLines;
+							this.lineStart = start + content.lastIndexOf('\n') + 1;
+						}
+						this.pos = start + content.length + 1;
+
 						this.type = tok.jsxTagStart;
 						this.next();
 						if (this.value === '/') {
