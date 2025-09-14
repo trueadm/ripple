@@ -110,8 +110,9 @@ export async function createProject({
 		const spinner5 = ora('Initializing Git repository...').start();
 		try {
 			execSync('git init', { cwd: projectPath, stdio: 'ignore' });
-			execSync('git add .', { cwd: projectPath, stdio: 'ignore' });
-			execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: 'ignore' });
+			// We should not automatically commit without asking user, so I have currently commented the code:
+			// execSync('git add .', { cwd: projectPath, stdio: 'ignore' });
+			// execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: 'ignore' });
 			spinner5.succeed('Git repository initialized');
 		} catch (error) {
 			spinner5.warn('Git initialization failed (optional)');
