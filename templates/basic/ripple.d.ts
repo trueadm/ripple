@@ -1,1 +1,1 @@
-declare module '*.ripple'
+declare module '*.ripple';

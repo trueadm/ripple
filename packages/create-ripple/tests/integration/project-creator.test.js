@@ -116,7 +116,7 @@ describe('createProject integration tests', () => {
 		// Verify package.json was updated
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
 		expect(packageJson.name).toBe('test-project');
-		expect(packageJson.description).toBe('A Ripple application created with create-ripple-app');
+		expect(packageJson.description).toBe('A Ripple application created with create-ripple');
 		expect(packageJson.version).toBe('1.0.0');
 	});
 
