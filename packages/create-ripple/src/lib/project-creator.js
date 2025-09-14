@@ -157,7 +157,7 @@ function updatePackageJson(projectPath, projectName, packageManager, typescript)
 	}
 
 	// Update description
-	packageJson.description = `A Ripple application created with create-ripple-app`;
+	packageJson.description = `A Ripple application created with create-ripple`;
 
 	// Add package manager field if not npm
 	if (packageManager !== 'npm') {

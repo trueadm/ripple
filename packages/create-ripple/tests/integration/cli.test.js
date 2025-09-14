@@ -67,7 +67,7 @@ describe('CLI Integration Tests', () => {
 
 		expect(result.code).toBe(0);
 		expect(result.stdout).toContain('Interactive CLI tool for creating Ripple applications');
-		expect(result.stdout).toContain('Usage: create-ripple-app');
+		expect(result.stdout).toContain('Usage: create-ripple');
 		expect(result.stdout).toContain('Arguments:');
 		expect(result.stdout).toContain('Options:');
 		expect(result.stdout).toContain('--template');

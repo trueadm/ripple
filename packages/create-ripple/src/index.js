@@ -14,7 +14,7 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 
 const program = new Command();
 
 program
-	.name('create-ripple-app')
+	.name('create-ripple')
 	.description('Interactive CLI tool for creating Ripple applications')
 	.version(packageJson.version)
 	.helpOption('-h, --help', 'Display help for command');
