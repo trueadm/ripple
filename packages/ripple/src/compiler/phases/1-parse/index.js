@@ -413,9 +413,9 @@ function RipplePlugin(config) {
 					}
 				} else {
 					if (open.name.name === 'style') {
-						// jsx_parseOpeningElementAt can treat a html element selector as an identifier and read it
-						// In that case, need to backtrack to include it in the css content
-						const start = this.pos - (this.value?.length ?? 1)
+						// jsx_parseOpeningElementAt treats ID selectors (ie. #myid) or type selectors (ie. div) as identifier and read it
+						// So backtrack to the end of the <style> tag to make sure everything is included
+						const start = open.end;
 						const input = this.input.slice(start);
 						const end = input.indexOf('</style>');
 						const content = input.slice(0, end);
@@ -428,7 +428,7 @@ function RipplePlugin(config) {
 
 						const newLines = content.match(regex_newline_characters)?.length;
 						if (newLines) {
-							this.curLine += newLines;
+							this.curLine = open.loc.end.line + newLines;
 							this.lineStart = start + content.lastIndexOf('\n') + 1;
 						}
 						this.pos = start + content.length + 1;
