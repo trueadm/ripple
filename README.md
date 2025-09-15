@@ -592,10 +592,10 @@ component Person(props) {
 }
 ```
 
-### Decorators
+### Refs
 
-Ripple provides a consistent way to capture the underlying DOM element – decorators. Specifically, using
-the syntax `{@use fn}` where `fn` is a function that captures the DOM element. If you're familiar with other frameworks, then
+Ripple provides a consistent way to capture the underlying DOM element – refs. Specifically, using
+the syntax `{ref fn}` where `fn` is a function that captures the DOM element. If you're familiar with other frameworks, then
 this is identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React. The hook function will receive
 the reference to the underlying DOM element.
 
@@ -603,7 +603,7 @@ the reference to the underlying DOM element.
 export component App() {
   let $node;
 
-  const ref = (node) => {
+  const divRef = (node) => {
     $node = node;
     console.log("mounted", node);
 
@@ -613,17 +613,17 @@ export component App() {
     };
   };
 
-  <div {@use ref}>{"Hello world"}</div>
+  <div {ref divRef}>{"Hello world"}</div>
 }
 ```
 
-You can also create `{@use}` functions inline.
+You can also create `{ref}` functions inline.
 
 ```jsx
 export component App() {
   let $node;
 
-  <div {@use (node) => {
+  <div {ref (node) => {
     $node = node;
     return () => $node = null;
   }}>{"Hello world"}</div>
@@ -637,17 +637,17 @@ thing. However, you can use this pattern to pass reactive properties.
 import { fadeIn } from 'some-library';
 
 export component App({ $ms }) {
-  <div {@use fadeIn({ $ms })}>{"Hello world"}</div>
+  <div {ref fadeIn({ $ms })}>{"Hello world"}</div>
 }
 ```
 
-Lastly, you can use decorators on composite components.
+Lastly, you can use refs on composite components.
 
 ```jsx
-<Image {@use (node) => console.log(node)} {...props} />
+<Image {ref (node) => console.log(node)} {...props} />
 ```
 
-When passing decorators to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that it can be spread to HTML template elements later on and still work.
+When passing refs to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that it can be spread to HTML template elements later on and still work.
 
 ### Event Props
 

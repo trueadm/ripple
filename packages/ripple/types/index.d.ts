@@ -79,3 +79,5 @@ declare global {
         // Add other runtime functions as needed for TypeScript analysis
     };
 }
+
+export declare function createRefKey(): symbol;

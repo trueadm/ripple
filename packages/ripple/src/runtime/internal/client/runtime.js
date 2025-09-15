@@ -25,7 +25,7 @@ import {
 	TRACKED_OBJECT,
 	TRY_BLOCK,
 	UNINITIALIZED,
-	USE_PROP,
+	REF_PROP,
 	ARRAY_SET_INDEX_AT,
 } from './constants';
 import { capture, suspend } from './try.js';
@@ -1203,8 +1203,8 @@ export function pop_component() {
 	active_component = component.p;
 }
 
-export function use_prop() {
-	return Symbol(USE_PROP);
+export function ref_prop() {
+	return Symbol(REF_PROP);
 }
 
 /**

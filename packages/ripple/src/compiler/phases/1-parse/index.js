@@ -139,15 +139,11 @@ function RipplePlugin(config) {
 				}
 
 				if (this.eat(tt.braceL)) {
-					if (this.type.label === '@') {
-						this.next();
-						if (this.value !== 'use') {
-							this.unexpected();
-						}
+					if (this.value === 'ref') {
 						this.next();
 						node.argument = this.parseMaybeAssign();
 						this.expect(tt.braceR);
-						return this.finishNode(node, 'UseAttribute');
+						return this.finishNode(node, 'RefAttribute');
 					} else if (this.type === tt.ellipsis) {
 						this.expect(tt.ellipsis);
 						node.argument = this.parseMaybeAssign();

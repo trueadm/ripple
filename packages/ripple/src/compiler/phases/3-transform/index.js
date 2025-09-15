@@ -665,9 +665,9 @@ const visitors = {
 					}
 				} else if (attr.type === 'SpreadAttribute') {
 					spread_attributes.push(b.spread(b.call('$.spread_object', visit(attr.argument, state))));
-				} else if (attr.type === 'UseAttribute') {
+				} else if (attr.type === 'RefAttribute') {
 					const id = state.flush_node();
-					state.init.push(b.stmt(b.call('$.use', id, b.thunk(visit(attr.argument, state)))));
+					state.init.push(b.stmt(b.call('$.ref', id, b.thunk(visit(attr.argument, state)))));
 				}
 			}
 
@@ -770,8 +770,8 @@ const visitors = {
 							),
 						),
 					);
-				} else if (attr.type === 'UseAttribute') {
-					props.push(b.prop('init', b.call('$.use_prop'), visit(attr.argument, state), true));
+				} else if (attr.type === 'RefAttribute') {
+					props.push(b.prop('init', b.call('$.ref_prop'), visit(attr.argument, state), true));
 				} else if (attr.type === 'AccessorAttribute') {
 					// # means it's an accessor to the runtime
 					tracked.push(b.literal('#' + attr.name.name));
@@ -1409,12 +1409,12 @@ function transform_ts_child(node, context) {
 		const children = [];
 		let has_children_props = false;
 
-		// Filter out UseAttributes and handle them separately
-		const use_attributes = [];
+		// Filter out RefAttributes and handle them separately
+		const ref_attributes = [];
 		const attributes = node.attributes
 			.filter((attr) => {
-				if (attr.type === 'UseAttribute') {
-					use_attributes.push(attr);
+				if (attr.type === 'RefAttribute') {
+					ref_attributes.push(attr);
 					return false;
 				}
 				return true;
@@ -1438,10 +1438,10 @@ function transform_ts_child(node, context) {
 				}
 			});
 
-		// Add UseAttribute references separately for sourcemap purposes
-		for (const use_attr of use_attributes) {
+		// Add RefAttribute references separately for sourcemap purposes
+		for (const ref_attr of ref_attributes) {
 			const metadata = { await: false };
-			const argument = visit(use_attr.argument, { ...state, metadata });
+			const argument = visit(ref_attr.argument, { ...state, metadata });
 			state.init.push(b.stmt(argument));
 		}
 

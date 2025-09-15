@@ -61,8 +61,8 @@ export function convert_source_map_to_mappings(source_map, source, generated_cod
 			);
 			const source_content = source.substring(source_offset, source_offset + segment_length);
 
-			// Skip mappings for UseAttribute syntax to avoid overlapping sourcemaps
-			if (source_content.includes('{@use ') || source_content.match(/\{\s*@use\s+/)) {
+			// Skip mappings for RefAttribute syntax to avoid overlapping sourcemaps
+			if (source_content.includes('{ref ') || source_content.match(/\{\s*ref\s+/)) {
 				continue;
 			}
 
