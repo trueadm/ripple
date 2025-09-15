@@ -159,13 +159,11 @@ describe('basic', () => {
 		const input = container.querySelector('input');
 		const html = container.innerHTML;
 		
-		// Test that spread props work correctly without attribute duplication
 		expect(input.getAttribute('name')).toBe('car');
 		expect(input.getAttribute('type')).toBe('checkbox');
 		expect(input.getAttribute('id')).toBe('vehicle1');
 		expect(input.getAttribute('value')).toBe('Bike');
 		
-		// Verify no attribute duplication in HTML
 		expect(html).not.toContain('type="checkbox"type="checkbox"');
 		expect(html).not.toContain('value="Bike"value="Bike"');
 		
