@@ -39,8 +39,42 @@ function validateRipplePath(ripple_path) {
 		throw new Error(`Ripple compiler not found at path: ${ripple_path}`)
 	}
 
-	// Ensure path is absolute and points to expected ripple location
-	const normalizedPath = path.resolve(ripple_path);
+  const workspaceFolder = params.rootPath;
+  if (!workspaceFolder) {
+    return { capabilities: {} };
+  }
+  // Resolve paths to be absolute to prevent path traversal.
+  const resolvedWorkspaceFolder = path.resolve(workspaceFolder);
+  const rippleExecutablePath = path.join(
+    resolvedWorkspaceFolder,
+    'node_modules/.bin/ripple',
+  );
+  const resolvedRippleExecutablePath = path.resolve(rippleExecutablePath);
+
+  // Security: Ensure the executable path is within the workspace folder.
+  if (!resolvedRippleExecutablePath.startsWith(path.normalize(resolvedWorkspaceFolder + '/'))) {
+    connection.console.error(
+      `Security: Path traversal attempt detected. Path "${resolvedRippleExecutablePath}" is outside of workspace "${resolvedWorkspaceFolder}".`,
+    );
+    return { capabilities: {} };
+  }
+    return { capabilities: {} };
+  }
+  // Resolve paths to be absolute to prevent path traversal.
+  const resolvedWorkspaceFolder = path.resolve(workspaceFolder);
+  const rippleExecutablePath = path.join(
+    resolvedWorkspaceFolder,
+    'node_modules/.bin/ripple',
+  );
+  const resolvedRippleExecutablePath = path.resolve(rippleExecutablePath);
+
+  // Security: Ensure the executable path is within the workspace folder.
+  if (!resolvedRippleExecutablePath.startsWith(path.normalize(resolvedWorkspaceFolder + '/'))) {
+    connection.console.error(
+      `Security: Path traversal attempt detected. Path "${resolvedRippleExecutablePath}" is outside of workspace "${resolvedWorkspaceFolder}".`,
+    );
+    return { capabilities: {} };
+  }
 	
 	// Must end with the expected ripple compiler path
 	const isValidPath = normalizedPath.includes('ripple/src/compiler/index.js') || 
