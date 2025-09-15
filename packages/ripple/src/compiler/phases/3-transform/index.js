@@ -230,6 +230,13 @@ const visitors = {
 		context.next();
 	},
 
+	TSMappedType(_, context) {
+		if (!context.state.to_ts) {
+			return b.empty;
+		}
+		context.next();
+	},
+
 	NewExpression(node, context) {
 		const callee = node.callee;
 		const parent = context.path.at(-1);

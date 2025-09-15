@@ -178,4 +178,27 @@ describe('compiler success tests', () => {
 			124, 123, 124, 123, 124, 123, 124, 123
 		]);
 	});
+
+	it('renders without crashing using mapped types', () => {
+		component App() {
+			type RecordKey = 'test';
+			type RecordValue = { a: string, b: number };
+
+			const config: Record<RecordKey, RecordValue> = {
+				test: {
+					a: 'test',
+					b: 10
+				},
+			};
+
+			const config2: { [key: RecordKey]: RecordValue } = {
+				test: {
+					a: 'test2',
+					b: 0
+				}
+			}
+		}
+
+		render(App);
+	});
 });
