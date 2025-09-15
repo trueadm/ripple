@@ -417,11 +417,11 @@ export class RippleArray extends Array {
 			throw new TypeError('Provided index must be a valid integer');
 		}
 
-		index = index < 0 ? index + length : index;
-
-		if (init_index < 0 && index >= length) {
+		if (init_index < -length) {
 			throw new RangeError('Provided negative index out of bounds');
 		}
+
+		index = index < 0 ? index + length : index;
 
 		super[index] = value;
 

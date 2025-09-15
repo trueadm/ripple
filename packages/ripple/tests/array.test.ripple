@@ -1098,7 +1098,7 @@ describe('RippleArray', () => {
 		expect(container.querySelectorAll('pre')[3].textContent).toBe('40');
 	});
 
-	it.skip('handles ARRAY_SET_INDEX_AT method with reactivity', () => {
+	it('handles ARRAY_SET_INDEX_AT method with reactivity', () => {
 		component ArrayTest() {
 			let items = new RippleArray(1, 2, 3, 4, 5);
 			let $thirdItem = items[2];
@@ -1145,7 +1145,7 @@ describe('RippleArray', () => {
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('7');
 	});
 
-	it.skip('handles ARRAY_SET_INDEX_AT error cases', () => {
+	it('handles ARRAY_SET_INDEX_AT error cases', () => {
 		component ArrayTest() {
 			let items = new RippleArray(1, 2, 3);
 			let $error = null;
