@@ -350,7 +350,7 @@ describe('basic', () => {
 			let $focusCount = 0;
 			let $clickCount = 0;
 
-			<button 
+			<button
 				onFocus={() => $focusCount++}
 				onClick={() => $clickCount++}
 			>{'Test Button'}</button>
@@ -465,7 +465,7 @@ describe('basic', () => {
 	it('renders with computed reactive state', () => {
 		component Basic() {
 			let $count = 5;
-			
+
 			<div class='count'>{$count}</div>
 			<div class='doubled'>{$count * 2}</div>
 			<div class='is-even'>{$count % 2 === 0 ? 'Even' : 'Odd'}</div>
@@ -543,7 +543,7 @@ describe('basic', () => {
 
 			<button onClick={() => $showContent = !$showContent}>{'Toggle Content'}</button>
 			<button onClick={() => $userRole = $userRole === 'guest' ? 'admin' : 'guest'}>{'Toggle Role'}</button>
-			
+
 			<div class='content'>
 				if ($showContent) {
 					if ($userRole === 'admin') {
@@ -655,7 +655,7 @@ describe('basic', () => {
 			<div class='counter'>{$counter}</div>
 			<div class='parity'>{$isEven ? 'Even' : 'Odd'}</div>
 			<div class='history-count'>{$history.length}</div>
-			
+
 			<button class='inc-btn' onClick={handleIncrement}>{'+'}</button>
 			<button class='dec-btn' onClick={handleDecrement}>{'-'}</button>
 			<button class='reset-btn' onClick={handleReset}>{'Reset'}</button>
@@ -917,5 +917,117 @@ describe('basic', () => {
 		expect(divs[2].textContent).toBe('Number to string: 1,1');
 		expect(divs[3].textContent).toBe('Even numbers: ');
 		expect(logs).toEqual(['0, 0', '1, 0', 'arr includes 1', '1, 1']);
+	});
+
+	it('it retains this context with bracketed prop functions and keeps original chaining', () => {
+		component App() {
+			const SYMBOL_PROP = Symbol();
+			let $hasError = false;
+			const obj = {
+				$count: 0,
+				increment() {
+					this.$count++;
+				},
+				[SYMBOL_PROP]() {
+					this.$count++;
+				},
+				arr: [() => obj.$count++, () => obj.$count--],
+			};
+
+			const obj2 = null;
+
+			<button onClick={() => obj['increment']()}>{'Increment'}</button>
+			<button onClick={() => obj[SYMBOL_PROP]()}>{'Increment'}</button>
+			<button
+				onClick={() => {
+					$hasError = false;
+					try {
+						obj['nonexistent']();
+					} catch {
+						$hasError = true;
+					}
+				}}
+			>{'Nonexistent'}</button>
+			<button
+				onClick={() => {
+					$hasError = false;
+					try {
+						obj['nonexistent']?.();
+					} catch {
+						$hasError = true;
+					}
+				}}
+			>{'Nonexistent chaining'}</button>
+			<button
+				onClick={() => {
+					$hasError = false;
+					try {
+						obj2['nonexistent']();
+					} catch {
+						$hasError = true;
+					}
+				}}
+			>{'Object null'}</button>
+			<button
+				onClick={() => {
+					$hasError = false;
+					try {
+						obj2?.['nonexistent']?.();
+					} catch {
+						$hasError = true;
+					}
+				}}
+			>{'Object null chained'}</button>
+			<button onClick={() => obj.arr[obj.arr.length - 1]()}>{'BinaryExpression prop'}</button>
+
+			<span>{obj.$count}</span>
+			<span>{$hasError}</span>
+		}
+
+		render(App);
+
+		const button1 = container.querySelectorAll('button')[0];
+		const button2 = container.querySelectorAll('button')[1];
+		const button3 = container.querySelectorAll('button')[2];
+		const button4 = container.querySelectorAll('button')[3];
+		const button5 = container.querySelectorAll('button')[4];
+		const button6 = container.querySelectorAll('button')[5];
+		const button7 = container.querySelectorAll('button')[6];
+
+		const countSpan = container.querySelectorAll('span')[0];
+		const errorSpan = container.querySelectorAll('span')[1];
+
+		expect(countSpan.textContent).toBe('0');
+		expect(errorSpan.textContent).toBe('false');
+
+		button1.click();
+		flushSync();
+
+		expect(countSpan.textContent).toBe('1');
+
+		button2.click();
+		flushSync();
+
+		expect(countSpan.textContent).toBe('2');
+
+		button3.click();
+		flushSync();
+		expect(errorSpan.textContent).toBe('true');
+
+		button4.click();
+		flushSync();
+		expect(errorSpan.textContent).toBe('false');
+
+		button5.click();
+		flushSync();
+		expect(errorSpan.textContent).toBe('true');
+
+		button6.click();
+		flushSync();
+		expect(errorSpan.textContent).toBe('false');
+
+		button7.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('1');
 	});
 });
