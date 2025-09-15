@@ -141,6 +141,9 @@ function RipplePlugin(config) {
 				if (this.eat(tt.braceL)) {
 					if (this.value === 'ref') {
 						this.next();
+						if (this.type === tt.braceR) {
+							this.raise(this.start, '"ref" is a Ripple keyword and must be used in the form {ref fn}');
+						}
 						node.argument = this.parseMaybeAssign();
 						this.expect(tt.braceR);
 						return this.finishNode(node, 'RefAttribute');
