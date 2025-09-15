@@ -187,14 +187,21 @@ describe('compiler success tests', () => {
 			const config: Record<RecordKey, RecordValue> = {
 				test: {
 					a: 'test',
-					b: 10
+					b: 1
 				},
 			};
 
-			const config2: { [key: RecordKey]: RecordValue } = {
+			const config2: { [key in RecordKey]: RecordValue } = {
 				test: {
 					a: 'test2',
-					b: 0
+					b: 2
+				}
+			}
+
+			const config3: { [key: RecordKey]: RecordValue } = {
+				test: {
+					a: 'test3',
+					b: 3
 				}
 			}
 		}
