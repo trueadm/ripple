@@ -56,9 +56,6 @@ export default function (options = {}) {
 			const { js, css } = await compile(code, filename, id);
 
 			if (emitCss && css && css.code) {
-				const fname = id.replace(new RegExp(`\\${extension}$`), '.css');
-				js.code += `\nimport ${JSON.stringify(fname)};\n`;
-				cache_emit.set(fname, css);
 			}
 			return js;
 		},
