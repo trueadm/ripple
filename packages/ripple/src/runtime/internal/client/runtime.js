@@ -861,6 +861,28 @@ export function computed_property(fn) {
 /**
  * @param {any} obj
  * @param {string | number | symbol} property
+ * @param {boolean} chain_obj
+ * @param {boolean} chain_prop
+ * @param {...any} args
+ * @returns {any}
+ */
+export function call_property(obj, property, chain_obj, chain_prop, ...args) {
+	// don't swallow errors if either the object or property is nullish,
+	// respect optional chaining as provided
+	if(!chain_obj && !chain_prop) {
+		return obj[property].call(obj, ...args);
+	} else if (chain_obj && chain_prop) {
+		return obj?.[property]?.call(obj, ...args);
+	} else if (chain_obj) {
+		return obj?.[property].call(obj, ...args);
+	} else if (chain_prop) {
+		return obj[property]?.call(obj, ...args);
+	}
+}
+
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
  * @param {boolean} [chain=false]
  * @returns {any}
  */
