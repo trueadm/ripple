@@ -145,6 +145,31 @@ describe('basic', () => {
 		expect(div.style.fontWeight).toBe('bold');
 	});
 
+	it('render spread props without duplication', () => {
+		component App() {
+			const checkBoxProp = {name:'car'}
+
+			<div>
+				<input {...checkBoxProp} type="checkbox" id="vehicle1" value="Bike" />
+			</div>
+		}
+
+		render(App);
+
+		const input = container.querySelector('input');
+		const html = container.innerHTML;
+		
+		expect(input.getAttribute('name')).toBe('car');
+		expect(input.getAttribute('type')).toBe('checkbox');
+		expect(input.getAttribute('id')).toBe('vehicle1');
+		expect(input.getAttribute('value')).toBe('Bike');
+		
+		expect(html).not.toContain('type="checkbox"type="checkbox"');
+		expect(html).not.toContain('value="Bike"value="Bike"');
+		
+		expect(container).toMatchSnapshot();
+	});
+
 	it('render dynamic boolean attributes', () => {
 		component Basic() {
 			let $disabled = false;
