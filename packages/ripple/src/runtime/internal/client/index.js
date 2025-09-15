@@ -27,6 +27,7 @@ export {
 	tracked_object,
 	tracked_spread_object,
 	computed_property,
+	call_property,
 	get_property,
 	set_property,
 	update,
