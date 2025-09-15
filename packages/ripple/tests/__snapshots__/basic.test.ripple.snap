@@ -9,6 +9,20 @@ exports[`basic > render semi-dynamic text 1`] = `
 </div>
 `;
 
+exports[`basic > render spread props without duplication 1`] = `
+<div>
+  <div>
+    <input
+      id="vehicle1"
+      name="car"
+      type="checkbox"
+      value="Bike"
+    />
+  </div>
+  
+</div>
+`;
+
 exports[`basic > render static attributes 1`] = `
 <div>
   <div

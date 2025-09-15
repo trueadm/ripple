@@ -500,7 +500,11 @@ const visitors = {
 			);
 
 			if (is_spreading) {
-				spread_attributes.push(b.prop('init', b.literal(name), attr_value));
+				// For spread attributes, store just the actual value, not the full attribute string
+				const actual_value = is_boolean_attribute(name) && value === true 
+					? b.literal(true) 
+					: b.literal(value === true ? '' : value);
+				spread_attributes.push(b.prop('init', b.literal(name), actual_value));
 			} else {
 				state.template.push(attr_value);
 			}
