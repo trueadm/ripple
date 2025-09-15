@@ -70,6 +70,24 @@ describe('basic', () => {
 		expect(container.querySelector('div').textContent).toEqual('Hello Ripple');
 	});
 
+	it('render empty string literal', () => {
+		component Basic() {
+			<div>{''}</div>
+		}
+
+		render(Basic);
+		expect(container.querySelector('div').textContent).toEqual('');
+	});
+
+	it('render empty template literal', () => {
+		component Basic() {
+			<div>{``}</div>
+		}
+
+		render(Basic);
+		expect(container.querySelector('div').textContent).toEqual('');
+	});
+
 	it('render dynamic class attribute', () => {
 		component Basic() {
 			let $active = false;

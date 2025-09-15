@@ -1290,6 +1290,11 @@ const visitors = {
 		return b.binary(node.operator, context.visit(node.left), context.visit(node.right));
 	},
 
+	TemplateLiteral(node, context) {
+		const expressions = node.expressions.map(expr => context.visit(expr));
+		return b.template(node.quasis, expressions);
+	},
+
 	RenderFragment(node, context) {
 		const identifer = node.expression.callee;
 
