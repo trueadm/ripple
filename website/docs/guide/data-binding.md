@@ -25,7 +25,7 @@ So Ripple provides similar capabilities when working with composite components i
 
 In fact, when you use an accessor, you must pass a function, and the prop must be `$` prefixed, as Ripple considers accessor props as reactive:
 
-```jsx
+```ripple
 let $name = 'Bob';
 
 const getName = () => {
@@ -40,7 +40,7 @@ const getName = () => {
 
 You can also inline the function too:
 
-```jsx
+```ripple
 let $name = 'Bob';
 
 <Person $name:={() => {
@@ -53,7 +53,7 @@ let $name = 'Bob';
 
 Furthermore, just like property accessors in JavaScript, Ripple provides a way of capturing the `set` too, enabling two-way data-flow on composite component props. You just need to provide a second function after the first, separated using a comma:
 
-```jsx
+```ripple
 let $name = 'Bob';
 
 const getName = () => {
@@ -69,7 +69,7 @@ const setName = (newName) => {
 
 Or an inlined version:
 
-```jsx
+```ripple
 let $name = 'Bob';
 
 <Person $name:={() => $name, (newName) => $name = $newName} />
@@ -77,7 +77,7 @@ let $name = 'Bob';
 
 Now changes in the `Person` to its `props` will propagate to its parent component:
 
-```jsx
+```ripple
 component Person(props) {
   const updateName = (newName) => {
     props.$name = newName;

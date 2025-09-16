@@ -35,7 +35,7 @@ let $quadruple = $double * 2;
 
 That means `$count` itself might be derived if it were to reference another reactive property. For example:
 
-```jsx
+```ripple
 component Counter({ $startingCount }) {
   let $count = $startingCount;
   let $double = $count * 2;
@@ -45,7 +45,7 @@ component Counter({ $startingCount }) {
 
 Now given `$startingCount` is reactive, it would mean that `$count` might reset each time an incoming change to `$startingCount` occurs. That might not be desirable, so Ripple provides a way to `untrack` reactivity in those cases:
 
-```jsx
+```ripple
 import { untrack } from 'ripple';
 
 component Counter({ $startingCount }) {
@@ -63,7 +63,7 @@ Now `$count` will only reactively create its value on initialization.
 ## Props and Attributes
 If you want a prop to be reactive, you should also give it a `$` prefix.
 
-```jsx
+```ripple
 component Button(props: { $text: string, onClick: () => void }) {
   <button onClick={props.onClick}>
     {props.$text}
@@ -90,7 +90,7 @@ Ripple doesn't constrain reactivity to components only. Reactivity can be used i
 
 Ripple provides a very nice way to transport reactivity between boundaries so that it's persisted – using objects and arrays. Here's an example using arrays to transport reactivity:
 
-```jsx
+```ripple
 import { effect } from 'ripple';
 
 function createDouble([ $count ]) {
@@ -115,7 +115,7 @@ export component App() {
 
 You can do the same with objects too:
 
-```jsx
+```ripple
 import { effect } from 'ripple';
 
 function createDouble({ $count }) {
@@ -198,7 +198,7 @@ export component App() {
 When dealing with reactive state, you might want to be able to create side-effects based upon changes that happen upon updates.
 To do this, you can use `effect`:
 
-```jsx
+```ripple
 import { effect } from 'ripple';
 
 export component App() {
@@ -281,7 +281,7 @@ const set = new RippleSet([1, 2, 3]);
 
 RippleSet's reactive methods or properties can be used directly or assigned to reactive variables.
 
-```jsx
+```ripple
 import { RippleSet } from 'ripple';
 
 export component App() {
@@ -312,7 +312,7 @@ const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
 
 RippleMap's reactive methods or properties can be used directly or assigned to reactive variables.
 
-```jsx
+```ripple
 import { RippleMap } from 'ripple';
 
 export component App() {

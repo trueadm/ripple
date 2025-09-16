@@ -7,7 +7,7 @@ title: Control flow in Ripple
 The JSX-like syntax might take some time to get used to if you're coming from another framework. For one, templating in Ripple
 can only occur _inside_ a `component` body – you can't create JSX inside functions, or assign it to variables as an expression.
 
-```jsx
+```ripple
 <div>
   // you can create variables inside the template!
   const str = "hello world";
@@ -30,7 +30,7 @@ using JavaScript expressions regardless.
 If blocks work seamlessly with Ripple's templating language, you can put them inside the JSX-like
 statements, making control-flow far easier to read and reason with.
 
-```jsx
+```ripple
 component Truthy({ x }) {
   <div>
     if (x) {
@@ -47,7 +47,7 @@ component Truthy({ x }) {
 You can render collections using a `for...of` block, and you don't need to specify a `key` prop unlike
 other frameworks.
 
-```jsx
+```ripple
 component ListView({ title, items }) {
   <h2>{title}</h2>
   <ul>
@@ -60,7 +60,7 @@ component ListView({ title, items }) {
 
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
-```jsx
+```ripple
 import { RippleArray } from 'ripple';
 
 component Numbers() {
@@ -82,7 +82,7 @@ reactive, but rather its properties are instead.
 Try blocks work to build the foundation for **error boundaries**, when the runtime encounters
 an error in the `try` block, you can easily render a fallback in the `catch` block.
 
-```jsx
+```ripple
 import { reportError } from 'some-library';
 
 component ErrorBoundary() {
