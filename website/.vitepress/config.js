@@ -137,7 +137,7 @@ function docs_sidebar() {
 				{ text: 'Reactivity', link: 'guide/reactivity' },
 				{ text: 'Data Binding', link: 'guide/data-binding' },
 				{ text: 'Events', link: 'guide/events' },
-				{ text: 'Decorators', link: 'guide/decorators' },
+				{ text: 'DOM References', link: 'guide/dom-refs' },
 				{ text: 'State Management', link: 'guide/state-management' },
 			]
 		},

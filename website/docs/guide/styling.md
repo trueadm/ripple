@@ -6,7 +6,7 @@ title: Styling in Ripple
 
 Ripple supports native CSS styling that is localized to the given component using the `<style>` element.
 
-```jsx
+```ripple
 component MyComponent() {
   <div class="container"><h1>{'Hello World'}</h1></div>
 
