@@ -2,7 +2,9 @@
 title: Best Practices in Ripple
 ---
 
+<!-- TODO: Elaborate -->
 # Best Practices
+A summary:
 
 1. **Reactivity**: Always prefix reactive variables and props with `$`
 2. **Strings**: Wrap string literals in `{"string"}` within templates
