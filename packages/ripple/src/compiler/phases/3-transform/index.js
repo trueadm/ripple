@@ -1299,6 +1299,10 @@ const visitors = {
 	},
 
 	TemplateLiteral(node, context) {
+		if (node.expressions.length === 0) {
+			return b.literal(node.quasis[0].value.cooked);
+		}
+
 		const expressions = node.expressions.map(expr => context.visit(expr));
 		return b.template(node.quasis, expressions);
 	},
