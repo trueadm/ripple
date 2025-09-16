@@ -88,6 +88,27 @@ describe('basic', () => {
 		expect(container.querySelector('div').textContent).toEqual('');
 	});
 
+	it('render tick template literal for nested children', () => {
+		component Child({ $level, $children }) {
+			if($level == 1) {
+				<h1><$children /></h1>
+			}
+			if($level == 2) {
+				<h2><$children /></h2>
+			}
+			if($level == 3) {
+				<h3><$children /></h3>
+			}
+		}
+
+		component App() {
+			<Child $level={1}>{`Heading 1`} </Child>
+		}
+
+		render(App);
+		expect(container.querySelector('h1').textContent).toEqual('Heading 1');
+	});
+
 	it('render dynamic class attribute', () => {
 		component Basic() {
 			let $active = false;
