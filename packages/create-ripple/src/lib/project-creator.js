@@ -181,9 +181,7 @@ function updatePackageJson(projectPath, projectName, packageManager, typescript,
     if (stylingFramework === 'tailwind') {
         packageJson.devDependencies = {
             ...packageJson.devDependencies,
-            'tailwindcss': '^3.0.0',
-            'postcss': '^8.0.0',
-            'autoprefixer': '^10.0.0'
+            'tailwindcss': '^3.0.0'
         };
     } else if (stylingFramework === 'bootstrap') {
         packageJson.dependencies = {
@@ -216,15 +214,6 @@ export default {
 }
 `;
 		writeFileSync(join(projectPath, 'tailwind.config.js'), tailwindConfig);
-
-		const postcssConfig = `export default {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
-`;
-		writeFileSync(join(projectPath, 'postcss.config.js'), postcssConfig);
 
 		const mainCss = `@tailwind base;
 @tailwind components;
