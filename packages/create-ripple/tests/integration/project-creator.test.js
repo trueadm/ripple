@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createProject } from '../../src/lib/project-creator.js';
+import { createProject, updatePackageJson, configureStyling } from '../../src/lib/project-creator.js';
 import { getLocalTemplatePath, isLocalDevelopment, validateTemplate } from '../../src/lib/templates.js';
 
 // Mock ora for cleaner test output
@@ -226,5 +226,46 @@ describe('createProject integration tests', () => {
 		// Verify project was created successfully
 		expect(existsSync(join(projectPath, 'package.json'))).toBe(true);
 		expect(existsSync(join(projectPath, 'existing-file.txt'))).toBe(true);
+	});
+	it('should configure Tailwind CSS correctly', async () => {
+		await createProject({
+			projectName: 'test-tailwind-project',
+			projectPath,
+			template: 'basic',
+			packageManager: 'npm',
+			typescript: true,
+			gitInit: false,
+			stylingFramework: 'tailwind'
+		});
+
+		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+		expect(packageJson.devDependencies).toHaveProperty('tailwindcss');
+		expect(packageJson.devDependencies).toHaveProperty('postcss');
+		expect(packageJson.devDependencies).toHaveProperty('autoprefixer');
+
+		expect(existsSync(join(projectPath, 'tailwind.config.js'))).toBe(true);
+		expect(existsSync(join(projectPath, 'postcss.config.js'))).toBe(true);
+		expect(existsSync(join(projectPath, 'src', 'index.css'))).toBe(true);
+	});
+
+	it('should configure Bootstrap correctly', async () => {
+		// Create a mock index.ts for this test
+		writeFileSync(join(templatePath, 'src', 'index.ts'), 'console.log("hello");');
+
+		await createProject({
+			projectName: 'test-bootstrap-project',
+			projectPath,
+			template: 'basic',
+			packageManager: 'npm',
+			typescript: true,
+			gitInit: false,
+			stylingFramework: 'bootstrap'
+		});
+
+		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+		expect(packageJson.dependencies).toHaveProperty('bootstrap');
+
+		const mainTsContent = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
+		expect(mainTsContent).toContain("import 'bootstrap/dist/css/bootstrap.min.css';");
 	});
 });

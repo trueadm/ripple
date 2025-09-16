@@ -72,7 +72,10 @@ export async function createCommand(projectName, options) {
 		gitInit = false;
 	}
 
-	const stylingFramework = await promptStylingFramework()
+		let stylingFramework = 'vanilla';
+	if (!options.yes) {
+		stylingFramework = await promptStylingFramework();
+	}
 
 	// Step 6: Create the project
 	console.log();

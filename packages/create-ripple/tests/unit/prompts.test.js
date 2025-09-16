@@ -28,7 +28,8 @@ import {
 	promptOverwrite,
 	promptPackageManager,
 	promptTypeScript,
-	promptGitInit
+	promptGitInit,
+	promptStylingFramework
 } from '../../src/lib/prompts.js';
 
 describe('Prompts', () => {
@@ -202,6 +203,38 @@ describe('Prompts', () => {
 
 			await promptGitInit();
 			expect(mockExit).toHaveBeenCalledWith(1);
+		});
+	});
+	describe('promptStylingFramework', () => {
+		it('should return selected styling framework', async () => {
+			prompts.default.mockResolvedValue({ stylingFramework: 'tailwind' });
+
+			const result = await promptStylingFramework();
+			expect(result).toBe('tailwind');
+			expect(prompts.default).toHaveBeenCalledWith({
+				type: 'select',
+				name: 'stylingFramework',
+				message: 'Which styling framework would you like to integrate with Ripple?',
+				choices: [{
+					title: 'css',
+					value: 'vanilla',
+					description: 'Use Vanilla CSS for styling your components'
+				}, {
+					title: 'bs',
+					value: 'bootStrap',
+					description: 'Use BootStrap classes to style your components'
+				}, {
+					title: 'tw',
+					value: 'tailWind',
+					description: 'Use TailWindCSS to style your components'
+				}]
+			});
+		});
+
+		it('should return undefined when user cancels', async () => {
+			prompts.default.mockResolvedValue({ stylingFramework: undefined });
+			const result = await promptStylingFramework();
+			expect(result).toBeUndefined();
 		});
 	});
 });

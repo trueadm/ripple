@@ -233,8 +233,8 @@ export default {
 		writeFileSync(join(projectPath, 'src', 'index.css'), mainCss);
     } else if (stylingFramework === 'bootstrap') {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
-		const newMainJs = "import 'bootstrap/dist/css/bootstrap.min.css';\n" + mainTs;
-		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainJs);
+		const newMainTs = "import 'bootstrap/dist/css/bootstrap.min.css';\n" + mainTs;
+		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
     }
 }
 
