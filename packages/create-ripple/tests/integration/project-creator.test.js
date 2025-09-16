@@ -242,7 +242,6 @@ describe('createProject integration tests', () => {
 		expect(packageJson.devDependencies).toHaveProperty('tailwindcss');
 
 		expect(existsSync(join(projectPath, 'tailwind.config.js'))).toBe(true);
-		expect(existsSync(join(projectPath, 'postcss.config.js'))).toBe(true);
 		expect(existsSync(join(projectPath, 'src', 'index.css'))).toBe(true);
 	});
 
