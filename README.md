@@ -649,6 +649,41 @@ Lastly, you can use refs on composite components.
 
 When passing refs to composite components (rather than HTML elements) as shown above, they will be passed a `Symbol` property, as they are not named. This still means that it can be spread to HTML template elements later on and still work.
 
+#### createRefKey
+
+Creates a unique object key that will be recognised as a ref when the object is spread onto an element.
+This allows programmatic assignment of refs without relying directly on the `{ref ...}` template syntax.
+
+```jsx
+import { createRefKey } from 'ripple';
+
+export component App() {
+  let $value = '';
+
+  const props = {
+    id: "example",
+    $value,
+    [createRefKey()]: (node) => {
+      const removeListener = node.addEventListener('input', (e) => $value = e.target.value);
+
+      return () => {
+        removeListener();
+      }
+    }
+  };
+
+  // applied to an element
+  <input type="text" {...props} />
+
+  // with composite component
+  <Input {...props} />
+}
+
+component Input({ id, $value, ...rest }) {
+  <input type="text" {id} {$value} {...rest} />
+}
+```
+
 ### Event Props
 
 Like React, events are props that start with `on` and then continue with an uppercase character, such as:
