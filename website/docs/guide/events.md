@@ -1,8 +1,8 @@
 ---
-title: Event Handling in Ripple
+title: Event Binding in Ripple
 ---
 
-# Events
+# Event Binding with Props
 
 Like React, Ripple deviates from the standard with event handlers. Here, events
 are camelCased props that start with 'on', unlike standard HTML.
