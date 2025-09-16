@@ -99,23 +99,23 @@ export function async(fn) {
  * @param {() => (element: Element) => (void | (() => void))} get_fn
  * @returns {Block}
  */
-export function use(element, get_fn) {
+export function ref(element, get_fn) {
 	/** @type {(element: Element) => (void | (() => void) | undefined)} */
-	var use_fn;
+	var ref_fn;
 	/** @type {Block | null} */
 	var e;
 
 	return block(RENDER_BLOCK, () => {
-		if (use_fn !== (use_fn = get_fn())) {
+		if (ref_fn !== (ref_fn = get_fn())) {
 			if (e) {
 				destroy_block(e);
 				e = null;
 			}
 
-			if (use_fn) {
+			if (ref_fn) {
 				e = branch(() => {
 					effect(() => {
-						return use_fn(element);
+						return ref_fn(element);
 					});
 				});
 			}

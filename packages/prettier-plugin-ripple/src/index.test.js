@@ -142,7 +142,7 @@ describe('prettier-plugin-ripple', () => {
 			const already_formatted = `export component App() {
   let $node;
 
-  const ref = node => {
+  const createRef = node => {
     $node = node;
     console.log('mounted', node);
 
@@ -159,7 +159,7 @@ describe('prettier-plugin-ripple', () => {
     c: 3,
   };
 
-  <div {@use ref}>{'Hello world'}</div>
+  <div {ref createRef}>{'Hello world'}</div>
 
   <style>
     div {

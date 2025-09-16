@@ -417,15 +417,15 @@ component StyledComponent() {
 }
 ```
 
-### DOM References (Decorators)
+### DOM References (Refs)
 
-Use `{@use fn}` syntax to capture DOM element references:
+Use `{ref fn}` syntax to capture DOM element references:
 
 ```ripple
 export component App() {
   let $node;
 
-  const ref = (node) => {
+  const divRef = (node) => {
     $node = node;
     console.log("mounted", node);
     
@@ -434,13 +434,13 @@ export component App() {
     };
   };
 
-  <div {@use ref}>{"Hello world"}</div>
+  <div {ref divRef}>{"Hello world"}</div>
 }
 ```
 
-Inline decorators:
+Inline refs:
 ```ripple
-<div {@use (node) => console.log(node)}>{"Content"}</div>
+<div {ref (node) => console.log(node)}>{"Content"}</div>
 ```
 
 ## Built-in APIs
