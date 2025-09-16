@@ -230,6 +230,13 @@ const visitors = {
 		context.next();
 	},
 
+	TSMappedType(_, context) {
+		if (!context.state.to_ts) {
+			return b.empty;
+		}
+		context.next();
+	},
+
 	NewExpression(node, context) {
 		const callee = node.callee;
 		const parent = context.path.at(-1);
@@ -500,7 +507,11 @@ const visitors = {
 			);
 
 			if (is_spreading) {
-				spread_attributes.push(b.prop('init', b.literal(name), attr_value));
+				// For spread attributes, store just the actual value, not the full attribute string
+				const actual_value = is_boolean_attribute(name) && value === true 
+					? b.literal(true) 
+					: b.literal(value === true ? '' : value);
+				spread_attributes.push(b.prop('init', b.literal(name), actual_value));
 			} else {
 				state.template.push(attr_value);
 			}
@@ -990,7 +1001,8 @@ const visitors = {
 		const left = node.left;
 
 		if (left.type === 'MemberExpression') {
-			if (left.property.type === 'Identifier' && is_tracked_name(left.property.name)) {
+			// need to capture setting length of array to throw a runtime error
+			if (left.property.type === 'Identifier' && (is_tracked_name(left.property.name) || left.property.name === 'length')) {
 				if (left.property.name !== '$length') {
 					return b.call(
 						'$.set_property',
@@ -1284,6 +1296,11 @@ const visitors = {
 
 	BinaryExpression(node, context) {
 		return b.binary(node.operator, context.visit(node.left), context.visit(node.right));
+	},
+
+	TemplateLiteral(node, context) {
+		const expressions = node.expressions.map(expr => context.visit(expr));
+		return b.template(node.quasis, expressions);
 	},
 
 	RenderFragment(node, context) {
