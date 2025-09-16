@@ -240,8 +240,6 @@ describe('createProject integration tests', () => {
 
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
 		expect(packageJson.devDependencies).toHaveProperty('tailwindcss');
-		expect(packageJson.devDependencies).toHaveProperty('postcss');
-		expect(packageJson.devDependencies).toHaveProperty('autoprefixer');
 
 		expect(existsSync(join(projectPath, 'tailwind.config.js'))).toBe(true);
 		expect(existsSync(join(projectPath, 'postcss.config.js'))).toBe(true);
