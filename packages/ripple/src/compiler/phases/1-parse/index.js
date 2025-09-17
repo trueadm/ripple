@@ -62,7 +62,8 @@ function RipplePlugin(config) {
 								currentType === tt.question || // After ?
 								currentType === tt.logicalOR || // After ||
 								currentType === tt.logicalAND || // After &&
-								currentType === tt.dot; // After . (for member expressions like obj.@prop)
+								currentType === tt.dot || // After . (for member expressions like obj.@prop)
+								currentType === tt.questionDot; // After ?. (for optional chaining like obj?.@prop)
 							
 							if (inExpression) {
 								return this.readAtIdentifier();

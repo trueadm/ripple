@@ -290,6 +290,7 @@ const visitors = {
 				'$.get_property',
 				context.visit(node.object),
 				node.computed ? context.visit(node.property) : b.literal(node.property.name),
+				node.optional ? b.true : undefined,
 			);
 		}
 
@@ -1035,6 +1036,10 @@ const visitors = {
 			const operator = node.operator;
 			const right = node.right;
 
+			if (operator !== '=') {
+				context.state.metadata.tracking = true;
+			}
+
 			return b.call(
 				'$.set_property',
 				context.visit(left.object),
@@ -1096,8 +1101,7 @@ const visitors = {
 			argument.property.type === 'Identifier' &&
 			argument.property.tracked
 		) {
-			const operator = node.operator;
-			const right = node.right;
+			context.state.metadata.tracking = true;
 
 			return b.call(
 				node.prefix ? '$.update_pre_property' : '$.update_property',
