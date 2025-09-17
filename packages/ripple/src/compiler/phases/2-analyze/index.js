@@ -79,6 +79,10 @@ function visit_function(node, context) {
 		function_depth: context.state.function_depth + 1,
 		expression: null,
 	});
+
+	if (node.metadata.tracked) {
+		mark_as_tracked(context.path);
+	}
 }
 
 function mark_as_tracked(path) {
@@ -117,11 +121,13 @@ const visitors = {
 
 		if (
 			is_reference(node, /** @type {Node} */ (parent)) &&
-			context.state.metadata?.tracking === false &&
-			is_tracked_name(node) &&
+			(is_tracked_name(node) || node.tracked) &&
 			binding?.node !== node
 		) {
-			context.state.metadata.tracking = true;
+			mark_as_tracked(context.path);
+			if (context.state.metadata?.tracking === false) {
+				context.state.metadata.tracking = true;
+			}
 		}
 
 		if (
@@ -269,7 +275,7 @@ const visitors = {
 										if (!computed) {
 											return node;
 										}
-										return b.call('$.set_property', node, computed, value, b.id('__block'));
+										return b.call('$.old_set_property', node, computed, value, b.id('__block'));
 									},
 								};
 								break;
@@ -312,7 +318,7 @@ const visitors = {
 								} else if (metadata.tracking && !metadata.await) {
 									if (is_tracked_name(path.node.name) && value.type === 'MemberExpression') {
 										return b.call(
-											'$.get_property',
+											'$.old_get_property',
 											b.call('$.get_computed', value.object),
 											value.property.type === 'Identifier'
 												? b.literal(value.property.name)
@@ -334,7 +340,7 @@ const visitors = {
 
 								if (is_tracked_name(path.node.name) && value.type === 'MemberExpression') {
 									return b.call(
-										'$.get_property',
+										'$.old_get_property',
 										value.object,
 										value.property.type === 'Identifier'
 											? b.literal(value.property.name)
@@ -397,10 +403,10 @@ const visitors = {
 							};
 						} else {
 							binding.transform = {
-								read: (_) => b.call('$.get_property', b.id('__props'), b.literal(name)),
+								read: (_) => b.call('$.old_get_property', b.id('__props'), b.literal(name)),
 								assign: (node, value) => {
 									return b.call(
-										'$.set_property',
+										'$.old_set_property',
 										b.id('__props'),
 										b.literal(name),
 										value,
@@ -409,7 +415,7 @@ const visitors = {
 								},
 								update: (_) =>
 									b.call(
-										node.prefix ? '$.update_property_pre' : '$.update_property',
+										node.prefix ? '$.old_update_property_pre' : '$.old_update_property',
 										b.id('__props'),
 										b.literal(name),
 										b.id('__block'),

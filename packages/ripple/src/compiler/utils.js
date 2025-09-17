@@ -452,7 +452,7 @@ export function is_ripple_import(callee, context) {
 	return false;
 }
 
-export function is_declared_within_component(node, context) {
+export function is_declared_function_within_component(node, context) {
 	const component = context.path.find((n) => n.type === 'Component');
 
 	if (node.type === 'Identifier' && component) {
@@ -460,6 +460,14 @@ export function is_declared_within_component(node, context) {
 		const component_scope = context.state.scopes.get(component);
 
 		if (binding !== null && component_scope !== null) {
+			if (
+				binding.declaration_kind !== 'function' &&
+				binding.initial?.type !== 'FunctionDeclaration' &&
+				binding.initial?.type !== 'ArrowFunctionExpression' &&
+				binding.initial?.type !== 'FunctionExpression'
+			) {
+				return false;
+			}
 			let scope = binding.scope;
 
 			while (scope !== null) {

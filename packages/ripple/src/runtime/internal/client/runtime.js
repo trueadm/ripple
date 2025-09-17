@@ -431,7 +431,7 @@ export function deferred(fn) {
 		var value = fn();
 
 		res[0] = value;
-		set_property(res, 0, value, block);
+		old_set_property(res, 0, value, block);
 
 		if (prev_value !== UNINITIALIZED) {
 			if ((t.f & DEFERRED) === 0) {
@@ -870,7 +870,7 @@ export function computed_property(fn) {
 export function call_property(obj, property, chain_obj, chain_prop, ...args) {
 	// don't swallow errors if either the object or property is nullish,
 	// respect optional chaining as provided
-	if(!chain_obj && !chain_prop) {
+	if (!chain_obj && !chain_prop) {
 		return obj[property].call(obj, ...args);
 	} else if (chain_obj && chain_prop) {
 		return obj?.[property]?.call(obj, ...args);
@@ -891,6 +891,20 @@ export function get_property(obj, property, chain = false) {
 	if (chain && obj == null) {
 		return undefined;
 	}
+	var tracked = obj[property];
+	return get(tracked);
+}
+
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {boolean} [chain=false]
+ * @returns {any}
+ */
+export function old_get_property(obj, property, chain = false) {
+	if (chain && obj == null) {
+		return undefined;
+	}
 	var value = obj[property];
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked_property = tracked_properties?.[property];
@@ -903,12 +917,17 @@ export function get_property(obj, property, chain = false) {
 	} else if (SPREAD_OBJECT in obj) {
 		var spread_fn = obj[SPREAD_OBJECT];
 		var properties = spread_fn();
-		return get_property(properties, property, chain);
+		return old_get_property(properties, property, chain);
 	} else if (is_ripple_array(obj)) {
 		obj.$length;
 	}
 
 	return value;
+}
+
+export function set_property(obj, property, value, block) {
+	var tracked = obj[property];
+	set(tracked, value, block);
 }
 
 /**
@@ -918,7 +937,7 @@ export function get_property(obj, property, chain = false) {
  * @param {Block} block
  * @returns {any}
  */
-export function set_property(obj, property, value, block) {
+export function old_set_property(obj, property, value, block) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var rip_arr = is_ripple_array(obj);
 	var tracked = !(rip_arr && property === 'length') ? tracked_properties?.[property] : undefined;
@@ -955,9 +974,7 @@ export function set_property(obj, property, value, block) {
 export function update(tracked, block, d = 1) {
 	var value = get(tracked);
 	var result = d === 1 ? value++ : value--;
-
 	set(tracked, value, block);
-
 	return result;
 }
 
@@ -988,9 +1005,15 @@ export function decrement(tracked, block) {
 export function update_pre(tracked, block, d = 1) {
 	var value = get(tracked);
 	var new_value = d === 1 ? ++value : --value;
-
 	set(tracked, new_value, block);
+	return new_value;
+}
 
+export function update_property(obj, property, block, d = 1) {
+	var tracked = obj[property];
+	var value = get(tracked);
+	var new_value = d === 1 ? value++ : value++;
+	set(tracked, value, block);
 	return new_value;
 }
 
@@ -1001,7 +1024,7 @@ export function update_pre(tracked, block, d = 1) {
  * @param {number} [d]
  * @returns {number}
  */
-export function update_property(obj, property, block, d = 1) {
+export function old_update_property(obj, property, block, d = 1) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked = tracked_properties?.[property];
 	var tracked_exists = tracked !== undefined;
@@ -1019,9 +1042,17 @@ export function update_property(obj, property, block, d = 1) {
 		}
 	}
 
-	obj[property] = value
+	obj[property] = value;
 
 	return value;
+}
+
+export function update_pre_property(obj, property, block, d = 1) {
+	var tracked = obj[property];
+	var value = get(tracked);
+	var new_value = d === 1 ? ++value : --value;
+	set(tracked, new_value, block);
+	return new_value;
 }
 
 /**
@@ -1031,19 +1062,19 @@ export function update_property(obj, property, block, d = 1) {
  * @param {number} [d]
  * @returns {number}
  */
-export function update_pre_property(obj, property, block, d = 1) {
+export function old_update_pre_property(obj, property, block, d = 1) {
 	var tracked_properties = obj[TRACKED_OBJECT];
 	var tracked = tracked_properties?.[property];
 	var tracked_exists = tracked !== undefined;
 	var value = tracked_exists ? get(tracked) : obj[property];
 
 	if (d === 1) {
-		++value
+		++value;
 		if (tracked_exists) {
 			increment(tracked, block);
 		}
 	} else {
-		--value
+		--value;
 		if (tracked_exists) {
 			decrement(tracked, block);
 		}
@@ -1092,7 +1123,7 @@ export function object_values(obj) {
 	var values = [];
 
 	for (var i = 0; i < keys.length; i++) {
-		values.push(get_property(obj, keys[i]));
+		values.push(old_get_property(obj, keys[i]));
 	}
 
 	return values;
@@ -1112,7 +1143,7 @@ export function object_entries(obj) {
 
 	for (var i = 0; i < keys.length; i++) {
 		var key = keys[i];
-		entries.push([key, get_property(obj, key)]);
+		entries.push([key, old_get_property(obj, key)]);
 	}
 
 	return entries;
@@ -1129,7 +1160,7 @@ export function spread_object(obj) {
 
 	for (var i = 0; i < keys.length; i++) {
 		var key = keys[i];
-		values[key] = get_property(obj, key);
+		values[key] = old_get_property(obj, key);
 	}
 
 	return values;

@@ -1,5 +1,5 @@
 import { TRACKED_OBJECT } from './constants';
-import { get_property } from './runtime';
+import { old_get_property } from './runtime';
 
 const array_proto = Array.prototype;
 
@@ -21,7 +21,7 @@ export function array_reduce(array, callback, initial_value) {
 	let accumulator = initial_value;
 
 	for (let i = 0; i < array.length; i++) {
-		accumulator = callback(accumulator, get_property(array, i), i, array);
+		accumulator = callback(accumulator, old_get_property(array, i), i, array);
 	}
 
 	return accumulator;
@@ -45,7 +45,7 @@ export function array_join(array, separator) {
 		if (i > 0 && separator !== undefined) {
 			result += separator;
 		}
-		result += String(get_property(array, i));
+		result += String(old_get_property(array, i));
 	}
 
 	return result;
@@ -68,7 +68,7 @@ export function array_map(array, callback) {
 	const result = [];
 	for (let i = 0; i < array.length; i++) {
 		if (i in array) {
-			result[i] = callback(get_property(array, i), i, array);
+			result[i] = callback(old_get_property(array, i), i, array);
 		}
 	}
 
@@ -91,7 +91,7 @@ export function array_filter(array, callback) {
 	const result = [];
 	for (let i = 0; i < array.length; i++) {
 		if (i in array) {
-			const value = get_property(array, i);
+			const value = old_get_property(array, i);
 			if (callback(value, i, array)) {
 				result.push(value);
 			}
@@ -116,7 +116,7 @@ export function array_forEach(array, callback) {
 
 	for (let i = 0; i < array.length; i++) {
 		if (i in array) {
-			callback(get_property(array, i), i, array);
+			callback(old_get_property(array, i), i, array);
 		}
 	}
 }
@@ -135,7 +135,7 @@ export function array_includes(array, value) {
 	}
 
 	for (let i = 0; i < array.length; i++) {
-		if (i in array && get_property(array, i) === value) {
+		if (i in array && old_get_property(array, i) === value) {
 			return true;
 		}
 	}
@@ -157,7 +157,7 @@ export function array_indexOf(array, value) {
 	}
 
 	for (let i = 0; i < array.length; i++) {
-		if (i in array && get_property(array, i) === value) {
+		if (i in array && old_get_property(array, i) === value) {
 			return i;
 		}
 	}
@@ -179,7 +179,7 @@ export function array_lastIndexOf(array, value) {
 	}
 
 	for (let i = array.length - 1; i >= 0; i--) {
-		if (i in array && get_property(array, i) === value) {
+		if (i in array && old_get_property(array, i) === value) {
 			return i;
 		}
 	}
@@ -201,7 +201,7 @@ export function array_every(array, callback) {
   }
 
   for (let i = 0; i < array.length; i++) {
-    if (i in array && !callback(get_property(array, i), i, array)) {
+    if (i in array && !callback(old_get_property(array, i), i, array)) {
       return false;
     }
   }
@@ -223,7 +223,7 @@ export function array_some(array, callback) {
   }
 
   for (let i = 0; i < array.length; i++) {
-    if (i in array && callback(get_property(array, i), i, array)) {
+    if (i in array && callback(old_get_property(array, i), i, array)) {
       return true;
     }
   }
@@ -249,7 +249,7 @@ export function array_toString(array) {
       result += ',';
     }
     if (i in array) {
-      result += String(get_property(array, i));
+      result += String(old_get_property(array, i));
     }
   }
 
@@ -272,7 +272,7 @@ export function array_toSorted(array, compare_fn) {
   const result = [];
   for (let i = 0; i < array.length; i++) {
     if (i in array) {
-      result.push(get_property(array, i));
+      result.push(old_get_property(array, i));
     }
   }
 
@@ -297,7 +297,7 @@ export function array_toSpliced(array, start, delete_count, ...items) {
   const result = [];
   for (let i = 0; i < array.length; i++) {
     if (i in array) {
-      result.push(get_property(array, i));
+      result.push(old_get_property(array, i));
     }
   }
 
@@ -321,7 +321,7 @@ export function array_values(array) {
   const result = [];
   for (let i = 0; i < array.length; i++) {
     if (i in array) {
-      result.push(get_property(array, i));
+      result.push(old_get_property(array, i));
     }
   }
 
@@ -344,7 +344,7 @@ export function array_entries(array) {
 	const result = [];
 	for (let i = 0; i < array.length; i++) {
 		if (i in array) {
-			result.push([i, get_property(array, i)]);
+			result.push([i, old_get_property(array, i)]);
 		}
 	}
 

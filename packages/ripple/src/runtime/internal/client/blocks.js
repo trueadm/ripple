@@ -22,7 +22,6 @@ import {
 	run_block,
 	run_teardown,
 	schedule_update,
-	set_property,
 } from './runtime';
 import { suspend } from './try';
 

@@ -17,7 +17,7 @@ import {
 	is_boolean_attribute,
 	is_dom_property,
 	is_ripple_import,
-	is_declared_within_component,
+	is_declared_function_within_component,
 	is_inside_call_expression,
 	is_tracked_computed_property,
 	is_value_static,
@@ -54,12 +54,19 @@ function visit_function(node, context) {
 	let body = context.visit(node.body, state);
 
 	if (metadata?.tracked === true) {
+		const new_body = [];
+		
+		if (!is_inside_component(context, true)) {
+			new_body.push(b.var('__block', b.call('$.scope')));
+		}
+		new_body.push(...body.body);
+
 		return /** @type {FunctionExpression} */ ({
 			...node,
 			params: node.params.map((param) => context.visit(param, state)),
 			body:
 				body.type === 'BlockStatement'
-					? { ...body, body: [b.var('__block', b.call('$.scope')), ...body.body] }
+					? { ...body, body: new_body }
 					: body,
 		});
 	}
@@ -161,7 +168,7 @@ const visitors = {
 			(is_ripple_import(callee, context) &&
 				(callee.type !== 'Identifier' ||
 					(callee.name !== 'array' && callee.name !== 'deferred'))) ||
-			is_declared_within_component(callee, context)
+			(is_declared_function_within_component(callee, context))
 		) {
 			return context.next();
 		}
@@ -284,6 +291,16 @@ const visitors = {
 	MemberExpression(node, context) {
 		const parent = context.path.at(-1);
 
+		if (node.property.type === 'Identifier' && node.property.tracked) {
+			context.state.metadata.tracking = true;
+			return b.call(
+				'$.get_property',
+				context.visit(node.object),
+				node.computed ? context.visit(node.property) : b.literal(node.property.name),
+				node.optional ? b.true : undefined,
+			);
+		}
+
 		if (parent.type !== 'AssignmentExpression') {
 			const object = node.object;
 			const property = node.property;
@@ -303,14 +320,14 @@ const visitors = {
 
 				if (tracked_name) {
 					return b.call(
-						'$.get_property',
+						'$.old_get_property',
 						context.visit(object),
 						property.type === 'Identifier' ? b.literal(property.name) : property,
 						node.optional ? b.true : undefined,
 					);
 				} else {
 					return b.call(
-						'$.get_property',
+						'$.old_get_property',
 						context.visit(object),
 						context.visit(property),
 						node.optional ? b.true : undefined,
@@ -625,7 +642,7 @@ const visitors = {
 									delegated_assignment = b.array(args);
 								} else if (
 									handler.type === 'Identifier' &&
-									is_declared_within_component(handler, context)
+									is_declared_function_within_component(handler, context)
 								) {
 									delegated_assignment = handler;
 								} else {
@@ -1018,6 +1035,33 @@ const visitors = {
 
 		const left = node.left;
 
+		if (
+			left.type === 'MemberExpression' &&
+			left.property.type === 'Identifier' &&
+			left.property.tracked
+		) {
+			const operator = node.operator;
+			const right = node.right;
+
+			if (operator !== '=') {
+				context.state.metadata.tracking = true;
+			}
+
+			return b.call(
+				'$.set_property',
+				context.visit(left.object),
+				left.computed ? context.visit(left.property) : b.literal(left.property.name),
+				operator === '='
+					? context.visit(right)
+					: b.binary(
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Pattern} */ (context.visit(left)),
+							/** @type {Expression} */ (context.visit(right)),
+						),
+				b.id('__block'),
+			);
+		}
+
 		if (left.type === 'MemberExpression') {
 			// need to capture setting length of array to throw a runtime error
 			if (
@@ -1026,7 +1070,7 @@ const visitors = {
 			) {
 				if (left.property.name !== '$length') {
 					return b.call(
-						'$.set_property',
+						'$.old_set_property',
 						context.visit(left.object),
 						left.computed ? context.visit(left.property) : b.literal(left.property.name),
 						visit_assignment_expression(node, context, build_assignment) ?? context.next(),
@@ -1061,12 +1105,28 @@ const visitors = {
 
 		if (
 			argument.type === 'MemberExpression' &&
+			argument.property.type === 'Identifier' &&
+			argument.property.tracked
+		) {
+			context.state.metadata.tracking = true;
+
+			return b.call(
+				node.prefix ? '$.update_pre_property' : '$.update_property',
+				context.visit(argument.object),
+				argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
+				b.id('__block'),
+				node.operator === '--' ? b.literal(-1) : undefined,
+			);
+		}
+
+		if (
+			argument.type === 'MemberExpression' &&
 			((argument.property.type === 'Identifier' && is_tracked_name(argument.property.name)) ||
 				(argument.computed &&
 					is_tracked_computed_property(argument.object, argument.property, context)))
 		) {
 			return b.call(
-				node.prefix ? '$.update_pre_property' : '$.update_property',
+				node.prefix ? '$.old_update_pre_property' : '$.old_update_property',
 				context.visit(argument.object),
 				argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
 				b.id('__block'),
