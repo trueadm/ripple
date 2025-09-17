@@ -121,14 +121,14 @@ export async function createProject({
 
 
 
-	// Step 5: Initialize Git (if requested)
+	// Step 6: Initialize Git (if requested)
 	if (gitInit) {
-		const spinner5 = ora('Initializing Git repository...').start();
+		const spinner6 = ora('Initializing Git repository...').start();
 		try {
 			execSync('git init', { cwd: projectPath, stdio: 'ignore' });
-			spinner5.succeed('Git repository initialized');
+			spinner6.succeed('Git repository initialized');
 		} catch (error) {
-			spinner5.warn('Git initialization failed (optional)');
+			spinner6.warn('Git initialization failed (optional)');
 		}
 	}
 
@@ -214,7 +214,8 @@ export default {
 } satisfies Config
 `;
 		writeFileSync(join(projectPath, 'tailwind.config.ts'), tailwindConfig);
-		const mainCss = `@import 'tailwindcss'`;
+		const mainCss = `@import 'tailwindcss'
+  @`;
 		writeFileSync(join(projectPath, 'src', 'index.css'), mainCss);
 
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
