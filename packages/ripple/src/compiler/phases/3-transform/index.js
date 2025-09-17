@@ -22,6 +22,7 @@ import {
 	is_tracked_computed_property,
 	is_value_static,
 	is_void_element,
+	is_top_level_function,
 } from '../../utils.js';
 import is_reference from 'is-reference';
 import { extract_paths, object } from '../../../utils/ast.js';
@@ -64,7 +65,7 @@ function visit_function(node, context) {
 	if (metadata?.tracked === true) {
 		const new_body = [];
 
-		if (!is_inside_component(context, true)) {
+		if (!is_inside_component(context, true) && is_top_level_function(context)) {
 			add_ripple_internal_import(context);
 			new_body.push(b.var('__block', b.call('$.scope')));
 		}

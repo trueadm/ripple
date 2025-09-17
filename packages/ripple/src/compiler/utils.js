@@ -374,6 +374,22 @@ export function is_inside_component(context, includes_functions = false) {
 	return false;
 }
 
+export function is_top_level_function(context) {
+	for (let i = context.path.length - 1; i >= 0; i -= 1) {
+		const context_node = context.path[i];
+		const type = context_node.type;
+
+		if (
+			type === 'FunctionExpression' ||
+			type === 'ArrowFunctionExpression' ||
+			type === 'FunctionDeclaration'
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
 export function is_inside_call_expression(context) {
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const context_node = context.path[i];
