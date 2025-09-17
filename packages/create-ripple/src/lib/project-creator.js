@@ -215,7 +215,7 @@ export default {
 `;
 		writeFileSync(join(projectPath, 'tailwind.config.ts'), tailwindConfig);
 		const mainCss = `@import 'tailwindcss'
-  @`;
+  @config './tailwind.config.ts'`;
 		writeFileSync(join(projectPath, 'src', 'index.css'), mainCss);
 
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
