@@ -54,12 +54,19 @@ function visit_function(node, context) {
 	let body = context.visit(node.body, state);
 
 	if (metadata?.tracked === true) {
+		const new_body = [];
+		
+		if (!is_inside_component(context, true)) {
+			new_body.push(b.var('__block', b.call('$.scope')));
+		}
+		new_body.push(...body.body);
+
 		return /** @type {FunctionExpression} */ ({
 			...node,
 			params: node.params.map((param) => context.visit(param, state)),
 			body:
 				body.type === 'BlockStatement'
-					? { ...body, body: [b.var('__block', b.call('$.scope')), ...body.body] }
+					? { ...body, body: new_body }
 					: body,
 		});
 	}
