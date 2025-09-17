@@ -105,6 +105,11 @@ function RipplePlugin(config) {
 				if (node.name && node.name.startsWith('@')) {
 					node.name = node.name.slice(1); // Remove the '@' for internal use
 					node.tracked = true;
+					node.start++;
+					const prev_pos = this.pos;
+					this.pos = node.start;
+					node.loc.start = this.curPosition();
+					this.pos = prev_pos;
 				}
 				return node;
 			}
