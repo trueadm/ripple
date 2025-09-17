@@ -440,10 +440,10 @@ export class RippleArray extends Array {
 	 * Supports negative index to count back from the end
 	 * @param {number} index
 	 * @param {T} value
-	 * @param {Block} [block]
 	 * @returns {T}
 	 */
-	[ARRAY_SET_INDEX_AT](index, value, block = safe_scope()) {
+	[ARRAY_SET_INDEX_AT](index, value) {
+		var block = safe_scope();
 		var tracked_elements = this.#tracked_elements;
 		var length = this.length;
 		var init_index = index;
