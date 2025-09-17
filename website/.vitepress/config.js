@@ -148,6 +148,7 @@ function docs_sidebar() {
 				{ text: 'Comparison to Other Frameworks', link: 'comparison' },
 				{ text: 'Best Practices', link: 'best-practices' },
 				{ text: 'Libraries', link: 'libraries' },
+				{ text: 'Troubleshooting', link: 'troubleshooting' },
 			]
 		},
 	]
