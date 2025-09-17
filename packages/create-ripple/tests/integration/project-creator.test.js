@@ -228,26 +228,28 @@ describe('createProject integration tests', () => {
 		expect(existsSync(join(projectPath, 'existing-file.txt'))).toBe(true);
 	});
 	it('should configure Tailwind CSS correctly', async () => {
-		await createProject({
-			projectName: 'test-tailwind-project',
-			projectPath,
-			template: 'basic',
-			packageManager: 'npm',
-			typescript: true,
-			gitInit: false,
-			stylingFramework: 'tailwind'
+			writeFileSync(join(templatePath, 'src', 'index.ts'), 'console.log("Hello, World!");');
+			await createProject({
+				projectName: 'test-tailwind-project',
+				projectPath,
+				template: 'basic',
+				packageManager: 'npm',
+				typescript: true,
+				gitInit: false,
+				stylingFramework: 'tailwind'
+			});
+
+			const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+			expect(packageJson.devDependencies).toHaveProperty('tailwindcss');
+
+			expect(existsSync(join(projectPath, 'tailwind.config.ts'))).toBe(true);
+			expect(readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8')).toContain("import './index.css';\n");
+			expect(existsSync(join(projectPath, 'src', 'index.css'))).toBe(true);
+			expect(readFileSync(join(projectPath, 'src', 'index.css'), 'utf-8')).toContain("@import 'tailwindcss'");
 		});
 
-		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
-		expect(packageJson.devDependencies).toHaveProperty('tailwindcss');
-
-		expect(existsSync(join(projectPath, 'tailwind.config.js'))).toBe(true);
-		expect(existsSync(join(projectPath, 'src', 'index.css'))).toBe(true);
-	});
-
 	it('should configure Bootstrap correctly', async () => {
-		// Create a mock index.ts for this test
-		writeFileSync(join(templatePath, 'src', 'index.ts'), 'console.log("hello");');
+		writeFileSync(join(templatePath, 'src', 'index.ts'), 'console.log("Hello, World!");');
 
 		await createProject({
 			projectName: 'test-bootstrap-project',

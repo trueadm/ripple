@@ -212,23 +212,23 @@ describe('Prompts', () => {
 			const result = await promptStylingFramework();
 			expect(result).toBe('tailwind');
 			expect(prompts.default).toHaveBeenCalledWith({
-		type: 'select',
-		name: 'stylingFramework',
-		message: 'Which styling framework would you like to integrate with Ripple?',
-		choices: [{
-			title: 'Vanilla CSS',
-			value: 'vanilla',
-			description: 'Use Vanilla CSS for styling your components'
-		}, {
-			title: 'BootStrap',
-			value: 'bootStrap',
-			description: 'Use BootStrap classes to style your components'
-		}, {
-			title: 'TailWindCSS',
-			value: 'tailWind',
-			description: 'Use TailWindCSS to style your components'
-		}]
-	});
+				type: 'select',
+				name: 'stylingFramework',
+				message: 'Which styling framework would you like to integrate with Ripple?',
+				choices: [{
+					title: 'Vanilla CSS',
+					value: 'vanilla',
+					description: 'Use Vanilla CSS for styling your components'
+				}, {
+					title: 'BootStrap',
+					value: 'bootStrap',
+					description: 'Use BootStrap classes to style your components'
+				}, {
+					title: 'TailWindCSS',
+					value: 'tailWind',
+					description: 'Use TailWindCSS to style your components'
+				}]
+			});
 		});
 
 		it('should return undefined when user cancels', async () => {

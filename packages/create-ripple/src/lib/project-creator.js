@@ -201,25 +201,26 @@ function updatePackageJson(projectPath, projectName, packageManager, typescript,
 
 function configureStyling(projectPath, stylingFramework) {
     if (stylingFramework === 'tailwind') {
-		const tailwindConfig = `/** @type {import('tailwindcss').Config} */
+		const tailwindConfig = `import type { Config } from 'tailwindcss';
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
+	content: [
+		"./index.html",
+		"./src/**/*.{ripple}",
+	],
+	theme: {
+		extend: {},
+	},
+	plugins: []
+} satisfies Config
 `;
-		writeFileSync(join(projectPath, 'tailwind.config.js'), tailwindConfig);
-
-		const mainCss = `@tailwind base;
-@tailwind components;
-@tailwind utilities;
-`;
+		writeFileSync(join(projectPath, 'tailwind.config.ts'), tailwindConfig);
+		const mainCss = `@import 'tailwindcss'`;
 		writeFileSync(join(projectPath, 'src', 'index.css'), mainCss);
+
+		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
+		const newMainTs = "import './index.css';\n" + mainTs;
+		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
+
     } else if (stylingFramework === 'bootstrap') {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
 		const newMainTs = "import 'bootstrap/dist/css/bootstrap.min.css';\n" + mainTs;
