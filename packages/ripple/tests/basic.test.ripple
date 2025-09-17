@@ -115,6 +115,12 @@ describe('basic', () => {
 
 			<button onClick={() => $active = !$active}>{'Toggle'}</button>
 			<div $class={$active ? 'active' : 'inactive'}>{'Dynamic Class'}</div>
+
+			<style>
+				.active {
+					color: green;
+				}
+			</style>
 		}
 
 		render(Basic);
@@ -122,17 +128,17 @@ describe('basic', () => {
 		const button = container.querySelector('button');
 		const div = container.querySelector('div');
 
-		expect(div.className).toBe('inactive');
+		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(div.classList.contains('inactive')).toBe(true);
+		
+		button.click();
+		flushSync();
+		expect(div.classList.contains('active')).toBe(true);
 
 		button.click();
 		flushSync();
 
-		expect(div.className).toBe('active');
-
-		button.click();
-		flushSync();
-
-		expect(div.className).toBe('inactive');
+		expect(div.classList.contains('inactive')).toBe(true);
 	});
 
 	it('render dynamic id attribute', () => {

@@ -405,7 +405,9 @@ function attribute_matches(node, name, expected_value, operator, case_insensitiv
 		if (attribute.type === 'SpreadAttribute') return true;
 
 		if (attribute.type !== 'Attribute') continue;
-		if (attribute.name.name.toLowerCase() !== name.toLowerCase()) continue;
+
+		const lowerCaseName = name.toLowerCase();
+		if (![lowerCaseName, `$${lowerCaseName}`].includes(attribute.name.name.toLowerCase())) continue;
 
 		if (expected_value === null) return true;
 
