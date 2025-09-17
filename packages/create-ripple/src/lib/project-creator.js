@@ -205,7 +205,7 @@ function configureStyling(projectPath, stylingFramework) {
 export default {
 	content: [
 		"./index.html",
-		"./src/**/*.{ripple}",
+		"./src/**/*.{ts,ripple}",
 	],
 	theme: {
 		extend: {},
@@ -220,6 +220,27 @@ export default {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
 		const newMainTs = "import './index.css';\n" + mainTs;
 		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
+		
+		if (existsSync(join(projectPath, 'vite.config.ts'))) {
+			rmSync(join(projectPath, 'vite.config.ts'));
+		}
+		const viteConfig = `import { defineConfig } from 'vite';
+import ripple from 'vite-plugin-ripple';
+import tailwindcss from 'tailwindcss';
+
+export default defineConfig({
+	plugins: [ripple()],
+	css: {
+		postcss: {
+			plugins: [tailwindcss()]
+		}
+	},
+	server: {
+		port: 3000
+	}
+});
+`;
+		writeFileSync(join(projectPath, 'vite.config.ts'), viteConfig);
 
     } else if (stylingFramework === 'bootstrap') {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
