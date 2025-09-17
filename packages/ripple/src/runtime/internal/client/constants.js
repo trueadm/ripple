@@ -22,5 +22,5 @@ export var UNINITIALIZED = Symbol();
 export var TRACKED_OBJECT = Symbol();
 export var SPREAD_OBJECT = Symbol();
 export var COMPUTED_PROPERTY = Symbol();
-export var USE_PROP = '@use';
+export var REF_PROP = 'ref';
 export var ARRAY_SET_INDEX_AT = Symbol();

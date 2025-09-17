@@ -36,7 +36,7 @@ export function mount(component, options) {
 
 export { create_context as createContext } from './internal/client/context.js';
 
-export { flush_sync as flushSync, untrack, deferred } from './internal/client/runtime.js';
+export { flush_sync as flushSync, untrack, deferred, tracked } from './internal/client/runtime.js';
 
 export { RippleArray } from './array.js';
 
@@ -50,3 +50,4 @@ export { user_effect as effect } from './internal/client/blocks.js';
 
 export { Portal } from './internal/client/portal.js';
 
+export { ref_prop as createRefKey } from './internal/client/runtime.js';

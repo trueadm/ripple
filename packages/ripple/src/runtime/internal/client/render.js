@@ -1,5 +1,5 @@
-import { destroy_block, use } from './blocks';
-import { USE_PROP } from './constants';
+import { destroy_block, ref } from './blocks';
+import { REF_PROP } from './constants';
 import { get_descriptors, get_own_property_symbols, get_prototype_of } from './utils';
 
 export function set_text(text, value) {
@@ -174,16 +174,16 @@ export function apply_element_spread(element, fn) {
 		}
 
 		for (const symbol of get_own_property_symbols(next)) {
-			var use_fn = next[symbol];
+			var ref_fn = next[symbol];
 
-			if (symbol.description === USE_PROP && (!prev || use_fn !== prev[symbol])) {
+			if (symbol.description === REF_PROP && (!prev || ref_fn !== prev[symbol])) {
 				if (effects[symbol]) {
 					destroy_block(effects[symbol]);
 				}
-				effects[symbol] = use(element, () => use_fn);
+				effects[symbol] = ref(element, () => ref_fn);
 			}
 
-			next[symbol] = use_fn;
+			next[symbol] = ref_fn;
 		}
 
 		set_attributes(element, next);

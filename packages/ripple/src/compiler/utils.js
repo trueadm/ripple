@@ -19,7 +19,7 @@ const VOID_ELEMENT_NAMES = [
 	'param',
 	'source',
 	'track',
-	'wbr'
+	'wbr',
 ];
 
 /**
@@ -564,19 +564,21 @@ export function build_assignment(operator, left, right, context) {
 	const transform = binding.transform;
 
 	// reassignment
-	if (
-		(object === left || (left.type === 'MemberExpression' && left.computed && operator === '=')) &&
-		transform?.assign
-	) {
-		let value = /** @type {Expression} */ (
-			context.visit(build_assignment_value(operator, left, right))
-		);
+	if (object === left || (left.type === 'MemberExpression' && left.computed && operator === '=')) {
+		const assign_fn = transform?.assign || transform?.assign_tracked;
+		if (assign_fn) {
+			let value = /** @type {Expression} */ (
+				context.visit(build_assignment_value(operator, left, right))
+			);
 
-		return transform.assign(
-			object,
-			value,
-			left.type === 'MemberExpression' && left.computed ? context.visit(left.property) : undefined,
-		);
+			return assign_fn(
+				object,
+				value,
+				left.type === 'MemberExpression' && left.computed
+					? context.visit(left.property)
+					: undefined,
+			);
+		}
 	}
 
 	// mutation

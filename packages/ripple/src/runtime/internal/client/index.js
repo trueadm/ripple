@@ -9,7 +9,7 @@ export {
 	set_selected,
 } from './render.js';
 
-export { render, render_spread, async, use } from './blocks.js';
+export { render, render_spread, async, ref } from './blocks.js';
 
 export { event, delegate } from './events.js';
 
@@ -42,7 +42,7 @@ export {
 	push_component,
 	pop_component,
 	untrack,
-	use_prop,
+	ref_prop,
 	fallback,
 	exclude_from_object,
 } from './runtime.js';

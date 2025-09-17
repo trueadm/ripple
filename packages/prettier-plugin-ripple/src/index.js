@@ -355,8 +355,8 @@ function printRippleNode(node, path, options, print, args) {
 			return parts;
 		}
 
-		case 'UseAttribute':
-			return concat(['{@use ', path.call(print, 'argument'), '}']);
+		case 'RefAttribute':
+			return concat(['{ref ', path.call(print, 'argument'), '}']);
 
 		case 'SpreadAttribute': {
 			const parts = ['{...', path.call(print, 'argument'), '}'];

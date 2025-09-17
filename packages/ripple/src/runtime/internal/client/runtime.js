@@ -25,7 +25,7 @@ import {
 	TRACKED_OBJECT,
 	TRY_BLOCK,
 	UNINITIALIZED,
-	USE_PROP,
+	REF_PROP,
 	ARRAY_SET_INDEX_AT,
 } from './constants';
 import { capture, suspend } from './try.js';
@@ -260,6 +260,7 @@ export function run_block(block) {
  * @returns {Tracked}
  */
 export function tracked(v, b) {
+	// TODO: now we expose tracked, we should likely block access in DEV somehow
 	return {
 		b,
 		c: 0,
@@ -1203,8 +1204,8 @@ export function pop_component() {
 	active_component = component.p;
 }
 
-export function use_prop() {
-	return Symbol(USE_PROP);
+export function ref_prop() {
+	return Symbol(REF_PROP);
 }
 
 /**
