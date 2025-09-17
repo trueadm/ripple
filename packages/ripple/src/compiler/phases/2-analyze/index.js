@@ -292,6 +292,15 @@ const visitors = {
 				const has_tracked = paths.some(
 					(path) => path.node.type === 'Identifier' && is_tracked_name(path.node.name),
 				);
+				for (const path of paths) {
+					if (path.node.tracked) {
+						error(
+							'Variables cannot be reactively referenced using @',
+							state.analysis.module.filename,
+							path.node,
+						);
+					}
+				}
 
 				if (has_tracked) {
 					const tmp = state.scope.generate('tmp');
@@ -536,6 +545,8 @@ const visitors = {
 
 								attr.metadata.delegated = delegated_event;
 							}
+						} else {
+							visit(attr.value, state);
 						}
 					}
 				} else if (attr.type === 'AccessorAttribute') {

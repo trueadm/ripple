@@ -27,6 +27,14 @@ import is_reference from 'is-reference';
 import { extract_paths, object } from '../../../utils/ast.js';
 import { render_stylesheets } from './stylesheet.js';
 
+function add_ripple_internal_import(context) {
+	if (!context.state.to_ts) {
+		if (!context.state.imports.has(`import * as $ from 'ripple/internal/client'`)) {
+			context.state.imports.add(`import * as $ from 'ripple/internal/client'`);
+		}
+	}
+}
+
 function visit_function(node, context) {
 	if (context.state.to_ts) {
 		context.next(context.state);
@@ -55,8 +63,9 @@ function visit_function(node, context) {
 
 	if (metadata?.tracked === true) {
 		const new_body = [];
-		
+
 		if (!is_inside_component(context, true)) {
+			add_ripple_internal_import(context);
 			new_body.push(b.var('__block', b.call('$.scope')));
 		}
 		new_body.push(...body.body);
@@ -64,10 +73,7 @@ function visit_function(node, context) {
 		return /** @type {FunctionExpression} */ ({
 			...node,
 			params: node.params.map((param) => context.visit(param, state)),
-			body:
-				body.type === 'BlockStatement'
-					? { ...body, body: new_body }
-					: body,
+			body: body.type === 'BlockStatement' ? { ...body, body: new_body } : body,
 		});
 	}
 
@@ -86,6 +92,8 @@ function build_getter(node, context) {
 			const read_fn = transform?.read || (node.tracked && transform?.read_tracked);
 
 			if (read_fn) {
+				add_ripple_internal_import(context);
+
 				return read_fn(node, context.state?.metadata?.spread, context.visit);
 			}
 		}
@@ -168,7 +176,7 @@ const visitors = {
 			(is_ripple_import(callee, context) &&
 				(callee.type !== 'Identifier' ||
 					(callee.name !== 'array' && callee.name !== 'deferred'))) ||
-			(is_declared_function_within_component(callee, context))
+			is_declared_function_within_component(callee, context)
 		) {
 			return context.next();
 		}
@@ -292,6 +300,8 @@ const visitors = {
 		const parent = context.path.at(-1);
 
 		if (node.property.type === 'Identifier' && node.property.tracked) {
+			add_ripple_internal_import(context);
+
 			context.state.metadata.tracking = true;
 			return b.call(
 				'$.get_property',
@@ -577,9 +587,10 @@ const visitors = {
 
 						if (name === 'value' || name === '$value') {
 							const id = state.flush_node();
-							const expression = visit(attr.value, state);
+							const metadata = { tracking: false, await: false };
+							const expression = visit(attr.value, { ...state, metadata });
 
-							if (name === '$value') {
+							if (name === '$value' || metadata.tracking) {
 								local_updates.push(b.stmt(b.call('$.set_value', id, expression)));
 							} else {
 								state.init.push(b.stmt(b.call('$.set_value', id, expression)));
@@ -590,9 +601,10 @@ const visitors = {
 
 						if (name === 'checked' || name === '$checked') {
 							const id = state.flush_node();
-							const expression = visit(attr.value, state);
+							const metadata = { tracking: false, await: false };
+							const expression = visit(attr.value, { ...state, metadata });
 
-							if (name === '$checked') {
+							if (name === '$checked' || metadata.tracking) {
 								local_updates.push(b.stmt(b.call('$.set_checked', id, expression)));
 							} else {
 								state.init.push(b.stmt(b.call('$.set_checked', id, expression)));
@@ -602,9 +614,10 @@ const visitors = {
 
 						if (name === 'selected' || name === '$selected') {
 							const id = state.flush_node();
-							const expression = visit(attr.value, state);
+							const metadata = { tracking: false, await: false };
+							const expression = visit(attr.value, { ...state, metadata });
 
-							if (name === '$selected') {
+							if (name === '$selected' || metadata.tracking) {
 								local_updates.push(b.stmt(b.call('$.set_selected', id, expression)));
 							} else {
 								state.init.push(b.stmt(b.call('$.set_selected', id, expression)));
@@ -674,11 +687,12 @@ const visitors = {
 							continue;
 						}
 
+						const metadata = { tracking: false, await: false };
+						const expression = visit(attr.value, { ...state, metadata });
 						// All other attributes
-						if (is_tracked_name(name)) {
-							const attribute = name.slice(1);
+						if (is_tracked_name(name) || metadata.tracking) {
+							const attribute = is_tracked_name(name) ? name.slice(1) : name;
 							const id = state.flush_node();
-							const expression = visit(attr.value, state);
 
 							if (is_dom_property(attribute)) {
 								local_updates.push(b.stmt(b.assignment('=', b.member(id, attribute), expression)));
@@ -689,7 +703,6 @@ const visitors = {
 							}
 						} else {
 							const id = state.flush_node();
-							const expression = visit(attr.value, state);
 
 							if (is_dom_property(name)) {
 								state.init.push(b.stmt(b.assignment('=', b.member(id, name), expression)));
@@ -717,13 +730,14 @@ const visitors = {
 					handle_static_attr(class_attribute.name.name, value);
 				} else {
 					const id = state.flush_node();
-					let expression = visit(class_attribute.value, state);
+					const metadata = { tracking: false, await: false };
+					let expression = visit(class_attribute.value, { ...state, metadata });
 
 					if (node.metadata.scoped && state.component.css) {
 						expression = b.binary('+', b.literal(state.component.css.hash + ' '), expression);
 					}
 
-					if (class_attribute.name.name === '$class') {
+					if (class_attribute.name.name === '$class' || metadata.tracking) {
 						local_updates.push(b.stmt(b.call('$.set_class', id, expression)));
 					} else {
 						state.init.push(b.stmt(b.call('$.set_class', id, expression)));
@@ -915,9 +929,7 @@ const visitors = {
 
 	Fragment(node, context) {
 		if (!context.state.to_ts) {
-			if (!context.state.imports.has(`import * as $ from 'ripple/internal/client'`)) {
-				context.state.imports.add(`import * as $ from 'ripple/internal/client'`);
-			}
+			add_ripple_internal_import(context);
 		}
 
 		const metadata = { await: false };
@@ -941,11 +953,7 @@ const visitors = {
 	Component(node, context) {
 		let prop_statements;
 
-		if (!context.state.to_ts) {
-			if (!context.state.imports.has(`import * as $ from 'ripple/internal/client'`)) {
-				context.state.imports.add(`import * as $ from 'ripple/internal/client'`);
-			}
-		}
+		add_ripple_internal_import(context);
 
 		const metadata = { await: false };
 
@@ -1040,6 +1048,7 @@ const visitors = {
 			left.property.type === 'Identifier' &&
 			left.property.tracked
 		) {
+			add_ripple_internal_import(context);
 			const operator = node.operator;
 			const right = node.right;
 
@@ -1108,6 +1117,7 @@ const visitors = {
 			argument.property.type === 'Identifier' &&
 			argument.property.tracked
 		) {
+			add_ripple_internal_import(context);
 			context.state.metadata.tracking = true;
 
 			return b.call(
