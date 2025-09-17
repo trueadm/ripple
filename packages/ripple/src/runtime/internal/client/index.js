@@ -19,9 +19,8 @@ export {
 	safe_scope,
 	with_scope,
 	get_tracked,
-	get_computed,
+	get_derived,
 	set,
-	computed,
 	async_computed,
 	tracked,
 	tracked_object,
@@ -49,6 +48,7 @@ export {
 	ref_prop,
 	fallback,
 	exclude_from_object,
+	derived,
 } from './runtime.js';
 
 export {

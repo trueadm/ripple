@@ -420,7 +420,7 @@ const visitors = {
 						// TypeScript mode: lighter transformation
 						if (metadata.tracking && !metadata.await) {
 							expression = b.call(
-								'$.computed',
+								'$.derived',
 								b.thunk(context.visit(declarator.init)),
 								b.id('__block'),
 							);
@@ -448,7 +448,7 @@ const visitors = {
 							);
 						} else if (metadata.tracking && !metadata.await) {
 							expression = b.call(
-								'$.computed',
+								'$.derived',
 								b.thunk(context.visit(declarator.init)),
 								b.id('__block'),
 							);
@@ -488,12 +488,12 @@ const visitors = {
 
 					if (metadata.tracking && !metadata.await) {
 						expression = b.call(
-							'$.computed',
+							'$.derived',
 							b.thunk(context.visit(declarator.init)),
 							b.id('__block'),
 						);
 					} else {
-						// Simple tracked variable - always use $.tracked for $ prefixed variables
+						// Simple tracked variable - always use $.derived for $ prefixed variables
 						expression = b.call('$.tracked', context.visit(declarator.init), b.id('__block'));
 					}
 
@@ -509,7 +509,7 @@ const visitors = {
 					debugger;
 				} else if (metadata.tracking && !metadata.await) {
 					expression = b.call(
-						'$.computed',
+						'$.derived',
 						b.thunk(context.visit(declarator.init)),
 						b.id('__block'),
 					);
@@ -1005,7 +1005,7 @@ const visitors = {
 						const fallback = path.expression(b.id('__props'));
 
 						prop_statements.push(
-							b.var(name, b.call('$.computed', b.thunk(context.visit(fallback)), b.id('__block'))),
+							b.var(name, b.call('$.derived', b.thunk(context.visit(fallback)), b.id('__block'))),
 						);
 					}
 				}
