@@ -374,10 +374,18 @@ export function is_inside_component(context, includes_functions = false) {
 	return false;
 }
 
-export function is_top_level_function(context) {
+export function is_component_level_function(context) {
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const context_node = context.path[i];
 		const type = context_node.type;
+
+		if (type === 'BlockStatement') {
+			if (context_node.body.find((n) => n.type === 'Component')) {
+				return true;
+			}
+			debugger
+			
+		}
 
 		if (
 			type === 'FunctionExpression' ||

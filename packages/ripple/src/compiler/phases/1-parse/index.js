@@ -237,6 +237,11 @@ function RipplePlugin(config) {
 						return this.finishNode(node, 'SpreadAttribute');
 					} else {
 						const id = this.parseIdentNode();
+						node.tracked = false;
+						if (id.name.startsWith('@')) {
+							node.tracked = true;
+							id.name = id.name.slice(1);
+						}
 						this.finishNode(id, 'Identifier');
 						node.name = id;
 						node.value = id;
