@@ -74,7 +74,7 @@ declare global {
         computed<T>(fn: () => T, block?: any): T;
         scope(): any;
         get_tracked(node: any): any;
-        get_computed(node: any): any;
+        get_derived(node: any): any;
         set(node: any, value: any, block?: any): any;
         // Add other runtime functions as needed for TypeScript analysis
     };

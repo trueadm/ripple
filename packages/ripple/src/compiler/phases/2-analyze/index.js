@@ -248,7 +248,7 @@ const visitors = {
 						binding.transform = {
 							read: (node) => {
 								return metadata.tracking && !metadata.await
-									? b.call('$.get_computed', node)
+									? b.call('$.get_derived', node)
 									: b.call('$.get_tracked', node);
 							},
 							assign: (node, value) => {
@@ -328,7 +328,7 @@ const visitors = {
 									if (is_tracked_name(path.node.name) && value.type === 'MemberExpression') {
 										return b.call(
 											'$.old_get_property',
-											b.call('$.get_computed', value.object),
+											b.call('$.get_derived', value.object),
 											value.property.type === 'Identifier'
 												? b.literal(value.property.name)
 												: value.property,
@@ -341,7 +341,7 @@ const visitors = {
 											: value.property;
 
 									return b.member(
-										b.call('$.get_computed', value.object),
+										b.call('$.get_derived', value.object),
 										key,
 										key.type === 'Literal',
 									);
@@ -398,7 +398,7 @@ const visitors = {
 
 						if (path.has_default_value) {
 							binding.transform = {
-								read: (_) => b.call('$.get_computed', path.node),
+								read: (_) => b.call('$.get_derived', path.node),
 								assign: (node, value) => {
 									return b.call('$.set', path.node, value, b.id('__block'));
 								},
