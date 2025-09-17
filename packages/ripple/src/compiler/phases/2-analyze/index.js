@@ -118,10 +118,32 @@ const visitors = {
 		if (
 			is_reference(node, /** @type {Node} */ (parent)) &&
 			context.state.metadata?.tracking === false &&
-			is_tracked_name(node.name) &&
+			is_tracked_name(node) &&
 			binding?.node !== node
 		) {
 			context.state.metadata.tracking = true;
+		}
+
+		if (
+			is_reference(node, /** @type {Node} */ (parent)) &&
+			node.tracked &&
+			binding?.node !== node
+		) {
+			if (context.state.metadata?.tracking === false) {
+				context.state.metadata.tracking = true;
+			}
+			binding.transform = {
+				read_tracked: (node) => b.call('$.get_tracked', node),
+				assign_tracked: (node, value) => b.call('$.set', node, value, b.id('__block')),
+				update_tracked: (node) => {
+					return b.call(
+						node.prefix ? '$.update_pre' : '$.update',
+						node.argument,
+						b.id('__block'),
+						node.operator === '--' && b.literal(-1),
+					);
+				},
+			};
 		}
 
 		context.next();

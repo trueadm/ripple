@@ -38,6 +38,77 @@ function RipplePlugin(config) {
 				return null;
 			}
 
+			// Override getTokenFromCode to handle @ as an identifier prefix
+			getTokenFromCode(code) {
+				if (code === 64) { // '@' character
+					// Look ahead to see if this is followed by a valid identifier character
+					if (this.pos + 1 < this.input.length) {
+						const nextChar = this.input.charCodeAt(this.pos + 1);
+						// Check if the next character can start an identifier
+						if ((nextChar >= 65 && nextChar <= 90) || // A-Z
+							(nextChar >= 97 && nextChar <= 122) || // a-z
+							nextChar === 95 || nextChar === 36) { // _ or $
+							
+							// Check if we're in an expression context
+							// In JSX expressions, inside parentheses, assignments, etc.
+							// we want to treat @ as an identifier prefix rather than decorator
+							const currentType = this.type;
+							const inExpression = this.exprAllowed || 
+								currentType === tt.braceL || // Inside { }
+								currentType === tt.parenL || // Inside ( )
+								currentType === tt.eq || // After =
+								currentType === tt.comma || // After ,
+								currentType === tt.colon || // After :
+								currentType === tt.question || // After ?
+								currentType === tt.logicalOR || // After ||
+								currentType === tt.logicalAND; // After &&
+							
+							if (inExpression) {
+								return this.readAtIdentifier();
+							}
+						}
+					}
+				}
+				return super.getTokenFromCode(code);
+			}
+
+			// Read an @ prefixed identifier
+			readAtIdentifier() {
+				const start = this.pos;
+				this.pos++; // skip '@'
+				
+				// Read the identifier part manually
+				let word = '';
+				while (this.pos < this.input.length) {
+					const ch = this.input.charCodeAt(this.pos);
+					if ((ch >= 65 && ch <= 90) || // A-Z
+						(ch >= 97 && ch <= 122) || // a-z
+						(ch >= 48 && ch <= 57) || // 0-9
+						ch === 95 || ch === 36) { // _ or $
+						word += this.input[this.pos++];
+					} else {
+						break;
+					}
+				}
+				
+				if (word === '') {
+					this.raise(start, 'Invalid @ identifier');
+				}
+				
+				// Return the full identifier including @
+				return this.finishToken(tt.name, '@' + word);
+			}
+
+			// Override parseIdent to mark @ identifiers as tracked
+			parseIdent(liberal) {
+				const node = super.parseIdent(liberal);
+				if (node.name && node.name.startsWith('@')) {
+					node.name = node.name.slice(1); // Remove the '@' for internal use
+					node.tracked = true;
+				}
+				return node;
+			}
+
 			parseExportDefaultDeclaration() {
 				// Check if this is "export default component"
 				if (this.value === 'component') {

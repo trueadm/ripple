@@ -260,6 +260,7 @@ export function run_block(block) {
  * @returns {Tracked}
  */
 export function tracked(v, b) {
+	// TODO: now we expose tracked, we should likely block access in DEV somehow
 	return {
 		b,
 		c: 0,

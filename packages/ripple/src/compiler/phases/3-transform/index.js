@@ -72,10 +72,15 @@ function build_getter(node, context) {
 
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const binding = state.scope.get(node.name);
+		const transform = binding?.transform;
 
 		// don't transform the declaration itself
-		if (node !== binding?.node && binding?.transform?.read) {
-			return binding.transform.read(node, context.state?.metadata?.spread, context.visit);
+		if (node !== binding?.node) {
+			const read_fn = transform?.read || (node.tracked && transform?.read_tracked);
+
+			if (read_fn) {
+				return read_fn(node, context.state?.metadata?.spread, context.visit);
+			}
 		}
 	}
 
@@ -100,7 +105,7 @@ const visitors = {
 			const binding = context.state.scope.get(node.name);
 			if (
 				context.state.metadata?.tracking === false &&
-				is_tracked_name(node.name) &&
+				(is_tracked_name(node.name) || node.tracked) &&
 				binding?.node !== node
 			) {
 				context.state.metadata.tracking = true;
@@ -133,6 +138,18 @@ const visitors = {
 
 		if (context.state.metadata?.tracking === false) {
 			context.state.metadata.tracking = true;
+		}
+
+		if (
+			!context.state.to_ts &&
+			callee.type === 'Identifier' &&
+			callee.name === 'tracked' &&
+			is_ripple_import(callee, context)
+		) {
+			return {
+				...node,
+				arguments: [...node.arguments.map((arg) => context.visit(arg)), b.id('__block')],
+			};
 		}
 
 		if (
@@ -199,8 +216,8 @@ const visitors = {
 							callee.optional ? b.true : undefined,
 							node.optional ? b.true : undefined,
 							...node.arguments.map((arg) => context.visit(arg)),
-						)
-					)
+						),
+					),
 				);
 			}
 		}
@@ -508,9 +525,10 @@ const visitors = {
 
 			if (is_spreading) {
 				// For spread attributes, store just the actual value, not the full attribute string
-				const actual_value = is_boolean_attribute(name) && value === true 
-					? b.literal(true) 
-					: b.literal(value === true ? '' : value);
+				const actual_value =
+					is_boolean_attribute(name) && value === true
+						? b.literal(true)
+						: b.literal(value === true ? '' : value);
 				spread_attributes.push(b.prop('init', b.literal(name), actual_value));
 			} else {
 				state.template.push(attr_value);
@@ -1002,7 +1020,10 @@ const visitors = {
 
 		if (left.type === 'MemberExpression') {
 			// need to capture setting length of array to throw a runtime error
-			if (left.property.type === 'Identifier' && (is_tracked_name(left.property.name) || left.property.name === 'length')) {
+			if (
+				left.property.type === 'Identifier' &&
+				(is_tracked_name(left.property.name) || left.property.name === 'length')
+			) {
 				if (left.property.name !== '$length') {
 					return b.call(
 						'$.set_property',
@@ -1058,8 +1079,9 @@ const visitors = {
 		const transformers = left && binding?.transform;
 
 		if (left === argument) {
-			if (transformers?.update) {
-				return transformers.update(node);
+			const update_fn = transformers?.update || transformers?.update_tracked;
+			if (update_fn) {
+				return update_fn(node);
 			}
 		}
 
@@ -1303,7 +1325,7 @@ const visitors = {
 			return b.literal(node.quasis[0].value.cooked);
 		}
 
-		const expressions = node.expressions.map(expr => context.visit(expr));
+		const expressions = node.expressions.map((expr) => context.visit(expr));
 		return b.template(node.quasis, expressions);
 	},
 

@@ -304,6 +304,18 @@
 		"expression": {
 			"patterns": [
 				{
+					"name": "meta.identifier.tracked.js",
+					"match": "(@)([_$[:alpha:]][_$[:alnum:]]*)",
+					"captures": {
+						"1": {
+							"name": "punctuation.section.embedded.begin.js"
+						},
+						"2": {
+							"name": "variable.other.js"
+						}
+					}
+				},
+				{
 					"include": "#jsx-ref-modifier"
 				},
 				{
@@ -386,17 +398,33 @@
 			]
 		},
 		"decorator": {
-			"name": "meta.decorator.js",
-			"begin": "(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))\\@",
-			"beginCaptures": {
-				"0": {
-					"name": "punctuation.decorator.js"
-				}
-			},
-			"end": "(?=\\s)",
 			"patterns": [
 				{
-					"include": "#expression"
+					"name": "meta.identifier.tracked.js",
+					"match": "(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(@)([_$[:alpha:]][_$[:alnum:]]*)",
+					"captures": {
+						"1": {
+							"name": "punctuation.section.embedded.begin.js"
+						},
+						"2": {
+							"name": "variable.other.js"
+						}
+					}
+				},
+				{
+					"name": "meta.decorator.js",
+					"begin": "(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))\\@(?![_$[:alpha:]])",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.decorator.js"
+						}
+					},
+					"end": "(?=\\s)",
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
 				}
 			]
 		},
