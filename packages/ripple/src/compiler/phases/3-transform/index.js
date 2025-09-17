@@ -69,7 +69,9 @@ function visit_function(node, context) {
 			add_ripple_internal_import(context);
 			new_body.push(b.var('__block', b.call('$.scope')));
 		}
-		new_body.push(...body.body);
+		if (body.type === 'BlockStatement') {
+			new_body.push(...body.body);
+		}
 
 		return /** @type {FunctionExpression} */ ({
 			...node,
