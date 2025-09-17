@@ -79,6 +79,10 @@ function visit_function(node, context) {
 		function_depth: context.state.function_depth + 1,
 		expression: null,
 	});
+
+	if (node.metadata.tracked) {
+		mark_as_tracked(context.path);
+	}
 }
 
 function mark_as_tracked(path) {
@@ -117,11 +121,13 @@ const visitors = {
 
 		if (
 			is_reference(node, /** @type {Node} */ (parent)) &&
-			context.state.metadata?.tracking === false &&
-			is_tracked_name(node) &&
+			(is_tracked_name(node) || node.tracked) &&
 			binding?.node !== node
 		) {
-			context.state.metadata.tracking = true;
+			mark_as_tracked(context.path);
+			if (context.state.metadata?.tracking === false) {
+				context.state.metadata.tracking = true;
+			}
 		}
 
 		if (

@@ -17,7 +17,7 @@ import {
 	is_boolean_attribute,
 	is_dom_property,
 	is_ripple_import,
-	is_declared_within_component,
+	is_declared_function_within_component,
 	is_inside_call_expression,
 	is_tracked_computed_property,
 	is_value_static,
@@ -161,7 +161,7 @@ const visitors = {
 			(is_ripple_import(callee, context) &&
 				(callee.type !== 'Identifier' ||
 					(callee.name !== 'array' && callee.name !== 'deferred'))) ||
-			is_declared_within_component(callee, context)
+			(is_declared_function_within_component(callee, context))
 		) {
 			return context.next();
 		}
@@ -635,7 +635,7 @@ const visitors = {
 									delegated_assignment = b.array(args);
 								} else if (
 									handler.type === 'Identifier' &&
-									is_declared_within_component(handler, context)
+									is_declared_function_within_component(handler, context)
 								) {
 									delegated_assignment = handler;
 								} else {
