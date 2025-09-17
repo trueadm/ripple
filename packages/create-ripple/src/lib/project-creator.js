@@ -181,7 +181,7 @@ function updatePackageJson(projectPath, projectName, packageManager, typescript,
     if (stylingFramework === 'tailwind') {
         packageJson.devDependencies = {
             ...packageJson.devDependencies,
-            'tailwindcss': '^3.0.0'
+            'tailwindcss': '^4.0.0'
         };
     } else if (stylingFramework === 'bootstrap') {
         packageJson.dependencies = {
