@@ -379,12 +379,8 @@ export function is_component_level_function(context) {
 		const context_node = context.path[i];
 		const type = context_node.type;
 
-		if (type === 'BlockStatement') {
-			if (context_node.body.find((n) => n.type === 'Component')) {
-				return true;
-			}
-			debugger
-			
+		if (type === 'BlockStatement' && context_node.body.find((n) => n.type === 'Component')) {
+			return true;
 		}
 
 		if (
