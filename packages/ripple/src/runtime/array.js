@@ -1,7 +1,10 @@
-import { TRACKED_OBJECT, ARRAY_SET_INDEX_AT } from './internal/client/constants.js';
+import { TRACKED_OBJECT, ARRAY_SET_INDEX_AT, MAX_ARRAY_LENGTH } from './internal/client/constants.js';
 import { get, safe_scope, set, tracked } from './internal/client/runtime.js';
 import { is_ripple_array } from './internal/client/utils.js';
 /** @import { Block, Tracked } from '#client' */
+
+/** @type {unique symbol} */
+const INIT_AFTER_NEW = Symbol();
 
 /** @type {(symbol | string | any)[]} */
 const introspect_methods = [
@@ -36,7 +39,7 @@ const introspect_methods = [
 	'with',
 ];
 
-let init = false;
+let is_proto_set = false;
 
 /**
  * @template T
@@ -45,6 +48,8 @@ let init = false;
 export class RippleArray extends Array {
 	/** @type {Array<Tracked>} */
 	#tracked_elements = [];
+	/** @type {Tracked} */
+	// @ts-expect-error
 	#tracked_index;
 
     /**
@@ -55,11 +60,11 @@ export class RippleArray extends Array {
      * @returns {RippleArray<U>}
      */
 	static from(arrayLike, mapFn, thisArg) {
-		return new RippleArray(...(
-			mapFn ?
+		var arr = mapFn ?
 			Array.from(arrayLike, mapFn, thisArg)
-        	: Array.from(arrayLike)
-		));
+        	: Array.from(arrayLike);
+
+		return get_instance_from_static(arr);
 	}
 
     /**
@@ -70,11 +75,30 @@ export class RippleArray extends Array {
      * @returns {Promise<RippleArray<U>>}
      */
 	static async fromAsync(arrayLike, mapFn, thisArg) {
-		return new RippleArray(...(
-			mapFn ?
+		var block = safe_scope();
+		// create empty array to get the right scope
+		var result = new RippleArray();
+
+		var arr = mapFn ?
 			await Array.fromAsync(arrayLike, mapFn, thisArg)
 			: await Array.fromAsync(arrayLike)
-		));
+
+		var first = get_first_if_length(arr);
+
+		if (first) {
+			result[0] = first;
+		} else {
+			result.length = arr.length;
+			for (let i = 0; i < arr.length; i++) {
+				if (i in arr) {
+					result[i] = arr[i];
+				}
+			}
+		}
+
+		result[INIT_AFTER_NEW](block);
+
+		return result
 	}
 
     /**
@@ -83,7 +107,9 @@ export class RippleArray extends Array {
      * @returns {RippleArray<U>}
      */
 	static of(...elements) {
-		return new RippleArray(...elements);
+		var arr = Array.of(...elements);
+
+		return get_instance_from_static(arr);
 	}
 
 	/**
@@ -92,24 +118,33 @@ export class RippleArray extends Array {
 	constructor(...elements) {
 		super(...elements);
 
-		var block = safe_scope();
-		var tracked_elements = this.#tracked_elements;
+		this[INIT_AFTER_NEW]();
 
-		for (var i = 0; i < this.length; i++) {
-			if (!(i in this)) {
-				continue;
-			}
-			tracked_elements[i] = tracked(this[i], block);
-		}
-		this.#tracked_index = tracked(this.length, block);
-
-		if (!init) {
-			init = true;
-			this.#init();
+		if (!is_proto_set) {
+			is_proto_set = true;
+			this.#set_proto();
 		}
 	}
 
-	#init() {
+	[INIT_AFTER_NEW](block = safe_scope()) {
+		if (this.length !== 0) {
+			var tracked_elements = this.#tracked_elements;
+			for (var i = 0; i < this.length; i++) {
+				if (!(i in this)) {
+					continue;
+				}
+				tracked_elements[i] = tracked(this[i], block);
+			}
+		}
+
+		if (!this.#tracked_index) {
+			this.#tracked_index = tracked(this.length, block);
+		} else if (this.#tracked_index.v !== this.length) {
+			set(this.#tracked_index, this.length, block);
+		}
+	}
+
+	#set_proto() {
 		var proto = RippleArray.prototype;
 		var array_proto = Array.prototype;
 
@@ -138,7 +173,7 @@ export class RippleArray extends Array {
 				// the caller reruns on length changes
 				this.$length;
 				// the caller reruns on element changes
-				get_all_elements(this);
+				establish_trackable_deps(this);
 				return result;
 			};
 		}
@@ -405,10 +440,10 @@ export class RippleArray extends Array {
 	 * Supports negative index to count back from the end
 	 * @param {number} index
 	 * @param {T} value
+	 * @param {Block} [block]
 	 * @returns {T}
 	 */
-	[ARRAY_SET_INDEX_AT](index, value) {
-		var block = safe_scope();
+	[ARRAY_SET_INDEX_AT](index, value, block = safe_scope()) {
 		var tracked_elements = this.#tracked_elements;
 		var length = this.length;
 		var init_index = index;
@@ -564,14 +599,72 @@ export class RippleArray extends Array {
 export function get_all_elements(array) {
 	/** @type {Tracked[]} */
 	var tracked_elements = /** @type {Tracked[]} */ (array[TRACKED_OBJECT]);
-	var arr = [];
+	// pre-allocate to support holey arrays
+	var result = new Array(array.length);
+
+	for (var i = 0; i < array.length; i++) {
+		if (tracked_elements[i] !== undefined) {
+			get(tracked_elements[i]);
+		}
+
+		if (i in array) {
+			result[i] = array[i];
+		}
+	}
+
+	return result;
+}
+
+/**
+ * @template T
+ * @param {RippleArray<T>} array
+ * @returns {void}
+ */
+function establish_trackable_deps (array) {
+	var tracked_elements = array[TRACKED_OBJECT];
 
 	for (var i = 0; i < tracked_elements.length; i++) {
 		if (tracked_elements[i] !== undefined) {
 			get(tracked_elements[i]);
 		}
-		arr.push(array[i]);
+	}
+}
+
+/**
+ * @template T
+ * @param {T[]} array
+ * @returns {RippleArray<T>}
+ */
+function get_instance_from_static(array) {
+	/** @type RippleArray<T> */
+	var result;
+	/** @type {T | void} */
+	var first = get_first_if_length(array);
+
+	if (first) {
+		result = new RippleArray();
+		result[0] = first;
+		result[INIT_AFTER_NEW]();
+	} else {
+		result = new RippleArray(...array);
 	}
 
-	return arr;
+	return result;
+}
+
+/**
+ * @template T
+ * @param {T[]} array
+ * @returns {T | void}
+ */
+function get_first_if_length (array) {
+	var first = array[0];
+
+	if (
+		array.length === 1 && (0 in array) && Number.isInteger(first)
+		&& /** @type {number} */ (first) >= 0
+		&& /** @type {number} */ (first) <= MAX_ARRAY_LENGTH
+	) {
+		return first;
+	}
 }

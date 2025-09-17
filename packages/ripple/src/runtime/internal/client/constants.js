@@ -19,8 +19,11 @@ export var DESTROYED = 1 << 17;
 export var LOGIC_BLOCK = FOR_BLOCK | IF_BLOCK | TRY_BLOCK;
 
 export var UNINITIALIZED = Symbol();
-export var TRACKED_OBJECT = Symbol();
+/** @type {unique symbol} */
+export const TRACKED_OBJECT = Symbol();
 export var SPREAD_OBJECT = Symbol();
 export var COMPUTED_PROPERTY = Symbol();
 export var REF_PROP = 'ref';
-export var ARRAY_SET_INDEX_AT = Symbol();
+/** @type {unique symbol} */
+export const ARRAY_SET_INDEX_AT = Symbol();
+export const MAX_ARRAY_LENGTH = 2**32 - 1;
