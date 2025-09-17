@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, flushSync, effect, untrack, RippleArray } from 'ripple';
-import { ARRAY_SET_INDEX_AT } from '../src/runtime/internal/client/constants.js';
+import { ARRAY_SET_INDEX_AT, MAX_ARRAY_LENGTH } from '../src/runtime/internal/client/constants.js';
 
 describe('RippleArray', () => {
 	let container;
@@ -1244,37 +1244,34 @@ describe('RippleArray', () => {
 		expect(container.querySelector('pre').textContent).toBe('Cannot set length on RippleArray, use $length instead');
 	});
 
-	('fromAsync' in Array.prototype ? describe : describe.skip)('RippleArray fromAsync', () => {
+	('fromAsync' in Array.prototype ? describe : describe.skip)('RippleArray fromAsync', async () => {
 		it('handles static fromAsync method with reactivity', async () => {
-			component ArrayTest() {
-				let itemsPromise = RippleArray.fromAsync(Promise.resolve([1, 2, 3]));
-				let items = null;
-				let error = null;
-
+			component Parent() {
 				try {
-					items = await itemsPromise;
-				} catch (e) {
-					error = e.message;
+					<ArrayTest />
+				} async {
+					<div>{'Loading placeholder...'}</div>
 				}
-
-				<button onClick={() => {
-				if (items) items.push(4);
-				}}>{'add item'}</button>
-				<pre>{error ? 'Error: ' + error : 'Loaded'}</pre>
-				<pre>{items ? JSON.stringify(items) : 'Loading...'}</pre>
 			}
 
-			render(ArrayTest);
+			component ArrayTest() {
+				let items = await RippleArray.fromAsync([1, 2, 3]);
 
-			// Wait for promise to resolve
-			await new Promise(resolve => setTimeout(resolve, 50));
+				<button onClick={() => {
+					if (items) items.push(4);
+				}}>{'add item'}</button>
+
+				<pre>{JSON.stringify(items)}</pre>
+			}
+
+			render(Parent);
+
+			await new Promise(resolve => setTimeout(resolve, 0));
 			flushSync();
 
 			const addButton = container.querySelector('button');
 
-			// Check that the promise resolved correctly
-			expect(container.querySelectorAll('pre')[0].textContent).toBe('Loaded');
-			expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3]');
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
 
 			// Test adding an item to the async-created array
 			addButton.click();
@@ -1284,33 +1281,35 @@ describe('RippleArray', () => {
 		});
 
 		it('handles static fromAsync method with mapping function', async () => {
-			component ArrayTest() {
-				let itemsPromise = RippleArray.fromAsync(
-				Promise.resolve([1, 2, 3]),
-				x => x * 2
-				);
-				let items = null;
+			component Parent() {
+				try {
+					<ArrayTest />
+				} async {
+					<div>{'Loading placeholder...'}</div>
+				}
+			}
 
-				items = await itemsPromise;
+			component ArrayTest() {
+				let items = await RippleArray.fromAsync(
+					[1, 2, 3],
+					x => x * 2
+				);
 
 				<button onClick={() => {
-				if (items) items.push(8);
+					if (items) items.push(8);
 				}}>{'add item'}</button>
 				<pre>{items ? JSON.stringify(items) : 'Loading...'}</pre>
 			}
 
-			render(ArrayTest);
+			render(Parent);
 
-			// Wait for promise to resolve
-			await new Promise(resolve => setTimeout(resolve, 50));
+			await new Promise(resolve => setTimeout(resolve, 0));
 			flushSync();
 
 			const addButton = container.querySelector('button');
 
-			// Check that the promise resolved correctly with mapping applied
 			expect(container.querySelector('pre').textContent).toBe('[2,4,6]');
 
-			// Test adding an item to the async-created array
 			addButton.click();
 			flushSync();
 
@@ -1318,13 +1317,20 @@ describe('RippleArray', () => {
 		});
 
 		it('handles error in fromAsync method', async () => {
+			component Parent() {
+				try {
+					<ArrayTest />
+				} async {
+					<div>{'Loading placeholder...'}</div>
+				}
+			}
+
 			component ArrayTest() {
-				let itemsPromise = RippleArray.fromAsync(Promise.reject(new Error('Async error')));
 				let items = null;
 				let error = null;
 
 				try {
-					items = await itemsPromise;
+					items = await RippleArray.fromAsync(Promise.reject(new Error('Async error')));
 				} catch (e) {
 					error = e.message;
 				}
@@ -1333,13 +1339,11 @@ describe('RippleArray', () => {
 				<pre>{items ? JSON.stringify(items) : 'No items'}</pre>
 			}
 
-			render(ArrayTest);
+			render(Parent);
 
-			// Wait for promise to reject
-			await new Promise(resolve => setTimeout(resolve, 50));
+			await new Promise(resolve => setTimeout(resolve, 0));
 			flushSync();
 
-			// Check that the error was caught correctly
 			expect(container.querySelectorAll('pre')[0].textContent).toBe('Error: Async error');
 			expect(container.querySelectorAll('pre')[1].textContent).toBe('No items');
 		});
@@ -1461,6 +1465,90 @@ describe('RippleArray', () => {
 			expect(container.querySelectorAll('pre')[3].textContent).toBe('items[2]: 2');
 			expect(container.querySelectorAll('pre')[4].textContent).toBe('items[3]: 3');
 			expect(container.querySelectorAll('pre')[5].textContent).toBe('items[4]: 4');
+		});
+	});
+
+	describe('Creates RippleArray with a single element', () => {
+		it('specifies int', () => {
+			component ArrayTest() {
+				let items = new RippleArray(3);
+				<pre>{JSON.stringify(items)}</pre>
+				<pre>{items.$length}</pre>
+			}
+
+			render(ArrayTest);
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[null,null,null]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		});
+
+		it('errors on exceeding max array size', () => {
+			component ArrayTest() {
+				let error = null;
+
+				try {
+					new RippleArray(MAX_ARRAY_LENGTH + 1);
+				} catch (e) {
+					error = e.message;
+				}
+
+				<pre>{error}</pre>
+			}
+
+			render(ArrayTest);
+
+			expect(container.querySelector('pre').textContent).toBe('Invalid array length');
+		});
+
+		it('specifies int using static from method', () => {
+			component ArrayTest() {
+				let items = RippleArray.from([4]);
+				<pre>{JSON.stringify(items)}</pre>
+				<pre>{items.$length}</pre>
+			}
+
+			render(ArrayTest);
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[4]');
+			// expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+		});
+
+		it('specifies int using static of method', () => {
+			component ArrayTest() {
+				let items = RippleArray.of(5);
+				<pre>{JSON.stringify(items)}</pre>
+				<pre>{items.$length}</pre>
+			}
+
+			render(ArrayTest);
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[5]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+		});
+
+		('fromAsync' in Array.prototype ? it : it.skip)('specifies int using static fromAsync method', async () => {
+			component Parent() {
+				try {
+					<ArrayTest />
+				} async {
+					<div>{'Loading placeholder...'}</div>
+				}
+			}
+
+			component ArrayTest() {
+				const items = await RippleArray.fromAsync([6]);
+
+				<pre>{items ? JSON.stringify(items) : 'Loading...'}</pre>
+				<pre>{items ? items.$length : ''}</pre>
+			}
+
+			render(Parent);
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+			flushSync();
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[6]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
 		});
 	});
 });
