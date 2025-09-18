@@ -3,6 +3,7 @@ import { walk } from 'zimmerframe';
 import { create_scopes, ScopeRoot } from '../../scope.js';
 import {
 	get_delegated_event,
+	is_element_dom_element,
 	is_event_attribute,
 	is_inside_component,
 	is_ripple_import,
@@ -511,11 +512,9 @@ const visitors = {
 		}
 	},
 
-	Element(node, { state, visit, path }) {
-		const is_dom_element =
-			node.id.type === 'Identifier' &&
-			node.id.name[0].toLowerCase() === node.id.name[0] &&
-			node.id.name[0] !== '$';
+	Element(node, context) {
+		const { state, visit, path } = context;
+		const is_dom_element = is_element_dom_element(node, context);
 		const attribute_names = new Set();
 
 		mark_for_loop_has_template(path);
@@ -592,7 +591,7 @@ const visitors = {
 
 			for (const child of node.children) {
 				if (child.type === 'Component') {
-					if (child.id.name === '$children') {
+					if (child.id.name === 'children') {
 						explicit_children = true;
 						if (implicit_children) {
 							error(

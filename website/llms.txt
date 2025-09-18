@@ -290,14 +290,14 @@ component ErrorBoundary() {
 
 ### Children Components
 
-Use `$children` prop for component composition:
+Use `children` prop for component composition:
 
 ```ripple
 import type { Component } from 'ripple';
 
-component Card(props: { $children: Component }) {
+component Card(props: { children: Component }) {
   <div class="card">
-    <$children />
+    <children />
   </div>
 }
 
@@ -568,7 +568,7 @@ import type { Component } from 'ripple';
 interface Props {
   $value: string;
   label: string;
-  $children?: Component;
+  children?: Component;
 }
 
 component MyComponent(props: Props) {

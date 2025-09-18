@@ -63,7 +63,7 @@ export function set_attribute(element, attribute, value) {
 
 export function set_attributes(element, attributes) {
 	for (const key in attributes) {
-		if (key === '$children') continue;
+		if (key === 'children') continue;
 
 		let value = attributes[key];
 

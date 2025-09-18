@@ -216,11 +216,11 @@ describe('composite components', () => {
 		expect(buttons[1].textContent).toBe('child: 2');
 	});
 
-	it('correct handles passing through component props and $children', () => {
-		component Button({ A, B, $children }) {
+	it('correct handles passing through component props and children', () => {
+		component Button({ A, B, children }) {
 			<div>
 				<A />
-				<$children />
+				<children />
 				<B />
 			</div>
 		}
