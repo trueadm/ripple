@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, effect, tracked } from 'ripple';
+import { mount, flushSync, effect, track } from 'ripple';
 import { compile } from 'ripple/compiler';
 
 describe('basic', () => {
@@ -54,7 +54,7 @@ describe('basic', () => {
 
 	it('render dynamic text', () => {
 		component Basic() {
-			let text = tracked('Hello World');
+			let text = track('Hello World');
 
 			<button onClick={() => { @text = 'Hello Ripple' }}>{'Change Text'}</button>
 			<div>{@text}</div>
@@ -111,7 +111,7 @@ describe('basic', () => {
 
 	it('render dynamic class attribute', () => {
 		component Basic() {
-			let active = tracked(false);
+			let active = track(false);
 
 			<button onClick={() => { @active = !@active }}>{'Toggle'}</button>
 			<div $class={@active ? 'active' : 'inactive'}>{'Dynamic Class'}</div>
@@ -143,7 +143,7 @@ describe('basic', () => {
 
 	it('render dynamic id attribute', () => {
 		component Basic() {
-			let count = tracked(0);
+			let count = track(0);
 
 			<button onClick={() => { @count++ }}>{'Increment'}</button>
 			<div $id={`item-${@count}`}>{'Dynamic ID'}</div>
@@ -169,7 +169,7 @@ describe('basic', () => {
 
 	it('render dynamic style attribute', () => {
 		component Basic() {
-			let color = tracked('red');
+			let color = track('red');
 
 			<button onClick={() => { @color = @color === 'red' ? 'blue' : 'red' }}>{'Change Color'}</button>
 			<div $style={`color: ${@color}; font-weight: bold;`}>{'Dynamic Style'}</div>
@@ -217,8 +217,8 @@ describe('basic', () => {
 
 	it('render dynamic boolean attributes', () => {
 		component Basic() {
-			let disabled = tracked(false);
-			let checked = tracked(false);
+			let disabled = track(false);
+			let checked = track(false);
 
 			<button onClick={() => {
 				@disabled = !@disabled;
@@ -244,8 +244,8 @@ describe('basic', () => {
 
 	it('render multiple dynamic attributes', () => {
 		component Basic() {
-			let theme = tracked('light');
-			let size = tracked('medium');
+			let theme = track('light');
+			let size = track('medium');
 
 			<button
 				onClick={() => {
@@ -275,8 +275,8 @@ describe('basic', () => {
 
 	it('render conditional attributes', () => {
 		component Basic() {
-			let showTitle = tracked(false);
-			let showAria = tracked(false);
+			let showTitle = track(false);
+			let showAria = track(false);
 
 			<button onClick={() => {
 				@showTitle = !@showTitle;
@@ -311,7 +311,7 @@ describe('basic', () => {
 
 	it('render spread attributes', () => {
 		component Basic() {
-			let attrs = tracked({
+			let attrs = track({
 				class: 'initial',
 				id: 'test-1'
 			});
@@ -349,14 +349,14 @@ describe('basic', () => {
 		component Basic() {
 			<div>
 				let obj = {
-					count: tracked(0)
+					count: track(0)
 				};
 
 				<span>{obj.@count}</span>
 			</div>
 			<div>
 				let b = {
-					count: tracked(0)
+					count: track(0)
 				};
 
 				<button onClick={() => { b.@count-- }}>{'-'}</button>
@@ -385,14 +385,14 @@ describe('basic', () => {
 
 			<div>
 				let obj = {
-					count: tracked(0)
+					count: track(0)
 				};
 
 				<span>{obj[count]}</span>
 			</div>
 			<div>
 				let b = {
-					count: tracked(0)
+					count: track(0)
 				};
 
 				<button onClick={() => { b[count]-- }}>{'-'}</button>
@@ -417,8 +417,8 @@ describe('basic', () => {
 
 	it('renders with different event types', () => {
 		component Basic() {
-			let focusCount = tracked(0);
-			let clickCount = tracked(0);
+			let focusCount = track(0);
+			let clickCount = track(0);
 
 			<button
 				onFocus={() => { @focusCount++ }}
@@ -445,8 +445,8 @@ describe('basic', () => {
 
 	it('renders with capture events', () => {
 		component Basic() {
-			let captureClicks = tracked(0);
-			let bubbleClicks = tracked(0);
+			let captureClicks = track(0);
+			let bubbleClicks = track(0);
 
 			<div onClickCapture={() => { @captureClicks++ }}>
 				<button onClick={() => { @bubbleClicks++ }}>{'Click me'}</button>
@@ -494,8 +494,8 @@ describe('basic', () => {
 
 	it('renders with error handling simulation', () => {
 		component Basic() {
-			let hasError = tracked(false);
-			let errorMessage = tracked('');
+			let hasError = track(false);
+			let errorMessage = track('');
 
 			const triggerError = () => {
 				try {
@@ -534,7 +534,7 @@ describe('basic', () => {
 
 	it('renders with computed reactive state', () => {
 		component Basic() {
-			let count = tracked(5);
+			let count = track(5);
 
 			<div class='count'>{@count}</div>
 			<div class='doubled'>{@count * 2}</div>
@@ -577,9 +577,9 @@ describe('basic', () => {
 
 	it('renders with simple reactive objects', () => {
 		component Basic() {
-			let user = tracked({
-				name: tracked('John'),
-				age: tracked(25)
+			let user = track({
+				name: track('John'),
+				age: track(25)
 			});
 
 			<div class='name'>{@user.@name}</div>
@@ -608,8 +608,8 @@ describe('basic', () => {
 
 	it('renders with conditional rendering using if statements', () => {
 		component Basic() {
-			let showContent = tracked(false);
-			let userRole = tracked('guest');
+			let showContent = track(false);
+			let userRole = track('guest');
 
 			<button onClick={() => { @showContent = !@showContent }}>{'Toggle Content'}</button>
 			<button onClick={() => { @userRole = @userRole === 'guest' ? 'admin' : 'guest' }}>{'Toggle Role'}</button>
@@ -700,9 +700,9 @@ describe('basic', () => {
 
 	it('renders with complex event handling and state updates', () => {
 		component Basic() {
-			let counter = tracked(0);
-			let history = tracked([]);
-			let isEven = tracked(true);
+			let counter = track(0);
+			let history = track([]);
+			let isEven = track(true);
 
 			const handleIncrement = () => {
 				@counter++;
@@ -780,8 +780,8 @@ describe('basic', () => {
 		}
 
 		component Basic() {
-			let message = tracked('Hello');
-			let number = tracked(1);
+			let message = track('Hello');
+			let number = track(1);
 
 			<ChildComponent text={message} count={number} />
 			<button onClick={() => {
@@ -850,8 +850,8 @@ describe('basic', () => {
 
 	it('renders with mixed static and dynamic content', () => {
 		component Basic() {
-			let name = tracked('World');
-			let count = tracked(0);
+			let name = track('World');
+			let count = track(0);
 			const staticMessage = 'Welcome to Ripple!';
 
 			<div class='mixed-content'>
@@ -885,12 +885,12 @@ describe('basic', () => {
 
 	it('renders with reactive attributes with nested reactive attributes', () => {
 		component App() {
-			let value = tracked('parent-class');
+			let value = track('parent-class');
 
 			<p class={@value}>{'Colored parent value'}</p>
 
 			<div>
-				let nested = tracked('nested-class');
+				let nested = track('nested-class');
 
 				<p class={@nested}>{'Colored nested value'}</p>
 			</div>
@@ -927,11 +927,11 @@ describe('basic', () => {
 		let logs = [];
 
 		component App() {
-			let first = tracked(0);
-			let second = tracked(0);
+			let first = track(0);
+			let second = track(0);
 			const arr = [@first, @second];
 
-			const total = tracked(arr.reduce((a, b) => a + b, 0));
+			const total = track(arr.reduce((a, b) => a + b, 0));
 
 			<button onClick={() => { @first++; }}>{'first:' + @first}</button>
 			<button onClick={() => { @second++; }}>{'second: ' + @second}</button>
@@ -992,9 +992,9 @@ describe('basic', () => {
 	it.skip('it retains this context with bracketed prop functions and keeps original chaining', () => {
 		component App() {
 			const SYMBOL_PROP = Symbol();
-			let hasError = tracked(false);
+			let hasError = track(false);
 			const obj = {
-				count: tracked(0),
+				count: track(0),
 				increment() {
 					this.@count++;
 				},

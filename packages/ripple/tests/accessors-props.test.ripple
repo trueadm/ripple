@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, effect, tracked } from 'ripple';
+import { mount, flushSync, effect, track } from 'ripple';
 
 describe('prop accessors', () => {
 	let container;
@@ -32,7 +32,7 @@ describe('prop accessors', () => {
     }
 
     component App(props) {
-      let foo = tracked(0);
+      let foo = track(0);
 
       <Child {foo} />
 
@@ -64,7 +64,7 @@ describe('prop accessors', () => {
 
   it('handles a simple getter prop accessor with no setter', () =>{
     component Parent() {
-      let value = tracked(123);
+      let value = track(123);
 
       <Child {value} />
 
