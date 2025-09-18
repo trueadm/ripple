@@ -62,6 +62,55 @@ describe('prop accessors', () => {
     expect(logs).toEqual(['App effect', 0, 'App effect', 1, 'App effect', 2]);
   });
 
+  // Note: Disabled this test for further investigation.
+  it.skip('should render a basic prop accessor on a composite component #2', () => {
+    const logs = [];
+
+    component Child({ foo }) {
+      effect(() => {
+        logs.push('App effect', @foo);
+      });
+
+      <button onClick={() => { foo++ }}>{"Increment foo"}</button>
+    }
+
+    component App() {
+      let foo = track(0);
+
+      <Child {foo} />
+
+      <div>{"parent foo: " + @foo}</div>
+
+      <button onClick={() => { foo++ }}>{"Increment parent foo"}</button>
+    }
+
+    render(App);
+    flushSync();
+
+    expect(container.querySelectorAll('div')[0].textContent).toBe('parent foo: 0');
+    expect(logs).toEqual(['App effect', 0]);
+
+    const [button, button2] = container.querySelectorAll('button');
+
+    button.click();
+    flushSync();
+      
+    expect(container.querySelectorAll('div')[0].textContent).toBe('parent foo: 0');
+    expect(logs).toEqual(['App effect', 0, 'App effect', 1]);
+
+    button2.click();
+    flushSync();
+
+    expect(container.querySelectorAll('div')[0].textContent).toBe('parent foo: 1');
+    expect(logs).toEqual(['App effect', 0, 'App effect', 1, 'App effect', 1]);
+
+    button2.click();
+    flushSync();
+
+    expect(container.querySelectorAll('div')[0].textContent).toBe('parent foo: 2');
+    expect(logs).toEqual(['App effect', 0, 'App effect', 1, 'App effect', 1, 'App effect', 2]);
+  });
+
   it('handles a simple getter prop accessor with no setter', () =>{
     component Parent() {
       let value = track(123);
