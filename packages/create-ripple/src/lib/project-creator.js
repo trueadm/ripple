@@ -13,17 +13,16 @@ import { downloadTemplate, getLocalTemplatePath, isLocalDevelopment } from './te
  * @param {string} options.projectPath - Absolute path where project will be created
  * @param {string} options.template - Template to use
  * @param {string} options.packageManager - Package manager to use
- * @param {boolean} options.typescript - Whether to use TypeScript
  * @param {boolean} options.gitInit - Whether to initialize Git
+ * @param {string} options.stylingFramework - Styling framework to use
  */
 export async function createProject({
 	projectName,
 	projectPath,
 	template,
 	packageManager = 'npm',
-	typescript = true,
 	gitInit = true,
-	stylingFramework
+	stylingFramework = 'vanilla'
 }) {
 	console.log(dim(`Creating project: ${projectName}`));
 	console.log(dim(`Template: ${template}`));
@@ -96,7 +95,7 @@ export async function createProject({
 	// Step 4: Update package.json
 	const spinner4 = ora('Configuring package.json...').start();
 	try {
-		updatePackageJson(projectPath, projectName, packageManager, typescript, stylingFramework);
+		updatePackageJson(projectPath, projectName, packageManager, stylingFramework);
 		spinner4.succeed('Package.json configured');
 	} catch (error) {
 		spinner4.fail('Failed to configure package.json');
@@ -150,9 +149,9 @@ export async function createProject({
  * @param {string} projectPath - Path to the project
  * @param {string} projectName - Name of the project
  * @param {string} packageManager - Package manager being used
- * @param {boolean} typescript - Whether TypeScript is enabled
+ * @param {string} stylingFramework - Styling framework being used
  */
-function updatePackageJson(projectPath, projectName, packageManager, typescript, stylingFramework) {
+function updatePackageJson(projectPath, projectName, packageManager, stylingFramework) {
 	const packageJsonPath = join(projectPath, 'package.json');
 
 	if (!existsSync(packageJsonPath)) {
@@ -181,7 +180,8 @@ function updatePackageJson(projectPath, projectName, packageManager, typescript,
     if (stylingFramework === 'tailwind') {
         packageJson.devDependencies = {
             ...packageJson.devDependencies,
-            'tailwindcss': '^4.0.0'
+            'tailwindcss': '^4.1.12',
+            '@tailwindcss/vite': '^4.1.12'
         };
     } else if (stylingFramework === 'bootstrap') {
         packageJson.dependencies = {
@@ -214,34 +214,29 @@ export default {
 } satisfies Config
 `;
 		writeFileSync(join(projectPath, 'tailwind.config.ts'), tailwindConfig);
-		const mainCss = `@import 'tailwindcss'
-  @config './tailwind.config.ts'`;
+		const mainCss = `@import "tailwindcss";
+@config "./tailwind.config.ts";`;
 		writeFileSync(join(projectPath, 'src', 'index.css'), mainCss);
 
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
 		const newMainTs = "import './index.css';\n" + mainTs;
 		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
 		
-		if (existsSync(join(projectPath, 'vite.config.ts'))) {
-			rmSync(join(projectPath, 'vite.config.ts'));
+		if (existsSync(join(projectPath, 'vite.config.js'))) {
+			rmSync(join(projectPath, 'vite.config.js'));
 		}
 		const viteConfig = `import { defineConfig } from 'vite';
-import ripple from 'vite-plugin-ripple';
-import tailwindcss from 'tailwindcss';
+import { ripple } from 'vite-plugin-ripple';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-	plugins: [ripple()],
-	css: {
-		postcss: {
-			plugins: [tailwindcss()]
-		}
-	},
+	plugins: [ripple(), tailwindcss()],
 	server: {
 		port: 3000
 	}
 });
 `;
-		writeFileSync(join(projectPath, 'vite.config.ts'), viteConfig);
+		writeFileSync(join(projectPath, 'vite.config.js'), viteConfig);
 
     } else if (stylingFramework === 'bootstrap') {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
