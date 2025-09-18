@@ -15,32 +15,28 @@ export { jsx, jsxs, Fragment } from '../jsx-runtime.js';
  * @returns {() => void}
  */
 export function mount(component, options) {
-	init_operations();
+  init_operations();
 
-	const props = options.props || {};
-	const target = options.target;
-	const anchor = create_anchor();
-	target.append(anchor);
+  const props = options.props || {};
+  const target = options.target;
+  const anchor = create_anchor();
+  target.append(anchor);
 
-	const cleanup_events = handle_root_events(target);
+  const cleanup_events = handle_root_events(target);
 
-	const _root = root(() => {
-		component(anchor, props, active_block);
-	});
+  const _root = root(() => {
+    component(anchor, props, active_block);
+  });
 
-	return () => {
-		cleanup_events();
-		destroy_block(_root);
-	};
+  return () => {
+    cleanup_events();
+    destroy_block(_root);
+  };
 }
 
 export { create_context as createContext } from './internal/client/context.js';
 
-export {
-	flush_sync as flushSync,
-	untrack,
-	deferred,
-} from './internal/client/runtime.js';
+export { flush_sync as flushSync, untrack, deferred } from './internal/client/runtime.js';
 
 /**
  * @param {any} v
@@ -48,10 +44,10 @@ export {
  * @returns {Tracked | Derived}
  */
 export function track(v, b) {
-	if (typeof v === 'function') {
-		return derived(v, b);
-	}
-	return tracked(v, b);
+  if (typeof v === 'function') {
+    return derived(v, b);
+  }
+  return tracked(v, b);
 }
 
 export { RippleArray } from './array.js';

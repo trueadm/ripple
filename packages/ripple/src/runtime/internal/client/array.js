@@ -11,20 +11,20 @@ const array_proto = Array.prototype;
  * @returns {T}
  */
 export function array_reduce(array, callback, initial_value) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
 
-	if (tracked_properties === undefined || array.reduce !== array_proto.reduce) {
-		return array.reduce(callback, initial_value);
-	}
+  if (tracked_properties === undefined || array.reduce !== array_proto.reduce) {
+    return array.reduce(callback, initial_value);
+  }
 
-	let accumulator = initial_value;
+  let accumulator = initial_value;
 
-	for (let i = 0; i < array.length; i++) {
-		accumulator = callback(accumulator, old_get_property(array, i), i, array);
-	}
+  for (let i = 0; i < array.length; i++) {
+    accumulator = callback(accumulator, old_get_property(array, i), i, array);
+  }
 
-	return accumulator;
+  return accumulator;
 }
 
 /**
@@ -34,21 +34,21 @@ export function array_reduce(array, callback, initial_value) {
  * @returns {string}
  */
 export function array_join(array, separator) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
-	if (tracked_properties === undefined || array.join !== array_proto.join) {
-		return array.join(separator);
-	}
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
+  if (tracked_properties === undefined || array.join !== array_proto.join) {
+    return array.join(separator);
+  }
 
-	let result = '';
-	for (let i = 0; i < array.length; i++) {
-		if (i > 0 && separator !== undefined) {
-			result += separator;
-		}
-		result += String(old_get_property(array, i));
-	}
+  let result = '';
+  for (let i = 0; i < array.length; i++) {
+    if (i > 0 && separator !== undefined) {
+      result += separator;
+    }
+    result += String(old_get_property(array, i));
+  }
 
-	return result;
+  return result;
 }
 
 /**
@@ -59,20 +59,20 @@ export function array_join(array, separator) {
  * @returns {Array<U>}
  */
 export function array_map(array, callback) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
-	if (tracked_properties === undefined || array.map !== array_proto.map) {
-		return array.map(callback);
-	}
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
+  if (tracked_properties === undefined || array.map !== array_proto.map) {
+    return array.map(callback);
+  }
 
-	const result = [];
-	for (let i = 0; i < array.length; i++) {
-		if (i in array) {
-			result[i] = callback(old_get_property(array, i), i, array);
-		}
-	}
+  const result = [];
+  for (let i = 0; i < array.length; i++) {
+    if (i in array) {
+      result[i] = callback(old_get_property(array, i), i, array);
+    }
+  }
 
-	return result;
+  return result;
 }
 
 /**
@@ -82,23 +82,23 @@ export function array_map(array, callback) {
  * @returns {Array<T>}
  */
 export function array_filter(array, callback) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
-	if (tracked_properties === undefined || array.filter !== array_proto.filter) {
-		return array.filter(callback);
-	}
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
+  if (tracked_properties === undefined || array.filter !== array_proto.filter) {
+    return array.filter(callback);
+  }
 
-	const result = [];
-	for (let i = 0; i < array.length; i++) {
-		if (i in array) {
-			const value = old_get_property(array, i);
-			if (callback(value, i, array)) {
-				result.push(value);
-			}
-		}
-	}
+  const result = [];
+  for (let i = 0; i < array.length; i++) {
+    if (i in array) {
+      const value = old_get_property(array, i);
+      if (callback(value, i, array)) {
+        result.push(value);
+      }
+    }
+  }
 
-	return result;
+  return result;
 }
 
 /**
@@ -108,17 +108,17 @@ export function array_filter(array, callback) {
  * @returns {void}
  */
 export function array_forEach(array, callback) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
-	if (tracked_properties === undefined || array.forEach !== array_proto.forEach) {
-		return array.forEach(callback);
-	}
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
+  if (tracked_properties === undefined || array.forEach !== array_proto.forEach) {
+    return array.forEach(callback);
+  }
 
-	for (let i = 0; i < array.length; i++) {
-		if (i in array) {
-			callback(old_get_property(array, i), i, array);
-		}
-	}
+  for (let i = 0; i < array.length; i++) {
+    if (i in array) {
+      callback(old_get_property(array, i), i, array);
+    }
+  }
 }
 
 /**
@@ -128,19 +128,19 @@ export function array_forEach(array, callback) {
  * @returns {boolean}
  */
 export function array_includes(array, value) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
-	if (tracked_properties === undefined || array.includes !== array_proto.includes) {
-		return array.includes(value);
-	}
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
+  if (tracked_properties === undefined || array.includes !== array_proto.includes) {
+    return array.includes(value);
+  }
 
-	for (let i = 0; i < array.length; i++) {
-		if (i in array && old_get_property(array, i) === value) {
-			return true;
-		}
-	}
+  for (let i = 0; i < array.length; i++) {
+    if (i in array && old_get_property(array, i) === value) {
+      return true;
+    }
+  }
 
-	return false;
+  return false;
 }
 
 /**
@@ -150,19 +150,19 @@ export function array_includes(array, value) {
  * @returns {number}
  */
 export function array_indexOf(array, value) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
-	if (tracked_properties === undefined || array.indexOf !== array_proto.indexOf) {
-		return array.indexOf(value);
-	}
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
+  if (tracked_properties === undefined || array.indexOf !== array_proto.indexOf) {
+    return array.indexOf(value);
+  }
 
-	for (let i = 0; i < array.length; i++) {
-		if (i in array && old_get_property(array, i) === value) {
-			return i;
-		}
-	}
+  for (let i = 0; i < array.length; i++) {
+    if (i in array && old_get_property(array, i) === value) {
+      return i;
+    }
+  }
 
-	return -1;
+  return -1;
 }
 
 /**
@@ -172,19 +172,19 @@ export function array_indexOf(array, value) {
  * @returns {number}
  */
 export function array_lastIndexOf(array, value) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
-	if (tracked_properties === undefined || array.lastIndexOf !== array_proto.lastIndexOf) {
-		return array.lastIndexOf(value);
-	}
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
+  if (tracked_properties === undefined || array.lastIndexOf !== array_proto.lastIndexOf) {
+    return array.lastIndexOf(value);
+  }
 
-	for (let i = array.length - 1; i >= 0; i--) {
-		if (i in array && old_get_property(array, i) === value) {
-			return i;
-		}
-	}
+  for (let i = array.length - 1; i >= 0; i--) {
+    if (i in array && old_get_property(array, i) === value) {
+      return i;
+    }
+  }
 
-	return -1;
+  return -1;
 }
 
 /**
@@ -334,19 +334,19 @@ export function array_values(array) {
  * @returns {IterableIterator<[number, T]>}
  */
 export function array_entries(array) {
-	// @ts-expect-error
-	var tracked_properties = array[TRACKED_OBJECT];
-	if (tracked_properties === undefined || array.entries !== array_proto.entries) {
-		return array.entries();
-	}
+  // @ts-expect-error
+  var tracked_properties = array[TRACKED_OBJECT];
+  if (tracked_properties === undefined || array.entries !== array_proto.entries) {
+    return array.entries();
+  }
 
-	/** @type {Array<[number, T]>} */
-	const result = [];
-	for (let i = 0; i < array.length; i++) {
-		if (i in array) {
-			result.push([i, old_get_property(array, i)]);
-		}
-	}
+  /** @type {Array<[number, T]>} */
+  const result = [];
+  for (let i = 0; i < array.length; i++) {
+    if (i in array) {
+      result.push([i, old_get_property(array, i)]);
+    }
+  }
 
-	return result[Symbol.iterator]();
+  return result[Symbol.iterator]();
 }

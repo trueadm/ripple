@@ -148,9 +148,10 @@ describe('composite components', () => {
 		expect(container.querySelector('.count3').textContent).toBe('1');
 	});
 
-	it('parents and children have isolated but connected state', () => {
+	it('parents and children have isolated state', () => {
 		component Button(props) {
-			<button onClick={() => { props.$count++; } }>{"child: " + props.$count}</button>
+			let $count = props.$count;
+			<button onClick={() => { $count++; } }>{"child: " + $count}</button>
 		}
 
 		component App() {
@@ -182,9 +183,10 @@ describe('composite components', () => {
 		expect(buttons[1].textContent).toBe('child: 2');
 	});
 
-	it('parents and children have isolated but connected state (destructured props)', () => {
+	it('parents and children have isolated connected state (destructured props)', () => {
 		component Button({$count}) {
-			<button onClick={() => { $count++; } }>{"child: " + $count}</button>
+			let $local_count = $count;
+			<button onClick={() => { $local_count++; } }>{"child: " + $local_count}</button>
 		}
 
 		component App() {

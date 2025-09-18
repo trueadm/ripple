@@ -124,7 +124,10 @@ const visitors = {
       const binding = context.state.scope.get(node.name);
       if (
         context.state.metadata?.tracking === false &&
-        (is_tracked_name(node.name) || node.tracked) &&
+        (is_tracked_name(node.name) ||
+          node.tracked ||
+          binding?.kind === 'prop' ||
+          binding?.kind === 'prop_fallback') &&
         binding?.node !== node
       ) {
         context.state.metadata.tracking = true;
@@ -786,28 +789,31 @@ const visitors = {
       state.template.push('<!>');
 
       const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
-      const tracked = [];
       const props = [];
       let children_prop = null;
 
       for (const attr of node.attributes) {
         if (attr.type === 'Attribute') {
-          if (attr.name.type === 'Identifier' && is_tracked_name(attr.name.name)) {
+          if (attr.name.type === 'Identifier') {
             const metadata = { tracking: false, await: false };
             let property = visit(attr.value, { ...state, metadata });
 
-            tracked.push(b.literal(attr.name.name));
-
             if (metadata.tracking) {
-              const thunk = b.thunk(property);
-              property = b.call('$.computed_property', thunk, b.id('__block'));
-
               if (attr.name.name === 'children') {
-                children_prop = thunk;
+                children_prop = b.thunk(property);
+				continue;
               }
-            }
 
-            props.push(b.prop('init', attr.name, property));
+              props.push(
+                b.prop(
+                  'get',
+                  attr.name,
+                  b.function(null, [], b.block([b.return(property)])),
+                ),
+              );
+            } else {
+              props.push(b.prop('init', attr.name, property));
+            }
           } else {
             props.push(b.prop('init', attr.name, visit(attr.value, state)));
           }
@@ -823,8 +829,6 @@ const visitors = {
         } else if (attr.type === 'RefAttribute') {
           props.push(b.prop('init', b.call('$.ref_prop'), visit(attr.argument, state), true));
         } else if (attr.type === 'AccessorAttribute') {
-          // # means it's an accessor to the runtime
-          tracked.push(b.literal('#' + attr.name.name));
           let get_expr;
 
           if (
@@ -909,17 +913,6 @@ const visitors = {
             ),
           ),
         );
-      } else if (tracked.length > 0) {
-        state.init.push(
-          b.stmt(
-            b.call(
-              node.id,
-              id,
-              b.call('$.tracked_object', b.object(props), b.array(tracked), b.id('__block')),
-              b.id('$.active_block'),
-            ),
-          ),
-        );
       } else {
         state.init.push(
           b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('$.active_block'))),
@@ -978,35 +971,7 @@ const visitors = {
         delete props_param.typeAnnotation;
         props = props_param;
       } else if (props_param.type === 'ObjectPattern') {
-        const paths = extract_paths(props_param);
-
-        for (const path of paths) {
-          const name = path.node.name;
-          const binding = context.state.scope.get(name);
-          const key = b.key(name);
-
-          if (binding !== null && !is_tracked_name(name)) {
-            if (prop_statements === undefined) {
-              prop_statements = [];
-            }
-            if (path.has_default_value) {
-              const fallback = path.expression(b.id('__props'));
-
-              prop_statements.push(b.var(name, context.visit(fallback)));
-            } else {
-              prop_statements.push(b.var(name, b.member(b.id('__props'), key)));
-            }
-          } else if (binding !== null && path.has_default_value) {
-            if (prop_statements === undefined) {
-              prop_statements = [];
-            }
-            const fallback = path.expression(b.id('__props'));
-
-            prop_statements.push(
-              b.var(name, b.call('$.derived', b.thunk(context.visit(fallback)), b.id('__block'))),
-            );
-          }
-        }
+        delete props_param.typeAnnotation;
       }
     }
 
@@ -1706,8 +1671,7 @@ function transform_children(children, context) {
 
   const get_id = (node) => {
     return b.id(
-      node.type == 'Element' &&
-        is_element_dom_element(node, context)
+      node.type == 'Element' && is_element_dom_element(node, context)
         ? state.scope.generate(node.id.name)
         : node.type == 'Text'
           ? state.scope.generate('text')

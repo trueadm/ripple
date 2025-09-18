@@ -5,29 +5,29 @@ import { create_text } from './operations';
 import { old_get_property } from './runtime';
 
 export function Portal(_, props) {
-	let $target = UNINITIALIZED;
-	let children = UNINITIALIZED;
-	var b = null;
-	var anchor = null;
+  let $target = UNINITIALIZED;
+  let children = UNINITIALIZED;
+  var b = null;
+  var anchor = null;
 
-	render(() => {
-		if ($target === ($target = old_get_property(props, '$target'))) return;
-		if (children === (children = old_get_property(props, 'children'))) return;
+  render(() => {
+    if ($target === ($target = old_get_property(props, '$target'))) return;
+    if (children === (children = old_get_property(props, 'children'))) return;
 
-		if (b !== null) {
-			destroy_block(b);
-		}
+    if (b !== null) {
+      destroy_block(b);
+    }
 
-		anchor = create_text();
-		$target.append(anchor);
+    anchor = create_text();
+    $target.append(anchor);
 
-		const cleanup_events = handle_root_events($target);
+    const cleanup_events = handle_root_events($target);
 
-		b = branch(() => children(anchor));
+    b = branch(() => children(anchor));
 
-		return () => {
-			cleanup_events();
-			anchor.remove();
-		};
-	});
+    return () => {
+      cleanup_events();
+      anchor.remove();
+    };
+  });
 }

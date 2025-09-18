@@ -9,148 +9,148 @@ const new_other_methods = ['difference', 'intersection', 'symmetricDifference', 
 let init = false;
 
 export class RippleSet extends Set {
-	#tracked_size;
-	#tracked_items = new Map();
+  #tracked_size;
+  #tracked_items = new Map();
 
-	constructor(iterable) {
-		super();
+  constructor(iterable) {
+    super();
 
-		var block = safe_scope();
+    var block = safe_scope();
 
-		if (iterable) {
-			for (var item of iterable) {
-				super.add(item);
-				this.#tracked_items.set(item, tracked(0, block));
-			}
-		}
+    if (iterable) {
+      for (var item of iterable) {
+        super.add(item);
+        this.#tracked_items.set(item, tracked(0, block));
+      }
+    }
 
-		this.#tracked_size = tracked(this.size, block);
+    this.#tracked_size = tracked(this.size, block);
 
-		if (!init) {
-			init = true;
-			this.#init();
-		}
-	}
+    if (!init) {
+      init = true;
+      this.#init();
+    }
+  }
 
-	#init() {
-		var proto = RippleSet.prototype;
-		var set_proto = Set.prototype;
+  #init() {
+    var proto = RippleSet.prototype;
+    var set_proto = Set.prototype;
 
-		for (const method of introspect_methods) {
-			if (!(method in set_proto)) {
-				continue;
-			}
+    for (const method of introspect_methods) {
+      if (!(method in set_proto)) {
+        continue;
+      }
 
-			proto[method] = function (...v) {
-				this.$size;
+      proto[method] = function (...v) {
+        this.$size;
 
-				return set_proto[method].apply(this, v);
-			};
-		}
+        return set_proto[method].apply(this, v);
+      };
+    }
 
-		for (const method of compare_other_methods) {
-			if (!(method in set_proto)) {
-				continue;
-			}
+    for (const method of compare_other_methods) {
+      if (!(method in set_proto)) {
+        continue;
+      }
 
-			proto[method] = function (other, ...v) {
-				this.$size;
+      proto[method] = function (other, ...v) {
+        this.$size;
 
-				if (other instanceof RippleSet) {
-					other.$size;
-				}
+        if (other instanceof RippleSet) {
+          other.$size;
+        }
 
-				return set_proto[method].apply(this, [other, ...v]);
-			};
-		}
+        return set_proto[method].apply(this, [other, ...v]);
+      };
+    }
 
-		for (const method of new_other_methods) {
-			if (!(method in set_proto)) {
-				continue;
-			}
+    for (const method of new_other_methods) {
+      if (!(method in set_proto)) {
+        continue;
+      }
 
-			proto[method] = function (other, ...v) {
-				this.$size;
+      proto[method] = function (other, ...v) {
+        this.$size;
 
-				if (other instanceof RippleSet) {
-					other.$size;
-				}
+        if (other instanceof RippleSet) {
+          other.$size;
+        }
 
-				return new RippleSet(set_proto[method].apply(this, [other, ...v]));
-			};
-		}
-	}
+        return new RippleSet(set_proto[method].apply(this, [other, ...v]));
+      };
+    }
+  }
 
-	add(value) {
-		var block = safe_scope();
+  add(value) {
+    var block = safe_scope();
 
-		if (!super.has(value)) {
-			super.add(value);
-			this.#tracked_items.set(value, tracked(0, block));
-			set(this.#tracked_size, this.size, block);
-		}
+    if (!super.has(value)) {
+      super.add(value);
+      this.#tracked_items.set(value, tracked(0, block));
+      set(this.#tracked_size, this.size, block);
+    }
 
-		return this;
-	}
+    return this;
+  }
 
-	delete(value) {
-		var block = safe_scope();
+  delete(value) {
+    var block = safe_scope();
 
-		if (!super.delete(value)) {
-			return false;
-		}
+    if (!super.delete(value)) {
+      return false;
+    }
 
-		var t = this.#tracked_items.get(value);
+    var t = this.#tracked_items.get(value);
 
-		increment(t, block);
-		this.#tracked_items.delete(value);
-		set(this.#tracked_size, this.size, block);
+    increment(t, block);
+    this.#tracked_items.delete(value);
+    set(this.#tracked_size, this.size, block);
 
-		return true;
-	}
+    return true;
+  }
 
-	has(value) {
-		var block = safe_scope();
-		var has = super.has(value);
-		var tracked_items = this.#tracked_items;
-		var t = tracked_items.get(value);
+  has(value) {
+    var block = safe_scope();
+    var has = super.has(value);
+    var tracked_items = this.#tracked_items;
+    var t = tracked_items.get(value);
 
-		if (t === undefined) {
-			// if no tracked it also means super didn't have it
-			// It's not possible to have a disconnect, we track each value
-			// If the value doesn't exist, track the size in case it's added later
-			// but don't create tracked entries willy-nilly to track all possible values
-			this.$size;
-		} else {
-			get(t);
-		}
+    if (t === undefined) {
+      // if no tracked it also means super didn't have it
+      // It's not possible to have a disconnect, we track each value
+      // If the value doesn't exist, track the size in case it's added later
+      // but don't create tracked entries willy-nilly to track all possible values
+      this.$size;
+    } else {
+      get(t);
+    }
 
-		return has;
-	}
+    return has;
+  }
 
-	clear() {
-		var block = safe_scope();
+  clear() {
+    var block = safe_scope();
 
-		if (super.size === 0) {
-			return;
-		}
+    if (super.size === 0) {
+      return;
+    }
 
-		for (var [_, t] of this.#tracked_items) {
-			increment(t, block);
-		}
+    for (var [_, t] of this.#tracked_items) {
+      increment(t, block);
+    }
 
-		super.clear();
-		this.#tracked_items.clear();
-		set(this.#tracked_size, 0, block);
-	}
+    super.clear();
+    this.#tracked_items.clear();
+    set(this.#tracked_size, 0, block);
+  }
 
-	get $size() {
-		return get(this.#tracked_size);
-	}
+  get $size() {
+    return get(this.#tracked_size);
+  }
 
-	toJSON() {
-		this.$size;
+  toJSON() {
+    this.$size;
 
-		return [...this];
-	}
+    return [...this];
+  }
 }
