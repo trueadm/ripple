@@ -161,7 +161,7 @@ const visitors = {
 		if (
 			!context.state.to_ts &&
 			callee.type === 'Identifier' &&
-			callee.name === 'tracked' &&
+			callee.name === 'track' &&
 			is_ripple_import(callee, context)
 		) {
 			return {

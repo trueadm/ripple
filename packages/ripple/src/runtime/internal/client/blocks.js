@@ -1,9 +1,9 @@
-/** @import { Block, Computed } from '#client' */
+/** @import { Block, Derived } from '#client' */
 
 import {
 	BLOCK_HAS_RUN,
 	BRANCH_BLOCK,
-	COMPUTED,
+	DERIVED,
 	CONTAINS_TEARDOWN,
 	DESTROYED,
 	EFFECT_BLOCK,
@@ -176,8 +176,8 @@ export function block(flags, fn, state = null) {
 		t: null,
 	};
 
-	if (active_reaction !== null && (active_reaction.f & COMPUTED) !== 0) {
-		(/** @type {Computed} */ (active_reaction).blocks ??= []).push(block);
+	if (active_reaction !== null && (active_reaction.f & DERIVED) !== 0) {
+		(/** @type {Derived} */ (active_reaction).blocks ??= []).push(block);
 	}
 
 	if (active_block !== null) {

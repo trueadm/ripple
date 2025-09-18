@@ -5,7 +5,7 @@ export type Component = {
 	e: null | Array<{
 		b: Block;
 		fn: Function;
-		r: null | Block | Computed;
+		r: null | Block | Derived;
 	}>;
 	p: null | Component;
 	m: boolean;
@@ -13,7 +13,7 @@ export type Component = {
 
 export type Dependency = {
 	c: number;
-	t: Tracked | Computed;
+	t: Tracked | Derived;
 	n: null | Dependency;
 };
 
@@ -24,14 +24,14 @@ export type Tracked = {
 	v: any;
 };
 
-export type Computed = {
-		b: Block,
-		blocks: null | Block[],
-		c: number,
-		d: null,
-		f: number,
-		fn: Function,
-		v: any,
+export type Derived = {
+	b: Block;
+	blocks: null | Block[];
+	c: number;
+	d: null;
+	f: number;
+	fn: Function;
+	v: any;
 };
 
 export type Block = {

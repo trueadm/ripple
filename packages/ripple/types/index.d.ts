@@ -81,3 +81,7 @@ declare global {
 }
 
 export declare function createRefKey(): symbol;
+
+type Tracked<V> = {};
+
+export declare function track<V>(value: V): Tracked<V>;
