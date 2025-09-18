@@ -741,14 +741,14 @@ const MyContext = createContext(null);
 
 component Child() {
   // Context is read in the Child component
-  const value = MyContext.get(MyContext);
+  const value = MyContext.get();
 
   // value is "Hello from context!"
   console.log(value);
 }
 
 component Parent() {
-  const value = MyContext.get(MyContext);
+  const value = MyContext.get();
 
   // Context is read in the Parent component, but hasn't yet
   // been set, so we fallback to the initial context value.

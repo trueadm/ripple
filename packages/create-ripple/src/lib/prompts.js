@@ -134,3 +134,31 @@ export async function promptGitInit() {
 
 	return response.gitInit;
 }
+
+export async function promptStylingFramework() {
+	const response = await prompts({
+		type: 'select',
+		name: 'stylingFramework',
+		message: 'Which styling framework would you like to integrate with Ripple?',
+		choices: [{
+			title: 'Vanilla CSS',
+			value: 'vanilla',
+			description: 'Use Vanilla CSS for styling your components'
+		}, {
+			title: 'Bootstrap',
+			value: 'bootstrap',
+			description: 'Use Bootstrap classes to style your components'
+		}, {
+			title: 'TailwindCSS',
+			value: 'tailwind',
+			description: 'Use TailwindCSS to style your components'
+		}]
+	})
+
+	if (response.stylingFramework === undefined) {
+		console.log(red('✖ Operation cancelled'));
+		process.exit(1);
+	}
+
+	return response.stylingFramework;
+}

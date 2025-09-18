@@ -8,7 +8,8 @@ import {
 	promptTemplate,
 	promptOverwrite,
 	promptPackageManager,
-	promptGitInit
+	promptGitInit,
+	promptStylingFramework
 } from '../lib/prompts.js';
 import { createProject } from '../lib/project-creator.js';
 
@@ -71,6 +72,11 @@ export async function createCommand(projectName, options) {
 		gitInit = false;
 	}
 
+		let stylingFramework = 'vanilla';
+	if (!options.yes) {
+		stylingFramework = await promptStylingFramework();
+	}
+
 	// Step 6: Create the project
 	console.log();
 	console.log(`Creating Ripple app in ${green(projectPath)}...`);
@@ -83,7 +89,8 @@ export async function createCommand(projectName, options) {
 			template,
 			packageManager,
 			typescript: true,
-			gitInit
+			gitInit,
+			stylingFramework
 		});
 
 		showNextSteps(projectName, packageManager);

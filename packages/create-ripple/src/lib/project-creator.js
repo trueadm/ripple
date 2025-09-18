@@ -13,16 +13,16 @@ import { downloadTemplate, getLocalTemplatePath, isLocalDevelopment } from './te
  * @param {string} options.projectPath - Absolute path where project will be created
  * @param {string} options.template - Template to use
  * @param {string} options.packageManager - Package manager to use
- * @param {boolean} options.typescript - Whether to use TypeScript
  * @param {boolean} options.gitInit - Whether to initialize Git
+ * @param {string} options.stylingFramework - Styling framework to use
  */
 export async function createProject({
 	projectName,
 	projectPath,
 	template,
 	packageManager = 'npm',
-	typescript = true,
-	gitInit = true
+	gitInit = true,
+	stylingFramework = 'vanilla'
 }) {
 	console.log(dim(`Creating project: ${projectName}`));
 	console.log(dim(`Template: ${template}`));
@@ -95,7 +95,7 @@ export async function createProject({
 	// Step 4: Update package.json
 	const spinner4 = ora('Configuring package.json...').start();
 	try {
-		updatePackageJson(projectPath, projectName, packageManager, typescript);
+		updatePackageJson(projectPath, projectName, packageManager, stylingFramework);
 		spinner4.succeed('Package.json configured');
 	} catch (error) {
 		spinner4.fail('Failed to configure package.json');
@@ -105,17 +105,29 @@ export async function createProject({
 		throw error;
 	}
 
-	// Step 5: Initialize Git (if requested)
+	// Step 5: Configure styling
+	const spinner5 = ora('Configuring styling framework...').start();
+	try {
+		configureStyling(projectPath, stylingFramework);
+		spinner5.succeed('Styling framework configured');
+	} catch (error) {
+		spinner5.fail('Failed to configure styling framework');
+		if (isTemporary) {
+			rmSync(templatePath, { recursive: true, force: true });
+		}
+		throw error;
+	}
+
+
+
+	// Step 6: Initialize Git (if requested)
 	if (gitInit) {
-		const spinner5 = ora('Initializing Git repository...').start();
+		const spinner6 = ora('Initializing Git repository...').start();
 		try {
 			execSync('git init', { cwd: projectPath, stdio: 'ignore' });
-			// We should not automatically commit without asking user, so I have currently commented the code:
-			// execSync('git add .', { cwd: projectPath, stdio: 'ignore' });
-			// execSync('git commit -m "Initial commit"', { cwd: projectPath, stdio: 'ignore' });
-			spinner5.succeed('Git repository initialized');
+			spinner6.succeed('Git repository initialized');
 		} catch (error) {
-			spinner5.warn('Git initialization failed (optional)');
+			spinner6.warn('Git initialization failed (optional)');
 		}
 	}
 
@@ -137,9 +149,9 @@ export async function createProject({
  * @param {string} projectPath - Path to the project
  * @param {string} projectName - Name of the project
  * @param {string} packageManager - Package manager being used
- * @param {boolean} typescript - Whether TypeScript is enabled
+ * @param {string} stylingFramework - Styling framework being used
  */
-function updatePackageJson(projectPath, projectName, packageManager, typescript) {
+function updatePackageJson(projectPath, projectName, packageManager, stylingFramework) {
 	const packageJsonPath = join(projectPath, 'package.json');
 
 	if (!existsSync(packageJsonPath)) {
@@ -164,6 +176,20 @@ function updatePackageJson(projectPath, projectName, packageManager, typescript)
 		packageJson.packageManager = getPackageManagerVersion(packageManager);
 	}
 
+	// Add styling dependencies
+    if (stylingFramework === 'tailwind') {
+        packageJson.devDependencies = {
+            ...packageJson.devDependencies,
+            'tailwindcss': '^4.1.12',
+            '@tailwindcss/vite': '^4.1.12'
+        };
+    } else if (stylingFramework === 'bootstrap') {
+        packageJson.dependencies = {
+            ...packageJson.dependencies,
+            'bootstrap': '^5.3.0'
+        };
+    }
+
 	// Ensure we're using the latest versions
 	updateDependencyVersions(packageJson);
 
@@ -171,6 +197,52 @@ function updatePackageJson(projectPath, projectName, packageManager, typescript)
 	updateScripts(packageJson, packageManager);
 
 	writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+}
+
+function configureStyling(projectPath, stylingFramework) {
+    if (stylingFramework === 'tailwind') {
+		const tailwindConfig = `import type { Config } from 'tailwindcss';
+export default {
+	content: [
+		"./index.html",
+		"./src/**/*.{ts,ripple}",
+	],
+	theme: {
+		extend: {},
+	},
+	plugins: []
+} satisfies Config
+`;
+		writeFileSync(join(projectPath, 'tailwind.config.ts'), tailwindConfig);
+		const mainCss = `@import "tailwindcss";
+@config "./tailwind.config.ts";`;
+		writeFileSync(join(projectPath, 'src', 'index.css'), mainCss);
+
+		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
+		const newMainTs = "import './index.css';\n" + mainTs;
+		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
+		
+		if (existsSync(join(projectPath, 'vite.config.js'))) {
+			rmSync(join(projectPath, 'vite.config.js'));
+		}
+		const viteConfig = `import { defineConfig } from 'vite';
+import { ripple } from 'vite-plugin-ripple';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+	plugins: [ripple(), tailwindcss()],
+	server: {
+		port: 3000
+	}
+});
+`;
+		writeFileSync(join(projectPath, 'vite.config.js'), viteConfig);
+
+    } else if (stylingFramework === 'bootstrap') {
+		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
+		const newMainTs = "import 'bootstrap/dist/css/bootstrap.min.css';\n" + mainTs;
+		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
+    }
 }
 
 /**
