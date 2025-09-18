@@ -146,18 +146,6 @@ const visitors = {
       if (context.state.metadata?.tracking === false) {
         context.state.metadata.tracking = true;
       }
-      binding.transform = {
-        read_tracked: (node) => b.call('$.get', node),
-        assign_tracked: (node, value) => b.call('$.set', node, value, b.id('__block')),
-        update_tracked: (node) => {
-          return b.call(
-            node.prefix ? '$.update_pre' : '$.update',
-            node.argument,
-            b.id('__block'),
-            node.operator === '--' && b.literal(-1),
-          );
-        },
-      };
     }
 
     context.next();
@@ -409,9 +397,11 @@ const visitors = {
             binding.kind = path.has_default_value ? 'prop_fallback' : 'prop';
 
             binding.transform = {
-              read: (_) => path.expression(b.id('__props')),
+              read: (_) => {
+				return path.expression(b.id('__props'))
+			  },
               assign: (node, value) => {
-				return b.assignment('=', path.expression(b.id('__props')), value);
+                return b.assignment('=', path.expression(b.id('__props')), value);
               },
               update: (node) =>
                 b.update(node.operator, path.expression(b.id('__props')), node.prefix),
@@ -553,11 +543,19 @@ const visitors = {
           if (attr.name.type === 'Identifier') {
             attribute_names.add(attr.name);
           }
+          visit(attr.value, state);
         } else if (attr.type === 'AccessorAttribute') {
           attribute_names.add(attr.name);
+          visit(attr.get, state);
+		  if (attr.set) {
+		  	visit(attr.set, state);
+		  }
+        } else if (attr.type === 'SpreadAttribute') {
+			visit(attr.argument, state);
+        } else if (attr.type === 'RefAttribute') {
+          visit(attr.argument, state);
         }
       }
-
       let implicit_children = false;
       let explicit_children = false;
 

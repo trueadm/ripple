@@ -93,7 +93,7 @@ function build_getter(node, context) {
 
     // don't transform the declaration itself
     if (node !== binding?.node) {
-      const read_fn = transform?.read || (node.tracked && transform?.read_tracked);
+      const read_fn = transform?.read;
 
       if (read_fn) {
         add_ripple_internal_import(context);
@@ -123,14 +123,20 @@ const visitors = {
     if (is_reference(node, parent) && !context.state.to_ts) {
       const binding = context.state.scope.get(node.name);
       if (
-        context.state.metadata?.tracking === false &&
+        (context.state.metadata?.tracking === false ||
+          (parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression')) &&
         (is_tracked_name(node.name) ||
           node.tracked ||
           binding?.kind === 'prop' ||
           binding?.kind === 'prop_fallback') &&
         binding?.node !== node
       ) {
-        context.state.metadata.tracking = true;
+        if (context.state.metadata?.tracking === false) {
+          context.state.metadata.tracking = true;
+        }
+        if (node.tracked) {
+          return b.call('$.get', build_getter(node, context));
+        }
       }
 
       if (node.name === 'structuredClone' && binding === null) {
@@ -798,18 +804,14 @@ const visitors = {
             const metadata = { tracking: false, await: false };
             let property = visit(attr.value, { ...state, metadata });
 
-            if (metadata.tracking) {
+            if (metadata.tracking || attr.name.tracked) {
               if (attr.name.name === 'children') {
                 children_prop = b.thunk(property);
-				continue;
+                continue;
               }
 
               props.push(
-                b.prop(
-                  'get',
-                  attr.name,
-                  b.function(null, [], b.block([b.return(property)])),
-                ),
+                b.prop('get', attr.name, b.function(null, [], b.block([b.return(property)]))),
               );
             } else {
               props.push(b.prop('init', attr.name, property));
@@ -1057,6 +1059,27 @@ const visitors = {
       }
     }
 
+    if (left.type === 'Identifier' && left.tracked) {
+      add_ripple_internal_import(context);
+      const operator = node.operator;
+      const right = node.right;
+
+      return b.call(
+        '$.set',
+        context.visit(left),
+        operator === '='
+          ? context.visit(right)
+          : b.binary(
+              operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+              /** @type {Pattern} */ (
+                context.visit(left, { ...context.state, metadata: { tracking: false } })
+              ),
+              /** @type {Expression} */ (context.visit(right)),
+            ),
+        b.id('__block'),
+      );
+    }
+
     const visited = visit_assignment_expression(node, context, build_assignment) ?? context.next();
 
     if (
@@ -1105,6 +1128,15 @@ const visitors = {
         node.prefix ? '$.old_update_pre_property' : '$.old_update_property',
         context.visit(argument.object),
         argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
+        b.id('__block'),
+        node.operator === '--' ? b.literal(-1) : undefined,
+      );
+    }
+
+    if (argument.type === 'Identifier' && argument.tracked) {
+      return b.call(
+        node.prefix ? '$.update_pre' : '$.update',
+        context.visit(argument),
         b.id('__block'),
         node.operator === '--' ? b.literal(-1) : undefined,
       );

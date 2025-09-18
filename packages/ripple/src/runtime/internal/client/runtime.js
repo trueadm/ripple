@@ -892,6 +892,9 @@ export function get_property(obj, property, chain = false) {
     return undefined;
   }
   var tracked = obj[property];
+  if (tracked == null) {
+	return tracked;
+  }
   return get(tracked);
 }
 

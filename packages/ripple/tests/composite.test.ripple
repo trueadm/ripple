@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync } from 'ripple';
+import { mount, flushSync, track } from 'ripple';
 
 describe('composite components', () => {
 	let container;
@@ -21,15 +21,15 @@ describe('composite components', () => {
 	});
 
 	it('renders composite components', () => {
-		component Button({ $count }) {
-			<div>{$count}</div>
+		component Button({ count }) {
+			<div>{count}</div>
 		}
 
 		component App() {
-			let $count = 0;
+			let count = track(0);
 
-			<button onClick={() => $count++}>{'Increment'}</button>
-			<Button $count={$count} />
+			<button onClick={() => @count++}>{'Increment'}</button>
+			<Button {@count} />
 		}
 
 		render(App);
@@ -50,48 +50,17 @@ describe('composite components', () => {
 	it('renders composite components with object state', () => {
 		component Button({ obj }) {
 			<button class='count2' onClick={() => {
-				obj.$count++;
-			}}>{obj.$count}</button>
+				obj.@count++;
+			}}>{obj.@count}</button>
 		}
 
 		component App() {
 			<div>
 				let obj = {
-					$count: 0
-				};
-				let $button = true;
-
-				<span class='count'>{obj.$count}</span>
-				<span>{' '}</span>
-				<Button obj={obj} />
-			</div>
-		}
-
-		render(App);
-
-		const button = container.querySelector('button');
-
-		button.click();
-		flushSync();
-
-		expect(container.querySelector('.count').textContent).toBe('1');
-		expect(container.querySelector('.count2').textContent).toBe('1');
-	});
-
-	it('renders composite components with object state', () => {
-		component Button({ obj }) {
-			<button class='count2' onClick={() => {
-				obj.$count++;
-			}}>{obj.$count}</button>
-		}
-
-		component App() {
-			<div>
-				let obj = {
-					$count: 0
+					count: track(0)
 				};
 
-				<span class='count'>{obj.$count}</span>
+				<span class='count'>{obj.@count}</span>
 				<Button obj={obj} />
 			</div>
 		}
@@ -110,21 +79,21 @@ describe('composite components', () => {
 	it('renders composite components with object state wrapped in an if statement', () => {
 		component Button({ obj }) {
 			<button class='count2' onClick={() => {
-				obj.$count++;
-			}}>{obj.$count}</button>
+				obj.@count++;
+			}}>{obj.@count}</button>
 		}
 
 		component OtherComponent({ obj }) {
-			<div class='count3'>{obj.$count}</div>
+			<div class='count3'>{obj.@count}</div>
 		}
 
 		component App() {
 			<div>
 				let obj = {
-					$count: 0
+					count: track(0)
 				};
 
-				<span class='count'>{obj.$count}</span>
+				<span class='count'>{obj.@count}</span>
 				<span>{' '}</span>
 				if (obj) {
 					<Button obj={obj} />
@@ -150,16 +119,16 @@ describe('composite components', () => {
 
 	it('parents and children have isolated state', () => {
 		component Button(props) {
-			let $count = props.$count;
-			<button onClick={() => { $count++; } }>{"child: " + $count}</button>
+			let count = track(() => props.count);
+			<button onClick={() => { @count++; } }>{"child: " + @count}</button>
 		}
 
 		component App() {
 			<div>
-				let $count = 0;
+				let count = track(0);
 
-				<button onClick={() => { $count++; } }>{"parent: " + $count}</button>
-				<Button {$count} />
+				<button onClick={() => { @count++; } }>{"parent: " + @count}</button>
+				<Button {@count} />
 			</div>
 		}
 
@@ -184,17 +153,17 @@ describe('composite components', () => {
 	});
 
 	it('parents and children have isolated connected state (destructured props)', () => {
-		component Button({$count}) {
-			let $local_count = $count;
-			<button onClick={() => { $local_count++; } }>{"child: " + $local_count}</button>
+		component Button({count}) {
+			let local_count = track(() => count);
+			<button onClick={() => { @local_count++; } }>{"child: " + @local_count}</button>
 		}
 
 		component App() {
 			<div>
-				let $count = 0;
+				let count = track(0);
 
-				<button onClick={() => { $count++; } }>{"parent: " + $count}</button>
-				<Button {$count} />
+				<button onClick={() => { @count++; } }>{"parent: " + @count}</button>
+				<Button {@count} />
 			</div>
 		}
 
@@ -245,15 +214,15 @@ describe('composite components', () => {
 	});
 
 	it('correctly handles default prop values', () => {
-		component Child({ $foo = 456 }) {
-			<div>{$foo}</div>
+		component Child({ foo = 456 }) {
+			<div>{foo}</div>
 		}
 
 		component App(props) {
-			let $foo = 123;
+			let foo = track(123);
 
 			<Child />
-			<Child {$foo} />
+			<Child {@foo} />
 		}
 
 		render(App);
@@ -262,7 +231,7 @@ describe('composite components', () => {
 		expect(container.querySelectorAll('div')[1].textContent).toBe('123');
 	});
 
-		it('correctly handles default prop values #2', () => {
+	it('correctly handles default prop values #2', () => {
 		component Child({ foo = 456 }) {
 			<div>{foo}</div>
 		}
@@ -282,14 +251,14 @@ describe('composite components', () => {
 
 	it('correctly handles no props', () => {
 		component Child(props) {
-			<div>{props.$foo}</div>
+			<div>{props.@foo}</div>
 		}
 
 		component App(props) {
-			let $foo = 123;
+			let foo = track(123);
 
 			<Child />
-			<Child {$foo} />
+			<Child {foo} />
 		}
 
 		render(App);
@@ -299,15 +268,15 @@ describe('composite components', () => {
 	});
 
 	it('correctly handles no props #2', () => {
-		component Child({ $foo }) {
-			<div>{$foo}</div>
+		component Child({ foo }) {
+			<div>{foo}</div>
 		}
 
 		component App(props) {
-			let $foo = 123;
+			let foo = track(123);
 
 			<Child />
-			<Child {$foo} />
+			<Child {@foo} />
 		}
 
 		render(App);

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, effect } from 'ripple';
+import { mount, flushSync, effect, track } from 'ripple';
 
 describe('passing reactivity between boundaries tests', () => {
 	let container;
@@ -23,23 +23,23 @@ describe('passing reactivity between boundaries tests', () => {
   it('can pass reactivity between functions with simple arrays and destructuring', () => {
     let log: string[] = [];
 
-    function createDouble([ $count ]) {
-      const $double = $count * 2;
+    function createDouble([ count ]) {
+      const double = track(() => @count * 2);
 
       effect(() => {
-        log.push('Count:' + $count);
+        log.push('Count:' + @count);
       });
 
-      return [ $double ];
+      return [ double ];
     }
 
     component App() {
-      let $count = 0;
+      let count = track(0);
 
-      const [ $double ] = createDouble([ $count ]);
+      const [ double ] = createDouble([ count ]);
 
-      <div>{'Double: ' + $double}</div>
-      <button onClick={() => { $count++; }}>{'Increment'}</button>
+      <div>{'Double: ' + @double}</div>
+      <button onClick={() => { @count++; }}>{'Increment'}</button>
     }
 
     render(App);
@@ -66,23 +66,23 @@ describe('passing reactivity between boundaries tests', () => {
   it('can pass reactivity between functions with simple objects and destructuring', () => {
     let log: string[] = [];
 
-    function createDouble({ $count }) {
-      const $double = $count * 2;
+    function createDouble({ count }) {
+      const double = track(() => @count * 2);
 
       effect(() => {
-        log.push('Count:' + $count);
+        log.push('Count:' + @count);
       });
 
-      return { $double };
+      return { double };
     }
 
     component App() {
-      let $count = 0;
+      let count = track(0);
 
-      const { $double } = createDouble({ $count });
+      const { double } = createDouble({ count });
 
-      <div>{'Double: ' + $double}</div>
-      <button onClick={() => { $count++; }}>{'Increment'}</button>
+      <div>{'Double: ' + @double}</div>
+      <button onClick={() => { @count++; }}>{'Increment'}</button>
     }
 
     render(App);
