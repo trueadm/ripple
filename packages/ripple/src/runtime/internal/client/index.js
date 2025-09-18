@@ -18,6 +18,7 @@ export {
 	scope,
 	safe_scope,
 	with_scope,
+	get,
 	get_tracked,
 	get_derived,
 	set,

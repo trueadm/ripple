@@ -139,7 +139,7 @@ const visitors = {
 				context.state.metadata.tracking = true;
 			}
 			binding.transform = {
-				read_tracked: (node) => b.call('$.get_tracked', node),
+				read_tracked: (node) => b.call('$.get', node),
 				assign_tracked: (node, value) => b.call('$.set', node, value, b.id('__block')),
 				update_tracked: (node) => {
 					return b.call(

@@ -1,9 +1,9 @@
-/** @import { Block } from '#client' */
+/** @import { Block, Derived, Tracked } from '#client' */
 
 import { destroy_block, root } from './internal/client/blocks.js';
 import { handle_root_events } from './internal/client/events.js';
 import { init_operations } from './internal/client/operations.js';
-import { active_block } from './internal/client/runtime.js';
+import { active_block, tracked, derived } from './internal/client/runtime.js';
 import { create_anchor } from './internal/client/utils.js';
 
 // Re-export JSX runtime functions for jsxImportSource: "ripple"
@@ -40,9 +40,19 @@ export {
 	flush_sync as flushSync,
 	untrack,
 	deferred,
-	tracked,
-	derived,
 } from './internal/client/runtime.js';
+
+/**
+ * @param {any} v
+ * @param {Block} b
+ * @returns {Tracked | Derived}
+ */
+export function track(v, b) {
+	if (typeof v === 'function') {
+		return derived(v, b);
+	}
+	return tracked(v, b);
+}
 
 export { RippleArray } from './array.js';
 

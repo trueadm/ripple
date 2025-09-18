@@ -1,4 +1,4 @@
-/** @import { Block, Component, Dependency, Computed, Tracked } from '#client' */
+/** @import { Block, Component, Dependency, Derived, Tracked } from '#client' */
 
 import {
 	destroy_block,
@@ -11,7 +11,7 @@ import {
 	ASYNC_BLOCK,
 	BLOCK_HAS_RUN,
 	BRANCH_BLOCK,
-	COMPUTED,
+	DERIVED,
 	COMPUTED_PROPERTY,
 	CONTAINS_TEARDOWN,
 	CONTAINS_UPDATE,
@@ -42,7 +42,7 @@ const FLUSH_SYNC = 1;
 
 /** @type {null | Block} */
 export let active_block = null;
-/** @type {null | Block | Computed} */
+/** @type {null | Block | Derived} */
 export let active_reaction = null;
 /** @type {null | Block} */
 export let active_scope = null;
@@ -126,7 +126,7 @@ export function run_teardown(block) {
 }
 
 /**
- * @param {Computed} computed
+ * @param {Derived} computed
  */
 function update_derived(computed) {
 	var value = computed.v;
@@ -142,7 +142,7 @@ function update_derived(computed) {
 }
 
 /**
- * @param {Computed} computed
+ * @param {Derived} computed
  */
 function destroy_computed_children(computed) {
 	var blocks = computed.blocks;
@@ -156,7 +156,7 @@ function destroy_computed_children(computed) {
 }
 
 /**
- * @param {Computed} computed
+ * @param {Derived} computed
  */
 function run_derived(computed) {
 	var previous_block = active_block;
@@ -272,7 +272,7 @@ export function tracked(v, b) {
 /**
  * @param {any} fn
  * @param {any} block
- * @returns {Computed}
+ * @returns {Derived}
  */
 export function derived(fn, block) {
 	return {
@@ -280,7 +280,7 @@ export function derived(fn, block) {
 		blocks: null,
 		c: 0,
 		d: null,
-		f: TRACKED | COMPUTED,
+		f: TRACKED | DERIVED,
 		fn,
 		v: UNINITIALIZED,
 	};
@@ -291,7 +291,7 @@ export function derived(fn, block) {
  * @returns {Dependency}
  */
 function create_dependency(tracked) {
-	var reaction = /** @type {Computed | Block} **/ (active_reaction);
+	var reaction = /** @type {Derived | Block} **/ (active_reaction);
 	var existing = reaction.d;
 
 	// Recycle tracking entries
@@ -320,8 +320,8 @@ function is_tracking_dirty(tracking) {
 	while (tracking !== null) {
 		var tracked = tracking.t;
 
-		if ((tracked.f & COMPUTED) !== 0) {
-			update_derived(/** @type {Computed} **/ (tracked));
+		if ((tracked.f & DERIVED) !== 0) {
+			update_derived(/** @type {Derived} **/ (tracked));
 		}
 
 		if (tracked.c > tracking.c) {
@@ -667,7 +667,7 @@ function register_dependency(tracked) {
 }
 
 /**
- * @param {Computed} computed
+ * @param {Derived} computed
  */
 export function get_derived(computed) {
 	update_derived(computed);
@@ -679,11 +679,11 @@ export function get_derived(computed) {
 }
 
 /**
- * @param {Computed | Tracked} tracked
+ * @param {Derived | Tracked} tracked
  */
 export function get(tracked) {
-	return (tracked.f & COMPUTED) !== 0
-		? get_derived(/** @type {Computed} */ (tracked))
+	return (tracked.f & DERIVED) !== 0
+		? get_derived(/** @type {Derived} */ (tracked))
 		: get_tracked(tracked);
 }
 
@@ -702,7 +702,7 @@ export function get_tracked(tracked) {
 }
 
 /**
- * @param {Computed | Tracked} tracked
+ * @param {Derived | Tracked} tracked
  * @param {any} value
  * @param {Block} block
  */
@@ -800,7 +800,7 @@ export function tracked_spread_object(fn) {
  * @returns {object}
  */
 export function tracked_object(obj, properties, block) {
-	/** @type {Record<string, Tracked | Computed>} */
+	/** @type {Record<string, Tracked | Derived>} */
 	var tracked_properties = obj[TRACKED_OBJECT];
 
 	if (tracked_properties === undefined) {
@@ -813,7 +813,7 @@ export function tracked_object(obj, properties, block) {
 
 	for (var i = 0; i < properties.length; i++) {
 		var property = properties[i];
-		/** @type {Tracked | Computed} */
+		/** @type {Tracked | Derived} */
 		var tracked_property;
 
 		// accessor passed in, to avoid an expensive get_descriptor call in the fast path
@@ -823,7 +823,7 @@ export function tracked_object(obj, properties, block) {
 			var desc_get = descriptor.get;
 			tracked_property = derived(desc_get, block);
 			/** @type {any} */
-			var initial = run_derived(/** @type {Computed} */ (tracked_property));
+			var initial = run_derived(/** @type {Derived} */ (tracked_property));
 			// If there's a setter, we need to set the initial value
 			if (descriptor.set !== undefined) {
 				obj[property] = initial;
@@ -833,7 +833,7 @@ export function tracked_object(obj, properties, block) {
 
 			if (typeof initial === 'function' && initial[COMPUTED_PROPERTY] === true) {
 				tracked_property = derived(initial, block);
-				initial = run_derived(/** @type {Computed} */ (tracked_property));
+				initial = run_derived(/** @type {Derived} */ (tracked_property));
 				obj[property] = initial;
 			} else {
 				tracked_property = tracked(initial, block);
