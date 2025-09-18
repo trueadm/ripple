@@ -533,9 +533,7 @@ export class RippleArray extends Array {
             start = Math.min(start, before_len);
         }
 
-        var range_end = el_len - delete_count === 0
-			? start + el_len
-			: Math.max(after_len, tracked_len);
+        var range_end =  Math.max(start + Math.max(el_len, delete_count), after_len);
 
 		for (let i = start; i < range_end; i++) {
 			this.#update_tracked_at_index({array: this, i, block, tracked_elements});
