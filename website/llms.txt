@@ -174,22 +174,6 @@ let counter = { $current: 0 };
 counter.$current++;  // Triggers reactivity
 ```
 
-### Props and Reactivity
-
-Reactive props must be prefixed with `$`:
-
-```ripple
-component DisplayValue(props: { $value: string, label: string }) {
-  <div>
-    <span>{props.label}{": "}</span>
-    <span>{props.$value}</span>  // Reactive prop
-  </div>
-}
-
-// Usage
-<DisplayValue $value={$someReactiveValue} label="Current Value" />
-```
-
 ### Transporting Reactivity
 
 **Critical Concept**: Ripple doesn't constrain reactivity to components only. Reactivity can be transported between boundaries using objects and arrays to improve expressivity and co-location.
@@ -327,10 +311,10 @@ component App() {
   };
   
   // Use := instead of = for accessor props
-  <Person $name:={getName} />
+  <Person name:={getName} />
   
   // Or inline:
-  <Person $name:={() => {
+  <Person name:={() => {
     console.log('name accessed');
     return $name;
   }} />
@@ -358,16 +342,15 @@ component App() {
   const setName = (newName) => $name = newName;
   
   // Provide both getter and setter functions
-  <Person $name:={getName, setName} />
+  <Person name:={getName, setName} />
   
   // Or inline version:
-  <Person $name:={() => $name, (newName) => $name = newName} />
+  <Person name:={() => $name, (newName) => $name = newName} />
 }
 ```
 
 **Key Rules:**
-- Accessor props use `$prop:={}` syntax (colon before equals)
-- Props must be `$` prefixed (Ripple considers accessor props reactive)
+- Accessor props use `prop:={}` syntax (colon before equals)
 - Must pass function(s), not direct values
 - Single function = getter only (read access + debugging)
 - Two functions = getter + setter (separated by comma)
@@ -640,7 +623,7 @@ export default defineConfig({
 
 ## Best Practices
 
-1. **Reactivity**: Always prefix reactive variables and props with `$`
+1. **Reactivity**: Always prefix reactive variables with `$`
 2. **Strings**: Wrap string literals in `{"string"}` within templates
 3. **Effects**: Use `effect()` for side effects, not direct reactive variable access
 4. **Components**: Keep components focused and use TypeScript interfaces for props

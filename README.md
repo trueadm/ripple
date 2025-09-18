@@ -444,31 +444,6 @@ component ErrorBoundary() {
 }
 ```
 
-### Props
-
-If you want a prop to be reactive, you should also give it a `$` prefix.
-
-```jsx
-component Button(props: { $text: string, onClick: () => void }) {
-  <button onClick={props.onClick}>
-    {props.$text}
-  </button>
-}
-
-// Usage
-<Button $text={some_text} onClick={() => console.log("Clicked!")} />
-```
-
-This also applies to DOM elements, if you want an attribute or property to be reactive, it needs to have a `$` prefix.
-
-```tsx
-<div $class={props.$someClass} $id={$someId}>
-  {$someText}
-</div>
-```
-
-Otherwise changes to the attribute or property will not be reactively updated.
-
 ### Children
 
 Use `children` prop and then use it in the form of `<children />` for component composition.
@@ -526,7 +501,7 @@ const object = {
 }
 ```
 
-So Ripple provides similar capabilities when working with composite components in a template, specifically using `$prop:={}` rather than the typical `$prop={}`.
+So Ripple provides similar capabilities when working with composite components in a template, specifically using `prop:={}` rather than the typical `prop={}`.
 
 In fact, when you use an accessor, you must pass a function, and the prop must be `$` prefixed, as Ripple considers accessor props as reactive:
 
@@ -540,7 +515,7 @@ const getName = () => {
   return $name;
 };
 
-<Person $name:={getName} />
+<Person name:={getName} />
 ```
 
 You can also inline the function too:
@@ -548,7 +523,7 @@ You can also inline the function too:
 ```jsx
 let $name = 'Bob';
 
-<Person $name:={() => {
+<Person name:={() => {
   // I can easily debug when this property gets
   // access and track it easily
   console.log(name);
@@ -569,7 +544,7 @@ const setName = (newName) => {
   $name = newName;
 }
 
-<Person $name:={getName, setName} />
+<Person name:={getName, setName} />
 ```
 
 Or an inlined version:
@@ -577,7 +552,7 @@ Or an inlined version:
 ```jsx
 let $name = 'Bob';
 
-<Person $name:={() => $name, (newName) => $name = $newName} />
+<Person name:={() => $name, (newName) => $name = $newName} />
 ```
 
 Now changes in the `Person` to its `props` will propagate to its parent component:
