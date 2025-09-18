@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, RippleSet } from 'ripple';
+import { mount, flushSync, RippleSet, track } from 'ripple';
 
 describe('RippleSet', () => {
   let container;
@@ -79,10 +79,10 @@ describe('RippleSet', () => {
   it('handles has operation', () => {
     component SetTest() {
       let items = new RippleSet([1, 2, 3]);
-      let $hasValue = items.has(2);
+      let hasValue = track(() => items.has(2));
 
       <button onClick={() => items.delete(2)}>{'delete'}</button>
-      <pre>{$hasValue}</pre>
+      <pre>{@hasValue}</pre>
     }
 
     render(SetTest);
