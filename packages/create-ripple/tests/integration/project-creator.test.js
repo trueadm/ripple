@@ -241,11 +241,12 @@ describe('createProject integration tests', () => {
 
 			const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
 			expect(packageJson.devDependencies).toHaveProperty('tailwindcss');
+			expect(packageJson.devDependencies).toHaveProperty('@tailwindcss/vite');
 
 			expect(existsSync(join(projectPath, 'tailwind.config.ts'))).toBe(true);
 			expect(readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8')).toContain("import './index.css';\n");
 			expect(existsSync(join(projectPath, 'src', 'index.css'))).toBe(true);
-			expect(readFileSync(join(projectPath, 'src', 'index.css'), 'utf-8')).toContain("@import 'tailwindcss'");
+			expect(readFileSync(join(projectPath, 'src', 'index.css'), 'utf-8')).toContain('@import "tailwindcss"');
 		});
 
 	it('should configure Bootstrap correctly', async () => {

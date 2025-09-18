@@ -145,14 +145,20 @@ export async function promptStylingFramework() {
 			value: 'vanilla',
 			description: 'Use Vanilla CSS for styling your components'
 		}, {
-			title: 'BootStrap',
-			value: 'bootStrap',
-			description: 'Use BootStrap classes to style your components'
+			title: 'Bootstrap',
+			value: 'bootstrap',
+			description: 'Use Bootstrap classes to style your components'
 		}, {
-			title: 'TailWindCSS',
-			value: 'tailWind',
-			description: 'Use TailWindCSS to style your components'
+			title: 'TailwindCSS',
+			value: 'tailwind',
+			description: 'Use TailwindCSS to style your components'
 		}]
 	})
-	return response.stylingFramework
+
+	if (response.stylingFramework === undefined) {
+		console.log(red('✖ Operation cancelled'));
+		process.exit(1);
+	}
+
+	return response.stylingFramework;
 }
