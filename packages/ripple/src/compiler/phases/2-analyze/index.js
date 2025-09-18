@@ -181,6 +181,10 @@ const visitors = {
 			context.state.metadata.tracking = true;
 		}
 
+		if (!is_inside_component(context, true)) {
+			mark_as_tracked(context.path);
+		}
+
 		context.next();
 	},
 
