@@ -697,15 +697,15 @@ describe('basic', () => {
 		}
 
 		component Basic() {
-			let $clicked = false;
+			let clicked = track(false);
 
 			<Card
 				title='Test Card'
 				content='This is a test card'
 				buttonText='Click me'
-				onAction={() => $clicked = true}
+				onAction={() => @clicked = true}
 			/>
-			<div class='status'>{$clicked ? 'Clicked' : 'Not clicked'}</div>
+			<div class='status'>{@clicked ? 'Clicked' : 'Not clicked'}</div>
 		}
 
 		render(Basic);
