@@ -9,16 +9,18 @@ Ripple is an elegant, compiler-driven language and view library for the web base
 Like JSX, Ripple is a JS-forward language. It extends JSX to allow for DOM elements to be written as statements, rather than expressions.
 
 ```ripple
+import { track } from 'ripple'
+
 export component App() {
   <div class="container">
     <h1>{"Welcome to Ripple!"}</h1>
 
     <div>
-      let $count = 0;
+      let count = track(0);
 
-      <button onClick={() => $count--}>{"-"}</button>
-      <span class="count">{$count}</span>
-      <button onClick={() => $count++}>{"+"}</button>
+      <button onClick={() => @count--}>{"-"}</button>
+      <span class="count">{@count}</span>
+      <button onClick={() => @count++}>{"+"}</button>
     </div>
   </div>
 
