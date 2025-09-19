@@ -24,11 +24,11 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 
 ```ripple
 component EventExample() {
-  let $message = "";
+  let message = track("");
 
   <div>
-    <button onClick={() => $message = "Clicked!"}>{"Click me"}</button>
-    <input onInput={(e) => $message = e.target.value} />
+    <button onClick={() => @message = "Clicked!"}>{"Click me"}</button>
+    <input onInput={(e) => @message = e.target.value} />
     <p>{$message}</p>
   </div>
 }

@@ -8,39 +8,51 @@ Ripple provides a consistent way to capture the underlying DOM element – refs.
 the syntax `{ref fn}` where `fn` is a function that captures the DOM element. If you're familiar with other frameworks, then
 this is identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React. The hook function will receive
 the reference to the underlying DOM element.
+
 ```ripple
 export component App() {
-  let $node;
+  let node = track();
+
   const divRef = (node) => {
-    $node = node;
+    @node = node;
     console.log("mounted", node);
+
     return () => {
-      $node = undefined;
+      @node = undefined;
       console.log("unmounted", node);
     };
   };
+
   <div {ref divRef}>{"Hello world"}</div>
 }
 ```
+
 You can also create `{ref}` functions inline.
+
 ```ripple
 export component App() {
-  let $node;
+  let node = track();
+
   <div {ref (node) => {
-    $node = node;
-    return () => $node = null;
+    @node = node;
+    return () => @node = undefined;
   }}>{"Hello world"}</div>
 }
 ```
+
 You can also use function factories to define properties, these are functions that return functions that do the same
 thing. However, you can use this pattern to pass reactive properties.
+
 ```ripple
 import { fadeIn } from 'some-library';
-export component App({ $ms }) {
-  <div {ref fadeIn({ $ms })}>{"Hello world"}</div>
+
+export component App({ ms }) {
+  <div {ref fadeIn({ ms })}>{"Hello world"}</div>
 }
 ```
+
 Lastly, you can use refs on composite components.
+
 ```ripple
 <Image {ref (node) => console.log(node)} {...props} />
 ```
@@ -56,13 +68,13 @@ This allows programmatic assignment of refs without relying directly on the `{re
 import { createRefKey } from 'ripple';
 
 export component App() {
-  let $value = '';
+  let value = track('');
 
   const props = {
     id: "example",
-    $value,
+    @value,
     [createRefKey()]: (node) => {
-      const removeListener = node.addEventListener('input', (e) => $value = e.target.value);
+      const removeListener = node.addEventListener('input', (e) => @value = e.target.value);
 
       return () => {
         removeListener();
@@ -77,7 +89,7 @@ export component App() {
   <Input {...props} />
 }
 
-component Input({ id, $value, ...rest }) {
-  <input type="text" {id} {$value} {...rest} />
+component Input({ id, value, ...rest }) {
+  <input type="text" {id} {value} {...rest} />
 }
 ```
