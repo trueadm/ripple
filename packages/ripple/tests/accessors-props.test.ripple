@@ -119,7 +119,7 @@ describe('prop accessors', () => {
     component Parent() {
       let value = track(123);
 
-      <Child value:={() => $value} />
+      <Child value:={() => @value} />
 
       <button onClick={() => { @value++ }}>{"Increment value"}</button>
     }
