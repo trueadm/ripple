@@ -239,11 +239,14 @@ export default component App() {
 		});
 
 		it('should handle style tags inside component body', async () => {
-			const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
+			const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}div{color:red}</style>}`;
 			const expected = `export component Test() {
   <div>{'Test'}</div>
 
   <style>
+    div {
+      color: red;
+    }
     div {
       color: red;
     }

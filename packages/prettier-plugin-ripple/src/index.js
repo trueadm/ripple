@@ -25,11 +25,11 @@ export const parsers = {
 		},
 
 		locStart(node) {
-			return node.loc.start.index;
+			return node.start;
 		},
 
 		locEnd(node) {
-			return node.loc.end.index;
+			return node.end;
 		},
 	},
 };
@@ -49,7 +49,7 @@ export const printers = {
 		},
 		getVisitorKeys(node) {
 			const keys = Object.keys(node).filter((key) => {
-				return key === 'start' || key === 'end' || key === 'loc' || key === 'metadata' || 'css'
+				return key === 'start' || key === 'end' || key === 'loc' || key === 'metadata'
 					? false
 					: typeof node[key] === 'object' && node[key] !== null;
 			});
@@ -85,39 +85,7 @@ function createIndent(options, level = 1) {
 	}
 }
 
-function printRippleNode(node, path, options, print, args) {
-	if (!node || typeof node !== 'object') {
-		return String(node || '');
-	}
-
-	const parts = [];
-
-	// Handle leading comments
-	if (node.leadingComments) {
-		for (const comment of node.leadingComments) {
-			if (comment.type === 'Line') {
-				parts.push('//' + comment.value);
-			} else if (comment.type === 'Block') {
-				parts.push('/*' + comment.value + '*/');
-			}
-			parts.push(hardline);
-		}
-	}
-
-	// Handle inner comments (for nodes with no children to attach to)
-	const innerCommentParts = [];
-	if (node.innerComments) {
-		for (const comment of node.innerComments) {
-			if (comment.type === 'Line') {
-				innerCommentParts.push('//' + comment.value);
-			} else if (comment.type === 'Block') {
-				innerCommentParts.push('/*' + comment.value + '*/');
-			}
-		}
-	}
-
-	let nodeContent;
-
+function printRippleNodeNoComments(node, path, options, print, args) {
 	switch (node.type) {
 		case 'Program': {
 			// Handle the body statements properly with whitespace preservation
@@ -162,17 +130,14 @@ function printRippleNode(node, path, options, print, args) {
 					}
 				}
 			}
-			nodeContent = concat(statements);
-			break;
+			return concat(statements);
 		}
 
 		case 'ImportDeclaration':
-			nodeContent = printImportDeclaration(node, path, options, print);
-			break;
+			return printImportDeclaration(node, path, options, print);
 
 		case 'Component':
-			nodeContent = printComponent(node, path, options, print);
-			break;
+			return printComponent(node, path, options, print);
 
 		case 'ExportNamedDeclaration':
 			return printExportNamedDeclaration(node, path, options, print);
@@ -382,18 +347,26 @@ function printRippleNode(node, path, options, print, args) {
 		case 'BlockStatement': {
 			// Apply the same block formatting pattern as component bodies
 			if (!node.body || node.body.length === 0) {
-				// Handle innerComments for empty blocks
+				const innerCommentParts = [];
+				if (node.innerComments) {
+					for (const comment of node.innerComments) {
+						if (comment.type === 'Line') {
+							innerCommentParts.push('//' + comment.value);
+						} else if (comment.type === 'Block') {
+							innerCommentParts.push('/*' + comment.value + '*/');
+						}
+					}
+				}
+
 				if (innerCommentParts.length > 0) {
-					nodeContent = group([
+					return  group([
 						'{',
 						indent([hardline, join(hardline, innerCommentParts)]),
 						hardline,
 						'}',
 					]);
-					break;
 				}
-				nodeContent = '{}';
-				break;
+				return '{}';
 			}
 
 			// Process statements and handle spacing using shouldAddBlankLine
@@ -510,8 +483,7 @@ function printRippleNode(node, path, options, print, args) {
 			return printTSTypeReference(node, path, options, print);
 
 		case 'Element':
-			nodeContent = printElement(node, path, options, print);
-			break;
+			return printElement(node, path, options, print);
 
 		case 'StyleSheet':
 			return printStyleSheet(node, path, options, print);
@@ -557,9 +529,44 @@ function printRippleNode(node, path, options, print, args) {
 		default:
 			// Fallback for unknown node types
 			console.warn('Unknown node type:', node.type);
-			nodeContent = '/* Unknown: ' + node.type + ' */';
+			return '/* Unknown: ' + node.type + ' */';
 			break;
 	}
+
+}
+
+function printRippleNode(node, path, options, print, args) {
+	if (!node || typeof node !== 'object') {
+		return String(node || '');
+	}
+
+	const parts = [];
+
+	// Handle leading comments
+	if (node.leadingComments) {
+		for (const comment of node.leadingComments) {
+			if (comment.type === 'Line') {
+				parts.push('//' + comment.value);
+			} else if (comment.type === 'Block') {
+				parts.push('/*' + comment.value + '*/');
+			}
+			parts.push(hardline);
+		}
+	}
+
+	// Handle inner comments (for nodes with no children to attach to)
+	const innerCommentParts = [];
+	if (node.innerComments) {
+		for (const comment of node.innerComments) {
+			if (comment.type === 'Line') {
+				innerCommentParts.push('//' + comment.value);
+			} else if (comment.type === 'Block') {
+				innerCommentParts.push('/*' + comment.value + '*/');
+			}
+		}
+	}
+
+	let nodeContent = printRippleNodeNoComments(node, path, options, print, args);
 
 	// Handle trailing comments
 	if (node.trailingComments) {
@@ -1769,7 +1776,7 @@ function printStyleSheet(node, path, options, print) {
 			hardline,
 			indent([
 				'  ', // 2 spaces (indent gives 3, we need 5 total = +2)
-				join(concat([hardline, '  ']), cssItems), // 2 spaces for all CSS lines
+				join(concat([hardline, '']), cssItems), // 2 spaces for all CSS lines
 			]),
 			hardline,
 		]);
