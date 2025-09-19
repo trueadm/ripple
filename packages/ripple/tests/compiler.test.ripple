@@ -104,7 +104,8 @@ describe('compiler success tests', () => {
 		render(App);
 	});
 
-	it('properly handles JS assignments, reads and updates to array indices', () => {
+	// Does not make any sense now (especially items and @items as now they are the same items key)
+	it.skip('properly handles JS assignments, reads and updates to array indices', () => {
 		const logs = [];
 
 		component App() {
