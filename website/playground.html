@@ -27,13 +27,15 @@
 			const latest = pkg.tags?.latest || 'latest';
 
 			const code = `
+import { track } from 'ripple';
+
 export default component App() {
   <div class="container">
-    let $count = 0;
+    let count = track(0);
 
-    <button onClick={() => $count++}>{$count}</button>
+    <button onClick={() => @count++}>{@count}</button>
 
-    if ($count > 1) {
+    if (@count > 1) {
       <div>{"Greater than 1!"}</div>
     }
   </div>
