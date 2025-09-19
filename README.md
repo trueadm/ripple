@@ -29,7 +29,7 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 
 ## Features
 
-- **Reactive State Management**: Built-in reactivity with `$` prefixed variables and object properties
+- **Reactive State Management**: Built-in reactivity with `track` and `@` reactive syntax
 - **Component-Based Architecture**: Clean, reusable components with props and children
 - **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
 - **Performance**: Fine-grain rendering, with industry-leading performance and memory usage
@@ -122,87 +122,82 @@ Ripple's templating language also supports shorthands and object spreads too:
 <div {...properties}>{text}</div>
 ```
 
-### Reactive Variables
+### Reactivity
 
-Variables prefixed with `$` are automatically reactive:
+You use `track` to create a single tracked value. The `track` function will created a `Tracked<V>` object that
+is not accessible from the outside, and instead you must use `@` to read or write to the tracked value. You can pass the `Tracked<V>` object between components, functions and context
+to read and write to the value in different parts of your codebase.
 
 ```ts
-let $name = 'World';
-let $count = 0;
+import { track } from 'ripple';
+
+let name = track('World');
+let count = track(0);
 
 // Updates automatically trigger re-renders
-$count++;
+@count++;
 ```
 
-Object properties prefixed with `$` are also automatically reactive:
+Objects can also contain tracked values with `@` to access the reactive object property:
 
 ```ts
-let counter = { $current: 0 };
+import { track } from 'ripple';
+
+let counter = { current: track(0) };
 
 // Updates automatically trigger re-renders
-counter.$current++;
+counter.@current++;
 ```
 
-Derived values are simply `$` variables that combined different parts of state:
+Tracked derived values are also `Tracked<V>` objects, except you pass a function to `track` rather than a value:
 
 ```ts
-let $count = 0;
-let $double = $count * 2;
-let $quadruple = $double * 2;
+let count = track(0);
+let double = track(() => @count * 2);
+let quadruple = track(() => @double * 2);
+
+console.log(@quadruple);
 ```
 
-That means `$count` itself might be derived if it were to reference another reactive property. For example:
+If you want to use a tracked value inside a reactive context, such as an effect but you don't want that value to be a tracked dependency, you can use `untrack`:
 
-```jsx
-component Counter({ $startingCount }) {
-  let $count = $startingCount;
-  let $double = $count * 2;
-  let $quadruple = $double * 2;
-}
+```ts
+let count = track(0);
+let double = track(() => @count * 2);
+let quadruple = track(() => @double * 2);
+
+effect(() => {
+  // This effect will never fire again, as we've untracked the only dependency it has
+  console.log(untrack(() => @quadruple));
+})
 ```
 
-Now given `$startingCount` is reactive, it would mean that `$count` might reset each time an incoming change to `$startingCount` occurs. That might not be desirable, so Ripple provides a way to `untrack` reactivity in those cases:
-
-```jsx
-import { untrack } from 'ripple';
-
-component Counter({ $startingCount }) {
-  let $count = untrack(() => $startingCount);
-  let $double = $count * 2;
-  let $quadruple = $double * 2;
-}
-```
-
-Now `$count` will only reactively create its value on initialization.
-
-> Note: you cannot define reactive variables in module/global scope, they have to be created on access from an active component
+> Note: you cannot created `Tracked` objects in module/global scope, they have to be created on access from an active component context.
 
 #### Transporting Reactivity
 
-Ripple doesn't constrain reactivity to components only. Reactivity can be used inside other functions (and classes in the future) and be composed in a way to improve expressivity and co-location.
-
-Ripple provides a very nice way to transport reactivity between boundaries so that it's persisted – using objects and arrays. Here's an example using arrays to transport reactivity:
+Ripple doesn't constrain reactivity to components only. `Tracked<V>` objects can simply be passed by reference between boundaries:
 
 ```jsx
-import { effect } from 'ripple';
+import { effect, track } from 'ripple';
 
-function createDouble([ $count ]) {
-  const $double = $count * 2;
+function createDouble([ count ]) {
+  const double = track(() => @count * 2);
 
   effect(() => {
-    console.log('Count:', $count)
+    console.log('Count:', @count)
   });
 
-  return [ $double ];
+  return [ double ];
 }
 
 export component App() {
-  let $count = 0;
+  let count = track(0);
 
-  const [ $double ] = createDouble([ $count ]);
+  const [ double ] = createDouble([ count ]);
 
-  <div>{'Double: ' + $double}</div>
-  <button onClick={() => { $count++; }}>{'Increment'}</button>
+  <div>{'Double: ' + @double}</div>
+  <button onClick={() => { @count++; }}>{'Increment'}</button>
 }
 ```
 
@@ -211,37 +206,37 @@ You can do the same with objects too:
 ```jsx
 import { effect } from 'ripple';
 
-function createDouble({ $count }) {
-  const $double = $count * 2;
+function createDouble({ count }) {
+  const double = track(() => @count * 2);
 
   effect(() => {
-    console.log('Count:', $count)
+    console.log('Count:', @count)
   });
 
-  return { $double };
+  return { double };
 }
 
 export component App() {
-  let $count = 0;
-  const { $double } = createDouble({ $count });
+  let count = track(0);
+  const { double } = createDouble({ count });
 
-  <div>{'Double: ' + $double}</div>
-  <button onClick={() => { $count++; }}>{'Increment'}</button>
+  <div>{'Double: ' + @double}</div>
+  <button onClick={() => { @count++; }}>{'Increment'}</button>
 }
 ```
 
-Just remember, reactive state must be connected to a component and it can't be global or created within the top-level of a module – because then Ripple won't be able to link it to your component tree.
-
 #### Reactive Arrays
 
-Just like, objects, you can use the `$` prefix in an array literal to specify that the field is reactive.
+Just like, objects, you can use the `Tracked<V>` objects in any standard JavaScript object, like arrays:
 
 ```js
-let $first = 0;
-let $second = 0;
-const arr = [$first, $second];
+let first = track(0);
+let second = track(0);
+const arr = [first, second];
 
-const $total = arr.reduce((a, b) => a + b, 0);
+const total = track(() => arr.reduce((a, b) => a + @b, 0));
+
+console.log(@track);
 ```
 
 Like shown in the above example, you can compose normal arrays with reactivity and pass them through props or boundaries.
@@ -281,7 +276,7 @@ const set = new RippleSet([1, 2, 3]);
 RippleSet's reactive methods or properties can be used directly or assigned to reactive variables.
 
 ```jsx
-import { RippleSet } from 'ripple';
+import { RippleSet, track } from 'ripple';
 
 export component App() {
   const set = new RippleSet([1, 2, 3]);
@@ -289,9 +284,9 @@ export component App() {
   // direct usage
   <p>{"Direct usage: set contains 2: "}{set.has(2)}</p>
 
-  // reactive assignment with prefixed `$`
-  let $has = set.has(2);
-  <p>{"Assigned usage: set contains 2: "}{$has}</p>
+  // reactive assignment
+  let has = track(() => set.has(2));
+  <p>{"Assigned usage: set contains 2: "}{@has}</p>
 
   <button onClick={() => set.delete(2)}>{"Delete 2"}</button>
   <button onClick={() => set.add(2)}>{"Add 2"}</button>
@@ -304,7 +299,7 @@ The `RippleMap` extends the standard JS `Map` class, and supports all of its met
 accessing the `size` property of a `RippleMap` will be not be reactive, instead you should use `$size`.
 
 ```js
-import { RippleMap } from 'ripple';
+import { RippleMap, track } from 'ripple';
 
 const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
 ```
@@ -320,9 +315,9 @@ export component App() {
   // direct usage
   <p>{"Direct usage: map has an item with key 2: "}{map.has(2)}</p>
 
-  // reactive assignment with prefixed `$`
-  let $has = map.has(2);
-  <p>{"Assigned usage: map has an item with key 2: "}{$has}</p>
+  // reactive assignment
+  let has = track(() => map.has(2));
+  <p>{"Assigned usage: map has an item with key 2: "}{@has}</p>
 
   <button onClick={() => map.delete(2)}>{"Delete item with key 2"}</button>
   <button onClick={() => map.set(2, 2)}>{"Add key 2 with value 2"}</button>
@@ -338,13 +333,13 @@ To do this, you can use `effect`:
 import { effect } from 'ripple';
 
 export component App() {
-  let $count = 0;
+  let count = track(0);
 
   effect(() => {
-    console.log($count);
+    console.log(@count);
   });
 
-  <button onClick={() => $count++}>{'Increment'}</button>
+  <button onClick={() => @count++}>{'Increment'}</button>
 }
 ```
 
@@ -420,8 +415,7 @@ component Numbers() {
 }
 ```
 
-Clicking the `<button>` will create a new item, note that `items` is not `$` prefixed, because it's not
-reactive, but rather its properties are instead.
+Clicking the `<button>` will create a new item.
 
 ### Try statements
 
@@ -503,16 +497,15 @@ const object = {
 
 So Ripple provides similar capabilities when working with composite components in a template, specifically using `prop:={}` rather than the typical `prop={}`.
 
-In fact, when you use an accessor, you must pass a function, and the prop must be `$` prefixed, as Ripple considers accessor props as reactive:
 
 ```jsx
-let $name = 'Bob';
+let name = track('Bob');
 
 const getName = () => {
   // I can easily debug when this property gets
   // access and track it easily
-  console.log(name);
-  return $name;
+  console.log(@name);
+  return @name;
 };
 
 <Person name:={getName} />
@@ -521,27 +514,27 @@ const getName = () => {
 You can also inline the function too:
 
 ```jsx
-let $name = 'Bob';
+let name = track('Bob');
 
 <Person name:={() => {
   // I can easily debug when this property gets
   // access and track it easily
-  console.log(name);
-  return $name;
+  console.log(@name);
+  return @name;
 }} />
 ```
 
 Furthermore, just like property accessors in JavaScript, Ripple provides a way of capturing the `set` too, enabling two-way data-flow on composite component props. You just need to provide a second function after the first, separated using a comma:
 
 ```jsx
-let $name = 'Bob';
+let name = track('Bob');
 
 const getName = () => {
-  return $name;
+  return @name;
 }
 
 const setName = (newName) => {
-  $name = newName;
+  @name = newName;
 }
 
 <Person name:={getName, setName} />
@@ -550,9 +543,9 @@ const setName = (newName) => {
 Or an inlined version:
 
 ```jsx
-let $name = 'Bob';
+let name = track('Bob');
 
-<Person name:={() => $name, (newName) => $name = $newName} />
+<Person name:={() => @name, (newName) => @name = newName} />
 ```
 
 Now changes in the `Person` to its `props` will propagate to its parent component:
@@ -560,7 +553,7 @@ Now changes in the `Person` to its `props` will propagate to its parent componen
 ```jsx
 component Person(props) {
   const updateName = (newName) => {
-    props.$name = newName;
+    props.name = newName;
   }
 
   <NameInput onChange={updateName}>
@@ -576,14 +569,14 @@ the reference to the underlying DOM element.
 
 ```jsx
 export component App() {
-  let $node;
+  let node = track();
 
   const divRef = (node) => {
-    $node = node;
+    @node = node;
     console.log("mounted", node);
 
     return () => {
-      $node = undefined;
+      @node = undefined;
       console.log("unmounted", node);
     };
   };
@@ -596,11 +589,11 @@ You can also create `{ref}` functions inline.
 
 ```jsx
 export component App() {
-  let $node;
+  let node = track();
 
   <div {ref (node) => {
-    $node = node;
-    return () => $node = null;
+    @node = node;
+    return () => @node = undefined;
   }}>{"Hello world"}</div>
 }
 ```
@@ -611,8 +604,8 @@ thing. However, you can use this pattern to pass reactive properties.
 ```jsx
 import { fadeIn } from 'some-library';
 
-export component App({ $ms }) {
-  <div {ref fadeIn({ $ms })}>{"Hello world"}</div>
+export component App({ ms }) {
+  <div {ref fadeIn({ ms })}>{"Hello world"}</div>
 }
 ```
 
@@ -633,13 +626,13 @@ This allows programmatic assignment of refs without relying directly on the `{re
 import { createRefKey } from 'ripple';
 
 export component App() {
-  let $value = '';
+  let value = track('');
 
   const props = {
     id: "example",
-    $value,
+    @value,
     [createRefKey()]: (node) => {
-      const removeListener = node.addEventListener('input', (e) => $value = e.target.value);
+      const removeListener = node.addEventListener('input', (e) => @value = e.target.value);
 
       return () => {
         removeListener();
@@ -654,8 +647,8 @@ export component App() {
   <Input {...props} />
 }
 
-component Input({ id, $value, ...rest }) {
-  <input type="text" {id} {$value} {...rest} />
+component Input({ id, value, ...rest }) {
+  <input type="text" {id} {value} {...rest} />
 }
 ```
 
