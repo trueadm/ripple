@@ -1,27 +1,27 @@
 /** @import { Block, Derived } from '#client' */
 
 import {
-	BLOCK_HAS_RUN,
-	BRANCH_BLOCK,
-	DERIVED,
-	CONTAINS_TEARDOWN,
-	DESTROYED,
-	EFFECT_BLOCK,
-	PAUSED,
-	RENDER_BLOCK,
-	ROOT_BLOCK,
-	TRY_BLOCK,
+  BLOCK_HAS_RUN,
+  BRANCH_BLOCK,
+  DERIVED,
+  CONTAINS_TEARDOWN,
+  DESTROYED,
+  EFFECT_BLOCK,
+  PAUSED,
+  RENDER_BLOCK,
+  ROOT_BLOCK,
+  TRY_BLOCK,
 } from './constants';
 import { next_sibling } from './operations';
 import { apply_element_spread } from './render';
 import {
-	active_block,
-	active_component,
-	active_reaction,
-	is_block_dirty,
-	run_block,
-	run_teardown,
-	schedule_update,
+  active_block,
+  active_component,
+  active_reaction,
+  is_block_dirty,
+  run_block,
+  run_teardown,
+  schedule_update,
 } from './runtime';
 import { suspend } from './try';
 
@@ -29,32 +29,32 @@ import { suspend } from './try';
  * @param {Function} fn
  */
 export function user_effect(fn) {
-	if (active_block === null) {
-		throw new Error(
-			'effect() must be called within an active context, such as a component or effect',
-		);
-	}
+  if (active_block === null) {
+    throw new Error(
+      'effect() must be called within an active context, such as a component or effect',
+    );
+  }
 
-	var component = active_component;
-	if (component !== null && !component.m) {
-		var e = (component.e ??= []);
-		e.push({
-			b: active_block,
-			fn,
-			r: active_reaction,
-		});
+  var component = active_component;
+  if (component !== null && !component.m) {
+    var e = (component.e ??= []);
+    e.push({
+      b: active_block,
+      fn,
+      r: active_reaction,
+    });
 
-		return;
-	}
+    return;
+  }
 
-	return block(EFFECT_BLOCK, fn);
+  return block(EFFECT_BLOCK, fn);
 }
 
 /**
  * @param {Function} fn
  */
 export function effect(fn) {
-	return block(EFFECT_BLOCK, fn);
+  return block(EFFECT_BLOCK, fn);
 }
 
 /**
@@ -62,7 +62,7 @@ export function effect(fn) {
  * @param {number} [flags]
  */
 export function render(fn, flags = 0) {
-	return block(RENDER_BLOCK | flags, fn);
+  return block(RENDER_BLOCK | flags, fn);
 }
 
 /**
@@ -71,7 +71,7 @@ export function render(fn, flags = 0) {
  * @param {number} [flags]
  */
 export function render_spread(element, fn, flags = 0) {
-	return block(RENDER_BLOCK | flags, apply_element_spread(element, fn));
+  return block(RENDER_BLOCK | flags, apply_element_spread(element, fn));
 }
 
 /**
@@ -79,18 +79,18 @@ export function render_spread(element, fn, flags = 0) {
  * @param {number} [flags]
  */
 export function branch(fn, flags = 0) {
-	return block(BRANCH_BLOCK | flags, fn);
+  return block(BRANCH_BLOCK | flags, fn);
 }
 
 /**
  * @param {() => any} fn
  */
 export function async(fn) {
-	return block(BRANCH_BLOCK, async () => {
-		const unsuspend = suspend();
-		await fn();
-		unsuspend();
-	});
+  return block(BRANCH_BLOCK, async () => {
+    const unsuspend = suspend();
+    await fn();
+    unsuspend();
+  });
 }
 
 /**
@@ -99,27 +99,27 @@ export function async(fn) {
  * @returns {Block}
  */
 export function ref(element, get_fn) {
-	/** @type {(element: Element) => (void | (() => void) | undefined)} */
-	var ref_fn;
-	/** @type {Block | null} */
-	var e;
+  /** @type {(element: Element) => (void | (() => void) | undefined)} */
+  var ref_fn;
+  /** @type {Block | null} */
+  var e;
 
-	return block(RENDER_BLOCK, () => {
-		if (ref_fn !== (ref_fn = get_fn())) {
-			if (e) {
-				destroy_block(e);
-				e = null;
-			}
+  return block(RENDER_BLOCK, () => {
+    if (ref_fn !== (ref_fn = get_fn())) {
+      if (e) {
+        destroy_block(e);
+        e = null;
+      }
 
-			if (ref_fn) {
-				e = branch(() => {
-					effect(() => {
-						return ref_fn(element);
-					});
-				});
-			}
-		}
-	});
+      if (ref_fn) {
+        e = branch(() => {
+          effect(() => {
+            return ref_fn(element);
+          });
+        });
+      }
+    }
+  });
 }
 
 /**
@@ -127,7 +127,7 @@ export function ref(element, get_fn) {
  * @returns {Block}
  */
 export function root(fn) {
-	return block(ROOT_BLOCK, fn);
+  return block(ROOT_BLOCK, fn);
 }
 
 /**
@@ -136,7 +136,7 @@ export function root(fn) {
  * @returns {Block}
  */
 export function create_try_block(fn, state) {
-	return block(TRY_BLOCK, fn, state);
+  return block(TRY_BLOCK, fn, state);
 }
 
 /**
@@ -144,14 +144,14 @@ export function create_try_block(fn, state) {
  * @param {Block} parent_block
  */
 function push_block(block, parent_block) {
-	var parent_last = parent_block.last;
-	if (parent_last === null) {
-		parent_block.last = parent_block.first = block;
-	} else {
-		parent_last.next = block;
-		block.prev = parent_last;
-		parent_block.last = block;
-	}
+  var parent_last = parent_block.last;
+  if (parent_last === null) {
+    parent_block.last = parent_block.first = block;
+  } else {
+    parent_last.next = block;
+    block.prev = parent_last;
+    parent_block.last = block;
+  }
 }
 
 /**
@@ -161,37 +161,37 @@ function push_block(block, parent_block) {
  * @returns {Block}
  */
 export function block(flags, fn, state = null) {
-	/** @type {Block} */
-	var block = {
-		c: active_component,
-		d: null,
-		first: null,
-		f: flags,
-		fn,
-		last: null,
-		next: null,
-		p: active_block,
-		prev: null,
-		s: state,
-		t: null,
-	};
+  /** @type {Block} */
+  var block = {
+    co: active_component,
+    d: null,
+    first: null,
+    f: flags,
+    fn,
+    last: null,
+    next: null,
+    p: active_block,
+    prev: null,
+    s: state,
+    t: null,
+  };
 
-	if (active_reaction !== null && (active_reaction.f & DERIVED) !== 0) {
-		(/** @type {Derived} */ (active_reaction).blocks ??= []).push(block);
-	}
+  if (active_reaction !== null && (active_reaction.f & DERIVED) !== 0) {
+    /** @type {Derived} */ ((active_reaction).blocks ??= []).push(block);
+  }
 
-	if (active_block !== null) {
-		push_block(block, active_block);
-	}
+  if (active_block !== null) {
+    push_block(block, active_block);
+  }
 
-	if ((flags & EFFECT_BLOCK) !== 0) {
-		schedule_update(block);
-	} else {
-		run_block(block);
-		block.f ^= BLOCK_HAS_RUN;
-	}
+  if ((flags & EFFECT_BLOCK) !== 0) {
+    schedule_update(block);
+  } else {
+    run_block(block);
+    block.f ^= BLOCK_HAS_RUN;
+  }
 
-	return block;
+  return block;
 }
 
 /**
@@ -199,16 +199,16 @@ export function block(flags, fn, state = null) {
  * @param {boolean} [remove_dom]
  */
 export function destroy_block_children(parent, remove_dom = false) {
-	var block = parent.first;
-	parent.first = parent.last = null;
+  var block = parent.first;
+  parent.first = parent.last = null;
 
-	if ((parent.f & CONTAINS_TEARDOWN) !== 0) {
-		while (block !== null) {
-			var next = block.next;
-			destroy_block(block, remove_dom);
-			block = next;
-		}
-	}
+  if ((parent.f & CONTAINS_TEARDOWN) !== 0) {
+    while (block !== null) {
+      var next = block.next;
+      destroy_block(block, remove_dom);
+      block = next;
+    }
+  }
 }
 
 /**
@@ -216,82 +216,82 @@ export function destroy_block_children(parent, remove_dom = false) {
  * @param {boolean} [remove_dom]
  */
 export function destroy_non_branch_children(parent, remove_dom = false) {
-	var block = parent.first;
+  var block = parent.first;
 
-	if (
-		(parent.f & CONTAINS_TEARDOWN) === 0 &&
-		parent.first !== null &&
-		(parent.first.f & BRANCH_BLOCK) === 0
-	) {
-		parent.first = parent.last = null;
-	} else {
-		while (block !== null) {
-			var next = block.next;
-			if ((block.f & BRANCH_BLOCK) === 0) {
-				destroy_block(block, remove_dom);
-			}
-			block = next;
-		}
-	}
+  if (
+    (parent.f & CONTAINS_TEARDOWN) === 0 &&
+    parent.first !== null &&
+    (parent.first.f & BRANCH_BLOCK) === 0
+  ) {
+    parent.first = parent.last = null;
+  } else {
+    while (block !== null) {
+      var next = block.next;
+      if ((block.f & BRANCH_BLOCK) === 0) {
+        destroy_block(block, remove_dom);
+      }
+      block = next;
+    }
+  }
 }
 
 /**
  * @param {Block} block
  */
 export function unlink_block(block) {
-	var parent = block.p;
-	var prev = block.prev;
-	var next = block.next;
+  var parent = block.p;
+  var prev = block.prev;
+  var next = block.next;
 
-	if (prev !== null) prev.next = next;
-	if (next !== null) next.prev = prev;
+  if (prev !== null) prev.next = next;
+  if (next !== null) next.prev = prev;
 
-	if (parent !== null) {
-		if (parent.first === block) parent.first = next;
-		if (parent.last === block) parent.last = prev;
-	}
+  if (parent !== null) {
+    if (parent.first === block) parent.first = next;
+    if (parent.last === block) parent.last = prev;
+  }
 }
 
 /**
  * @param {Block} block
  */
 export function pause_block(block) {
-	if ((block.f & PAUSED) !== 0) {
-		return;
-	}
-	block.f ^= PAUSED;
+  if ((block.f & PAUSED) !== 0) {
+    return;
+  }
+  block.f ^= PAUSED;
 
-	var child = block.first;
+  var child = block.first;
 
-	while (child !== null) {
-		var next = child.next;
-		pause_block(child);
-		child = next;
-	}
+  while (child !== null) {
+    var next = child.next;
+    pause_block(child);
+    child = next;
+  }
 
-	run_teardown(block);
+  run_teardown(block);
 }
 
 /**
  * @param {Block} block
  */
 export function resume_block(block) {
-	if ((block.f & PAUSED) === 0) {
-		return;
-	}
-	block.f ^= PAUSED;
+  if ((block.f & PAUSED) === 0) {
+    return;
+  }
+  block.f ^= PAUSED;
 
-	if (is_block_dirty(block)) {
-		schedule_update(block);
-	}
+  if (is_block_dirty(block)) {
+    schedule_update(block);
+  }
 
-	var child = block.first;
+  var child = block.first;
 
-	while (child !== null) {
-		var next = child.next;
-		resume_block(child);
-		child = next;
-	}
+  while (child !== null) {
+    var next = child.next;
+    resume_block(child);
+    child = next;
+  }
 }
 
 /**
@@ -299,21 +299,21 @@ export function resume_block(block) {
  * @returns {boolean}
  */
 export function is_destroyed(target_block) {
-	/** @type {Block | null} */
-	var block = target_block;
+  /** @type {Block | null} */
+  var block = target_block;
 
-	while (block !== null) {
-		var flags = block.f;
+  while (block !== null) {
+    var flags = block.f;
 
-		if ((flags & DESTROYED) !== 0) {
-			return true;
-		}
-		if ((flags & ROOT_BLOCK) !== 0) {
-			return false;
-		}
-		block = block.p;
-	}
-	return true;
+    if ((flags & DESTROYED) !== 0) {
+      return true;
+    }
+    if ((flags & ROOT_BLOCK) !== 0) {
+      return false;
+    }
+    block = block.p;
+  }
+  return true;
 }
 
 /**
@@ -321,34 +321,34 @@ export function is_destroyed(target_block) {
  * @param {boolean} [remove_dom]
  */
 export function destroy_block(block, remove_dom = true) {
-	block.f ^= DESTROYED;
+  block.f ^= DESTROYED;
 
-	var removed = false;
+  var removed = false;
 
-	if (remove_dom && (block.f & (BRANCH_BLOCK | ROOT_BLOCK)) !== 0) {
-		var node = block.s.start;
-		var end = block.s.end;
+  if (remove_dom && (block.f & (BRANCH_BLOCK | ROOT_BLOCK)) !== 0) {
+    var node = block.s.start;
+    var end = block.s.end;
 
-		while (node !== null) {
-			var next = node === end ? null : next_sibling(node);
+    while (node !== null) {
+      var next = node === end ? null : next_sibling(node);
 
-			node.remove();
-			node = next;
-		}
+      node.remove();
+      node = next;
+    }
 
-		removed = true;
-	}
+    removed = true;
+  }
 
-	destroy_block_children(block, remove_dom && !removed);
+  destroy_block_children(block, remove_dom && !removed);
 
-	run_teardown(block);
+  run_teardown(block);
 
-	var parent = block.p;
+  var parent = block.p;
 
-	// If the parent doesn't have any children, then skip this work altogether
-	if (parent !== null && parent.first !== null) {
-		unlink_block(block);
-	}
+  // If the parent doesn't have any children, then skip this work altogether
+  if (parent !== null && parent.first !== null) {
+    unlink_block(block);
+  }
 
-	block.fn = block.s = block.d = block.p = null;
+  block.fn = block.s = block.d = block.p = null;
 }

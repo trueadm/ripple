@@ -444,43 +444,18 @@ component ErrorBoundary() {
 }
 ```
 
-### Props
-
-If you want a prop to be reactive, you should also give it a `$` prefix.
-
-```jsx
-component Button(props: { $text: string, onClick: () => void }) {
-  <button onClick={props.onClick}>
-    {props.$text}
-  </button>
-}
-
-// Usage
-<Button $text={some_text} onClick={() => console.log("Clicked!")} />
-```
-
-This also applies to DOM elements, if you want an attribute or property to be reactive, it needs to have a `$` prefix.
-
-```tsx
-<div $class={props.$someClass} $id={$someId}>
-  {$someText}
-</div>
-```
-
-Otherwise changes to the attribute or property will not be reactively updated.
-
 ### Children
 
-Use `$children` prop and then use it in the form of `<$children />` for component composition.
+Use `children` prop and then use it in the form of `<children />` for component composition.
 
-When you pass in children to a component, it gets implicitly passed as the `$children` prop, in the form of a component.
+When you pass in children to a component, it gets implicitly passed as the `children` prop, in the form of a component.
 
 ```jsx
 import type { Component } from 'ripple';
 
-component Card(props: { $children: Component }) {
+component Card(props: { children: Component }) {
   <div class="card">
-    <props.$children />
+    <props.children />
   </div>
 }
 
@@ -495,15 +470,15 @@ You could also explicitly write the same code as shown:
 ```jsx
 import type { Component } from 'ripple';
 
-component Card(props: { $children: Component }) {
+component Card(props: { children: Component }) {
   <div class="card">
-    <props.$children />
+    <props.children />
   </div>
 }
 
 // Usage with explicit component
 <Card>
-  component $children() {
+  component children() {
     <p>{"Card content here"}</p>
   }
 </Card>
@@ -526,7 +501,7 @@ const object = {
 }
 ```
 
-So Ripple provides similar capabilities when working with composite components in a template, specifically using `$prop:={}` rather than the typical `$prop={}`.
+So Ripple provides similar capabilities when working with composite components in a template, specifically using `prop:={}` rather than the typical `prop={}`.
 
 In fact, when you use an accessor, you must pass a function, and the prop must be `$` prefixed, as Ripple considers accessor props as reactive:
 
@@ -540,7 +515,7 @@ const getName = () => {
   return $name;
 };
 
-<Person $name:={getName} />
+<Person name:={getName} />
 ```
 
 You can also inline the function too:
@@ -548,7 +523,7 @@ You can also inline the function too:
 ```jsx
 let $name = 'Bob';
 
-<Person $name:={() => {
+<Person name:={() => {
   // I can easily debug when this property gets
   // access and track it easily
   console.log(name);
@@ -569,7 +544,7 @@ const setName = (newName) => {
   $name = newName;
 }
 
-<Person $name:={getName, setName} />
+<Person name:={getName, setName} />
 ```
 
 Or an inlined version:
@@ -577,7 +552,7 @@ Or an inlined version:
 ```jsx
 let $name = 'Bob';
 
-<Person $name:={() => $name, (newName) => $name = $newName} />
+<Person name:={() => $name, (newName) => $name = $newName} />
 ```
 
 Now changes in the `Person` to its `props` will propagate to its parent component:
@@ -731,8 +706,7 @@ component MyComponent() {
 Ripple has the concept of `context` where a value or reactive object can be shared through the component tree –
 like in other frameworks. This all happens from the `createContext` function that is imported from `ripple`.
 
-When you create a context, you can `get` and `set` the values, but this must happen within the component. Using them
-outside will result in an error being thrown.
+When you create a context, you can `get` and `set` the values, but this must happen within the context of a component (they can physically live anywhwere, they just need to be called from a component context). Using them outside will result in an error being thrown.
 
 ```jsx
 import { createContext } from 'ripple';
@@ -741,14 +715,14 @@ const MyContext = createContext(null);
 
 component Child() {
   // Context is read in the Child component
-  const value = MyContext.get(MyContext);
+  const value = MyContext.get();
 
   // value is "Hello from context!"
   console.log(value);
 }
 
 component Parent() {
-  const value = MyContext.get(MyContext);
+  const value = MyContext.get();
 
   // Context is read in the Parent component, but hasn't yet
   // been set, so we fallback to the initial context value.

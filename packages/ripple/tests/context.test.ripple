@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, createContext } from 'ripple';
+import { mount, createContext, flushSync, track } from 'ripple';
 
 describe('context', () => {
 	let container;
@@ -19,25 +19,48 @@ describe('context', () => {
 		document.body.removeChild(container);
 	});
 
-  it('creates a reactive ref with initial value', () => {
-    const MyContext = createContext(null);
+	it('creates a reactive ref with initial value', () => {
+		const MyContext = createContext(null);
 
-    component Child() {
-      const value = MyContext.get();
+		component Child() {
+			const value = MyContext.get();
 
-      <div>{value}</div>
-    }
+			<div>{value}</div>
+		}
 
-    component TestContext() {
-      const value = MyContext.get();
+		component TestContext() {
+			const value = MyContext.get();
 
-      MyContext.set("Hello from context!");
+			MyContext.set("Hello from context!");
 
-      <Child />
-    }
+			<Child />
+		}
 
 		render(TestContext);
 
 		expect(container.querySelector('div').textContent).toBe('Hello from context!');
+	});
+
+	it('handles context captured inside a computed tracked', () => {
+		
+		const MyContext = createContext(null)
+
+		const doubleContext = () => {
+			const value = MyContext.get()
+			return value * 2
+		}
+
+		component App() {
+			MyContext.set(4)
+				
+			<h3>{MyContext.get()}</h3>
+
+			<h4>{'2x:'} {doubleContext()}</h4>
+
+			MyContext.set(8)
+		}
+
+		render(App);
+		flushSync();
 	});
 });

@@ -89,15 +89,15 @@ describe('basic', () => {
 	});
 
 	it('render tick template literal for nested children', () => {
-		component Child({ level, $children }) {
-			if(level == 1) {
-				<h1><$children /></h1>
+		component Child({ $level, children }) {
+			if($level == 1) {
+				<h1><children /></h1>
 			}
-			if(level == 2) {
-				<h2><$children /></h2>
+			if($level == 2) {
+				<h2><children /></h2>
 			}
-			if(level == 3) {
-				<h3><$children /></h3>
+			if($level == 3) {
+				<h3><children /></h3>
 			}
 		}
 

@@ -13,9 +13,9 @@ export var get_own_property_symbols = Object.getOwnPropertySymbols;
 export var structured_clone = structuredClone;
 
 export function create_anchor() {
-	var t = document.createTextNode('');
-	t.__t = '';
-	return t;
+  var t = document.createTextNode('');
+  t.__t = '';
+  return t;
 }
 
 /**
@@ -23,7 +23,7 @@ export function create_anchor() {
  * @returns {boolean}
  */
 export function is_ripple_array(obj) {
-	return is_array(obj) && TRACKED_OBJECT in obj && '$length' in obj;
+  return is_array(obj) && TRACKED_OBJECT in obj && '$length' in obj;
 }
 
 /**
@@ -31,5 +31,5 @@ export function is_ripple_array(obj) {
  * @returns {boolean}
  */
 export function is_positive_integer(value) {
-	return Number.isInteger(value) && /**@type {number} */ (value) >= 0;
+  return Number.isInteger(value) && /**@type {number} */ (value) >= 0;
 }

@@ -66,9 +66,9 @@ export function convert_source_map_to_mappings(source_map, source, generated_cod
 				continue;
 			}
 
-			// Fix for $children mapping: when generated content is "$children",
+			// Fix for children mapping: when generated content is "children",
 			// it should only map to the component name in the source, not include attributes
-			if (generated_content === '$children') {
+			if (generated_content === 'children') {
 				// Look for the component name in the source content
 				const component_name_match = source_content.match(/^(\w+)/);
 				if (component_name_match) {

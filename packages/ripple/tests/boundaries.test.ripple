@@ -67,10 +67,10 @@ describe('passing reactivity between boundaries tests', () => {
     let log: string[] = [];
 
     function createDouble({ count }) {
-      const double = track(() => count * 2);
+      const double = track(() => @count * 2);
 
       effect(() => {
-        log.push('Count:' + count);
+        log.push('Count:' + @count);
       });
 
       return { double };
@@ -81,7 +81,7 @@ describe('passing reactivity between boundaries tests', () => {
 
       const { double } = createDouble({ count });
 
-      <div>{'Double: ' + double}</div>
+      <div>{'Double: ' + @double}</div>
       <button onClick={() => { @count++; }}>{'Increment'}</button>
     }
 

@@ -26,4 +26,4 @@ export var COMPUTED_PROPERTY = Symbol();
 export var REF_PROP = 'ref';
 /** @type {unique symbol} */
 export const ARRAY_SET_INDEX_AT = Symbol();
-export const MAX_ARRAY_LENGTH = 2**32 - 1;
+export const MAX_ARRAY_LENGTH = 2 ** 32 - 1;

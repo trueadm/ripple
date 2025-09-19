@@ -68,16 +68,20 @@ describe('prop accessors', () => {
 
     component Child({ foo }) {
       effect(() => {
-        logs.push('App effect', @foo);
+        logs.push('App effect', props.foo);
       });
 
-      <button onClick={() => { foo++ }}>{"Increment foo"}</button>
+      <button onClick={() => props.foo++}>{"Increment foo"}</button>
     }
 
     component App() {
       let foo = track(0);
 
-      <Child {foo} />
+      <Child foo:={() => {
+          return $foo;
+        }, v => {
+          // do not update parent
+        }} />
 
       <div>{"parent foo: " + @foo}</div>
 
@@ -96,32 +100,32 @@ describe('prop accessors', () => {
     flushSync();
       
     expect(container.querySelectorAll('div')[0].textContent).toBe('parent foo: 0');
-    expect(logs).toEqual(['App effect', 0, 'App effect', 1]);
+    expect(logs).toEqual(['App effect', 0]);
 
     button2.click();
     flushSync();
 
     expect(container.querySelectorAll('div')[0].textContent).toBe('parent foo: 1');
-    expect(logs).toEqual(['App effect', 0, 'App effect', 1, 'App effect', 1]);
+    expect(logs).toEqual(['App effect', 0, 'App effect', 1]);
 
     button2.click();
     flushSync();
 
     expect(container.querySelectorAll('div')[0].textContent).toBe('parent foo: 2');
-    expect(logs).toEqual(['App effect', 0, 'App effect', 1, 'App effect', 1, 'App effect', 2]);
+    expect(logs).toEqual(['App effect', 0, 'App effect', 1, 'App effect', 2]);
   });
 
   it('handles a simple getter prop accessor with no setter', () =>{
     component Parent() {
       let value = track(123);
 
-      <Child {value} />
+      <Child value:={() => $value} />
 
       <button onClick={() => { @value++ }}>{"Increment value"}</button>
     }
 
     component Child({ value }) {
-      <div>{@value}</div>
+      <div>{value}</div>
     }
 
     render(Parent);
