@@ -345,7 +345,7 @@ describe('basic', () => {
 		expect(div.getAttribute('data-extra')).toBe('value');
 	});
 
-	it.skip('renders multiple reactive lexical blocks', () => {
+	it('renders multiple reactive lexical blocks', () => {
 		component Basic() {
 			<div>
 				let obj = {
@@ -379,9 +379,11 @@ describe('basic', () => {
 		expect(container.querySelector('.count').textContent).toBe('0');
 	});
 
+	// TODO
 	it.skip('renders multiple reactive lexical blocks with complexity', () => {
+		
 		component Basic() {
-			const count = '@count';
+			const count = 'count';
 
 			<div>
 				let obj = {
@@ -953,15 +955,15 @@ describe('basic', () => {
 		}).toThrow('Unclosed tag');
 	});
 
-	it.skip('basic reactivity with standard arrays should work', () => {
+	it('basic reactivity with standard arrays should work', () => {
 		let logs = [];
 
 		component App() {
 			let first = track(0);
 			let second = track(0);
-			const arr = [@first, @second];
+			const arr = [first, second];
 
-			const total = track(arr.reduce((a, b) => a + b, 0));
+			const total = track(() => arr.reduce((a, b) => a + @b, 0));
 
 			<button onClick={() => { @first++; }}>{'first:' + @first}</button>
 			<button onClick={() => { @second++; }}>{'second: ' + @second}</button>
@@ -970,22 +972,22 @@ describe('basic', () => {
 				let _arr = [];
 
 				arr.forEach((item) => {
-					_arr.push(item);
+					_arr.push(@item);
 				});
 
 				logs.push(_arr.join(', '));
 			});
 
 			effect(() => {
-				if (arr.includes(1)) {
+				if (arr.map(a => @a).includes(1)) {
 					logs.push('arr includes 1');
 				}
 			});
 
 			<div>{'Sum: ' + @total}</div>
-			<div>{'Comma Separated: ' + arr.join(', ')}</div>
-			<div>{'Number to string: ' + arr.map(a => String(a))}</div>
-			<div>{'Even numbers: ' + arr.filter(a => a % 2 === 0)}</div>
+			<div>{'Comma Separated: ' + arr.map(a => @a).join(', ')}</div>
+			<div>{'Number to string: ' + arr.map(a => String(@a))}</div>
+			<div>{'Even numbers: ' + arr.map(a => @a).filter(a => a % 2 === 0)}</div>
 		}
 
 		render(App);
@@ -1016,10 +1018,10 @@ describe('basic', () => {
 		expect(divs[1].textContent).toBe('Comma Separated: 1, 1');
 		expect(divs[2].textContent).toBe('Number to string: 1,1');
 		expect(divs[3].textContent).toBe('Even numbers: ');
-		expect(logs).toEqual(['0, 0', '1, 0', 'arr includes 1', '1, 1']);
+		expect(logs).toEqual(['0, 0', '1, 0', 'arr includes 1', '1, 1', 'arr includes 1']);
 	});
 
-	it.skip('it retains this context with bracketed prop functions and keeps original chaining', () => {
+	it('it retains this context with bracketed prop functions and keeps original chaining', () => {
 		component App() {
 			const SYMBOL_PROP = Symbol();
 			let hasError = track(false);

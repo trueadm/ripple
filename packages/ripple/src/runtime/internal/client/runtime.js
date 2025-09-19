@@ -1016,7 +1016,7 @@ export function update_pre(tracked, block, d = 1) {
 export function update_property(obj, property, block, d = 1) {
   var tracked = obj[property];
   var value = get(tracked);
-  var new_value = d === 1 ? value++ : value++;
+  var new_value = d === 1 ? value++ : value--;
   set(tracked, value, block);
   return new_value;
 }

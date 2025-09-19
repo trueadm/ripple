@@ -204,39 +204,6 @@ const visitors = {
     if (callee.type === 'MemberExpression') {
       const property = callee.property;
 
-      if (property.type === 'Identifier' && !callee.optional) {
-        const name = property.name;
-        if (
-          // TODO support the missing array methods
-          name === 'reduce' ||
-          name === 'map' ||
-          name === 'forEach' ||
-          name === 'join' ||
-          name === 'includes' ||
-          name === 'indexOf' ||
-          name === 'lastIndexOf' ||
-          name === 'filter' ||
-          name === 'every' ||
-          name === 'some' ||
-          name === 'toSpliced' ||
-          name === 'toSorted' ||
-          name === 'toString' ||
-          name === 'values' ||
-          name === 'entries'
-        ) {
-          return b.call(
-            '$.with_scope',
-            b.id('__block'),
-            b.thunk(
-              b.call(
-                '$.array_' + name,
-                context.visit(callee.object),
-                ...node.arguments.map((arg) => context.visit(arg)),
-              ),
-            ),
-          );
-        }
-      }
 
       if (callee.computed) {
         return b.call(

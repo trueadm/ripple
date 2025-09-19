@@ -20,7 +20,7 @@ describe('passing reactivity between boundaries tests', () => {
 		container = null;
 	});
 
-  it.skip('can pass reactivity between functions with simple arrays and destructuring', () => {
+  it('can pass reactivity between functions with simple arrays and destructuring', () => {
     let log: string[] = [];
 
     function createDouble([ count ]) {
@@ -63,7 +63,7 @@ describe('passing reactivity between boundaries tests', () => {
     expect(log).toEqual(['Count:0', 'Count:1', 'Count:2']);
   });
 
-  it.skip('can pass reactivity between functions with simple objects and destructuring', () => {
+  it('can pass reactivity between functions with simple objects and destructuring', () => {
     let log: string[] = [];
 
     function createDouble({ count }) {
