@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, track } from 'ripple';
+import { mount, flushSync, track, RippleArray } from 'ripple';
 
 describe('composite components', () => {
 	let container;
@@ -283,5 +283,16 @@ describe('composite components', () => {
 
 		expect(container.querySelectorAll('div')[0].textContent).toBe('');
 		expect(container.querySelectorAll('div')[1].textContent).toBe('123');
+	});
+
+	it('handlers generic', () => {
+		component ArrayTest() {
+			let items = new RippleArray<number>();
+			items.push.apply(items, [1, 2, 3, 4, 5]);
+
+			<pre>{items ? JSON.stringify(items) : 'Loading...'}</pre>
+		}
+
+		render(ArrayTest);
 	});
 });
