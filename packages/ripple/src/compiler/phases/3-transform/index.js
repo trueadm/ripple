@@ -1072,7 +1072,7 @@ const visitors = {
 
       return b.call(
         '$.set',
-        context.visit(left),
+        context.visit(left, { ...context.state, metadata: { tracking: null } }),
         operator === '='
           ? context.visit(right)
           : b.binary(
@@ -1142,7 +1142,7 @@ const visitors = {
     if (argument.type === 'Identifier' && argument.tracked) {
       return b.call(
         node.prefix ? '$.update_pre' : '$.update',
-        context.visit(argument),
+        context.visit(argument, { ...context.state, metadata: { tracking: null } }),
         b.id('__block'),
         node.operator === '--' ? b.literal(-1) : undefined,
       );
