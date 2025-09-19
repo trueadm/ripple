@@ -204,7 +204,7 @@ export component App() {
 You can do the same with objects too:
 
 ```jsx
-import { effect } from 'ripple';
+import { effect, track } from 'ripple';
 
 function createDouble({ count }) {
   const double = track(() => @count * 2);
@@ -307,7 +307,7 @@ const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
 RippleMap's reactive methods or properties can be used directly or assigned to reactive variables.
 
 ```jsx
-import { RippleMap } from 'ripple';
+import { RippleMap, track } from 'ripple';
 
 export component App() {
   const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
