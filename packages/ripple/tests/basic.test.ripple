@@ -575,8 +575,37 @@ describe('basic', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	// Note: This test has some weird issue. Uncomment when fixed.
-	it.skip('renders with simple reactive objects', () => {
+	it('renders with simple reactive objects', () => {
+		component Basic() {
+			let user = track({
+				name: 'John',
+				age: 25
+			});
+
+			<div class='name'>{@user.name}</div>
+			<div class='age'>{@user.age}</div>
+			<button onClick={() => {
+				@user = {...@user, name: 'Jane', age: 30}
+			}}>{'Update User'}</button>
+		}
+
+		render(Basic);
+
+		const nameDiv = container.querySelector('.name');
+		const ageDiv = container.querySelector('.age');
+		const button = container.querySelector('button');
+
+		expect(nameDiv.textContent).toBe('John');
+		expect(ageDiv.textContent).toBe('25');
+
+		button.click();
+		flushSync();
+
+		expect(nameDiv.textContent).toBe('Jane');
+		expect(ageDiv.textContent).toBe('30');
+	});
+
+	it('renders with nested reactive objects', () => {
 		component Basic() {
 			let user = track({
 				name: track('John'),
@@ -586,8 +615,8 @@ describe('basic', () => {
 			<div class='name'>{@user.@name}</div>
 			<div class='age'>{@user.@age}</div>
 			<button onClick={() => {
-				@user.name = 'Jane';
-				@user.age = 30;
+				@user.@name = 'Jane';
+				@user.@age = 30;
 			}}>{'Update User'}</button>
 		}
 
