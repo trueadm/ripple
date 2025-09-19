@@ -172,7 +172,7 @@ effect(() => {
 })
 ```
 
-> Note: you cannot created `Tracked` objects in module/global scope, they have to be created on access from an active component context.
+> Note: you cannot create `Tracked` objects in module/global scope, they have to be created on access from an active component context.
 
 #### Transporting Reactivity
 
@@ -227,7 +227,7 @@ export component App() {
 
 #### Reactive Arrays
 
-Just like, objects, you can use the `Tracked<V>` objects in any standard JavaScript object, like arrays:
+Just like objects, you can use the `Tracked<V>` objects in any standard JavaScript object, like arrays:
 
 ```js
 let first = track(0);
@@ -236,7 +236,7 @@ const arr = [first, second];
 
 const total = track(() => arr.reduce((a, b) => a + @b, 0));
 
-console.log(@track);
+console.log(@total);
 ```
 
 Like shown in the above example, you can compose normal arrays with reactivity and pass them through props or boundaries.
@@ -260,12 +260,12 @@ const arr = RippleArray.of(1, 2, 3);
 ```
 
 The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index. However,
-accessing the `length` property of a `RippleArray` will be not be reactive, instead you should use `$length`.
+accessing the `length` property of a `RippleArray` will not be reactive, instead you should use `$length`.
 
 #### Reactive Set
 
 The `RippleSet` extends the standard JS `Set` class, and supports all of its methods and properties. However,
-accessing the `size` property of a `RippleSet` will be not be reactive, instead you should use `$size`.
+accessing the `size` property of a `RippleSet` will not be reactive, instead you should use `$size`.
 
 ```js
 import { RippleSet } from 'ripple';
@@ -296,7 +296,7 @@ export component App() {
 #### Reactive Map
 
 The `RippleMap` extends the standard JS `Map` class, and supports all of its methods and properties. However,
-accessing the `size` property of a `RippleMap` will be not be reactive, instead you should use `$size`.
+accessing the `size` property of a `RippleMap` will not be reactive, instead you should use `$size`.
 
 ```js
 import { RippleMap, track } from 'ripple';
