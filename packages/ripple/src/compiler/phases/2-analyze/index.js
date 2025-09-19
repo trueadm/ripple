@@ -269,7 +269,7 @@ const visitors = {
               const parent_node = path?.at(-1);
 
               // We're reading a computed property, which might mean it's a reactive property
-              if (parent_node?.type === 'MemberExpression' && parent_node.computed) {
+              if (!ref.node.tracked && parent_node?.type === 'MemberExpression' && parent_node.computed) {
                 binding.transform = {
                   assign: (node, value, computed) => {
                     if (!computed) {

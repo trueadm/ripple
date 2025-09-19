@@ -120,30 +120,36 @@ const visitors = {
   Identifier(node, context) {
     const parent = /** @type {Node} */ (context.path.at(-1));
 
-    if (is_reference(node, parent) && !context.state.to_ts) {
-      const binding = context.state.scope.get(node.name);
-      if (
-        (context.state.metadata?.tracking === false ||
-          (parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression')) &&
-        (is_tracked_name(node.name) ||
-          node.tracked ||
-          binding?.kind === 'prop' ||
-          binding?.kind === 'prop_fallback') &&
-        binding?.node !== node
-      ) {
-        if (context.state.metadata?.tracking === false) {
-          context.state.metadata.tracking = true;
+    if (is_reference(node, parent)) {
+      if (context.state.to_ts) {
+		if (node.tracked) {
+			return b.member(node, b.literal('#v'), true)
+		}
+      } else {
+        const binding = context.state.scope.get(node.name);
+        if (
+          (context.state.metadata?.tracking === false ||
+            (parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression')) &&
+          (is_tracked_name(node.name) ||
+            node.tracked ||
+            binding?.kind === 'prop' ||
+            binding?.kind === 'prop_fallback') &&
+          binding?.node !== node
+        ) {
+          if (context.state.metadata?.tracking === false) {
+            context.state.metadata.tracking = true;
+          }
+          if (node.tracked) {
+            return b.call('$.get', build_getter(node, context));
+          }
         }
-        if (node.tracked) {
-          return b.call('$.get', build_getter(node, context));
+
+        if (node.name === 'structuredClone' && binding === null) {
+          return b.id('$.structured_clone');
         }
-      }
 
-      if (node.name === 'structuredClone' && binding === null) {
-        return b.id('$.structured_clone');
+        return build_getter(node, context);
       }
-
-      return build_getter(node, context);
     }
   },
 

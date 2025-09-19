@@ -170,7 +170,7 @@ function run_derived(computed) {
     active_reaction = computed;
     tracking = true;
     active_dependency = null;
-    active_component = active_block.c;
+    active_component = computed.co;
 
     destroy_computed_children(computed);
 
@@ -221,7 +221,7 @@ export function run_block(block) {
   try {
     active_block = block;
     active_reaction = block;
-    active_component = block.c;
+    active_component = block.co;
 
     destroy_non_branch_children(block);
     run_teardown(block);
@@ -279,6 +279,7 @@ export function derived(fn, block) {
     b: block,
     blocks: null,
     c: 0,
+	co: active_component,
     d: null,
     f: TRACKED | DERIVED,
     fn,

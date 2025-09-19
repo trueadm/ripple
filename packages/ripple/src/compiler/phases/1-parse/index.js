@@ -25,6 +25,7 @@ function RipplePlugin(config) {
 
 		class RippleParser extends Parser {
 			#path = [];
+			skip_decorator = false;
 
 			// Helper method to get the element name from a JSX identifier or member expression
 			getElementName(node) {
@@ -273,6 +274,7 @@ function RipplePlugin(config) {
 						this.raise(this.start, 'value should be either an expression or a quoted text');
 				}
 			}
+
 
 			parseTryStatement(node) {
 				this.next();
@@ -700,6 +702,54 @@ function RipplePlugin(config) {
 					this.awaitPos = 0;
 
 					return node;
+				}
+
+				if (this.type.label === '@') {
+					// Try to parse as an expression statement first using tryParse
+					// This allows us to handle Ripple @ syntax like @count++ without
+					// interfering with legitimate decorator syntax
+					this.skip_decorator = true;
+					const expressionResult = this.tryParse(() => {
+						const node = this.startNode();
+						this.next();
+						// Force expression context to ensure @ is tokenized correctly
+						const oldExprAllowed = this.exprAllowed;
+						this.exprAllowed = true;
+						node.expression = this.parseExpression();
+
+						if (node.expression.type === 'UpdateExpression') {
+							let object = node.expression.argument;
+							while (object.type === 'MemberExpression') {
+								object = object.object;
+							}
+							if (object.type === 'Identifier') {
+								object.tracked = true;
+							}
+						} else if (node.expression.type === 'AssignmentExpression') {
+							let object = node.expression.left;
+							while (object.type === 'MemberExpression') {
+								object = object.object;
+							}
+							if (object.type === 'Identifier') {
+								object.tracked = true;
+							}
+						} else if (node.expression.type === 'Identifier') {
+							node.expression.tracked = true;
+						} else {
+							// TODO?
+						}
+
+						this.exprAllowed = oldExprAllowed;
+						return this.finishNode(node, 'ExpressionStatement');
+					});
+					this.skip_decorator = false;
+					
+					// If parsing as expression statement succeeded, use that result
+					if (expressionResult.node) {
+						return expressionResult.node;
+					}
+					
+					// Otherwise, fall back to default decorator parsing
 				}
 
 				return super.parseStatement(context, topLevel, exports);

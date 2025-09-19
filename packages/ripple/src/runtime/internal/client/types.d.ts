@@ -28,6 +28,7 @@ export type Derived = {
 	b: Block;
 	blocks: null | Block[];
 	c: number;
+	co: null | Component;
 	d: null;
 	f: number;
 	fn: Function;
@@ -35,7 +36,7 @@ export type Derived = {
 };
 
 export type Block = {
-	c: null | Component;
+	co: null | Component;
 	d: null | Dependency;
 	first: null | Block;
 	f: number;

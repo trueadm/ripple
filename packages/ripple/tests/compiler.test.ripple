@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, RippleArray } from 'ripple';
+import { mount, RippleArray, track } from 'ripple';
 import { parse } from 'ripple/compiler'
 
 describe('compiler success tests', () => {
@@ -109,15 +109,15 @@ describe('compiler success tests', () => {
 
 		component App() {
 			let items = [];
-			let $items = [];
+			let tracked_items = track([]);
 			let items2 = new Array();
 			let items3 = new RippleArray();
 			let i = 0;
 
 			logs.push(items[0]);
 			logs.push(items[i]);
-			logs.push($items[0]);
-			logs.push($items[i]);
+			logs.push(@tracked_items[0]);
+			logs.push(@tracked_items[i]);
 			logs.push(items2[0]);
 			logs.push(items2[i]);
 			logs.push(items3[0]);
@@ -125,8 +125,8 @@ describe('compiler success tests', () => {
 
 			items[0] = 123;
 			items[i] = 123;
-			$items[0] = 123;
-			$items[i] = 123;
+			@tracked_items[0] = 123;
+			@tracked_items[i] = 123;
 			items2[0] = 123;
 			items2[i] = 123;
 			items3[0] = 123;
@@ -134,8 +134,8 @@ describe('compiler success tests', () => {
 
 			logs.push(items[0]);
 			logs.push(items[i]);
-			logs.push($items[0]);
-			logs.push($items[i]);
+			logs.push(@tracked_items[0]);
+			logs.push(@tracked_items[i]);
 			logs.push(items2[0]);
 			logs.push(items2[i]);
 			logs.push(items3[0]);
@@ -143,8 +143,8 @@ describe('compiler success tests', () => {
 
 			items[0]++;
 			items[i]++;
-			$items[0]++;
-			$items[i]++;
+			@tracked_items[0]++;
+			@tracked_items[i]++;
 			items2[0]++;
 			items2[i]++;
 			items3[0]++;
@@ -152,8 +152,8 @@ describe('compiler success tests', () => {
 
 			logs.push(items[0]);
 			logs.push(items[i]);
-			logs.push($items[0]);
-			logs.push($items[i]);
+			logs.push(@tracked_items[0]);
+			logs.push(@tracked_items[i]);
 			logs.push(items2[0]);
 			logs.push(items2[i]);
 			logs.push(items3[0]);
@@ -161,8 +161,8 @@ describe('compiler success tests', () => {
 
 			logs.push(--items[0]);
 			logs.push(--items[i]);
-			logs.push(--$items[0]);
-			logs.push(--$items[i]);
+			logs.push(--@tracked_items[0]);
+			logs.push(--@tracked_items[i]);
 			logs.push(--items2[0]);
 			logs.push(--items2[i]);
 			logs.push(--items3[0]);

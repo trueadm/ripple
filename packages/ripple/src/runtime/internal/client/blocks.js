@@ -163,7 +163,7 @@ function push_block(block, parent_block) {
 export function block(flags, fn, state = null) {
   /** @type {Block} */
   var block = {
-    c: active_component,
+    co: active_component,
     d: null,
     first: null,
     f: flags,

@@ -435,6 +435,9 @@ export function is_value_static(node) {
 }
 
 export function is_tracked_computed_property(object, property, context) {
+  if (object.tracked) {
+    return false;
+  }
   const binding = context.state.scope.get(object.name);
 
   if (binding) {
@@ -693,13 +696,13 @@ const common_dom_names = new Set([
 
 export function is_element_dom_element(node, context) {
   if (node.id.type === 'Identifier' && node.id.name[0].toLowerCase() === node.id.name[0]) {
-	if (common_dom_names.has(node.id.name)) {
-		return true;
-	}
-	const binding = context.state.scope.get(node.id.name);
+    if (common_dom_names.has(node.id.name)) {
+      return true;
+    }
+    const binding = context.state.scope.get(node.id.name);
     if (binding == null) {
-		return true;
-	}
+      return true;
+    }
   }
   return false;
 }
