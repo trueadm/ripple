@@ -9,7 +9,6 @@ import {
   build_hoisted_params,
   is_event_attribute,
   is_inside_component,
-  is_tracked_name,
   is_passive_event,
   build_assignment,
   visit_assignment_expression,
@@ -130,10 +129,7 @@ const visitors = {
         if (
           (context.state.metadata?.tracking === false ||
             (parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression')) &&
-          (is_tracked_name(node.name) ||
-            node.tracked ||
-            binding?.kind === 'prop' ||
-            binding?.kind === 'prop_fallback') &&
+          (node.tracked || binding?.kind === 'prop' || binding?.kind === 'prop_fallback') &&
           binding?.node !== node
         ) {
           if (context.state.metadata?.tracking === false) {
@@ -287,10 +283,13 @@ const visitors = {
   MemberExpression(node, context) {
     const parent = context.path.at(-1);
 
+	if (context.state.metadata?.tracking === false) {
+		context.state.metadata.tracking = true;
+	}
+
     if (node.property.type === 'Identifier' && node.property.tracked) {
       add_ripple_internal_import(context);
 
-      context.state.metadata.tracking = true;
       return b.call(
         '$.get_property',
         context.visit(node.object),
@@ -302,35 +301,19 @@ const visitors = {
     if (parent.type !== 'AssignmentExpression') {
       const object = node.object;
       const property = node.property;
-      const tracked_name =
-        property.type === 'Identifier'
-          ? is_tracked_name(property.name)
-          : property.type === 'Literal' && is_tracked_name(property.value);
 
       // TODO should we enforce that the identifier is tracked too?
-      if (
-        (node.computed && is_tracked_computed_property(node.object, node.property, context)) ||
-        tracked_name
-      ) {
+      if (node.computed && is_tracked_computed_property(node.object, node.property, context)) {
         if (context.state.metadata?.tracking === false) {
           context.state.metadata.tracking = true;
         }
 
-        if (tracked_name) {
-          return b.call(
-            '$.old_get_property',
-            context.visit(object),
-            property.type === 'Identifier' ? b.literal(property.name) : property,
-            node.optional ? b.true : undefined,
-          );
-        } else {
-          return b.call(
-            '$.old_get_property',
-            context.visit(object),
-            context.visit(property),
-            node.optional ? b.true : undefined,
-          );
-        }
+        return b.call(
+          '$.old_get_property',
+          context.visit(object),
+          context.visit(property),
+          node.optional ? b.true : undefined,
+        );
       }
 
       if (object.type === 'Identifier' && object.name === 'Object') {
@@ -451,58 +434,11 @@ const visitors = {
           declarations.push(context.visit(declarator));
         }
       } else {
-        const paths = extract_paths(declarator.id);
-        const has_tracked = paths.some(
-          (path) => path.node.type === 'Identifier' && is_tracked_name(path.node.name),
-        );
-
         if (!context.state.to_ts) {
           delete declarator.id.typeAnnotation;
         }
 
-        if (!has_tracked) {
-          declarations.push(context.visit(declarator));
-          continue;
-        }
-
-        // For TypeScript mode, we still need to transform tracked variables
-        // but use a lighter approach that maintains type information
-        if (context.state.to_ts) {
-          const transformed = declarator.transformed || declarator.id;
-          let expression;
-
-          if (metadata.tracking && !metadata.await) {
-            expression = b.call(
-              '$.derived',
-              b.thunk(context.visit(declarator.init)),
-              b.id('__block'),
-            );
-          } else {
-            // Simple tracked variable - always use $.derived for $ prefixed variables
-            expression = b.call('$.tracked', context.visit(declarator.init), b.id('__block'));
-          }
-
-          declarations.push(b.declarator(transformed, expression));
-          continue;
-        }
-
-        const transformed = declarator.transformed;
-        let expression;
-
-        if (metadata.tracking && metadata.await) {
-          // TODO
-          debugger;
-        } else if (metadata.tracking && !metadata.await) {
-          expression = b.call(
-            '$.derived',
-            b.thunk(context.visit(declarator.init)),
-            b.id('__block'),
-          );
-        } else {
-          expression = context.visit(declarator.init);
-        }
-
-        declarations.push(b.declarator(transformed, expression));
+		declarations.push(context.visit(declarator));
       }
     }
 
@@ -675,8 +611,8 @@ const visitors = {
             const metadata = { tracking: false, await: false };
             const expression = visit(attr.value, { ...state, metadata });
             // All other attributes
-            if (is_tracked_name(name) || metadata.tracking) {
-              const attribute = is_tracked_name(name) ? name.slice(1) : name;
+            if (metadata.tracking) {
+              const attribute = name;
               const id = state.flush_node();
 
               if (is_dom_property(attribute)) {
@@ -1016,10 +952,7 @@ const visitors = {
 
     if (left.type === 'MemberExpression') {
       // need to capture setting length of array to throw a runtime error
-      if (
-        left.property.type === 'Identifier' &&
-        (is_tracked_name(left.property.name) || left.property.name === 'length')
-      ) {
+      if (left.property.type === 'Identifier' && left.property.name === 'length') {
         if (left.property.name !== '$length') {
           return b.call(
             '$.old_set_property',
@@ -1095,9 +1028,8 @@ const visitors = {
 
     if (
       argument.type === 'MemberExpression' &&
-      ((argument.property.type === 'Identifier' && is_tracked_name(argument.property.name)) ||
-        (argument.computed &&
-          is_tracked_computed_property(argument.object, argument.property, context)))
+      argument.computed &&
+      is_tracked_computed_property(argument.object, argument.property, context)
     ) {
       return b.call(
         node.prefix ? '$.old_update_pre_property' : '$.old_update_property',
@@ -1126,78 +1058,6 @@ const visitors = {
       if (update_fn) {
         return update_fn(node);
       }
-    }
-
-    context.next();
-  },
-
-  ObjectExpression(node, context) {
-    const properties = [];
-    const tracked = [];
-
-    for (const property of node.properties) {
-      if (
-        property.type === 'Property' &&
-        !property.computed &&
-        property.key.type === 'Identifier' &&
-        property.kind === 'init' &&
-        is_tracked_name(property.key.name)
-      ) {
-        tracked.push(b.literal(property.key.name));
-        const metadata = { tracking: false, await: false };
-        const tracked_property = context.visit(property, { ...context.state, metadata });
-
-        if (metadata.tracking) {
-          properties.push({
-            ...tracked_property,
-            value: b.call('$.computed_property', b.thunk(tracked_property.value), b.id('__block')),
-          });
-        } else {
-          properties.push(tracked_property);
-        }
-      } else {
-        properties.push(context.visit(property));
-      }
-    }
-
-    if (tracked.length > 0) {
-      return b.call('$.tracked_object', { ...node, properties }, b.array(tracked), b.id('__block'));
-    }
-
-    context.next();
-  },
-
-  ArrayExpression(node, context) {
-    // TODO we can bail out of all of this if we know we're inside a computed fn expression
-    // as the reactivity will hold from the reference of the $ binding itself
-    const elements = [];
-    const tracked = [];
-    let i = 0;
-
-    for (const element of node.elements) {
-      if (element === null) {
-        elements.push(null);
-      } else if (element.type === 'Identifier' && is_tracked_name(element.name)) {
-        const metadata = { tracking: false, await: false };
-        const tracked_identifier = context.visit(element, { ...context.state, metadata });
-
-        if (metadata.tracking) {
-          tracked.push(b.literal(i));
-          elements.push(
-            b.call('$.computed_property', b.thunk(tracked_identifier), b.id('__block')),
-          );
-        } else {
-          elements.push(tracked_identifier);
-        }
-      } else {
-        const metadata = { tracking: false, await: false };
-        elements.push(context.visit(element, { ...context.state, metadata }));
-      }
-      i++;
-    }
-
-    if (tracked.length > 0) {
-      return b.call('$.tracked_object', { ...node, elements }, b.array(tracked), b.id('__block'));
     }
 
     context.next();

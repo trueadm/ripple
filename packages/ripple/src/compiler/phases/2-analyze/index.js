@@ -8,7 +8,6 @@ import {
   is_inside_component,
   is_ripple_import,
   is_tracked_computed_property,
-  is_tracked_name,
   is_void_element,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
@@ -46,34 +45,6 @@ function visit_function(node, context) {
     scope: context.state.scope,
     tracked: false,
   };
-
-  if (node.params.length > 0) {
-    for (let i = 0; i < node.params.length; i += 1) {
-      const param = node.params[i];
-
-      if (param.type === 'ObjectPattern' || param.type === 'ArrayPattern') {
-        const paths = extract_paths(param);
-        const id = context.state.scope.generate('__arg');
-        const arg_id = b.id(id);
-
-        for (const path of paths) {
-          const name = path.node.name;
-
-          const expression = path.expression(arg_id);
-          const binding = context.state.scope.get(name);
-
-          if (binding !== null && is_tracked_name(name)) {
-            node.params[i] = b.id(id);
-            binding.kind = path.has_default_value ? 'prop_fallback' : 'prop';
-
-            binding.transform = {
-              read: (_, __, visit) => visit(expression),
-            };
-          }
-        }
-      }
-    }
-  }
 
   context.next({
     ...context.state,
@@ -129,7 +100,7 @@ const visitors = {
 
     if (
       is_reference(node, /** @type {Node} */ (parent)) &&
-      (is_tracked_name(node) || node.tracked) &&
+      node.tracked &&
       binding?.node !== node
     ) {
       mark_as_tracked(context.path);
@@ -155,18 +126,7 @@ const visitors = {
     const parent = context.path.at(-1);
 
     if (context.state.metadata?.tracking === false && parent.type !== 'AssignmentExpression') {
-      if (
-        node.property.type === 'Identifier' &&
-        !node.computed &&
-        is_tracked_name(node.property.name)
-      ) {
-        context.state.metadata.tracking = true;
-      } else if (
-        node.computed &&
-        is_tracked_computed_property(node.object, node.property, context)
-      ) {
-        context.state.metadata.tracking = true;
-      }
+      context.state.metadata.tracking = true;
     }
 
     context.next();
@@ -179,32 +139,6 @@ const visitors = {
 
     if (!is_inside_component(context, true)) {
       mark_as_tracked(context.path);
-    }
-
-    context.next();
-  },
-
-  ObjectExpression(node, context) {
-    for (const property of node.properties) {
-      if (
-        property.type === 'Property' &&
-        !property.computed &&
-        property.key.type === 'Identifier' &&
-        property.kind === 'init' &&
-        is_tracked_name(property.key.name)
-      ) {
-        mark_as_tracked(context.path);
-      }
-    }
-
-    context.next();
-  },
-
-  ArrayExpression(node, context) {
-    for (const element of node.elements) {
-      if (element !== null && element.type === 'Identifier' && is_tracked_name(element.name)) {
-        mark_as_tracked(context.path);
-      }
     }
 
     context.next();
@@ -234,42 +168,17 @@ const visitors = {
         const binding = state.scope.get(declarator.id.name);
 
         if (binding !== null && parent?.type !== 'ForOfStatement') {
-          if (is_tracked_name(declarator.id.name)) {
-            binding.kind = 'tracked';
-
-            mark_as_tracked(path);
-
-            visit(declarator, { ...state, metadata });
-
-            if (init_is_untracked && metadata.tracking) {
-              metadata.tracking = false;
-            }
-
-            binding.transform = {
-              read: (node) => {
-                return metadata.tracking && !metadata.await
-                  ? b.call('$.get_derived', node)
-                  : b.call('$.get_tracked', node);
-              },
-              assign: (node, value) => {
-                return b.call('$.set', node, value, b.id('__block'));
-              },
-              update: (node) => {
-                return b.call(
-                  node.prefix ? '$.update_pre' : '$.update',
-                  node.argument,
-                  b.id('__block'),
-                  node.operator === '--' && b.literal(-1),
-                );
-              },
-            };
-          } else if (binding.initial?.type !== 'Literal') {
+          if (binding.initial?.type !== 'Literal') {
             for (const ref of binding.references) {
               const path = ref.path;
               const parent_node = path?.at(-1);
 
               // We're reading a computed property, which might mean it's a reactive property
-              if (!ref.node.tracked && parent_node?.type === 'MemberExpression' && parent_node.computed) {
+              if (
+                !ref.node.tracked &&
+                parent_node?.type === 'MemberExpression' &&
+                parent_node.computed
+              ) {
                 binding.transform = {
                   assign: (node, value, computed) => {
                     if (!computed) {
@@ -289,9 +198,7 @@ const visitors = {
         }
       } else {
         const paths = extract_paths(declarator.id);
-        const has_tracked = paths.some(
-          (path) => path.node.type === 'Identifier' && is_tracked_name(path.node.name),
-        );
+
         for (const path of paths) {
           if (path.node.tracked) {
             error(
@@ -302,68 +209,7 @@ const visitors = {
           }
         }
 
-        if (has_tracked) {
-          const tmp = state.scope.generate('tmp');
-          declarator.transformed = b.id(tmp);
-
-          if (declarator.init !== null) {
-            visit(declarator.init, { ...state, metadata });
-          }
-
-          if (init_is_untracked && metadata.tracking) {
-            metadata.tracking = false;
-          }
-
-          for (const path of paths) {
-            const binding = state.scope.get(path.node.name);
-
-            binding.transform = {
-              read: (node) => {
-                const value = path.expression?.(b.id(tmp));
-
-                if (metadata.tracking && metadata.await) {
-                  // TODO
-                  debugger;
-                } else if (metadata.tracking && !metadata.await) {
-                  if (is_tracked_name(path.node.name) && value.type === 'MemberExpression') {
-                    return b.call(
-                      '$.old_get_property',
-                      b.call('$.get_derived', value.object),
-                      value.property.type === 'Identifier'
-                        ? b.literal(value.property.name)
-                        : value.property,
-                    );
-                  }
-
-                  const key =
-                    value.property.type === 'Identifier'
-                      ? b.key(value.property.name)
-                      : value.property;
-
-                  return b.member(
-                    b.call('$.get_derived', value.object),
-                    key,
-                    key.type === 'Literal',
-                  );
-                }
-
-                if (is_tracked_name(path.node.name) && value.type === 'MemberExpression') {
-                  return b.call(
-                    '$.old_get_property',
-                    value.object,
-                    value.property.type === 'Identifier'
-                      ? b.literal(value.property.name)
-                      : value.property,
-                  );
-                }
-
-                return value;
-              },
-            };
-          }
-        } else {
-          visit(declarator, state);
-        }
+        visit(declarator, state);
       }
 
       declarator.metadata = metadata;
@@ -398,8 +244,8 @@ const visitors = {
 
             binding.transform = {
               read: (_) => {
-				return path.expression(b.id('__props'))
-			  },
+                return path.expression(b.id('__props'));
+              },
               assign: (node, value) => {
                 return b.assignment('=', path.expression(b.id('__props')), value);
               },
@@ -547,11 +393,11 @@ const visitors = {
         } else if (attr.type === 'AccessorAttribute') {
           attribute_names.add(attr.name);
           visit(attr.get, state);
-		  if (attr.set) {
-		  	visit(attr.set, state);
-		  }
+          if (attr.set) {
+            visit(attr.set, state);
+          }
         } else if (attr.type === 'SpreadAttribute') {
-			visit(attr.argument, state);
+          visit(attr.argument, state);
         } else if (attr.type === 'RefAttribute') {
           visit(attr.argument, state);
         }
@@ -602,18 +448,6 @@ const visitors = {
           );
         }
       }
-
-      if (is_tracked_name(name)) {
-        attribute_names.forEach((n) => {
-          if (n.name.slice(1) === name) {
-            error(
-              `Cannot have both ${name} and ${name.slice(1)} on the same element`,
-              state.analysis.module.filename,
-              n,
-            );
-          }
-        });
-      }
     }
 
     return {
@@ -629,6 +463,11 @@ const visitors = {
 
   AwaitExpression(node, context) {
     if (is_inside_component(context)) {
+      error(
+        'Await expressions has been disabled in components for now',
+        context.state.analysis.module.filename,
+        node,
+      );
       if (context.state.metadata?.await === false) {
         context.state.metadata.await = true;
       }

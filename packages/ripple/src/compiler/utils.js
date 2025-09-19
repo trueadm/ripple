@@ -413,10 +413,6 @@ export function is_inside_call_expression(context) {
   return false;
 }
 
-export function is_tracked_name(name) {
-  return typeof name === 'string' && name.startsWith('$') && name.length > 1 && name[1] !== '$';
-}
-
 export function is_value_static(node) {
   if (node.type === 'Literal') {
     return true;
@@ -447,13 +443,6 @@ export function is_tracked_computed_property(object, property, context) {
     }
   }
   if (property.type === 'Identifier') {
-    return true;
-  }
-  if (
-    property.type === 'Literal' &&
-    typeof property.value === 'string' &&
-    is_tracked_name(property.value)
-  ) {
     return true;
   }
 
