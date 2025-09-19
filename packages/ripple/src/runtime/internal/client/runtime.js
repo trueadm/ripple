@@ -1263,6 +1263,9 @@ export function exclude_from_object(obj, keys) {
   return obj;
 }
 
+/**
+ * @param {any} v
+ */
 export async function maybe_tracked(v) {
   var restore = capture();
   let value;
@@ -1271,7 +1274,9 @@ export async function maybe_tracked(v) {
     if ((v.f & DERIVED) !== 0) {
       value = await async_computed(v.fn, v.b);
     } else {
-      value = await get_tracked(v);
+      value = await async_computed(async () => {
+        return await get_tracked(v);
+      }, /** @type {Block} */ (active_block));
     }
   } else {
     value = await v;
