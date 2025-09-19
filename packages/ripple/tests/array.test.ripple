@@ -1547,7 +1547,7 @@ describe('RippleArray', () => {
 			}
 
 			component ArrayTest() {
-				//const items = await RippleArray.fromAsync([6]);
+				const items = await RippleArray.fromAsync([6]);
 
 				<pre>{items ? JSON.stringify(items) : 'Loading...'}</pre>
 				<pre>{items ? items.$length : ''}</pre>
