@@ -9,7 +9,7 @@
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/JBF2ySrh2W)
 [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic)
 
-# What is Ripple?
+# What is RippleJS?
 
 > Currently, this project is still in early development, and should not be used in production.
 
@@ -55,6 +55,12 @@ npx degit trueadm/ripple/templates/basic my-app
 cd my-app
 npm i # or yarn or pnpm
 npm run dev # or yarn or pnpm
+```
+
+If you want to install the RippleJS package directly, it is `ripple` on npm:
+
+```bash
+npm i --save ripple # or yarn or pnpm
 ```
 
 ## VSCode Extension
