@@ -17,12 +17,12 @@
 	"license": "MIT",
 	"devDependencies": {
 		"prettier": "^3.6.2",
-		"prettier-plugin-ripple": "^0.2.29",
+		"prettier-plugin-ripple": "^0.2.49",
 		"typescript": "^5.9.2",
-		"vite": "^7.1.4",
-		"vite-plugin-ripple": "^0.2.29"
+		"vite": "^7.1.6",
+		"vite-plugin-ripple": "^0.2.49"
 	},
 	"dependencies": {
-		"ripple": "^0.2.29"
+		"ripple": "^0.2.49"
 	}
 }
