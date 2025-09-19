@@ -6,191 +6,160 @@ title: Reactivity in Ripple
 
 ## Reactive Variables
 
-Variables prefixed with `$` are automatically reactive:
+You use `track` to create a single tracked value. The `track` function will created a `Tracked<T>` object that
+is not accessible from the outside, and instead you must use `@` to read or write to the tracked value. You can pass the `Tracked<T>` object between components, functions and context
+to read and write to the value in different parts of your codebase.
 
 ```ts
-let $name = 'World';
-let $count = 0;
+import { track } from 'ripple';
+
+let name = track('World');
+let count = track(0);
 
 // Updates automatically trigger re-renders
-$count++;
+@count++;
 ```
 
-Object properties prefixed with `$` are also automatically reactive:
+Objects can also contain tracked values with `@` to access the reactive object property:
 
 ```ts
-let counter = { $current: 0 };
+import { track } from 'ripple';
+
+let counter = { current: track(0) };
 
 // Updates automatically trigger re-renders
-counter.$current++;
+counter.@current++;
 ```
 
-Derived values are simply `$` variables that combined different parts of state:
+Tracked derived values are also `Tracked<T>` objects, except you pass a function to `track` rather than a value:
 
 ```ts
-let $count = 0;
-let $double = $count * 2;
-let $quadruple = $double * 2;
+let count = track(0);
+let double = track(() => @count * 2);
+let quadruple = track(() => @double * 2);
+
+console.log(@quadruple);
 ```
 
-That means `$count` itself might be derived if it were to reference another reactive property. For example:
+If you want to use a tracked value inside a reactive context, such as an effect but you don't want that value to be a tracked dependency, you can use `untrack`:
 
-```ripple
-component Counter({ $startingCount }) {
-  let $count = $startingCount;
-  let $double = $count * 2;
-  let $quadruple = $double * 2;
-}
+```ts
+let count = track(0);
+let double = track(() => @count * 2);
+let quadruple = track(() => @double * 2);
+
+effect(() => {
+  // This effect will never fire again, as we've untracked the only dependency it has
+  console.log(untrack(() => @quadruple));
+})
 ```
-
-Now given `$startingCount` is reactive, it would mean that `$count` might reset each time an incoming change to `$startingCount` occurs. That might not be desirable, so Ripple provides a way to `untrack` reactivity in those cases:
-
-```ripple
-import { untrack } from 'ripple';
-
-component Counter({ $startingCount }) {
-  let $count = untrack(() => $startingCount);
-  let $double = $count * 2;
-  let $quadruple = $double * 2;
-}
-```
-
-Now `$count` will only reactively create its value on initialization.
-
-> Note: you cannot define reactive variables in module/global scope, they have to be created on access from an active component
-
-
-## Props and Attributes
-If you want a prop to be reactive, you should also give it a `$` prefix.
-
-```ripple
-component Button(props: { $text: string, onClick: () => void }) {
-  <button onClick={props.onClick}>
-    {props.$text}
-  </button>
-}
-
-// Usage
-<Button $text={some_text} onClick={() => console.log("Clicked!")} />
-```
-
-This also applies to DOM elements, if you want an attribute or property to be reactive, it needs to have a `$` prefix.
-
-```tsx
-<div $class={props.$someClass} $id={$someId}>
-  {$someText}
-</div>
-```
-
-Otherwise changes to the attribute or property will not be reactively updated.
+::: info Note
+You cannot create `Tracked` objects in module/global scope, they have to be created on access from an active component context.
+:::
 
 ## Transporting Reactivity
 
-Ripple doesn't constrain reactivity to components only. Reactivity can be used inside other functions (and classes in the future) and be composed in a way to improve expressitivity and co-location.
-
-Ripple provides a very nice way to transport reactivity between boundaries so that it's persisted – using objects and arrays. Here's an example using arrays to transport reactivity:
+Ripple doesn't constrain reactivity to components only. `Tracked<T>` objects can simply be passed by reference between boundaries:
 
 ```ripple
-import { effect } from 'ripple';
+import { effect, track } from 'ripple';
 
-function createDouble([ $count ]) {
-  const $double = $count * 2;
+function createDouble([ count ]) {
+  const double = track(() => @count * 2);
 
   effect(() => {
-    console.log('Count:', $count)
+    console.log('Count:', @count)
   });
 
-  return [ $double ];
+  return [ double ];
 }
 
 export component App() {
-  let $count = 0;
+  let count = track(0);
 
-  const [ $double ] = createDouble([ $count ]);
+  const [ double ] = createDouble([ count ]);
 
-  <div>{'Double: ' + $double}</div>
-  <button onClick={() => { $count++; }}>{'Increment'}</button>
+  <div>{'Double: ' + @double}</div>
+  <button onClick={() => { @count++; }}>{'Increment'}</button>
 }
 ```
 
 You can do the same with objects too:
 
 ```ripple
-import { effect } from 'ripple';
+import { effect, track } from 'ripple';
 
-function createDouble({ $count }) {
-  const $double = $count * 2;
+function createDouble({ count }) {
+  const double = track(() => @count * 2);
 
   effect(() => {
-    console.log('Count:', $count)
+    console.log('Count:', @count)
   });
 
-  return { $double };
+  return { double };
 }
 
 export component App() {
-  let $count = 0;
-  const { $double } = createDouble({ $count });
+  let count = track(0);
+  const { double } = createDouble({ count });
 
-  <div>{'Double: ' + $double}</div>
-  <button onClick={() => { $count++; }}>{'Increment'}</button>
+  <div>{'Double: ' + @double}</div>
+  <button onClick={() => { @count++; }}>{'Increment'}</button>
 }
 ```
-
-Just remember, reactive state must be connected to a component and it can't be global or created within the top-level of a module – because then Ripple won't be able to link it to your component tree.
 
 ## Array Transport Pattern
 
 ```ripple
-import { effect } from 'ripple';
+import { effect, track } from 'ripple';
 
-function createDouble([ $count ]) {
-  const $double = $count * 2;
+function createDouble([ count ]) {
+  const double = track(() => @count * 2);
 
   effect(() => {
-    console.log('Count:', $count)
+    console.log('Count:', @count)
   });
 
-  return [ $double ];
+  return [ double ];
 }
 
 export component App() {
-  let $count = 0;
+  let count = track(0);
 
-  const [ $double ] = createDouble([ $count ]);
+  const [ double ] = createDouble([ count ]);
 
-  <div>{'Double: ' + $double}</div>
-  <button onClick={() => { $count++; }}>{'Increment'}</button>
+  <div>{'Double: ' + @double}</div>
+  <button onClick={() => { @count++; }}>{'Increment'}</button>
 }
 ```
 
 ## Object Transport Pattern
 
 ```ripple
-import { effect } from 'ripple';
+import { effect, track } from 'ripple';
 
-function createDouble({ $count }) {
-  const $double = $count * 2;
+function createDouble({ count }) {
+  const double = track(() => @count * 2);
 
   effect(() => {
-    console.log('Count:', $count)
+    console.log('Count:', @count)
   });
-  return { $double };
+  return { double };
 }
 
 export component App() {
-  let $count = 0;
-  const { $double } = createDouble({ $count });
+  let count = track(0);
+  const { double } = createDouble({ count });
 
-  <div>{'Double: ' + $double}</div>
-  <button onClick={() => { $count++; }}>{'Increment'}</button>
+  <div>{'Double: ' + @double}</div>
+  <button onClick={() => { @count++; }}>{'Increment'}</button>
 }
 ```
 
 **Transport Rules:**
 - Reactive state must be connected to a component
-- Cannot be global or created at module top-level
-- Use arrays `[ $var ]` or objects `{ $var }` to transport reactivity
+- Cannot be global or created at module/global scope
+- Use arrays `[ trackedVar ]` or objects `{ trackedVar }` to transport reactivity
 - Functions can accept and return reactive state using these patterns
 - This enables composable reactive logic outside of component boundaries
 
@@ -202,13 +171,13 @@ To do this, you can use `effect`:
 import { effect } from 'ripple';
 
 export component App() {
-  let $count = 0;
+  let count = track(0);
 
   effect(() => {
-    console.log($count);
+    console.log(@count);
   });
 
-  <button onClick={() => $count++}>{'Increment'}</button>
+  <button onClick={() => @count++}>{'Increment'}</button>
 }
 ```
 
@@ -235,14 +204,16 @@ primitives that Ripple for reactivity for an entire collection.
 
 ### Reactive Arrays
 
-Just like, objects, you can use the `$` prefix in an array literal to specify that the field is reactive.
+Just like objects, you can use the `Tracked<T>` objects in any standard JavaScript object, like arrays:
 
 ```js
-let $first = 0;
-let $second = 0;
-const arr = [$first, $second];
+let first = track(0);
+let second = track(0);
+const arr = [first, second];
 
-const $total = arr.reduce((a, b) => a + b, 0);
+const total = track(() => arr.reduce((a, b) => a + @b, 0));
+
+console.log(@total);
 ```
 
 Like shown in the above example, you can compose normal arrays with reactivity and pass them through props or boundaries.
@@ -266,12 +237,12 @@ const arr = RippleArray.of(1, 2, 3);
 ```
 
 The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index. However,
-accessing the `length` property of a `RippleArray` will be not be reactive, instead you should use `$length`.
+accessing the `length` property of a `RippleArray` will not be reactive, instead you should use `$length`.
 
 ### Reactive Set
 
 The `RippleSet` extends the standard JS `Set` class, and supports all of its methods and properties. However,
-accessing the `size` property of a `RippleSet` will be not be reactive, instead you should use `$size`.
+accessing the `size` property of a `RippleSet` will not be reactive, instead you should use `$size`.
 
 ```js
 import { RippleSet } from 'ripple';
@@ -282,7 +253,7 @@ const set = new RippleSet([1, 2, 3]);
 RippleSet's reactive methods or properties can be used directly or assigned to reactive variables.
 
 ```ripple
-import { RippleSet } from 'ripple';
+import { RippleSet, track } from 'ripple';
 
 export component App() {
   const set = new RippleSet([1, 2, 3]);
@@ -290,9 +261,9 @@ export component App() {
   // direct usage
   <p>{"Direct usage: set contains 2: "}{set.has(2)}</p>
 
-  // reactive assignment with prefixed `$`
-  let $has = set.has(2);
-  <p>{"Assigned usage: set contains 2: "}{$has}</p>
+  // reactive assignment
+  let has = track(() => set.has(2));
+  <p>{"Assigned usage: set contains 2: "}{@has}</p>
 
   <button onClick={() => set.delete(2)}>{"Delete 2"}</button>
   <button onClick={() => set.add(2)}>{"Add 2"}</button>
@@ -302,10 +273,10 @@ export component App() {
 ### Reactive Map
 
 The `RippleMap` extends the standard JS `Map` class, and supports all of its methods and properties. However,
-accessing the `size` property of a `RippleMap` will be not be reactive, instead you should use `$size`.
+accessing the `size` property of a `RippleMap` will not be reactive, instead you should use `$size`.
 
 ```js
-import { RippleMap } from 'ripple';
+import { RippleMap, track } from 'ripple';
 
 const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
 ```
@@ -313,7 +284,7 @@ const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
 RippleMap's reactive methods or properties can be used directly or assigned to reactive variables.
 
 ```ripple
-import { RippleMap } from 'ripple';
+import { RippleMap, track } from 'ripple';
 
 export component App() {
   const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
@@ -321,9 +292,9 @@ export component App() {
   // direct usage
   <p>{"Direct usage: map has an item with key 2: "}{map.has(2)}</p>
 
-  // reactive assignment with prefixed `$`
-  let $has = map.has(2);
-  <p>{"Assigned usage: map has an item with key 2: "}{$has}</p>
+  // reactive assignment
+  let has = track(() => map.has(2));
+  <p>{"Assigned usage: map has an item with key 2: "}{@has}</p>
 
   <button onClick={() => map.delete(2)}>{"Delete item with key 2"}</button>
   <button onClick={() => map.set(2, 2)}>{"Add key 2 with value 2"}</button>

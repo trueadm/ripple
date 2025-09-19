@@ -21,58 +21,57 @@ const object = {
 }
 ```
 
-So Ripple provides similar capabilities when working with composite components in a template, specifcally using `$prop:={}` rather than the typical `$prop={}`.
+So Ripple provides similar capabilities when working with composite components in a template, specifically using `prop:={}` rather than the typical `prop={}`.
 
-In fact, when you use an accessor, you must pass a function, and the prop must be `$` prefixed, as Ripple considers accessor props as reactive:
 
 ```ripple
-let $name = 'Bob';
+let name = track('Bob');
 
 const getName = () => {
   // I can easily debug when this property gets
   // access and track it easily
-  console.log(name);
-  return $name;
+  console.log(@name);
+  return @name;
 };
 
-<Person $name:={getName} />
+<Person name:={getName} />
 ```
 
 You can also inline the function too:
 
 ```ripple
-let $name = 'Bob';
+let name = track('Bob');
 
-<Person $name:={() => {
+<Person name:={() => {
   // I can easily debug when this property gets
   // access and track it easily
-  console.log(name);
-  return $name;
+  console.log(@name);
+  return @name;
 }} />
 ```
 
 Furthermore, just like property accessors in JavaScript, Ripple provides a way of capturing the `set` too, enabling two-way data-flow on composite component props. You just need to provide a second function after the first, separated using a comma:
 
 ```ripple
-let $name = 'Bob';
+let name = track('Bob');
 
 const getName = () => {
-  return $name;
+  return @name;
 }
 
 const setName = (newName) => {
-  $name = newName;
+  @name = newName;
 }
 
-<Person $name:={getName, setName} />
+<Person name:={getName, setName} />
 ```
 
 Or an inlined version:
 
 ```ripple
-let $name = 'Bob';
+let name = track('Bob');
 
-<Person $name:={() => $name, (newName) => $name = $newName} />
+<Person name:={() => @name, (newName) => @name = newName} />
 ```
 
 Now changes in the `Person` to its `props` will propagate to its parent component:
@@ -80,19 +79,17 @@ Now changes in the `Person` to its `props` will propagate to its parent componen
 ```ripple
 component Person(props) {
   const updateName = (newName) => {
-    props.$name = newName;
+    props.name = newName;
   }
 
   <NameInput onChange={updateName}>
 }
 ```
 
-
 **Key Rules:**
-- Accessor props use `$prop:={}` syntax (colon before equals)
-- Props must be `$` prefixed (Ripple considers accessor props reactive)
+- Accessor props use `prop:={}` syntax (colon before equals)
 - Must pass function(s), not direct values
 - Single function = getter only (read access + debugging)
 - Two functions = getter + setter (separated by comma)
-- Component can assign directly to `props.$name` to trigger setter
+- Component can assign directly to `props.name` to trigger setter
 - Enables debugging prop access and two-way binding patterns

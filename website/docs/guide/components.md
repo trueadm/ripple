@@ -20,16 +20,16 @@ within `effect()` to ensure they only run when intended.
 
 ## Children
 
-Use `$children` prop and then use it in the form of `<$children />` for component composition.
+Use `children` prop and then use it in the form of `<children />` for component composition.
 
-When you pass in children to a component, it gets implicitly passed as the `$children` prop, in the form of a component.
+When you pass in children to a component, it gets implicitly passed as the `children` prop, in the form of a component.
 
 ```ripple
 import type { Component } from 'ripple';
 
-component Card(props: { $children: Component }) {
+component Card(props: { children: Component }) {
   <div class="card">
-    <props.$children />
+    <props.children />
   </div>
 }
 
@@ -44,15 +44,15 @@ You could also explicitly write the same code as shown:
 ```ripple
 import type { Component } from 'ripple';
 
-component Card(props: { $children: Component }) {
+component Card(props: { children: Component }) {
   <div class="card">
-    <props.$children />
+    <props.children />
   </div>
 }
 
 // Usage with explicit component
 <Card>
-  component $children() {
+  component children() {
     <p>{"Card content here"}</p>
   }
 </Card>

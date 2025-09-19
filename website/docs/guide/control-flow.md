@@ -7,7 +7,7 @@ title: Control flow in Ripple
 The JSX-like syntax might take some time to get used to if you're coming from another framework. For one, templating in Ripple
 can only occur _inside_ a `component` body – you can't create JSX inside functions, or assign it to variables as an expression.
 
-```ripple
+```jsx
 <div>
   // you can create variables inside the template!
   const str = "hello world";
