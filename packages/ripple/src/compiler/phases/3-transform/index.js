@@ -1032,7 +1032,7 @@ const visitors = {
 
       return b.call(
         '$.set_property',
-        context.visit(left.object),
+        context.visit(left.object, { ...context.state, metadata: { tracking: false } }),
         left.computed ? context.visit(left.property) : b.literal(left.property.name),
         operator === '='
           ? context.visit(right)
@@ -1117,7 +1117,7 @@ const visitors = {
 
       return b.call(
         node.prefix ? '$.update_pre_property' : '$.update_property',
-        context.visit(argument.object),
+        context.visit(argument.object, { ...context.state, metadata: { tracking: false } }),
         argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
         b.id('__block'),
         node.operator === '--' ? b.literal(-1) : undefined,
