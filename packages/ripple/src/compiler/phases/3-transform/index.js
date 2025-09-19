@@ -823,7 +823,7 @@ const visitors = {
             b.call(
               node.id,
               id,
-              b.call('$.tracked_spread_object', b.thunk(b.object(props))),
+              b.call('$.tracked_spread_object', b.thunk(b.object(props)), b.id('__block')),
               b.id('$.active_block'),
             ),
           ),

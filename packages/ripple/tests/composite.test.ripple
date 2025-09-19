@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, track, RippleArray } from 'ripple';
+import { mount, flushSync, track, RippleArray, effect } from 'ripple';
 
 describe('composite components', () => {
 	let container;
@@ -294,5 +294,46 @@ describe('composite components', () => {
 		}
 
 		render(ArrayTest);
+	});
+
+	it('handles spreading of props', () => {
+		let logs = [];
+
+		component App() {
+			const a = track(1);
+			const b = track(2);
+			const c = track(3);
+
+			const obj = track(() => ({
+				@a,
+				@b,
+				@c,
+			}));
+
+			<Child {...@obj} />
+
+			<button onClick={() => { @a++; @b++; @c++; }}>{"Increment all"}</button>
+		}
+
+		component Child({ a, b, c }) {
+			effect(() => {
+				logs.push(`Child effect: ${a}, ${b}, ${c}`);
+			});
+
+			<div>{a + ' ' +  b + ' ' + c}</div>
+		}
+
+		render(App);
+		flushSync();
+
+		expect(container.querySelector('div').textContent).toBe('1 2 3');
+		expect(logs).toEqual(['Child effect: 1, 2, 3']);
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('div').textContent).toBe('2 3 4');
+		expect(logs).toEqual(['Child effect: 1, 2, 3', 'Child effect: 2, 3, 4']);
 	});
 });

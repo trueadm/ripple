@@ -20,7 +20,6 @@ import {
   EFFECT_BLOCK,
   PAUSED,
   ROOT_BLOCK,
-  SPREAD_OBJECT,
   TRACKED,
   TRACKED_OBJECT,
   TRY_BLOCK,
@@ -781,17 +780,18 @@ export function flush_sync(fn) {
 
 /**
  * @param {() => Object} fn
+ * @param {Block} block
  * @returns {Object}
  */
-export function tracked_spread_object(fn) {
-  var obj = fn();
+export function tracked_spread_object(fn, block) {
+  let computed = derived(fn, block);
 
-  define_property(obj, SPREAD_OBJECT, {
-    value: fn,
-    enumerable: false,
+  return new Proxy({}, {
+    get(target, property) {
+      const obj = get_derived(computed);
+      return obj[property];
+    }
   });
-
-  return obj;
 }
 
 /**
@@ -918,10 +918,6 @@ export function old_get_property(obj, property, chain = false) {
     if (obj[property] !== value) {
       obj[property] = value;
     }
-  } else if (SPREAD_OBJECT in obj) {
-    var spread_fn = obj[SPREAD_OBJECT];
-    var properties = spread_fn();
-    return old_get_property(properties, property, chain);
   } else if (is_ripple_array(obj)) {
     obj.$length;
   }
