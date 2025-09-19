@@ -354,6 +354,30 @@ export function build_hoisted_params(node, context) {
   return params;
 }
 
+export function is_top_level_await(context) {
+  if (!is_inside_component(context)) {
+    return false;
+  }
+
+  for (let i = context.path.length - 1; i >= 0; i -= 1) {
+    const context_node = context.path[i];
+    const type = context_node.type;
+
+    if (type === 'Component') {
+      return true;
+    }
+
+    if (
+      type === 'FunctionExpression' ||
+      type === 'ArrowFunctionExpression' ||
+      type === 'FunctionDeclaration'
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function is_inside_component(context, includes_functions = false) {
   for (let i = context.path.length - 1; i >= 0; i -= 1) {
     const context_node = context.path[i];

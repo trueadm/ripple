@@ -15,7 +15,7 @@ import is_reference from 'is-reference';
 import { prune_css } from './prune.js';
 import { error } from '../../errors.js';
 
-function mark_for_loop_has_template(path) {
+function mark_control_flow_has_template(path) {
   for (let i = path.length - 1; i >= 0; i -= 1) {
     const node = path[i];
 
@@ -30,10 +30,11 @@ function mark_for_loop_has_template(path) {
     if (
       node.type === 'ForStatement' ||
       node.type === 'ForInStatement' ||
-      node.type === 'ForOfStatement'
+      node.type === 'ForOfStatement' ||
+      node.type === 'TryStatement' ||
+      node.type === 'IfStatement'
     ) {
       node.metadata.has_template = true;
-      break;
     }
   }
 }
@@ -296,12 +297,88 @@ const visitors = {
       has_template: false,
     };
     context.next();
+
     if (!node.metadata.has_template) {
       error(
-        'For...of loops must contain a template in their body. Move the for loop into an effect if it does not render anything.',
+        'Component for...of loops must contain a template in their body. Move the for loop into an effect if it does not render anything.',
         context.state.analysis.module.filename,
         node,
       );
+    }
+  },
+
+  IfStatement(node, context) {
+    if (!is_inside_component(context)) {
+      return context.next();
+    }
+
+    node.metadata = {
+      has_template: false,
+    };
+
+    context.visit(node.consequent, context.state);
+
+    if (!node.metadata.has_template) {
+      error(
+        'Component if statements must contain a template in their "then" body. Move the if statement into an effect if it does not render anything.',
+        context.state.analysis.module.filename,
+        node,
+      );
+    }
+
+    if (node.alternate) {
+      node.metadata = {
+        has_template: false,
+      };
+      context.visit(node.alternate, context.state);
+
+      if (!node.metadata.has_template) {
+        error(
+          'Component if statements must contain a template in their "else" body. Move the if statement into an effect if it does not render anything.',
+          context.state.analysis.module.filename,
+          node,
+        );
+      }
+    }
+  },
+
+  TryStatement(node, context) {
+    if (!is_inside_component(context)) {
+      return context.next();
+    }
+
+    if (node.pending) {
+      node.metadata = {
+        has_template: false,
+      };
+
+      context.visit(node.block, context.state);
+
+      if (!node.metadata.has_template) {
+        error(
+          'Component try statements must contain a template in their main body. Move the try statement into an effect if it does not render anything.',
+          context.state.analysis.module.filename,
+          node,
+        );
+      }
+
+      node.metadata = {
+        has_template: false,
+      };
+
+      context.visit(node.pending, context.state);
+
+      if (!node.metadata.has_template) {
+        error(
+          'Component try statements must contain a template in their "pending" body. Rendering a pending fallback is required to have a template.',
+          context.state.analysis.module.filename,
+          node,
+        );
+      }
+    }
+
+    if (node.finalizer) {
+      context.visit(node.finalizer, context.state);
     }
   },
 
@@ -332,7 +409,7 @@ const visitors = {
     const is_dom_element = is_element_dom_element(node, context);
     const attribute_names = new Set();
 
-    mark_for_loop_has_template(path);
+    mark_control_flow_has_template(path);
 
     if (is_dom_element) {
       const is_void = is_void_element(node.id.name);
@@ -457,17 +534,12 @@ const visitors = {
   },
 
   Text(node, context) {
-    mark_for_loop_has_template(context.path);
+    mark_control_flow_has_template(context.path);
     context.next();
   },
 
   AwaitExpression(node, context) {
     if (is_inside_component(context)) {
-      error(
-        'Await expressions has been disabled in components for now',
-        context.state.analysis.module.filename,
-        node,
-      );
       if (context.state.metadata?.await === false) {
         context.state.metadata.await = true;
       }

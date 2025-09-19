@@ -292,6 +292,14 @@ function RipplePlugin(config) {
         this.next();
         node.block = this.parseBlock();
         node.handler = null;
+
+		if (this.value === 'pending') {
+          this.next();
+          node.pending = this.parseBlock();
+        } else {
+          node.pending = null;
+        }
+
         if (this.type === tt._catch) {
           var clause = this.startNode();
           this.next();
@@ -310,14 +318,7 @@ function RipplePlugin(config) {
         }
         node.finalizer = this.eat(tt._finally) ? this.parseBlock() : null;
 
-        if (this.value === 'async') {
-          this.next();
-          node.async = this.parseBlock();
-        } else {
-          node.async = null;
-        }
-
-        if (!node.handler && !node.finalizer && !node.async) {
+        if (!node.handler && !node.finalizer && !node.pending) {
           this.raise(node.start, 'Missing catch or finally clause');
         }
         return this.finishNode(node, 'TryStatement');

@@ -1245,17 +1245,17 @@ describe('RippleArray', () => {
 	});
 
 	('fromAsync' in Array.prototype ? describe : describe.skip)('RippleArray fromAsync', async () => {
-		it.skip('handles static fromAsync method with reactivity', async () => {
+		it('handles static fromAsync method with reactivity', async () => {
 			component Parent() {
 				try {
 					<ArrayTest />
-				} async {
+				} pending {
 					<div>{'Loading placeholder...'}</div>
 				}
 			}
 
 			component ArrayTest() {
-				// let items = await RippleArray.fromAsync([1, 2, 3]);
+				let items = await RippleArray.fromAsync([1, 2, 3]);
 
 				<button onClick={() => {
 					if (items) items.push(4);
@@ -1280,20 +1280,20 @@ describe('RippleArray', () => {
 			expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3,4]');
 		});
 
-		it.skip('handles static fromAsync method with mapping function', async () => {
+		it('handles static fromAsync method with mapping function', async () => {
 			component Parent() {
 				try {
 					<ArrayTest />
-				} async {
+				} pending {
 					<div>{'Loading placeholder...'}</div>
 				}
 			}
 
 			component ArrayTest() {
-				// let items = await RippleArray.fromAsync(
-				// 	[1, 2, 3],
-				// 	x => x * 2
-				// );
+				let items = await RippleArray.fromAsync(
+					[1, 2, 3],
+					x => x * 2
+				);
 
 				<button onClick={() => {
 					if (items) items.push(8);
@@ -1316,13 +1316,24 @@ describe('RippleArray', () => {
 			expect(container.querySelector('pre').textContent).toBe('[2,4,6,8]');
 		});
 
+		// TODO: Fix this test case, needs some async love around try statements being using in a not template way
 		it.skip('handles error in fromAsync method', async () => {
 			component Parent() {
 				try {
 					<ArrayTest />
-				} async {
+				} pending {
 					<div>{'Loading placeholder...'}</div>
 				}
+			}
+
+			component ArrayTest() {
+				let items = null;
+				let error = null;
+
+				// try {
+				// 	items = await RippleArray.fromAsync(Promise.reject(new Error('Async error')));
+				// } catch (e) {
+				// }
 			}
 
 			component ArrayTest() {
@@ -1530,7 +1541,7 @@ describe('RippleArray', () => {
 			component Parent() {
 				try {
 					<ArrayTest />
-				} async {
+				} pending {
 					<div>{'Loading placeholder...'}</div>
 				}
 			}

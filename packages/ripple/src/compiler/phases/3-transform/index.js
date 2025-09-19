@@ -23,9 +23,10 @@ import {
   is_void_element,
   is_component_level_function,
   is_element_dom_element,
+  is_top_level_await,
 } from '../../utils.js';
 import is_reference from 'is-reference';
-import { extract_paths, object } from '../../../utils/ast.js';
+import { object } from '../../../utils/ast.js';
 import { render_stylesheets } from './stylesheet.js';
 
 function add_ripple_internal_import(context) {
@@ -228,7 +229,7 @@ const visitors = {
         ...node,
         callee: context.visit(callee),
         arguments: node.arguments.map((arg) => context.visit(arg)),
-      }),
+      }, context.state.metadata?.await ?? false),
     );
   },
 
@@ -283,9 +284,9 @@ const visitors = {
   MemberExpression(node, context) {
     const parent = context.path.at(-1);
 
-	if (context.state.metadata?.tracking === false) {
-		context.state.metadata.tracking = true;
-	}
+    if (context.state.metadata?.tracking === false) {
+      context.state.metadata.tracking = true;
+    }
 
     if (node.property.type === 'Identifier' && node.property.tracked) {
       add_ripple_internal_import(context);
@@ -400,6 +401,7 @@ const visitors = {
               );
             }
           } else {
+            debugger;
             // Runtime mode: full transformation
             if (metadata.tracking && metadata.await) {
               expression = b.call(
@@ -438,7 +440,7 @@ const visitors = {
           delete declarator.id.typeAnnotation;
         }
 
-		declarations.push(context.visit(declarator));
+        declarations.push(context.visit(declarator));
       }
     }
 
@@ -698,7 +700,7 @@ const visitors = {
       }
 
       if (update.length > 0) {
-        state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update)))));
+        state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update), update.async ?? true))));
       }
     } else {
       const id = state.flush_node();
@@ -1183,7 +1185,7 @@ const visitors = {
       state: { ...context.state, metadata },
     });
 
-    if (metadata.await) {
+    if (metadata.pending) {
       body = [b.stmt(b.call('$.async', b.thunk(b.block(body), true)))];
     }
 
@@ -1199,24 +1201,24 @@ const visitors = {
                 [b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
                 b.block(transform_body(node.handler.body.body, context)),
               ),
-          node.async === null
+          node.pending === null
             ? undefined
-            : b.arrow([b.id('__anchor')], b.block(transform_body(node.async.body, context))),
+            : b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
         ),
       ),
     );
   },
 
   AwaitExpression(node, context) {
-    if (!is_inside_component(context)) {
-      context.next();
+    if (!is_top_level_await(context) || context.state.to_ts) {
+      return context.next();
     }
 
     if (context.state.metadata?.await === false) {
       context.state.metadata.await = true;
     }
 
-    return b.call(b.await(b.call('$.resume_context', context.visit(node.argument))));
+    return b.call(b.await(b.call('$.maybe_tracked', context.visit(node.argument))));
   },
 
   BinaryExpression(node, context) {
@@ -1230,24 +1232,6 @@ const visitors = {
 
     const expressions = node.expressions.map((expr) => context.visit(expr));
     return b.template(node.quasis, expressions);
-  },
-
-  RenderFragment(node, context) {
-    const identifer = node.expression.callee;
-
-    context.state.template.push('<!>');
-
-    const id = context.state.flush_node();
-
-    context.state.init.push(
-      b.stmt(
-        b.call(
-          context.visit(identifer),
-          id,
-          ...node.expression.arguments.map((arg) => context.visit(arg, context.state)),
-        ),
-      ),
-    );
   },
 
   BlockStatement(node, context) {
@@ -1490,17 +1474,6 @@ function transform_ts_child(node, context) {
     }
 
     state.init.push(b.try(try_body, catch_handler, finally_block));
-  } else if (node.type === 'RenderFragment') {
-    const identifer = node.expression.callee;
-
-    state.init.push(
-      b.stmt(
-        b.call(
-          context.visit(identifer),
-          ...node.expression.arguments.map((arg) => context.visit(arg, context.state)),
-        ),
-      ),
-    );
   } else if (node.type === 'Component') {
     const component = visit(node, context.state);
 
@@ -1525,7 +1498,6 @@ function transform_children(children, context) {
         node.type === 'IfStatement' ||
         node.type === 'TryStatement' ||
         node.type === 'ForOfStatement' ||
-        node.type === 'RenderFragment' ||
         (node.type === 'Element' &&
           (node.id.type !== 'Identifier' || !is_element_dom_element(node, context))),
     ) ||
@@ -1571,6 +1543,7 @@ function transform_children(children, context) {
     if (
       node.type === 'VariableDeclaration' ||
       node.type === 'ExpressionStatement' ||
+	  node.type === 'ThrowStatement' ||
       node.type === 'FunctionDeclaration' ||
       node.type === 'DebuggerStatement' ||
       node.type === 'ClassDeclaration'
@@ -1634,6 +1607,9 @@ function transform_children(children, context) {
           state.template.push(' ');
           const id = flush_node();
           state.update.push(b.stmt(b.call('$.set_text', id, expression)));
+          if (metadata.await) {
+            state.update.async = true;
+          }
         } else if (normalized.length === 1) {
           if (expression.type === 'Literal') {
             state.template.push(escape_html(expression.value));
@@ -1649,6 +1625,9 @@ function transform_children(children, context) {
           state.template.push(' ');
           const id = flush_node();
           state.update.push(b.stmt(b.call('$.set_text', id, expression)));
+          if (metadata.await) {
+            state.update.async = true;
+          }
         }
       } else if (node.type === 'ForOfStatement') {
         const is_controlled = normalized.length === 1;
@@ -1659,10 +1638,6 @@ function transform_children(children, context) {
         node.is_controlled = is_controlled;
         visit(node, { ...state, flush_node });
       } else if (node.type === 'TryStatement') {
-        const is_controlled = normalized.length === 1;
-        node.is_controlled = is_controlled;
-        visit(node, { ...state, flush_node });
-      } else if (node.type === 'RenderFragment') {
         const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
         visit(node, { ...state, flush_node });

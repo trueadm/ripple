@@ -79,7 +79,7 @@ export function set_active_block(block) {
 }
 
 /**
- * @param {Block | null} reaction
+ * @param {Block | Derived | null} reaction
  */
 export function set_active_reaction(reaction) {
   active_reaction = reaction;
@@ -279,7 +279,7 @@ export function derived(fn, block) {
     b: block,
     blocks: null,
     c: 0,
-	co: active_component,
+    co: active_component,
     d: null,
     f: TRACKED | DERIVED,
     fn,
@@ -894,7 +894,7 @@ export function get_property(obj, property, chain = false) {
   }
   var tracked = obj[property];
   if (tracked == null) {
-	return tracked;
+    return tracked;
   }
   return get(tracked);
 }
@@ -1265,4 +1265,24 @@ export function exclude_from_object(obj, keys) {
     delete obj[key];
   }
   return obj;
+}
+
+export async function maybe_tracked(v) {
+  var restore = capture();
+  let value;
+
+  if (typeof v === 'object' && v !== null && typeof v.f === 'number') {
+    if ((v.f & DERIVED) !== 0) {
+      value = await async_computed(v.fn, v.b);
+    } else {
+      value = await get_tracked(v);
+    }
+  } else {
+    value = await v;
+  }
+
+  return () => {
+    restore();
+    return value;
+  };
 }

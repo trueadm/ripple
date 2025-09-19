@@ -95,7 +95,7 @@ export function suspend() {
     current = current.p;
   }
 
-  throw new Error('Missing parent `try { ... } async { ... }` statement');
+  throw new Error('Missing parent `try { ... } pending { ... }` statement');
 }
 
 function exit() {

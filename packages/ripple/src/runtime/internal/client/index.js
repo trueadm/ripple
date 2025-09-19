@@ -50,12 +50,13 @@ export {
   fallback,
   exclude_from_object,
   derived,
+  maybe_tracked,
 } from './runtime.js';
 
 export { for_block as for } from './for.js';
 
 export { if_block as if } from './if.js';
 
-export { try_block as try, resume_context, aborted } from './try.js';
+export { try_block as try, aborted } from './try.js';
 
 export { template, append } from './template.js';
