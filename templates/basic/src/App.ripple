@@ -1,12 +1,14 @@
+import { track } from 'ripple';
+
 export component App() {
 	<div class='container'>
 		<h1>{'Welcome to Ripple!'}</h1>
 		<div class='counter'>
-			let $count = 0;
+			let count = track(0);
 
-			<button onClick={() => $count--}>{'-'}</button>
-			<span class='count'>{$count}</span>
-			<button onClick={() => $count++}>{'+'}</button>
+			<button onClick={() => @count--}>{'-'}</button>
+			<span class='count'>{@count}</span>
+			<button onClick={() => @count++}>{'+'}</button>
 		</div>
 		<div>
 			<p>{'This is a basic Ripple application template.'}</p>
