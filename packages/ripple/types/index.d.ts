@@ -84,4 +84,4 @@ export declare function createRefKey(): symbol;
 
 type Tracked<V> = { '#v': V };
 
-export declare function track<V>(value: V | (() => V)): Tracked<V>;
+export declare function track<V>(value?: V | (() => V)): Tracked<V>;

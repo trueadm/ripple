@@ -122,9 +122,9 @@ const visitors = {
 
     if (is_reference(node, parent)) {
       if (context.state.to_ts) {
-		if (node.tracked) {
-			return b.member(node, b.literal('#v'), true)
-		}
+        if (node.tracked) {
+          return b.member(node, b.literal('#v'), true);
+        }
       } else {
         const binding = context.state.scope.get(node.name);
         if (
@@ -180,6 +180,9 @@ const visitors = {
       callee.name === 'track' &&
       is_ripple_import(callee, context)
     ) {
+      if (node.arguments.length === 0) {
+        node.arguments.push(b.void0);
+      }
       return {
         ...node,
         arguments: [...node.arguments.map((arg) => context.visit(arg)), b.id('__block')],
@@ -203,7 +206,6 @@ const visitors = {
     // Handle array methods that access the array
     if (callee.type === 'MemberExpression') {
       const property = callee.property;
-
 
       if (callee.computed) {
         return b.call(
