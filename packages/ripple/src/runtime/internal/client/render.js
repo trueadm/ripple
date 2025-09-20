@@ -1,6 +1,12 @@
 import { destroy_block, ref } from './blocks';
 import { REF_PROP } from './constants';
-import { get_descriptors, get_own_property_symbols, get_prototype_of } from './utils';
+import {
+  get_descriptors,
+  get_own_property_symbols,
+  get_prototype_of,
+  is_event_handler,
+  get_event_name,
+} from './utils';
 
 export function set_text(text, value) {
   // For objects, we apply string coercion (which might make things like $state array references in the template reactive) before diffing
@@ -69,14 +75,9 @@ export function set_attributes(element, attributes) {
 
     if (key === 'class') {
       set_class(element, value);
-    } else if (
-      key.startsWith('on') &&
-      key.length > 2 &&
-      key[2] === key[2].toUpperCase() &&
-      typeof value === 'function'
-    ) {
+    } else if (is_event_handler(key, value)) {
       // Handle event handlers in spread props
-      const event_name = key.slice(2).toLowerCase();
+      const event_name = get_event_name(key);
       // Set up event delegation by storing the handler on the element
       element['__' + event_name] = value;
     } else {
