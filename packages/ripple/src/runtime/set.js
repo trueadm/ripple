@@ -8,7 +8,7 @@ const new_other_methods = ['difference', 'intersection', 'symmetricDifference', 
 
 let init = false;
 
-export class RippleSet extends Set {
+export class TrackedSet extends Set {
   #tracked_size;
   #tracked_items = new Map();
 
@@ -33,7 +33,7 @@ export class RippleSet extends Set {
   }
 
   #init() {
-    var proto = RippleSet.prototype;
+    var proto = TrackedSet.prototype;
     var set_proto = Set.prototype;
 
     for (const method of introspect_methods) {
@@ -42,7 +42,7 @@ export class RippleSet extends Set {
       }
 
       proto[method] = function (...v) {
-        this.$size;
+        this.size;
 
         return set_proto[method].apply(this, v);
       };
@@ -54,10 +54,10 @@ export class RippleSet extends Set {
       }
 
       proto[method] = function (other, ...v) {
-        this.$size;
+        this.size;
 
-        if (other instanceof RippleSet) {
-          other.$size;
+        if (other instanceof TrackedSet) {
+          other.size;
         }
 
         return set_proto[method].apply(this, [other, ...v]);
@@ -70,13 +70,13 @@ export class RippleSet extends Set {
       }
 
       proto[method] = function (other, ...v) {
-        this.$size;
+        this.size;
 
-        if (other instanceof RippleSet) {
-          other.$size;
+        if (other instanceof TrackedSet) {
+          other.size;
         }
 
-        return new RippleSet(set_proto[method].apply(this, [other, ...v]));
+        return new TrackedSet(set_proto[method].apply(this, [other, ...v]));
       };
     }
   }
@@ -120,7 +120,7 @@ export class RippleSet extends Set {
       // It's not possible to have a disconnect, we track each value
       // If the value doesn't exist, track the size in case it's added later
       // but don't create tracked entries willy-nilly to track all possible values
-      this.$size;
+      this.size;
     } else {
       get(t);
     }
@@ -144,12 +144,12 @@ export class RippleSet extends Set {
     set(this.#tracked_size, 0, block);
   }
 
-  get $size() {
+  get size() {
     return get(this.#tracked_size);
   }
 
   toJSON() {
-    this.$size;
+    this.size;
 
     return [...this];
   }

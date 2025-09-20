@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, RippleMap, track } from 'ripple';
+import { mount, flushSync, TrackedMap, track } from 'ripple';
 
-describe('RippleMap', () => {
+describe('TrackedMap', () => {
     let container;
 
     function render(component) {
@@ -20,11 +20,11 @@ describe('RippleMap', () => {
         container = null;
     });
 
-    it('handles set with update and delete operations with a reactive $size var', () => {
+    it('handles set with update and delete operations with a reactive size var', () => {
         component MapTest() {
-            let map = new RippleMap([['a', 1], ['b', 2], ['c', 3]]);
+            let map = new TrackedMap([['a', 1], ['b', 2], ['c', 3]]);
             let value = track(() => map.get('a'));
-            let size = track(() => map.$size);
+            let size = track(() => map.size);
 
             <button onClick={() => map.set('d', 4)}>{'set'}</button>
             <button onClick={() => map.delete('b')}>{'delete'}</button>
@@ -61,10 +61,10 @@ describe('RippleMap', () => {
 
     it('handles clear operation', () => {
         component MapTest() {
-            let map = new RippleMap([['a', 1], ['b', 2], ['c', 3]]);
+            let map = new TrackedMap([['a', 1], ['b', 2], ['c', 3]]);
 
             <button onClick={() => map.clear()}>{'clear'}</button>
-            <pre>{map.$size}</pre>
+            <pre>{map.size}</pre>
         }
 
         render(MapTest);
@@ -79,7 +79,7 @@ describe('RippleMap', () => {
 
     it('handles has operation and tracks reactive $has', () => {
         component MapTest() {
-            let map = new RippleMap([['a', 1], ['b', 2], ['c', 3]]);
+            let map = new TrackedMap([['a', 1], ['b', 2], ['c', 3]]);
             let has = track(() => map.has('b'));
 
             <button onClick={() => map.delete('b')}>{'delete'}</button>
@@ -99,7 +99,7 @@ describe('RippleMap', () => {
 
     it('handles reactivity of keys, values, and entries', () => {
         component MapTest() {
-            let map = new RippleMap([['x', 10], ['y', 20]]);
+            let map = new TrackedMap([['x', 10], ['y', 20]]);
             let keys = track(() => Array.from(map.keys()));
             let values = track(() => Array.from(map.values()));
             let entries = track(() => Array.from(map.entries()));
@@ -129,7 +129,7 @@ describe('RippleMap', () => {
 
     it('toJSON returns correct object', () => {
         component MapTest() {
-            let map = new RippleMap([['foo', 1], ['bar', 2]]);
+            let map = new TrackedMap([['foo', 1], ['bar', 2]]);
 
             <pre>{JSON.stringify(map)}</pre>
         }

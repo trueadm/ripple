@@ -4,7 +4,7 @@ const introspect_methods = ['entries', 'forEach', 'values', Symbol.iterator];
 
 let init = false;
 
-export class RippleMap extends Map {
+export class TrackedMap extends Map {
   #tracked_size;
   #tracked_items = new Map();
 
@@ -29,12 +29,12 @@ export class RippleMap extends Map {
   }
 
   #init() {
-    var proto = RippleMap.prototype;
+    var proto = TrackedMap.prototype;
     var map_proto = Map.prototype;
 
     for (const method of introspect_methods) {
       proto[method] = function (...v) {
-        this.$size;
+        this.size;
         this.#read_all();
 
         return map_proto[method].apply(this, v);
@@ -48,7 +48,7 @@ export class RippleMap extends Map {
 
     if (t === undefined) {
       // same logic as has
-      this.$size;
+      this.size;
     } else {
       get(t);
     }
@@ -66,7 +66,7 @@ export class RippleMap extends Map {
       // It's not possible to have a disconnect, we tract each key
       // If the key doesn't exist, track the size in case it's added later
       // but don't create tracked entries willy-nilly to track all possible keys
-      this.$size;
+      this.size;
     } else {
       get(t);
     }
@@ -124,7 +124,7 @@ export class RippleMap extends Map {
   }
 
   keys() {
-    this.$size;
+    this.size;
     return super.keys();
   }
 
@@ -134,12 +134,12 @@ export class RippleMap extends Map {
     }
   }
 
-  get $size() {
+  get size() {
     return get(this.#tracked_size);
   }
 
   toJSON() {
-    this.$size;
+    this.size;
     this.#read_all();
 
     return [...this];
