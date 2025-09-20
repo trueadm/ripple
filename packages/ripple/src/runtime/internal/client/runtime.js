@@ -26,7 +26,7 @@ import {
   REF_PROP,
 } from './constants';
 import { capture, suspend } from './try.js';
-import { define_property, is_ripple_array } from './utils';
+import { define_property } from './utils';
 
 const FLUSH_MICROTASK = 0;
 const FLUSH_SYNC = 1;
