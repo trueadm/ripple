@@ -3,6 +3,13 @@ import { MAX_ARRAY_LENGTH, UNINITIALIZED } from './internal/client/constants.js'
 import { get, safe_scope, set, tracked } from './internal/client/runtime.js';
 import { get_descriptor } from './internal/client/utils.js';
 
+
+/**
+ * @template T
+ * @constructor
+ * @param {...T} elements
+ * @returns {TrackedArray<T>}
+ */
 export function TrackedArray(...elements) {
 	if (!new.target) {
 		throw new Error("TrackedArray must be called with 'new'");
@@ -13,36 +20,60 @@ export function TrackedArray(...elements) {
 	return proxy(elements, block);
 }
 
-// Static methods
-TrackedArray.from = function(...args) {
+/**
+ * @template T
+ * @param {ArrayLike<T> | Iterable<T>} arrayLike
+ * @param {(v: T, k: number) => any | undefined} [mapFn]
+ * @param {*} [thisArg]
+ * @returns {TrackedArray<T>}
+ */
+TrackedArray.from = function(arrayLike, mapFn, thisArg) {
 	var block = safe_scope();
-	var elements = Array.from(...args);
-	return proxy(elements, block, true);
-}
-
-TrackedArray.of = function(...args) {
-	var block = safe_scope();
-	var elements = Array.of(...args);
-	return proxy(elements, block, true);
-}
-
-TrackedArray.fromAsync = async function(...args) {
-	var block = safe_scope();
-	var elements = await Array.fromAsync(...args);
+	var elements = mapFn ? Array.from(arrayLike, mapFn, thisArg) : Array.from(arrayLike);
 	return proxy(elements, block, true);
 }
 
 /**
- *
- * @param {any} elements
+ * @template T
+ * @param {...T} items
+ * @returns {TrackedArray<T>}
+ */
+TrackedArray.of = function(...items) {
+	var block = safe_scope();
+	var elements = Array.of(...items);
+	return proxy(elements, block, true);
+}
+
+/**
+ * @template T
+ * @param {ArrayLike<T> | Iterable<T>} arrayLike
+ * @param {(v: T, k: number) => any | undefined} [mapFn]
+ * @param {any} [thisArg]
+ * @returns {Promise<TrackedArray<T>>}
+ */
+TrackedArray.fromAsync = async function(arrayLike, mapFn, thisArg) {
+	var block = safe_scope();
+    var elements = mapFn
+      ? await Array.fromAsync(arrayLike, mapFn, thisArg)
+      : await Array.fromAsync(arrayLike);
+	return proxy(elements, block, true);
+}
+
+/**
+ * @template T
+ * @param {Iterable<T>} elements
  * @param {Block} block
- * @returns {Proxy<any[]>}
+ * @param {boolean} is_from_static
+ * @returns {TrackedArray<T>}
  */
 function proxy(elements, block, is_from_static = false) {
 	var arr;
 	var first;
 
-	if (is_from_static && (first = get_first_if_length(elements)) !== undefined) {
+	if (
+		is_from_static
+		&& (first = get_first_if_length(/** @type {Array<T>} */ (elements))) !== undefined
+	) {
 		arr = new Array();
 		arr[0] = first;
 	} else {
@@ -167,6 +198,11 @@ function proxy(elements, block, is_from_static = false) {
     });
 }
 
+/**
+ * @template T
+ * @param {Array<T>} array
+ * @returns {number | void}
+ */
 function get_first_if_length(array) {
   var first = array[0];
 
@@ -177,7 +213,7 @@ function get_first_if_length(array) {
 	/** @type {number} */ (first) >= 0 &&
 	/** @type {number} */ (first) <= MAX_ARRAY_LENGTH
   ) {
-	return first;
+	return /** @type {number} */ (first);
   }
 }
 

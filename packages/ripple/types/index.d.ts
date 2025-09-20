@@ -11,8 +11,16 @@ export declare function flushSync<T>(fn: () => T): T;
 
 export declare function effect(fn: (() => void) | (() => () => void)): void;
 
-export declare class TrackedArray<T> extends Array<T> {
+export interface TrackedArrayConstructor {
+  new <T>(...elements: T[]): TrackedArray<T>;   // must be used with `new`
+  from<T>(arrayLike: ArrayLike<T>): TrackedArray<T>;
+  of<T>(...items: T[]): TrackedArray<T>;
+  fromAsync<T>(iterable: AsyncIterable<T>): Promise<TrackedArray<T>>;
 }
+
+export interface TrackedArray<T> extends Array<T> {}
+
+export declare const TrackedArray: TrackedArrayConstructor;
 
 export type Context<T> = {
 	get(): T;
