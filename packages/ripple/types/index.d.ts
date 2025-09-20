@@ -5,6 +5,8 @@ export declare function mount(
 	options: { target: HTMLElement; props?: Record<string, any> },
 ): () => void;
 
+export declare function tick(): Promise<void>;
+
 export declare function untrack<T>(fn: () => T): T;
 
 export declare function flushSync<T>(fn: () => T): T;

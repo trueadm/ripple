@@ -563,6 +563,12 @@ function flush_queued_root_blocks(root_blocks) {
   }
 }
 
+/** @type {PromiseWithResolvers<void>} */
+let tick_deferred = Promise.withResolvers();
+export function tick() {
+  return tick_deferred.promise;
+}
+
 function flush_microtasks() {
   is_micro_task_queued = false;
 
@@ -585,6 +591,8 @@ function flush_microtasks() {
     flush_count = 0;
   }
   old_values.clear();
+  tick_deferred.resolve();
+  tick_deferred = Promise.withResolvers();
 }
 
 /**
