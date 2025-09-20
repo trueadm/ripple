@@ -1158,7 +1158,8 @@ describe('basic', () => {
 	});
 
 	it('tick function', async () => {
-		const { promise, resolve } = Promise.withResolvers();
+		let resolve;
+		const promise = new Promise((res) => (resolve = res));
 
 		component Basic() {
 			let value = track(0);
