@@ -202,11 +202,11 @@ Because Ripple isn't based on Signals, there is no mechanism with which we can
 hijack collection mutations. Thus, you'll need to use the reactive collection
 primitives that Ripple for reactivity for an entire collection.
 
-### Reactive Arrays
+#### Reactive Arrays
 
 Just like objects, you can use the `Tracked<T>` objects in any standard JavaScript object, like arrays:
 
-```js
+```ripple
 let first = track(0);
 let second = track(0);
 const arr = [first, second];
@@ -221,42 +221,40 @@ Like shown in the above example, you can compose normal arrays with reactivity a
 However, if you need the entire array to be fully reactive, including when
 new elements get added, you should use the reactive array that Ripple provides.
 
-You'll need to import the `RippleArray` class from Ripple. It extends the standard JS `Array` class, and supports all of its methods and properties.
-
-```js
-import { RippleArray } from 'ripple';
-
-// using the new constructor
-const arr = new RippleArray(1, 2, 3);
-
-// using static from method
-const arr = RippleArray.from([1, 2, 3]);
-
-// using static of method
-const arr = RippleArray.of(1, 2, 3);
-```
-
-The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index. However,
-accessing the `length` property of a `RippleArray` will not be reactive, instead you should use `$length`.
-
-### Reactive Set
-
-The `RippleSet` extends the standard JS `Set` class, and supports all of its methods and properties. However,
-accessing the `size` property of a `RippleSet` will not be reactive, instead you should use `$size`.
-
-```js
-import { RippleSet } from 'ripple';
-
-const set = new RippleSet([1, 2, 3]);
-```
-
-RippleSet's reactive methods or properties can be used directly or assigned to reactive variables.
+You'll need to import the `TrackedArray` class from Ripple. It extends the standard JS `Array` class, and supports all of its methods and properties.
 
 ```ripple
-import { RippleSet, track } from 'ripple';
+import { TrackedArray } from 'ripple';
+
+// using the new constructor
+const arr = new TrackedArray(1, 2, 3);
+
+// using static from method
+const arr = TrackedArray.from([1, 2, 3]);
+
+// using static of method
+const arr = TrackedArray.of(1, 2, 3);
+```
+
+The `TrackedArray` is a reactive array, and that means you can access properties normally using numeric index.
+
+#### Reactive Set
+
+The `TrackedSet` extends the standard JS `Set` class, and supports all of its methods and properties.
+
+```ripple
+import { TrackedSet } from 'ripple';
+
+const set = new TrackedSet([1, 2, 3]);
+```
+
+TrackedSet's reactive methods or properties can be used directly or assigned to reactive variables.
+
+```ripple
+import { TrackedSet, track } from 'ripple';
 
 export component App() {
-  const set = new RippleSet([1, 2, 3]);
+  const set = new TrackedSet([1, 2, 3]);
 
   // direct usage
   <p>{"Direct usage: set contains 2: "}{set.has(2)}</p>
@@ -270,24 +268,23 @@ export component App() {
 }
 ```
 
-### Reactive Map
+#### Reactive Map
 
-The `RippleMap` extends the standard JS `Map` class, and supports all of its methods and properties. However,
-accessing the `size` property of a `RippleMap` will not be reactive, instead you should use `$size`.
-
-```js
-import { RippleMap, track } from 'ripple';
-
-const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
-```
-
-RippleMap's reactive methods or properties can be used directly or assigned to reactive variables.
+The `TrackedMap` extends the standard JS `Map` class, and supports all of its methods and properties.
 
 ```ripple
-import { RippleMap, track } from 'ripple';
+import { TrackedMap, track } from 'ripple';
+
+const map = new TrackedMap([[1,1], [2,2], [3,3], [4,4]]);
+```
+
+TrackedMap's reactive methods or properties can be used directly or assigned to reactive variables.
+
+```ripple
+import { TrackedMap, track } from 'ripple';
 
 export component App() {
-  const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
+  const map = new TrackedMap([[1,1], [2,2], [3,3], [4,4]]);
 
   // direct usage
   <p>{"Direct usage: map has an item with key 2: "}{map.has(2)}</p>
@@ -298,5 +295,24 @@ export component App() {
 
   <button onClick={() => map.delete(2)}>{"Delete item with key 2"}</button>
   <button onClick={() => map.set(2, 2)}>{"Add key 2 with value 2"}</button>
+}
+```
+
+### Effects
+
+When dealing with reactive state, you might want to be able to create side-effects based upon changes that happen upon updates.
+To do this, you can use `effect`:
+
+```ripple
+import { effect } from 'ripple';
+
+export component App() {
+  let count = track(0);
+
+  effect(() => {
+    console.log(@count);
+  });
+
+  <button onClick={() => @count++}>{'Increment'}</button>
 }
 ```
