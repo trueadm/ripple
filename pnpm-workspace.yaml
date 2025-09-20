@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - playground
+  - website
 
 catalog:
   jsdom: ^26.1.0

@@ -1,0 +1,19 @@
+{
+	"name": "ripple-website",
+	"version": "0.0.0",
+	"description": "",
+	"scripts": {
+		"dev": "vitepress dev",
+		"build": "vitepress build",
+		"preview": "vitepress preview"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"packageManager": "pnpm@10.14.0",
+	"devDependencies": {
+		"vitepress": "2.0.0-alpha.12",
+		"vitepress-plugin-npm-commands": "^0.8.1",
+		"vitepress-plugin-tabs": "^0.7.1"
+	}
+}
