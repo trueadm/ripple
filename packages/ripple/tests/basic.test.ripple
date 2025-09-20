@@ -880,6 +880,30 @@ describe('basic', () => {
 		expect(paragraph.textContent).toBe('Styled paragraph');
 	});
 
+	it('renders with keyframes in styling scoped to component', () => {
+		const source = `export component Basic() {
+			<div>
+				<p>{'Styled paragraph'}</p>
+			</div>
+
+			<style>
+				div {
+					animation-name: anim;
+				}
+				
+				@keyframes anim {}
+
+				p {
+					animation-name: anim;
+				}
+			</style>
+		}`;
+
+		const { css } = compile(source, 'test.ripple');
+		const name = css.match(/@keyframes\s+([a-zA-Z0-9_-]+)\s*\{/)[1];
+		expect(css.match(new RegExp(name, 'g'))?.length).toEqual(3);
+	});
+
 	it('renders with mixed static and dynamic content', () => {
 		component Basic() {
 			let name = track('World');

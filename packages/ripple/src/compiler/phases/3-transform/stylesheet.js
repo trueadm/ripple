@@ -62,6 +62,10 @@ function escape_comment_close(node, code) {
 	}
 }
 
+function append_hash(state, index) {
+	state.code.prependRight(index, `${state.hash}-`);
+}
+
 /**
  *  @param {AST.CSS.Rule} rule
  * @param {boolean} is_in_global_block
@@ -106,7 +110,9 @@ const visitors = {
 			if (node.prelude.startsWith('-global-')) {
 				state.code.remove(start, start + 8);
 			} else if (!is_in_global_block(path)) {
-				state.code.prependRight(start, `${state.hash}-`);
+				append_hash(state, start);
+				state.keyframes[node.prelude]?.indexes.forEach((index) => append_hash(state, index));
+				state.keyframes[node.prelude] = { indexes: [], local: true };
 			}
 
 			return; // don't transform anything within
@@ -124,8 +130,14 @@ const visitors = {
 				const character = state.code.original[index];
 
 				if (regex_css_name_boundary.test(character)) {
-					if (state.keyframes.includes(name)) {
-						state.code.prependRight(index - name.length, `${state.hash}-`);
+					if (character !== ' ') {
+						const append_index = index - name.length;
+						state.keyframes[name] ??= { indexes: [], local: undefined };
+						if (state.keyframes[name].local) {
+							append_hash(state, append_index);
+						} else {
+							state.keyframes[name].indexes.push(append_index);
+						}
 					}
 
 					if (character === ';' || character === '}') {
@@ -360,6 +372,7 @@ export function render_stylesheets(stylesheets) {
 			code,
 			hash: stylesheet.hash,
 			selector: `.${stylesheet.hash}`,
+			keyframes: {},
 			specificity: {
 				bumped: false,
 			},
