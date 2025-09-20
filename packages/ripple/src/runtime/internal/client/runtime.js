@@ -563,8 +563,20 @@ function flush_queued_root_blocks(root_blocks) {
   }
 }
 
-/** @type {PromiseWithResolvers<void>} */
-let tick_deferred = Promise.withResolvers();
+function create_promise_deferred() {
+  let resolve = () => {};
+  /** @type {(reason?: any) => void} */
+  let reject = () => {};
+  /** @type {Promise<void>} */
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+let tick_deferred = create_promise_deferred();
+
 export function tick() {
   return tick_deferred.promise;
 }
@@ -592,7 +604,7 @@ function flush_microtasks() {
   }
   old_values.clear();
   tick_deferred.resolve();
-  tick_deferred = Promise.withResolvers();
+  tick_deferred = create_promise_deferred();
 }
 
 /**
