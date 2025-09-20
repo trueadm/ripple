@@ -674,7 +674,11 @@ const visitors = {
       }
 
       if (update.length > 0) {
-        state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update), update.async ?? true))));
+        if (state.scope.parent.declarations.size > 0) {
+          state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update), !!update.async))));
+        } else {
+          state.update.push(...update);
+        }
       }
     } else {
       const id = state.flush_node();
