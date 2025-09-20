@@ -50,7 +50,7 @@ export function track(v, b) {
   return tracked(v, b);
 }
 
-export { TrackedArray } from './tracked_array.js';
+export { TrackedArray } from './array.js';
 
 export { TrackedSet } from './set.js';
 
