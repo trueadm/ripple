@@ -104,7 +104,7 @@ component ErrorBoundary() {
 component SuspenseBoundary() {
 	try {
 		<AsyncComponent />
-	} async {
+	} pending {
 		<p>Loading...</p> // fallback
 	}
 }
