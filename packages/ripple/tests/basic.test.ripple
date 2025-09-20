@@ -470,6 +470,55 @@ describe('basic', () => {
 		expect(bubbleDiv.textContent).toBe('1');
 	});
 
+	it('renders with event listeners in spread props', () => {
+		component Basic() {
+			let count = track(0);
+
+			const minus = { 
+				onClick() {
+					@count--
+				}
+			}
+
+			const plus = { 
+				onClick() {
+					@count++
+				}
+			}
+
+			<div>
+				<button {...minus} class='minus'>{'-'}</button>
+				<span class='count'>{@count}</span>
+				<button {...plus} class='plus'>{'+'}</button>
+			</div>
+		}
+
+		render(Basic);
+
+		const minusButton = container.querySelector('.minus');
+		const plusButton = container.querySelector('.plus');
+		const countSpan = container.querySelector('.count');
+
+		expect(countSpan.textContent).toBe('0');
+
+		// Test that the buttons don't have string onclick attributes
+		expect(minusButton.getAttribute('onclick')).toBe(null);
+		expect(plusButton.getAttribute('onclick')).toBe(null);
+
+		// Test that the event handlers work
+		minusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('-1');
+
+		plusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('0');
+
+		plusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('1');
+	});
+
 	it('renders with component composition and children', () => {
 		component Card(props) {
 			<div class='card'>

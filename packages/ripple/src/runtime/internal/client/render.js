@@ -69,6 +69,16 @@ export function set_attributes(element, attributes) {
 
     if (key === 'class') {
       set_class(element, value);
+    } else if (
+      key.startsWith('on') &&
+      key.length > 2 &&
+      key[2] === key[2].toUpperCase() &&
+      typeof value === 'function'
+    ) {
+      // Handle event handlers in spread props
+      const event_name = key.slice(2).toLowerCase();
+      // Set up event delegation by storing the handler on the element
+      element['__' + event_name] = value;
     } else {
       set_attribute(element, key, value);
     }
