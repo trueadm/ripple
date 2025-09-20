@@ -250,40 +250,40 @@ Like shown in the above example, you can compose normal arrays with reactivity a
 However, if you need the entire array to be fully reactive, including when
 new elements get added, you should use the reactive array that Ripple provides.
 
-You'll need to import the `RippleArray` class from Ripple. It extends the standard JS `Array` class, and supports all of its methods and properties.
+You'll need to import the `TrackedArray` class from Ripple. It extends the standard JS `Array` class, and supports all of its methods and properties.
 
 ```js
-import { RippleArray } from 'ripple';
+import { TrackedArray } from 'ripple';
 
 // using the new constructor
-const arr = new RippleArray(1, 2, 3);
+const arr = new TrackedArray(1, 2, 3);
 
 // using static from method
-const arr = RippleArray.from([1, 2, 3]);
+const arr = TrackedArray.from([1, 2, 3]);
 
 // using static of method
-const arr = RippleArray.of(1, 2, 3);
+const arr = TrackedArray.of(1, 2, 3);
 ```
 
-The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index.
+The `TrackedArray` is a reactive array, and that means you can access properties normally using numeric index.
 
 #### Reactive Set
 
-The `RippleSet` extends the standard JS `Set` class, and supports all of its methods and properties.
+The `TrackedSet` extends the standard JS `Set` class, and supports all of its methods and properties.
 
 ```js
-import { RippleSet } from 'ripple';
+import { TrackedSet } from 'ripple';
 
-const set = new RippleSet([1, 2, 3]);
+const set = new TrackedSet([1, 2, 3]);
 ```
 
-RippleSet's reactive methods or properties can be used directly or assigned to reactive variables.
+TrackedSet's reactive methods or properties can be used directly or assigned to reactive variables.
 
 ```jsx
-import { RippleSet, track } from 'ripple';
+import { TrackedSet, track } from 'ripple';
 
 export component App() {
-  const set = new RippleSet([1, 2, 3]);
+  const set = new TrackedSet([1, 2, 3]);
 
   // direct usage
   <p>{"Direct usage: set contains 2: "}{set.has(2)}</p>
@@ -299,21 +299,21 @@ export component App() {
 
 #### Reactive Map
 
-The `RippleMap` extends the standard JS `Map` class, and supports all of its methods and properties.
+The `TrackedMap` extends the standard JS `Map` class, and supports all of its methods and properties.
 
 ```js
-import { RippleMap, track } from 'ripple';
+import { TrackedMap, track } from 'ripple';
 
-const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
+const map = new TrackedMap([[1,1], [2,2], [3,3], [4,4]]);
 ```
 
-RippleMap's reactive methods or properties can be used directly or assigned to reactive variables.
+TrackedMap's reactive methods or properties can be used directly or assigned to reactive variables.
 
 ```jsx
-import { RippleMap, track } from 'ripple';
+import { TrackedMap, track } from 'ripple';
 
 export component App() {
-  const map = new RippleMap([[1,1], [2,2], [3,3], [4,4]]);
+  const map = new TrackedMap([[1,1], [2,2], [3,3], [4,4]]);
 
   // direct usage
   <p>{"Direct usage: map has an item with key 2: "}{map.has(2)}</p>
@@ -405,10 +405,10 @@ component ListView({ title, items }) {
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
 ```jsx
-import { RippleArray } from 'ripple';
+import { TrackedArray } from 'ripple';
 
 component Numbers() {
-  const items = new RippleArray(1, 2, 3);
+  const items = new TrackedArray(1, 2, 3);
 
   for (const item of items) {
     <div>{item}</div>
