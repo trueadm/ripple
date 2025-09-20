@@ -9,7 +9,7 @@ import { dirname } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const CLI_PATH = join(__dirname, '../../src/index.js');
+const CLI_PATH = join(__dirname, '../../dist/index.js');
 
 describe('CLI Integration Tests', () => {
 	let testDir;
