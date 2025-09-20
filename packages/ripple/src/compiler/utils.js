@@ -454,26 +454,6 @@ export function is_value_static(node) {
   return false;
 }
 
-export function is_tracked_computed_property(object, property, context) {
-  if (object.tracked) {
-    return false;
-  }
-  const binding = context.state.scope.get(object.name);
-
-  if (binding) {
-    const initial = binding.initial;
-    if (initial && is_value_static(initial)) {
-      return false;
-    }
-  }
-  if (property.type === 'Identifier') {
-    return true;
-  }
-
-  // TODO: do we need to handle more logic here? default to false for now
-  return true;
-}
-
 export function is_ripple_import(callee, context) {
   if (callee.type === 'Identifier') {
     const binding = context.state.scope.get(callee.name);

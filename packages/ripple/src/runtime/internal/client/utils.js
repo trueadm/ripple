@@ -1,5 +1,3 @@
-import { TRACKED_OBJECT } from './constants.js';
-
 export var get_descriptor = Object.getOwnPropertyDescriptor;
 export var get_descriptors = Object.getOwnPropertyDescriptors;
 export var array_from = Array.from;
@@ -16,14 +14,6 @@ export function create_anchor() {
   var t = document.createTextNode('');
   t.__t = '';
   return t;
-}
-
-/**
- * @param {any} obj
- * @returns {boolean}
- */
-export function is_ripple_array(obj) {
-  return is_array(obj) && TRACKED_OBJECT in obj && '$length' in obj;
 }
 
 /**

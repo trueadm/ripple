@@ -20,7 +20,6 @@ export var LOGIC_BLOCK = FOR_BLOCK | IF_BLOCK | TRY_BLOCK;
 
 export var UNINITIALIZED = Symbol();
 /** @type {unique symbol} */
-export const TRACKED_OBJECT = Symbol();
 export const TRACKED_ARRAY = Symbol();
 export var COMPUTED_PROPERTY = Symbol();
 export var REF_PROP = 'ref';

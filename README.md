@@ -265,13 +265,11 @@ const arr = RippleArray.from([1, 2, 3]);
 const arr = RippleArray.of(1, 2, 3);
 ```
 
-The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index. However,
-accessing the `length` property of a `RippleArray` will not be reactive, instead you should use `$length`.
+The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index.
 
 #### Reactive Set
 
-The `RippleSet` extends the standard JS `Set` class, and supports all of its methods and properties. However,
-accessing the `size` property of a `RippleSet` will not be reactive, instead you should use `$size`.
+The `RippleSet` extends the standard JS `Set` class, and supports all of its methods and properties.
 
 ```js
 import { RippleSet } from 'ripple';
@@ -301,8 +299,7 @@ export component App() {
 
 #### Reactive Map
 
-The `RippleMap` extends the standard JS `Map` class, and supports all of its methods and properties. However,
-accessing the `size` property of a `RippleMap` will not be reactive, instead you should use `$size`.
+The `RippleMap` extends the standard JS `Map` class, and supports all of its methods and properties.
 
 ```js
 import { RippleMap, track } from 'ripple';
@@ -417,7 +414,7 @@ component Numbers() {
     <div>{item}</div>
   }
 
-  <button onClick={() => items.push(`Item ${items.$length + 1}`)}>{"Add Item"}</button>
+  <button onClick={() => items.push(`Item ${items.length + 1}`)}>{"Add Item"}</button>
 }
 ```
 

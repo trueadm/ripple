@@ -7,7 +7,6 @@ import {
   is_event_attribute,
   is_inside_component,
   is_ripple_import,
-  is_tracked_computed_property,
   is_void_element,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
@@ -166,37 +165,7 @@ const visitors = {
         (declarator.init.callee.name === 'untrack' || declarator.init.callee.name === 'deferred');
 
       if (declarator.id.type === 'Identifier') {
-        const binding = state.scope.get(declarator.id.name);
-
-        if (binding !== null && parent?.type !== 'ForOfStatement') {
-          if (binding.initial?.type !== 'Literal') {
-            for (const ref of binding.references) {
-              const path = ref.path;
-              const parent_node = path?.at(-1);
-
-              // We're reading a computed property, which might mean it's a reactive property
-              if (
-                !ref.node.tracked &&
-                parent_node?.type === 'MemberExpression' &&
-                parent_node.computed
-              ) {
-                binding.transform = {
-                  assign: (node, value, computed) => {
-                    if (!computed) {
-                      return node;
-                    }
-                    return b.call('$.old_set_property', node, computed, value, b.id('__block'));
-                  },
-                };
-                break;
-              }
-            }
-          }
-
-          visit(declarator, state);
-        } else {
-          visit(declarator, state);
-        }
+  		visit(declarator, state);
       } else {
         const paths = extract_paths(declarator.id);
 

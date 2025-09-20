@@ -58,7 +58,6 @@ declare global {
 	 */
 	var $: {
 		tracked<T>(value: T, block?: any): T;
-		tracked_object<T extends Record<string, any>>(obj: T, props: string[], block?: any): T;
 		computed<T>(fn: () => T, block?: any): T;
 		scope(): any;
 		get_tracked(node: any): any;

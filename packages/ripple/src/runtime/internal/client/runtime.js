@@ -21,20 +21,12 @@ import {
   PAUSED,
   ROOT_BLOCK,
   TRACKED,
-  TRACKED_OBJECT,
   TRY_BLOCK,
   UNINITIALIZED,
   REF_PROP,
-  ARRAY_SET_INDEX_AT,
 } from './constants';
 import { capture, suspend } from './try.js';
-import { define_property, get_descriptor, is_ripple_array, is_positive_integer } from './utils';
-import {
-  object_keys as original_object_keys,
-  object_values as original_object_values,
-  object_entries as original_object_entries,
-  structured_clone as original_structured_clone,
-} from './utils.js';
+import { define_property, is_ripple_array } from './utils';
 
 const FLUSH_MICROTASK = 0;
 const FLUSH_SYNC = 1;
@@ -408,50 +400,43 @@ export function async_computed(fn, block) {
 }
 
 export function deferred(fn) {
-  var parent = active_block;
-  var block = active_scope;
-  var res = [UNINITIALIZED];
-  // TODO implement DEFERRED flag on tracked
-  var t = tracked(UNINITIALIZED, block, DEFERRED);
-  var tracked_properties = [t];
-  var prev_value = UNINITIALIZED;
-
-  define_property(res, TRACKED_OBJECT, {
-    value: tracked_properties,
-    enumerable: false,
-  });
-
-  render(() => {
-    if (prev_value !== UNINITIALIZED) {
-      t.v = prev_value;
-    } else {
-      prev_value = t.v;
-    }
-    var prev_version = t.c;
-    var value = fn();
-
-    res[0] = value;
-    old_set_property(res, 0, value, block);
-
-    if (prev_value !== UNINITIALIZED) {
-      if ((t.f & DEFERRED) === 0) {
-        t.f ^= DEFERRED;
-      }
-
-      var is_awaited = flush_deferred_upodates(parent);
-      if ((t.f & DEFERRED) !== 0) {
-        t.f ^= DEFERRED;
-      }
-
-      if (is_awaited) {
-        t.c = prev_version;
-        t.v = prev_value;
-        prev_value = value;
-      }
-    }
-  });
-
-  return res;
+  // var parent = active_block;
+  // var block = active_scope;
+  // var res = [UNINITIALIZED];
+  // // TODO implement DEFERRED flag on tracked
+  // var t = tracked(UNINITIALIZED, block, DEFERRED);
+  // var tracked_properties = [t];
+  // var prev_value = UNINITIALIZED;
+  // define_property(res, TRACKED_OBJECT, {
+  //   value: tracked_properties,
+  //   enumerable: false,
+  // });
+  // render(() => {
+  //   if (prev_value !== UNINITIALIZED) {
+  //     t.v = prev_value;
+  //   } else {
+  //     prev_value = t.v;
+  //   }
+  //   var prev_version = t.c;
+  //   var value = fn();
+  //   res[0] = value;
+  //   old_set_property(res, 0, value, block);
+  //   if (prev_value !== UNINITIALIZED) {
+  //     if ((t.f & DEFERRED) === 0) {
+  //       t.f ^= DEFERRED;
+  //     }
+  //     var is_awaited = flush_deferred_upodates(parent);
+  //     if ((t.f & DEFERRED) !== 0) {
+  //       t.f ^= DEFERRED;
+  //     }
+  //     if (is_awaited) {
+  //       t.c = prev_version;
+  //       t.v = prev_value;
+  //       prev_value = value;
+  //     }
+  //   }
+  // });
+  // return res;
 }
 
 function capture_deferred(fn) {
@@ -783,68 +768,18 @@ export function flush_sync(fn) {
  * @param {Block} block
  * @returns {Object}
  */
-export function tracked_spread_object(fn, block) {
+export function spread_props(fn, block) {
   let computed = derived(fn, block);
 
-  return new Proxy({}, {
-    get(target, property) {
-      const obj = get_derived(computed);
-      return obj[property];
-    }
-  });
-}
-
-/**
- * @param {any} obj
- * @param {string[]} properties
- * @param {Block} block
- * @returns {object}
- */
-export function tracked_object(obj, properties, block) {
-  /** @type {Record<string, Tracked | Derived>} */
-  var tracked_properties = obj[TRACKED_OBJECT];
-
-  if (tracked_properties === undefined) {
-    tracked_properties = {};
-    define_property(obj, TRACKED_OBJECT, {
-      value: tracked_properties,
-      enumerable: false,
-    });
-  }
-
-  for (var i = 0; i < properties.length; i++) {
-    var property = properties[i];
-    /** @type {Tracked | Derived} */
-    var tracked_property;
-
-    // accessor passed in, to avoid an expensive get_descriptor call in the fast path
-    if (property[0] === '#') {
-      property = property.slice(1);
-      var descriptor = /** @type {PropertyDescriptor} */ (get_descriptor(obj, property));
-      var desc_get = descriptor.get;
-      tracked_property = derived(desc_get, block);
-      /** @type {any} */
-      var initial = run_derived(/** @type {Derived} */ (tracked_property));
-      // If there's a setter, we need to set the initial value
-      if (descriptor.set !== undefined) {
-        obj[property] = initial;
-      }
-    } else {
-      var initial = obj[property];
-
-      if (typeof initial === 'function' && initial[COMPUTED_PROPERTY] === true) {
-        tracked_property = derived(initial, block);
-        initial = run_derived(/** @type {Derived} */ (tracked_property));
-        obj[property] = initial;
-      } else {
-        tracked_property = tracked(initial, block);
-      }
-    }
-
-    tracked_properties[property] = tracked_property;
-  }
-
-  return obj;
+  return new Proxy(
+    {},
+    {
+      get(target, property) {
+        const obj = get_derived(computed);
+        return obj[property];
+      },
+    },
+  );
 }
 
 /**
@@ -899,69 +834,8 @@ export function get_property(obj, property, chain = false) {
   return get(tracked);
 }
 
-/**
- * @param {any} obj
- * @param {string | number | symbol} property
- * @param {boolean} [chain=false]
- * @returns {any}
- */
-export function old_get_property(obj, property, chain = false) {
-  if (chain && obj == null) {
-    return undefined;
-  }
-  var value = obj[property];
-  var tracked_properties = obj[TRACKED_OBJECT];
-  var tracked_property = tracked_properties?.[property];
-
-  if (tracked_property !== undefined) {
-    value = get(tracked_property);
-    if (obj[property] !== value) {
-      obj[property] = value;
-    }
-  } else if (is_ripple_array(obj)) {
-    obj.$length;
-  }
-
-  return value;
-}
-
 export function set_property(obj, property, value, block) {
   var tracked = obj[property];
-  set(tracked, value, block);
-}
-
-/**
- * @param {any} obj
- * @param {string | number | symbol} property
- * @param {any} value
- * @param {Block} block
- * @returns {any}
- */
-export function old_set_property(obj, property, value, block) {
-  var tracked_properties = obj[TRACKED_OBJECT];
-  var rip_arr = is_ripple_array(obj);
-  var tracked = !(rip_arr && property === 'length') ? tracked_properties?.[property] : undefined;
-
-  if (tracked === undefined) {
-    // Handle computed assignments to arrays
-    if (rip_arr) {
-      if (property === 'length') {
-        // overriding `length` in RippleArray class doesn't work
-        // placing it here instead
-        throw new Error('Cannot set length on RippleArray, use $length instead');
-      } else if (is_positive_integer(property)) {
-        // for any other type we use obj[property] = value below as per native JS
-        return with_scope(block, () => {
-          obj[ARRAY_SET_INDEX_AT](property, value);
-        });
-      }
-    }
-
-    return (obj[property] = value);
-  }
-
-  obj[property] = value;
-
   set(tracked, value, block);
 }
 
@@ -1017,153 +891,12 @@ export function update_property(obj, property, block, d = 1) {
   return new_value;
 }
 
-/**
- * @param {any} obj
- * @param {string | number | symbol} property
- * @param {Block} block
- * @param {number} [d]
- * @returns {number}
- */
-export function old_update_property(obj, property, block, d = 1) {
-  var tracked_properties = obj[TRACKED_OBJECT];
-  var tracked = tracked_properties?.[property];
-  var tracked_exists = tracked !== undefined;
-  var value = tracked_exists ? get(tracked) : obj[property];
-
-  if (d === 1) {
-    value++;
-    if (tracked_exists) {
-      increment(tracked, block);
-    }
-  } else {
-    value--;
-    if (tracked_exists) {
-      decrement(tracked, block);
-    }
-  }
-
-  obj[property] = value;
-
-  return value;
-}
-
 export function update_pre_property(obj, property, block, d = 1) {
   var tracked = obj[property];
   var value = get(tracked);
   var new_value = d === 1 ? ++value : --value;
   set(tracked, new_value, block);
   return new_value;
-}
-
-/**
- * @param {any} obj
- * @param {string | number | symbol} property
- * @param {Block} block
- * @param {number} [d]
- * @returns {number}
- */
-export function old_update_pre_property(obj, property, block, d = 1) {
-  var tracked_properties = obj[TRACKED_OBJECT];
-  var tracked = tracked_properties?.[property];
-  var tracked_exists = tracked !== undefined;
-  var value = tracked_exists ? get(tracked) : obj[property];
-
-  if (d === 1) {
-    ++value;
-    if (tracked_exists) {
-      increment(tracked, block);
-    }
-  } else {
-    --value;
-    if (tracked_exists) {
-      decrement(tracked, block);
-    }
-  }
-
-  obj[property] = value;
-
-  return value;
-}
-
-/**
- * @param {any} val
- * @param {StructuredSerializeOptions} [options]
- * @returns {any}
- */
-export function structured_clone(val, options) {
-  if (typeof val === 'object' && val !== null) {
-    var tracked_properties = val[TRACKED_OBJECT];
-    if (tracked_properties !== undefined) {
-      if (is_ripple_array(val)) {
-        val.$length;
-      }
-      return structured_clone(object_values(val), options);
-    }
-  }
-  return original_structured_clone(val, options);
-}
-
-export function object_keys(obj) {
-  if (is_ripple_array(obj)) {
-    obj.$length;
-  }
-  return original_object_keys(obj);
-}
-
-export function object_values(obj) {
-  var tracked_properties = obj[TRACKED_OBJECT];
-
-  if (tracked_properties === undefined) {
-    return original_object_values(obj);
-  }
-  if (is_ripple_array(obj)) {
-    obj.$length;
-  }
-  var keys = original_object_keys(obj);
-  var values = [];
-
-  for (var i = 0; i < keys.length; i++) {
-    values.push(old_get_property(obj, keys[i]));
-  }
-
-  return values;
-}
-
-export function object_entries(obj) {
-  var tracked_properties = obj[TRACKED_OBJECT];
-
-  if (tracked_properties === undefined) {
-    return original_object_entries(obj);
-  }
-  if (is_ripple_array(obj)) {
-    obj.$length;
-  }
-  var keys = original_object_keys(obj);
-  var entries = [];
-
-  for (var i = 0; i < keys.length; i++) {
-    var key = keys[i];
-    entries.push([key, old_get_property(obj, key)]);
-  }
-
-  return entries;
-}
-
-export function spread_object(obj) {
-  var tracked_properties = obj[TRACKED_OBJECT];
-
-  if (tracked_properties === undefined) {
-    return { ...obj };
-  }
-  var keys = original_object_keys(obj);
-  var values = {};
-
-  for (var i = 0; i < keys.length; i++) {
-    var key = keys[i];
-    values[key] = old_get_property(obj, key);
-  }
-
-  return values;
 }
 
 /**

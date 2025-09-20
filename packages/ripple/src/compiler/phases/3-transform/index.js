@@ -18,7 +18,6 @@ import {
   is_ripple_import,
   is_declared_function_within_component,
   is_inside_call_expression,
-  is_tracked_computed_property,
   is_value_static,
   is_void_element,
   is_component_level_function,
@@ -141,10 +140,6 @@ const visitors = {
           }
         }
 
-        if (node.name === 'structuredClone' && binding === null) {
-          return b.id('$.structured_clone');
-        }
-
         return build_getter(node, context);
       }
     }
@@ -225,11 +220,14 @@ const visitors = {
     return b.call(
       '$.with_scope',
       b.id('__block'),
-      b.thunk({
-        ...node,
-        callee: context.visit(callee),
-        arguments: node.arguments.map((arg) => context.visit(arg)),
-      }, context.state.metadata?.await ?? false),
+      b.thunk(
+        {
+          ...node,
+          callee: context.visit(callee),
+          arguments: node.arguments.map((arg) => context.visit(arg)),
+        },
+        context.state.metadata?.await ?? false,
+      ),
     );
   },
 
@@ -303,20 +301,6 @@ const visitors = {
       const object = node.object;
       const property = node.property;
 
-      // TODO should we enforce that the identifier is tracked too?
-      if (node.computed && is_tracked_computed_property(node.object, node.property, context)) {
-        if (context.state.metadata?.tracking === false) {
-          context.state.metadata.tracking = true;
-        }
-
-        return b.call(
-          '$.old_get_property',
-          context.visit(object),
-          context.visit(property),
-          node.optional ? b.true : undefined,
-        );
-      }
-
       if (object.type === 'Identifier' && object.name === 'Object') {
         const binding = context.state.scope.get(object.name);
 
@@ -357,16 +341,6 @@ const visitors = {
     } else {
       context.next();
     }
-  },
-
-  SpreadElement(node, context) {
-    const parent = context.path.at(-1);
-
-    if (parent.type === 'ObjectExpression') {
-      return b.spread(b.call('$.spread_object', context.visit(node.argument)));
-    }
-
-    context.next();
   },
 
   VariableDeclaration(node, context) {
@@ -635,7 +609,7 @@ const visitors = {
             }
           }
         } else if (attr.type === 'SpreadAttribute') {
-          spread_attributes.push(b.spread(b.call('$.spread_object', visit(attr.argument, state))));
+          spread_attributes.push(b.spread(visit(attr.argument, state)));
         } else if (attr.type === 'RefAttribute') {
           const id = state.flush_node();
           state.init.push(b.stmt(b.call('$.ref', id, b.thunk(visit(attr.argument, state)))));
@@ -735,10 +709,7 @@ const visitors = {
         } else if (attr.type === 'SpreadAttribute') {
           props.push(
             b.spread(
-              b.call(
-                '$.spread_object',
-                visit(attr.argument, { ...state, metadata: { ...state.metadata, spread: true } }),
-              ),
+              visit(attr.argument, { ...state, metadata: { ...state.metadata, spread: true } }),
             ),
           );
         } else if (attr.type === 'RefAttribute') {
@@ -823,7 +794,7 @@ const visitors = {
             b.call(
               node.id,
               id,
-              b.call('$.tracked_spread_object', b.thunk(b.object(props)), b.id('__block')),
+              b.call('$.spread_props', b.thunk(b.object(props)), b.id('__block')),
               b.id('$.active_block'),
             ),
           ),
@@ -952,23 +923,6 @@ const visitors = {
       );
     }
 
-    if (left.type === 'MemberExpression') {
-      // need to capture setting length of array to throw a runtime error
-      if (left.property.type === 'Identifier' && left.property.name === 'length') {
-        if (left.property.name !== '$length') {
-          return b.call(
-            '$.old_set_property',
-            context.visit(left.object),
-            left.computed ? context.visit(left.property) : b.literal(left.property.name),
-            visit_assignment_expression(node, context, build_assignment) ?? context.next(),
-            b.id('__block'),
-          );
-        }
-      } else if (!is_tracked_computed_property(left.object, left.property, context)) {
-        return context.next();
-      }
-    }
-
     if (left.type === 'Identifier' && left.tracked) {
       add_ripple_internal_import(context);
       const operator = node.operator;
@@ -990,18 +944,7 @@ const visitors = {
       );
     }
 
-    const visited = visit_assignment_expression(node, context, build_assignment) ?? context.next();
-
-    if (
-      left.type === 'MemberExpression' &&
-      left.property.type === 'Identifier' &&
-      left.property.name === '$length' &&
-      !left.computed
-    ) {
-      return b.call('$.with_scope', b.id('__block'), b.thunk(visited));
-    }
-
-    return visited;
+    return visit_assignment_expression(node, context, build_assignment) ?? context.next();
   },
 
   UpdateExpression(node, context) {
@@ -1022,20 +965,6 @@ const visitors = {
       return b.call(
         node.prefix ? '$.update_pre_property' : '$.update_property',
         context.visit(argument.object, { ...context.state, metadata: { tracking: false } }),
-        argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
-        b.id('__block'),
-        node.operator === '--' ? b.literal(-1) : undefined,
-      );
-    }
-
-    if (
-      argument.type === 'MemberExpression' &&
-      argument.computed &&
-      is_tracked_computed_property(argument.object, argument.property, context)
-    ) {
-      return b.call(
-        node.prefix ? '$.old_update_pre_property' : '$.old_update_property',
-        context.visit(argument.object),
         argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
         b.id('__block'),
         node.operator === '--' ? b.literal(-1) : undefined,
@@ -1543,7 +1472,7 @@ function transform_children(children, context) {
     if (
       node.type === 'VariableDeclaration' ||
       node.type === 'ExpressionStatement' ||
-	  node.type === 'ThrowStatement' ||
+      node.type === 'ThrowStatement' ||
       node.type === 'FunctionDeclaration' ||
       node.type === 'DebuggerStatement' ||
       node.type === 'ClassDeclaration'
