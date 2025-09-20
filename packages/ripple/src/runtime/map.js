@@ -1,17 +1,30 @@
+/** @import { Block, Tracked } from '#client' */
 import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
 
 const introspect_methods = ['entries', 'forEach', 'values', Symbol.iterator];
 
 let init = false;
 
+/**
+ * @template K, V
+ * @extends {Map<K, V>}
+ * @returns {TrackedMap<K, V>}
+ */
 export class TrackedMap extends Map {
+  /** @type {Tracked} */
   #tracked_size;
+  /** @type {Map<K, Tracked>} */
   #tracked_items = new Map();
+  /** @type {Block} */
+  #block;
 
+  /**
+   * @param {Iterable<readonly [K, V]>} [iterable]
+   */
   constructor(iterable) {
     super();
 
-    var block = safe_scope();
+    var block = this.#block = safe_scope();
 
     if (iterable) {
       for (var [key, value] of iterable) {
@@ -20,7 +33,7 @@ export class TrackedMap extends Map {
       }
     }
 
-    this.#tracked_size = tracked(this.size, block);
+    this.#tracked_size = tracked(super.size, block);
 
     if (!init) {
       init = true;
@@ -75,7 +88,7 @@ export class TrackedMap extends Map {
   }
 
   set(key, value) {
-    var block = safe_scope();
+    var block = this.#block;
     var tracked_items = this.#tracked_items;
     var t = tracked_items.get(key);
     var prev_res = super.get(key);
@@ -84,7 +97,7 @@ export class TrackedMap extends Map {
 
     if (!t) {
       tracked_items.set(key, tracked(0, block));
-      set(this.#tracked_size, this.size, block);
+      set(this.#tracked_size, super.size, block);
     } else if (prev_res !== value) {
       increment(t, block);
     }
@@ -93,7 +106,7 @@ export class TrackedMap extends Map {
   }
 
   delete(key) {
-    var block = safe_scope();
+    var block = this.#block;
     var tracked_items = this.#tracked_items;
     var t = tracked_items.get(key);
     var result = super.delete(key);
@@ -101,14 +114,14 @@ export class TrackedMap extends Map {
     if (t) {
       increment(t, block);
       tracked_items.delete(key);
-      set(this.#tracked_size, this.size, block);
+      set(this.#tracked_size, super.size, block);
     }
 
     return result;
   }
 
   clear() {
-    var block = safe_scope();
+    var block = this.#block;
 
     if (super.size === 0) {
       return;

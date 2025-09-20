@@ -1,3 +1,4 @@
+/** @import { Block, Tracked } from '#client' */
 import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
 
 const introspect_methods = ['entries', 'forEach', 'keys', 'values', Symbol.iterator];
@@ -8,14 +9,26 @@ const new_other_methods = ['difference', 'intersection', 'symmetricDifference', 
 
 let init = false;
 
+/**
+ * @template T
+ * @extends {Set<T>}
+ * @returns {TrackedSet<T>}
+ */
 export class TrackedSet extends Set {
+  /** @type {Tracked} */
   #tracked_size;
+  /** @type {Map<T, Tracked>} */
   #tracked_items = new Map();
+  /** @type {Block} */
+  #block;
 
+  /**
+   * @param {Iterable<T>} iterable
+   */
   constructor(iterable) {
     super();
 
-    var block = safe_scope();
+    var block = this.#block = safe_scope();
 
     if (iterable) {
       for (var item of iterable) {
@@ -24,7 +37,7 @@ export class TrackedSet extends Set {
       }
     }
 
-    this.#tracked_size = tracked(this.size, block);
+    this.#tracked_size = tracked(super.size, block);
 
     if (!init) {
       init = true;
@@ -41,6 +54,7 @@ export class TrackedSet extends Set {
         continue;
       }
 
+      /** @param {...any} v */
       proto[method] = function (...v) {
         this.size;
 
@@ -81,20 +95,28 @@ export class TrackedSet extends Set {
     }
   }
 
+  /**
+   * @param {T} value
+   * @returns {this}
+   */
   add(value) {
-    var block = safe_scope();
+    var block = this.#block;
 
     if (!super.has(value)) {
       super.add(value);
       this.#tracked_items.set(value, tracked(0, block));
-      set(this.#tracked_size, this.size, block);
+      set(this.#tracked_size, super.size, block);
     }
 
     return this;
   }
 
+  /**
+   * @param {T} value
+   * @returns {boolean}
+   */
   delete(value) {
-    var block = safe_scope();
+    var block = this.#block;
 
     if (!super.delete(value)) {
       return false;
@@ -104,13 +126,17 @@ export class TrackedSet extends Set {
 
     increment(t, block);
     this.#tracked_items.delete(value);
-    set(this.#tracked_size, this.size, block);
+    set(this.#tracked_size, super.size, block);
 
     return true;
   }
 
+  /**
+   * @param {T} value
+   * @return {boolean}
+  */
   has(value) {
-    var block = safe_scope();
+
     var has = super.has(value);
     var tracked_items = this.#tracked_items;
     var t = tracked_items.get(value);
@@ -129,7 +155,7 @@ export class TrackedSet extends Set {
   }
 
   clear() {
-    var block = safe_scope();
+    var block = this.#block;
 
     if (super.size === 0) {
       return;
