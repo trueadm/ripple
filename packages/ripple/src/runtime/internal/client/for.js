@@ -1,7 +1,6 @@
 import { IS_CONTROLLED } from '../../../constants';
-import { get_all_elements } from '../../array';
 import { branch, destroy_block, destroy_block_children, render } from './blocks';
-import { FOR_BLOCK, TRACKED_OBJECT } from './constants';
+import { FOR_BLOCK, TRACKED_ARRAY } from './constants';
 import { create_text } from './operations';
 import { active_block, untrack } from './runtime';
 import { array_from, is_array } from './utils';
@@ -45,9 +44,10 @@ export function for_block(node, get_collection, render_fn, flags) {
         ? []
         : array_from(collection);
 
-    if (array[TRACKED_OBJECT] !== undefined) {
-      array = get_all_elements(collection);
-      collection.$length;
+    // If we are working with a tracked array, then we need to get a copy of
+	// the elements, as the array itself is proxied, and not useful in diffing
+    if (TRACKED_ARRAY in array) {
+      array = array_from(array);
     }
 
     untrack(() => reconcile(anchor, block, array, render_fn, is_controlled));

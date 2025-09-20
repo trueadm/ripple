@@ -1,3 +1,4 @@
+/** @import { Block, Tracked } from '#client' */
 import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
 
 const introspect_methods = ['entries', 'forEach', 'keys', 'values', Symbol.iterator];
@@ -8,14 +9,26 @@ const new_other_methods = ['difference', 'intersection', 'symmetricDifference', 
 
 let init = false;
 
-export class RippleSet extends Set {
+/**
+ * @template T
+ * @extends {Set<T>}
+ * @returns {TrackedSet<T>}
+ */
+export class TrackedSet extends Set {
+  /** @type {Tracked} */
   #tracked_size;
+  /** @type {Map<T, Tracked>} */
   #tracked_items = new Map();
+  /** @type {Block} */
+  #block;
 
+  /**
+   * @param {Iterable<T>} iterable
+   */
   constructor(iterable) {
     super();
 
-    var block = safe_scope();
+    var block = this.#block = safe_scope();
 
     if (iterable) {
       for (var item of iterable) {
@@ -24,7 +37,7 @@ export class RippleSet extends Set {
       }
     }
 
-    this.#tracked_size = tracked(this.size, block);
+    this.#tracked_size = tracked(super.size, block);
 
     if (!init) {
       init = true;
@@ -33,7 +46,7 @@ export class RippleSet extends Set {
   }
 
   #init() {
-    var proto = RippleSet.prototype;
+    var proto = TrackedSet.prototype;
     var set_proto = Set.prototype;
 
     for (const method of introspect_methods) {
@@ -41,8 +54,9 @@ export class RippleSet extends Set {
         continue;
       }
 
+      /** @param {...any} v */
       proto[method] = function (...v) {
-        this.$size;
+        this.size;
 
         return set_proto[method].apply(this, v);
       };
@@ -54,10 +68,10 @@ export class RippleSet extends Set {
       }
 
       proto[method] = function (other, ...v) {
-        this.$size;
+        this.size;
 
-        if (other instanceof RippleSet) {
-          other.$size;
+        if (other instanceof TrackedSet) {
+          other.size;
         }
 
         return set_proto[method].apply(this, [other, ...v]);
@@ -70,31 +84,39 @@ export class RippleSet extends Set {
       }
 
       proto[method] = function (other, ...v) {
-        this.$size;
+        this.size;
 
-        if (other instanceof RippleSet) {
-          other.$size;
+        if (other instanceof TrackedSet) {
+          other.size;
         }
 
-        return new RippleSet(set_proto[method].apply(this, [other, ...v]));
+        return new TrackedSet(set_proto[method].apply(this, [other, ...v]));
       };
     }
   }
 
+  /**
+   * @param {T} value
+   * @returns {this}
+   */
   add(value) {
-    var block = safe_scope();
+    var block = this.#block;
 
     if (!super.has(value)) {
       super.add(value);
       this.#tracked_items.set(value, tracked(0, block));
-      set(this.#tracked_size, this.size, block);
+      set(this.#tracked_size, super.size, block);
     }
 
     return this;
   }
 
+  /**
+   * @param {T} value
+   * @returns {boolean}
+   */
   delete(value) {
-    var block = safe_scope();
+    var block = this.#block;
 
     if (!super.delete(value)) {
       return false;
@@ -104,13 +126,17 @@ export class RippleSet extends Set {
 
     increment(t, block);
     this.#tracked_items.delete(value);
-    set(this.#tracked_size, this.size, block);
+    set(this.#tracked_size, super.size, block);
 
     return true;
   }
 
+  /**
+   * @param {T} value
+   * @return {boolean}
+  */
   has(value) {
-    var block = safe_scope();
+
     var has = super.has(value);
     var tracked_items = this.#tracked_items;
     var t = tracked_items.get(value);
@@ -120,7 +146,7 @@ export class RippleSet extends Set {
       // It's not possible to have a disconnect, we track each value
       // If the value doesn't exist, track the size in case it's added later
       // but don't create tracked entries willy-nilly to track all possible values
-      this.$size;
+      this.size;
     } else {
       get(t);
     }
@@ -129,7 +155,7 @@ export class RippleSet extends Set {
   }
 
   clear() {
-    var block = safe_scope();
+    var block = this.#block;
 
     if (super.size === 0) {
       return;
@@ -144,12 +170,12 @@ export class RippleSet extends Set {
     set(this.#tracked_size, 0, block);
   }
 
-  get $size() {
+  get size() {
     return get(this.#tracked_size);
   }
 
   toJSON() {
-    this.$size;
+    this.size;
 
     return [...this];
   }

@@ -130,7 +130,7 @@ describe('basic', () => {
 
 		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
 		expect(div.classList.contains('inactive')).toBe(true);
-		
+
 		button.click();
 		flushSync();
 		expect(div.classList.contains('active')).toBe(true);
@@ -203,15 +203,15 @@ describe('basic', () => {
 
 		const input = container.querySelector('input');
 		const html = container.innerHTML;
-		
+
 		expect(input.getAttribute('name')).toBe('car');
 		expect(input.getAttribute('type')).toBe('checkbox');
 		expect(input.getAttribute('id')).toBe('vehicle1');
 		expect(input.getAttribute('value')).toBe('Bike');
-		
+
 		expect(html).not.toContain('type="checkbox"type="checkbox"');
 		expect(html).not.toContain('value="Bike"value="Bike"');
-		
+
 		expect(container).toMatchSnapshot();
 	});
 
@@ -381,7 +381,7 @@ describe('basic', () => {
 
 	// TODO
 	it.skip('renders multiple reactive lexical blocks with complexity', () => {
-		
+
 		component Basic() {
 			const count = 'count';
 
@@ -390,16 +390,16 @@ describe('basic', () => {
 					count: track(0)
 				};
 
-				<span>{obj[count]}</span>
+				<span>{obj[@count]}</span>
 			</div>
 			<div>
 				let b = {
 					count: track(0)
 				};
 
-				<button onClick={() => { b[count]-- }}>{'-'}</button>
-				<span class='count'>{b[count]}</span>
-				<button onClick={() => { b[count]++ }}>{'+'}</button>
+				<button onClick={() => { b[@count]-- }}>{'-'}</button>
+				<span class='count'>{b[@count]}</span>
+				<button onClick={() => { b[@count]++ }}>{'+'}</button>
 			</div>
 		}
 		render(Basic);

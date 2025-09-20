@@ -83,11 +83,11 @@ const myTemplate = (
 component MyComponent() {
   // Template syntax is valid here
   <div>{"Hello World"}</div>
-  
+
   // You can have JavaScript code mixed with templates
   const message = "Dynamic content";
   console.log("This JavaScript works");
-  
+
   <p>{message}</p>
 }
 
@@ -113,26 +113,26 @@ component TemplateScope() {
     // Variable declarations inside templates
     const message = "Hello from template scope";
     let count = 42;
-    
+
     // Function calls and expressions
     console.log("This runs during render");
-    
+
     // Conditional logic
     const isEven = count % 2 === 0;
-    
+
     <h1>{message}</h1>
     <p>{"Count is: "}{count}</p>
-    
+
     if (isEven) {
       <span>{"Count is even"}</span>
     }
-    
+
     // Nested scopes work too
     <section>
       const sectionData = "Nested scope variable";
       <p>{sectionData}</p>
     </section>
-    
+
     // You can even put debugger statements
     debugger;
   </div>
@@ -222,7 +222,7 @@ function createDouble([ count ]) {
 
 export component App() {
   let count = track(0);
-  
+
   const [ double ] = createDouble([ count ]);
 
   <div>{'Double: ' + @double}</div>
@@ -331,15 +331,15 @@ component Person(props) {
 // Accessor syntax requires a function
 component App() {
   let name = track('Bob');
-  
+
   const getName = () => {
     console.log('name accessed'); // Debugging capability
     return @name;
   };
-  
+
   // Use := instead of = for accessor props
   <Person name:={getName} />
-  
+
   // Or inline:
   <Person name:={() => {
     console.log('name accessed');
@@ -355,7 +355,7 @@ component Person(props) {
     // Component can directly assign to trigger setter
     props.name = newName;
   }
-  
+
   <div>
     <span>{"Hello, "}{props.name}</span>
     <button onClick={() => updateName("Alice")}>{"Change Name"}</button>
@@ -364,13 +364,13 @@ component Person(props) {
 
 component App() {
   let name = track('Bob');
-  
+
   const getName = () => @name;
   const setName = (newName) => @name = newName;
-  
+
   // Provide both getter and setter functions
   <Person name:={getName, setName} />
-  
+
   // Or inline version:
   <Person name:={() => @name, (newName) => @name = newName} />
 }
@@ -438,7 +438,7 @@ export component App() {
   const divRef = (node) => {
     @node = node;
     console.log("mounted", node);
-    
+
     return () => {
       @node = undefined;
       console.log("unmounted", node);
@@ -458,7 +458,7 @@ Inline refs:
 
 ### Core Functions
 ```typescript
-import { 
+import {
   mount,           // Mount component to DOM
   track,           // Create reactive state
   untrack,         // Prevent reactivity tracking
@@ -528,50 +528,50 @@ Like shown in the above example, you can compose normal arrays with reactivity a
 
 However, if you need the entire array to be fully reactive, including when new elements get added, you should use the reactive array that Ripple provides.
 
-#### RippleArray
+#### TrackedArray
 
-You'll need to import the `RippleArray` class from Ripple. It extends the standard JS `Array` class, and supports all of its methods and properties.
+You'll need to import the `TrackedArray` class from Ripple. It extends the standard JS `Array` class, and supports all of its methods and properties.
 
 ```ripple
-import { RippleArray } from 'ripple';
+import { TrackedArray } from 'ripple';
 
 // using the new constructor
-const arr = new RippleArray(1, 2, 3);
+const arr = new TrackedArray(1, 2, 3);
 
 // using static from method
-const arr = RippleArray.from([1, 2, 3]);
+const arr = TrackedArray.from([1, 2, 3]);
 
 // using static of method
-const arr = RippleArray.of(1, 2, 3);
+const arr = TrackedArray.of(1, 2, 3);
 ```
 
-The `RippleArray` is a reactive array, and that means you can access properties normally using numeric index. However, accessing the `length` property of a `RippleArray` will not be reactive, instead you should use `$length`.
+The `TrackedArray` is a reactive array, and that means you can access properties normally using numeric index. However, accessing the `length` property of a `TrackedArray` will not be reactive, instead you should use `length`.
 
 ```ripple
-import { RippleArray } from 'ripple';
+import { TrackedArray } from 'ripple';
 
 component List() {
-  const items = new RippleArray(1, 2, 3);
-  
+  const items = new TrackedArray(1, 2, 3);
+
   <div>
-    <p>{"Length: "}{items.$length}</p>  // Reactive length
+    <p>{"Length: "}{items.length}</p>  // Reactive length
     for (const item of items) {
       <div>{item}</div>
     }
-    <button onClick={() => items.push(items.$length + 1)}>{"Add"}</button>
+    <button onClick={() => items.push(items.length + 1)}>{"Add"}</button>
   </div>
 }
 ```
 
-#### RippleSet
+#### TrackedSet
 ```ripple
-import { RippleSet } from 'ripple';
+import { TrackedSet } from 'ripple';
 
 component SetExample() {
-  const mySet = new RippleSet([1, 2, 3]);
-  
+  const mySet = new TrackedSet([1, 2, 3]);
+
   <div>
-    <p>{"Size: "}{mySet.$size}</p>  // Reactive size
+    <p>{"Size: "}{mySet.size}</p>  // Reactive size
     <p>{"Has 2: "}{mySet.has(2)}</p>
     <button onClick={() => mySet.add(4)}>{"Add 4"}</button>
   </div>
@@ -682,7 +682,7 @@ export default defineConfig({
 
 ### vs Solid
 - Component definition with `component` keyword
-- Built-in collections (RippleArray, RippleSet)
+- Built-in collections (TrackedArray, TrackedSet)
 - Different templating approach within component bodies
 
 ## Best Practices
@@ -692,7 +692,7 @@ export default defineConfig({
 3. **Effects**: Use `effect()` for side effects, not direct reactive variable access
 4. **Components**: Keep components focused and use TypeScript interfaces for props
 5. **Styling**: Use scoped `<style>` elements for component-specific styles
-6. **Collections**: Use RippleArray/RippleSet for reactive collections instead of regular arrays/sets
+6. **Collections**: Use TrackedArray/TrackedSet for reactive collections instead of regular arrays/sets
 
 ## Current Limitations
 

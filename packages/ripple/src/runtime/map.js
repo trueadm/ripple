@@ -1,17 +1,30 @@
+/** @import { Block, Tracked } from '#client' */
 import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
 
 const introspect_methods = ['entries', 'forEach', 'values', Symbol.iterator];
 
 let init = false;
 
-export class RippleMap extends Map {
+/**
+ * @template K, V
+ * @extends {Map<K, V>}
+ * @returns {TrackedMap<K, V>}
+ */
+export class TrackedMap extends Map {
+  /** @type {Tracked} */
   #tracked_size;
+  /** @type {Map<K, Tracked>} */
   #tracked_items = new Map();
+  /** @type {Block} */
+  #block;
 
+  /**
+   * @param {Iterable<readonly [K, V]>} [iterable]
+   */
   constructor(iterable) {
     super();
 
-    var block = safe_scope();
+    var block = this.#block = safe_scope();
 
     if (iterable) {
       for (var [key, value] of iterable) {
@@ -20,7 +33,7 @@ export class RippleMap extends Map {
       }
     }
 
-    this.#tracked_size = tracked(this.size, block);
+    this.#tracked_size = tracked(super.size, block);
 
     if (!init) {
       init = true;
@@ -29,12 +42,12 @@ export class RippleMap extends Map {
   }
 
   #init() {
-    var proto = RippleMap.prototype;
+    var proto = TrackedMap.prototype;
     var map_proto = Map.prototype;
 
     for (const method of introspect_methods) {
       proto[method] = function (...v) {
-        this.$size;
+        this.size;
         this.#read_all();
 
         return map_proto[method].apply(this, v);
@@ -48,7 +61,7 @@ export class RippleMap extends Map {
 
     if (t === undefined) {
       // same logic as has
-      this.$size;
+      this.size;
     } else {
       get(t);
     }
@@ -66,7 +79,7 @@ export class RippleMap extends Map {
       // It's not possible to have a disconnect, we tract each key
       // If the key doesn't exist, track the size in case it's added later
       // but don't create tracked entries willy-nilly to track all possible keys
-      this.$size;
+      this.size;
     } else {
       get(t);
     }
@@ -75,7 +88,7 @@ export class RippleMap extends Map {
   }
 
   set(key, value) {
-    var block = safe_scope();
+    var block = this.#block;
     var tracked_items = this.#tracked_items;
     var t = tracked_items.get(key);
     var prev_res = super.get(key);
@@ -84,7 +97,7 @@ export class RippleMap extends Map {
 
     if (!t) {
       tracked_items.set(key, tracked(0, block));
-      set(this.#tracked_size, this.size, block);
+      set(this.#tracked_size, super.size, block);
     } else if (prev_res !== value) {
       increment(t, block);
     }
@@ -93,7 +106,7 @@ export class RippleMap extends Map {
   }
 
   delete(key) {
-    var block = safe_scope();
+    var block = this.#block;
     var tracked_items = this.#tracked_items;
     var t = tracked_items.get(key);
     var result = super.delete(key);
@@ -101,14 +114,14 @@ export class RippleMap extends Map {
     if (t) {
       increment(t, block);
       tracked_items.delete(key);
-      set(this.#tracked_size, this.size, block);
+      set(this.#tracked_size, super.size, block);
     }
 
     return result;
   }
 
   clear() {
-    var block = safe_scope();
+    var block = this.#block;
 
     if (super.size === 0) {
       return;
@@ -124,7 +137,7 @@ export class RippleMap extends Map {
   }
 
   keys() {
-    this.$size;
+    this.size;
     return super.keys();
   }
 
@@ -134,12 +147,12 @@ export class RippleMap extends Map {
     }
   }
 
-  get $size() {
+  get size() {
     return get(this.#tracked_size);
   }
 
   toJSON() {
-    this.$size;
+    this.size;
     this.#read_all();
 
     return [...this];

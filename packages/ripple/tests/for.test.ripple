@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import { mount, flushSync, RippleArray } from 'ripple';
+import { mount, flushSync, TrackedArray } from 'ripple';
 
 describe('for statements', () => {
 	let container;
@@ -37,13 +37,13 @@ describe('for statements', () => {
 
 	it('render a simple dynamic array', () => {
 		component App() {
-			const items = new RippleArray('Item 1', 'Item 2', 'Item 3');
+			const items = new TrackedArray('Item 1', 'Item 2', 'Item 3');
 
 			for (const item of items) {
 				<div class={item}>{item}</div>
 			}
 
-			<button onClick={() => items.push(`Item ${items.$length + 1}`)}>{'Add Item'}</button>
+			<button onClick={() => items.push(`Item ${items.length + 1}`)}>{'Add Item'}</button>
 		}
 
 		render(App);

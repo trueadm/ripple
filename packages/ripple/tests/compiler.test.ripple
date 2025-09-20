@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, RippleArray, track } from 'ripple';
+import { mount, TrackedArray, track } from 'ripple';
 import { parse } from 'ripple/compiler'
 
 describe('compiler success tests', () => {
@@ -21,17 +21,17 @@ describe('compiler success tests', () => {
 		container = null;
 	});
 
-	
+
 	it('Parses style content correctly', () => {
 		const source = `export component App() {
   <div id="myid" class="myclass">{"Hello World"}</div>
-  
+
   <style>#style</style>
 }`;
 		const style1 = '.myid {color: green }';
 		const style2 = '#myid {color: green }';
 		const style3 = 'div {color: green }';
-		
+
 		let input = source.replace('#style', style1);
 		let ast = parse(input);
 		expect(ast.body[0].declaration.css.source).toEqual(style1);
@@ -111,7 +111,7 @@ describe('compiler success tests', () => {
 			let items = [];
 			let tracked_items = track([]);
 			let items2 = new Array();
-			let items3 = new RippleArray();
+			let items3 = new TrackedArray();
 			let i = 0;
 
 			logs.push(items[0]);

@@ -50,11 +50,11 @@ export function track(v, b) {
   return tracked(v, b);
 }
 
-export { RippleArray } from './array.js';
+export { TrackedArray } from './array.js';
 
-export { RippleSet } from './set.js';
+export { TrackedSet } from './set.js';
 
-export { RippleMap } from './map.js';
+export { TrackedMap } from './map.js';
 
 export { keyed } from './internal/client/for.js';
 
