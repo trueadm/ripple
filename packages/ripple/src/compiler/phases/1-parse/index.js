@@ -25,7 +25,6 @@ function RipplePlugin(config) {
 
     class RippleParser extends Parser {
       #path = [];
-      skip_decorator = false;
 
       // Helper method to get the element name from a JSX identifier or member expression
       getElementName(node) {
@@ -684,53 +683,6 @@ function RipplePlugin(config) {
         return element;
       }
 
-      parseSubscript(base, startPos, startLoc, noCalls, maybeAsyncArrow, optionalChained, forInit) {
-        const prev_char = this.input.at(this.pos - 2);
-
-        if (
-          this.value === '<' &&
-          (prev_char === ' ' || prev_char === '\t') &&
-          this.#path.findLast((n) => n.type === 'Component')
-        ) {
-          this.input.charCodeAt(this.pos);
-          // Check if this looks like JSX by looking ahead
-          const ahead = this.lookahead();
-          const curContext = this.curContext();
-          if (
-            curContext.token !== '(' &&
-            (ahead.type.label === 'name' || ahead.value === '/' || ahead.value === '>')
-          ) {
-            // This is JSX, rewind to the end of the object expression
-            // and let ASI handle the semicolon insertion naturally
-            this.pos = base.end;
-            this.type = tt.braceR;
-            this.value = '}';
-            this.start = base.end - 1;
-            this.end = base.end;
-            const position = this.curPosition();
-            this.startLoc = position;
-            this.endLoc = position;
-            // Avoid triggering onComment handlers, as they will have
-            // already been triggered when parsing the subscript before
-            const onComment = this.options.onComment;
-            this.options.onComment = () => {};
-            this.next();
-            this.options.onComment = onComment;
-
-            return base;
-          }
-        }
-        return super.parseSubscript(
-          base,
-          startPos,
-          startLoc,
-          noCalls,
-          maybeAsyncArrow,
-          optionalChained,
-          forInit,
-        );
-      }
-
       parseTemplateBody(body) {
         var inside_func =
           this.context.some((n) => n.token === 'function') || this.scopeStack.length > 1;
@@ -840,7 +792,7 @@ function RipplePlugin(config) {
         }
 
         if (this.type.label === '@') {
-          // Try to parse as an expression statement first using tryParse
+		  // Try to parse as an expression statement first using tryParse
           // This allows us to handle Ripple @ syntax like @count++ without
           // interfering with legitimate decorator syntax
           this.skip_decorator = true;
@@ -848,7 +800,7 @@ function RipplePlugin(config) {
             const node = this.startNode();
             this.next();
             // Force expression context to ensure @ is tokenized correctly
-            const oldExprAllowed = this.exprAllowed;
+            const old_expr_allowed = this.exprAllowed;
             this.exprAllowed = true;
             node.expression = this.parseExpression();
 
@@ -874,7 +826,7 @@ function RipplePlugin(config) {
               // TODO?
             }
 
-            this.exprAllowed = oldExprAllowed;
+            this.exprAllowed = old_expr_allowed;
             return this.finishNode(node, 'ExpressionStatement');
           });
           this.skip_decorator = false;
