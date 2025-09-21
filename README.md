@@ -338,7 +338,7 @@ When dealing with reactive state, you might want to be able to create side-effec
 To do this, you can use `effect`:
 
 ```jsx
-import { effect } from 'ripple';
+import { effect, track } from 'ripple';
 
 export component App() {
   let count = track(0);
