@@ -39,10 +39,45 @@ function RipplePlugin(config) {
         return null;
       }
 
-      // Override getTokenFromCode to handle @ as an identifier prefix
       getTokenFromCode(code) {
+        if (code === 60) {
+          // < character
+          if (this.#path.findLast((n) => n.type === 'Component')) {
+            // Check if everything before this position on the current line is whitespace
+            let lineStart = this.pos - 1;
+            while (
+              lineStart >= 0 &&
+              this.input.charCodeAt(lineStart) !== 10 &&
+              this.input.charCodeAt(lineStart) !== 13
+            ) {
+              lineStart--;
+            }
+            lineStart++; // Move past the newline character
+
+            // Check if all characters from line start to current position are whitespace
+            let allWhitespace = true;
+            for (let i = lineStart; i < this.pos; i++) {
+              const ch = this.input.charCodeAt(i);
+              if (ch !== 32 && ch !== 9) {
+                allWhitespace = false;
+                break;
+              }
+            }
+
+            // Check if the character after < is not whitespace
+            if (allWhitespace && this.pos + 1 < this.input.length) {
+              const nextChar = this.input.charCodeAt(this.pos + 1);
+              if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
+                const tokTypes = this.acornTypeScript.tokTypes;
+                ++this.pos;
+                return this.finishToken(tokTypes.jsxTagStart);
+              }
+            }
+          }
+        }
+
         if (code === 64) {
-          // '@' character
+          // @ character
           // Look ahead to see if this is followed by a valid identifier character
           if (this.pos + 1 < this.input.length) {
             const nextChar = this.input.charCodeAt(this.pos + 1);
@@ -713,7 +748,7 @@ function RipplePlugin(config) {
         }
 
         if (this.type.label === '</>/<=/>=') {
-			debugger
+          debugger;
           console.log('HERE', this.value, this.type);
         }
 
