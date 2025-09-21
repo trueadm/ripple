@@ -28,7 +28,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-  	"build": "tsdown",
+    "build": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -37,13 +37,14 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@types/prompts": "^2.4.9",
     "commander": "^12.1.0",
     "degit": "^2.8.4",
-    "kleur": "^4.1.5",
-    "ora": "^8.1.0",  
-    "@types/prompts": "^2.4.9",
     "jsdom": "catalog:",
+    "kleur": "^4.1.5",
+    "ora": "^8.1.0",
     "prettier": "^3.6.2",
+    "prompts": "^2.4.2",
     "tsdown": "^0.15.4",
     "vitest": "catalog:"
   }
