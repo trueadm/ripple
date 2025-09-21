@@ -1536,7 +1536,7 @@ function transform_children(children, context) {
             const id = state.flush_node();
             state.template.push(' ');
             state.init.push(
-              b.stmt(b.assignment('=', b.member(id, b.id('textContent')), expression)),
+              b.stmt(b.assignment('=', b.member(b.member(id, b.id('firstChild')), b.id('nodeValue')), expression)),
             );
           }
         } else {
