@@ -56,7 +56,7 @@ cd my-app
 npm i # or yarn or pnpm
 npm run dev # or yarn or pnpm
 ```
-or use create-ripple interactive CLI tool for creating new Ripple applications with features like tailwindcss or bootsrap setup.
+or use create-ripple interactive CLI tool for creating new Ripple applications with features like Tailwind CSS or Bootstrap setup.
 ```
 npx create-ripple  # or yarn create ripple or pnpm create ripple
 
