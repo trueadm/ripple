@@ -519,6 +519,47 @@ describe('basic', () => {
 		expect(countSpan.textContent).toBe('1');
 	});
 
+	it('handles both delegated and non-delegated events in spread props', () => {
+		component Basic() {
+			let clickCount = track(0);
+			let focusCount = track(0);
+
+			const mixedHandler = { 
+				onClick() {  // Delegated event
+					@clickCount++
+				},
+				onFocus() { // Non-delegated event
+					@focusCount++
+				}
+			}
+
+			<div>
+				<button {...mixedHandler} class='mixed-button'>{'Test'}</button>
+				<span class='click-count'>{@clickCount}</span>
+				<span class='focus-count'>{@focusCount}</span>
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('.mixed-button');
+		const clickSpan = container.querySelector('.click-count');
+		const focusSpan = container.querySelector('.focus-count');
+
+		expect(clickSpan.textContent).toBe('0');
+		expect(focusSpan.textContent).toBe('0');
+
+		// Test delegated event (click)
+		button.click();
+		flushSync();
+		expect(clickSpan.textContent).toBe('1');
+
+		// Test non-delegated event (focus)
+		button.dispatchEvent(new Event('focus'));
+		flushSync();
+		expect(focusSpan.textContent).toBe('1');
+	});
+
 	it('renders with component composition and children', () => {
 		component Card(props) {
 			<div class='card'>

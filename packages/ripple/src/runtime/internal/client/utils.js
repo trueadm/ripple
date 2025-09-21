@@ -23,31 +23,3 @@ export function create_anchor() {
 export function is_positive_integer(value) {
   return Number.isInteger(value) && /**@type {number} */ (value) >= 0;
 }
-
-/**
- * Checks if a property key follows JSX event handler naming convention
- * @param {string} key - The property key (e.g., 'onClick', 'onMouseEnter')
- * @returns {boolean}
- */
-export function is_event_attribute(key) {
-  return key.startsWith('on') && key.length > 2 && key[2] === key[2].toUpperCase();
-}
-
-/**
- * Checks if a key-value pair represents a valid event handler for spread props
- * @param {string} key - The property key
- * @param {any} value - The property value
- * @returns {boolean}
- */
-export function is_event_handler(key, value) {
-  return is_event_attribute(key) && typeof value === 'function';
-}
-
-/**
- * Extracts the event name from an event handler attribute
- * @param {string} key - The event attribute key (e.g., 'onClick')
- * @returns {string} The event name (e.g., 'click')
- */
-export function get_event_name(key) {
-  return key.slice(2).toLowerCase();
-}
