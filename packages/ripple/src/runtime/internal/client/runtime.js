@@ -563,22 +563,10 @@ function flush_queued_root_blocks(root_blocks) {
   }
 }
 
-function create_promise_deferred() {
-  let resolve = () => {};
-  /** @type {(reason?: any) => void} */
-  let reject = () => {};
-  /** @type {Promise<void>} */
-  const promise = new Promise((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
-
-let tick_deferred = create_promise_deferred();
-
-export function tick() {
-  return tick_deferred.promise;
+// https://github.com/sveltejs/svelte/blob/ded13b825d7efcdf064fd65a5aa9e7e61293a48b/packages/svelte/src/internal/client/runtime.js#L501
+export async function tick() {
+  await Promise.resolve();
+  flush_sync();
 }
 
 function flush_microtasks() {
@@ -603,8 +591,6 @@ function flush_microtasks() {
     flush_count = 0;
   }
   old_values.clear();
-  tick_deferred.resolve();
-  tick_deferred = create_promise_deferred();
 }
 
 /**

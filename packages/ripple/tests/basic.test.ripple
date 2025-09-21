@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, effect, track, tick } from 'ripple';
+import { mount, flushSync, effect, track, untrack, tick } from 'ripple';
 import { compile } from 'ripple/compiler';
 
 describe('basic', () => {
@@ -1163,9 +1163,12 @@ describe('basic', () => {
 
 		component Basic() {
 			let value = track(0);
-			setTimeout(() => @value++, 50);
-			tick().then(() => resolve());
-
+			effect(() => {
+				untrack(() => {
+					@value++;
+					tick().then(() => resolve());
+				});
+			});
 			<p>{@value}</p>
 		}
 		render(Basic);
