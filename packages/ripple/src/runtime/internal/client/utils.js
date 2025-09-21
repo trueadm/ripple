@@ -23,3 +23,7 @@ export function create_anchor() {
 export function is_positive_integer(value) {
   return Number.isInteger(value) && /**@type {number} */ (value) >= 0;
 }
+
+export function is_tracked_object(v) {
+  return typeof v === 'object' && v !== null && typeof v.f === 'number';
+}

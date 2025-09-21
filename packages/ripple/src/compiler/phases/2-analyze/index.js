@@ -12,7 +12,7 @@ import { extract_paths } from '../../../utils/ast.js';
 import is_reference from 'is-reference';
 import { prune_css } from './prune.js';
 import { error } from '../../errors.js';
-import { is_event_attribute } from '../../../utils/events';
+import { is_event_attribute } from '../../../utils/events.js';
 
 function mark_control_flow_has_template(path) {
   for (let i = path.length - 1; i >= 0; i -= 1) {

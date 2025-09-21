@@ -1,8 +1,14 @@
 import { destroy_block, ref } from './blocks';
 import { REF_PROP } from './constants';
-import { get_descriptors, get_own_property_symbols, get_prototype_of } from './utils';
-import { event } from './events';
+import {
+  get_descriptors,
+  get_own_property_symbols,
+  get_prototype_of,
+  is_tracked_object,
+} from './utils';
+import { delegate, event } from './events';
 import { get_attribute_event_name, is_delegated, is_event_attribute } from '../../../utils/events';
+import { get } from './runtime';
 
 export function set_text(text, value) {
   // For objects, we apply string coercion (which might make things like $state array references in the template reactive) before diffing
@@ -69,6 +75,10 @@ export function set_attributes(element, attributes) {
 
     let value = attributes[key];
 
+    if (is_tracked_object(value)) {
+      value = get(value);
+    }
+
     if (key === 'class') {
       set_class(element, value);
     } else if (is_event_attribute(key)) {
@@ -78,6 +88,7 @@ export function set_attributes(element, attributes) {
       if (is_delegated(event_name)) {
         // Use delegation for delegated events
         element['__' + event_name] = value;
+        delegate([event_name]);
       } else {
         // Use addEventListener for non-delegated events
         event(event_name, element, value);

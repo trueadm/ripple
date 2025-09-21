@@ -57,7 +57,7 @@ export function get_attribute_event_name(event_name) {
   if (is_capture_event(event_name)) {
     event_name = event_name.slice(0, -7);
   }
-  return event_name;
+  return event_name[0].toLowerCase() + event_name.slice(1);
 }
 
 const PASSIVE_EVENTS = ['touchstart', 'touchmove'];

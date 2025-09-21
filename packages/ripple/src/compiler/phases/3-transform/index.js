@@ -25,7 +25,7 @@ import {
 import is_reference from 'is-reference';
 import { object } from '../../../utils/ast.js';
 import { render_stylesheets } from './stylesheet.js';
-import { is_event_attribute, is_passive_event } from '../../../utils/events';
+import { is_event_attribute, is_passive_event } from '../../../utils/events.js';
 
 function add_ripple_internal_import(context) {
   if (!context.state.to_ts) {
