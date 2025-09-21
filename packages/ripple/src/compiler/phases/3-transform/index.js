@@ -1089,6 +1089,13 @@ const visitors = {
     context.state.init.push(b.block(statements));
   },
 
+  TSAsExpression(node, context) {
+    if (!context.state.to_ts) {
+      return context.visit(node.expression);
+    }
+    return context.next();
+  },
+
   TryStatement(node, context) {
     if (!is_inside_component(context)) {
       context.next();
