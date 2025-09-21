@@ -296,25 +296,6 @@ const visitors = {
       );
     }
 
-    if (parent.type !== 'AssignmentExpression') {
-      const object = node.object;
-      const property = node.property;
-
-      if (object.type === 'Identifier' && object.name === 'Object') {
-        const binding = context.state.scope.get(object.name);
-
-        if (binding === null) {
-          if (property.type === 'Identifier' && property.name === 'values') {
-            return b.id('$.object_values');
-          } else if (property.type === 'Identifier' && property.name === 'entries') {
-            return b.id('$.object_entries');
-          } else if (property.type === 'Identifier' && property.name === 'keys') {
-            return b.id('$.object_keys');
-          }
-        }
-      }
-    }
-
     if (node.object.type === 'MemberExpression' && node.object.optional) {
       const metadata = { tracking: false, await: false };
 

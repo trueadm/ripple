@@ -145,7 +145,6 @@ function RipplePlugin(config) {
           this.#path.push(node);
 
           this.parseTemplateBody(node.body);
-
           this.#path.pop();
           this.exitScope();
 
@@ -388,6 +387,7 @@ function RipplePlugin(config) {
         }
         return this.finishNode(node, 'TryStatement');
       }
+
       jsx_readToken() {
         let out = '',
           chunkStart = this.pos;
@@ -710,6 +710,11 @@ function RipplePlugin(config) {
           if (this.type.label === 'break') {
             throw new Error('`break` statements are not allowed in components');
           }
+        }
+
+        if (this.type.label === '</>/<=/>=') {
+			debugger
+          console.log('HERE', this.value, this.type);
         }
 
         if (this.type.label === '{') {

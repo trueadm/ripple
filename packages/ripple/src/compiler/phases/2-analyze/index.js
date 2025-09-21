@@ -363,7 +363,7 @@ const visitors = {
     context.next();
   },
 
-  JSXElement(_, context) {
+  JSXElement(node, context) {
     {
       error(
         'Elements cannot be used as generic expressions, only as statements within a component',
