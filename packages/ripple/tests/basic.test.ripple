@@ -470,6 +470,96 @@ describe('basic', () => {
 		expect(bubbleDiv.textContent).toBe('1');
 	});
 
+	it('renders with event listeners in spread props', () => {
+		component Basic() {
+			let count = track(0);
+
+			const minus = { 
+				onClick() {
+					@count--
+				}
+			}
+
+			const plus = { 
+				onClick() {
+					@count++
+				}
+			}
+
+			<div>
+				<button {...minus} class='minus'>{'-'}</button>
+				<span class='count'>{@count}</span>
+				<button {...plus} class='plus'>{'+'}</button>
+			</div>
+		}
+
+		render(Basic);
+
+		const minusButton = container.querySelector('.minus');
+		const plusButton = container.querySelector('.plus');
+		const countSpan = container.querySelector('.count');
+
+		expect(countSpan.textContent).toBe('0');
+
+		// Test that the buttons don't have string onclick attributes
+		expect(minusButton.getAttribute('onclick')).toBe(null);
+		expect(plusButton.getAttribute('onclick')).toBe(null);
+
+		// Test that the event handlers work
+		minusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('-1');
+
+		plusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('0');
+
+		plusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('1');
+	});
+
+	it('handles both delegated and non-delegated events in spread props', () => {
+		component Basic() {
+			let clickCount = track(0);
+			let focusCount = track(0);
+
+			const mixedHandler = { 
+				onClick() {  // Delegated event
+					@clickCount++
+				},
+				onFocus() { // Non-delegated event
+					@focusCount++
+				}
+			}
+
+			<div>
+				<button {...mixedHandler} class='mixed-button'>{'Test'}</button>
+				<span class='click-count'>{@clickCount}</span>
+				<span class='focus-count'>{@focusCount}</span>
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('.mixed-button');
+		const clickSpan = container.querySelector('.click-count');
+		const focusSpan = container.querySelector('.focus-count');
+
+		expect(clickSpan.textContent).toBe('0');
+		expect(focusSpan.textContent).toBe('0');
+
+		// Test delegated event (click)
+		button.click();
+		flushSync();
+		expect(clickSpan.textContent).toBe('1');
+
+		// Test non-delegated event (focus)
+		button.dispatchEvent(new Event('focus'));
+		flushSync();
+		expect(focusSpan.textContent).toBe('1');
+	});
+
 	it('renders with component composition and children', () => {
 		component Card(props) {
 			<div class='card'>

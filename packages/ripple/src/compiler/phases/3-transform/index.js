@@ -7,9 +7,7 @@ import { IS_CONTROLLED, TEMPLATE_FRAGMENT } from '../../../constants.js';
 import { sanitize_template_string } from '../../../utils/sanitize_template_string.js';
 import {
   build_hoisted_params,
-  is_event_attribute,
   is_inside_component,
-  is_passive_event,
   build_assignment,
   visit_assignment_expression,
   escape_html,
@@ -27,6 +25,7 @@ import {
 import is_reference from 'is-reference';
 import { object } from '../../../utils/ast.js';
 import { render_stylesheets } from './stylesheet.js';
+import { is_event_attribute, is_passive_event } from '../../../utils/events';
 
 function add_ripple_internal_import(context) {
   if (!context.state.to_ts) {
