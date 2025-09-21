@@ -624,4 +624,27 @@ describe('composite components', () => {
 
 		expect(container.textContent).toBe('Basic Component');
 	});
+
+	it('supports rendering compositie components using <@object.@component> syntax', () => {
+		component App() {
+			component basic() {
+				<div>{'Basic Component'}</div>
+			}
+
+			const tracked_basic = track(() => basic);
+
+			const obj = {
+				tracked_basic,
+			}
+
+			const tracked_object = track(obj);
+
+			<@tracked_object.@tracked_basic />
+		}
+
+		render(App);
+		flushSync();
+
+		expect(container.textContent).toBe('Basic Component');
+	});
 });
