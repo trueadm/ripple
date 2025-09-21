@@ -1,4 +1,4 @@
-import { is_passive_event } from '../../../compiler/utils';
+import { is_passive_event } from '../../../utils/events';
 import {
   active_block,
   active_reaction,

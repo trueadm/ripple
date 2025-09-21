@@ -7,9 +7,7 @@ import { IS_CONTROLLED, TEMPLATE_FRAGMENT } from '../../../constants.js';
 import { sanitize_template_string } from '../../../utils/sanitize_template_string.js';
 import {
   build_hoisted_params,
-  is_event_attribute,
   is_inside_component,
-  is_passive_event,
   build_assignment,
   visit_assignment_expression,
   escape_html,
@@ -27,6 +25,7 @@ import {
 import is_reference from 'is-reference';
 import { object } from '../../../utils/ast.js';
 import { render_stylesheets } from './stylesheet.js';
+import { is_event_attribute, is_passive_event } from '../../../utils/events.js';
 
 function add_ripple_internal_import(context) {
   if (!context.state.to_ts) {
@@ -471,6 +470,11 @@ const visitors = {
           if (attr.name.type === 'Identifier') {
             const name = attr.name.name;
 
+            if (attr.value === null) {
+              handle_static_attr(name, true);
+              continue;
+            } 
+
             if (attr.value.type === 'Literal' && name !== 'class') {
               handle_static_attr(name, attr.value.value);
               continue;
@@ -674,7 +678,11 @@ const visitors = {
       }
 
       if (update.length > 0) {
-        state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update), update.async ?? true))));
+        if (state.scope.parent.declarations.size > 0) {
+          state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update), !!update.async))));
+        } else {
+          state.update.push(...update);
+        }
       }
     } else {
       const id = state.flush_node();

@@ -56,6 +56,11 @@ cd my-app
 npm i # or yarn or pnpm
 npm run dev # or yarn or pnpm
 ```
+or use create-ripple interactive CLI tool for creating new Ripple applications with features like tailwindcss or bootsrap setup.
+```
+npx create-ripple  # or yarn create ripple or pnpm create ripple
+
+```
 
 If you want to install the RippleJS package directly, it is `ripple` on npm:
 

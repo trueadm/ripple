@@ -1,5 +1,6 @@
 import { build_assignment_value } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
+import { get_attribute_event_name, is_delegated, is_event_attribute } from '../utils/events.js';
 
 const regex_return_characters = /\r/g;
 
@@ -144,47 +145,6 @@ const DOM_PROPERTIES = [
 
 export function is_dom_property(name) {
   return DOM_PROPERTIES.includes(name);
-}
-
-/** List of Element events that will be delegated */
-const DELEGATED_EVENTS = [
-  'beforeinput',
-  'click',
-  'change',
-  'dblclick',
-  'contextmenu',
-  'focusin',
-  'focusout',
-  'input',
-  'keydown',
-  'keyup',
-  'mousedown',
-  'mousemove',
-  'mouseout',
-  'mouseover',
-  'mouseup',
-  'pointerdown',
-  'pointermove',
-  'pointerout',
-  'pointerover',
-  'pointerup',
-  'touchend',
-  'touchmove',
-  'touchstart',
-];
-
-export function is_delegated(event_name) {
-  return DELEGATED_EVENTS.includes(event_name);
-}
-
-const PASSIVE_EVENTS = ['touchstart', 'touchmove'];
-
-export function is_passive_event(name) {
-  return PASSIVE_EVENTS.includes(name);
-}
-
-export function is_event_attribute(attr) {
-  return attr.startsWith('on') && attr.length > 2 && attr[2] === attr[2].toUpperCase();
 }
 
 const unhoisted = { hoisted: false };
