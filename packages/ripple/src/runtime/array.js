@@ -68,7 +68,7 @@ TrackedArray.fromAsync = async function (arrayLike, mapFn, thisArg) {
  * }} params
  * @returns {TrackedArray<T>}
  */
-function proxy({ elements, block, from_static: from_static = false, use_array = false }) {
+function proxy({ elements, block, from_static = false, use_array = false }) {
   var arr;
   var first;
 
