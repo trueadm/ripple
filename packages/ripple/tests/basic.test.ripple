@@ -1246,4 +1246,16 @@ describe('basic', () => {
 		flushSync();
 		expect(countSpan.textContent).toBe('1');
 	});
+
+	it('handles boolean attributes with no prop value provides', () => {
+		component App() {
+			<div class="container">
+				<button onClick={() => console.log("clicked!")} disabled>{"Button"}</button>
+				<input type="checkbox" checked />
+			</div>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
 });

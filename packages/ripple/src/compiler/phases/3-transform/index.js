@@ -470,6 +470,11 @@ const visitors = {
           if (attr.name.type === 'Identifier') {
             const name = attr.name.name;
 
+            if (attr.value === null) {
+              handle_static_attr(name, true);
+              continue;
+            } 
+
             if (attr.value.type === 'Literal' && name !== 'class') {
               handle_static_attr(name, attr.value.value);
               continue;

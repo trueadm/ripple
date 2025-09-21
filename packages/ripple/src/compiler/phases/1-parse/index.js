@@ -293,7 +293,7 @@ function RipplePlugin(config) {
         node.block = this.parseBlock();
         node.handler = null;
 
-		if (this.value === 'pending') {
+        if (this.value === 'pending') {
           this.next();
           node.pending = this.parseBlock();
         } else {
@@ -487,8 +487,10 @@ function RipplePlugin(config) {
             if (attr.name.type === 'JSXIdentifier') {
               attr.name.type = 'Identifier';
             }
-            if (attr.value.type === 'JSXExpressionContainer') {
-              attr.value = attr.value.expression;
+            if (attr.value !== null) {
+              if (attr.value.type === 'JSXExpressionContainer') {
+                attr.value = attr.value.expression;
+              }
             }
           }
         }

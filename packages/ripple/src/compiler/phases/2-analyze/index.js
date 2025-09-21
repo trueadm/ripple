@@ -409,7 +409,7 @@ const visitors = {
 
                 attr.metadata.delegated = delegated_event;
               }
-            } else {
+            } else if (attr.value !== null) {
               visit(attr.value, state);
             }
           }
