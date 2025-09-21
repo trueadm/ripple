@@ -269,6 +269,71 @@ function RipplePlugin(config) {
         return this.finishNode(node, 'JSXAttribute');
       }
 
+      jsx_parseNamespacedName() {
+        const base = this.jsx_parseIdentifier();
+        if (!this.eat(tt.colon)) return base;
+        const node = this.startNodeAt(base.start, base.loc.start);
+        node.namespace = base;
+        node.name = this.jsx_parseIdentifier();
+        return this.finishNode(node, 'JSXNamespacedName');
+      }
+
+      jsx_parseIdentifier() {
+        const node = this.startNode();
+
+        if (this.type.label === '@') {
+          this.next(); // consume @
+
+          if (this.type === tt.name || this.type.label === 'jsxName') {
+            node.name = this.value;
+            node.tracked = true;
+            this.next();
+          } else {
+            // Unexpected token after @
+            this.unexpected();
+          }
+        } else if (
+          (this.type === tt.name || this.type.label === 'jsxName') &&
+          this.value &&
+          this.value.startsWith('@')
+        ) {
+          node.name = this.value.substring(1);
+          node.tracked = true;
+          this.next();
+        } else if (this.type === tt.name || this.type.keyword || this.type.label === 'jsxName') {
+          node.name = this.value;
+          node.tracked = false; // Explicitly mark as not tracked
+          this.next();
+        } else {
+          return super.jsx_parseIdentifier();
+        }
+
+        return this.finishNode(node, 'JSXIdentifier');
+      }
+
+      // Override jsx_parseElementName to support @ syntax in member expressions
+      jsx_parseElementName() {
+        let node = this.jsx_parseIdentifier();
+        if (this.eat(tt.dot)) {
+          let memberExpr = this.startNodeAt(node.start, node.loc && node.loc.start);
+          memberExpr.object = node;
+          memberExpr.property = this.jsx_parseIdentifier();
+          memberExpr.computed = false;
+          while (this.eat(tt.dot)) {
+            let newMemberExpr = this.startNodeAt(
+              memberExpr.start,
+              memberExpr.loc && memberExpr.loc.start,
+            );
+            newMemberExpr.object = memberExpr;
+            newMemberExpr.property = this.jsx_parseIdentifier();
+            newMemberExpr.computed = false;
+            memberExpr = this.finishNode(newMemberExpr, 'JSXMemberExpression');
+          }
+          return this.finishNode(memberExpr, 'JSXMemberExpression');
+        }
+        return node;
+      }
+
       jsx_parseAttributeValue() {
         const tok = this.acornTypeScript.tokTypes;
 
