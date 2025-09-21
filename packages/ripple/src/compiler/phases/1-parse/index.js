@@ -432,7 +432,9 @@ function RipplePlugin(config) {
               // '}'
               if (
                 ch === 125 &&
-                (this.#path.length === 0 || this.#path.at(-1)?.type === 'Component')
+                (this.#path.length === 0 ||
+                  this.#path.at(-1)?.type === 'Component' ||
+                  this.#path.at(-1)?.type === 'Element')
               ) {
                 return original.readToken.call(this, ch);
               }

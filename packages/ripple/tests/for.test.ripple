@@ -56,4 +56,33 @@ describe('for statements', () => {
 
 		expect(container).toMatchSnapshot();
 	});
+
+	it('correctly handles intermediate statements in for block', () => {
+		component App() {
+			const items = new TrackedArray(1, 2, 3);
+
+			<div>
+				for (const item of items) {
+					<div>
+						<div>{item}</div>
+						const some_text = item;
+						<div>{some_text}</div>
+					</div>
+				}
+			</div>
+
+			<button onClick={() => items.push(items.length + 1)}>{"Add Item"}</button>
+		}
+
+		render(App);
+
+		expect(container).toMatchSnapshot();
+		
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(container).toMatchSnapshot();
+	})
 });
