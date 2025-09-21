@@ -69,15 +69,6 @@
           "source.js.embedded.ripple-isolated": "javascript",
           "source.css": "css"
         }
-      },
-      {
-        "language": "ripple",
-        "scopeName": "source.jsx",
-        "path": "./syntaxes/javascript.tmLanguage.json",
-        "embeddedLanguages": {
-          "source.js": "javascriptreact",
-          "text.html.basic": "javascriptreact"
-        }
       }
     ]
   }
