@@ -1,4 +1,4 @@
-import { is_passive_event } from '../../../utils/events';
+import { is_passive_event } from '../../../utils/events.js';
 import {
   active_block,
   active_reaction,
@@ -7,7 +7,7 @@ import {
   set_tracking,
   tracking,
 } from './runtime';
-import { array_from, define_property, is_array } from './utils';
+import { array_from, define_property, is_array } from './utils.js';
 
 /** @type {Set<string>} */
 var all_registered_events = new Set();
