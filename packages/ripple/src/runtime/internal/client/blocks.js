@@ -11,9 +11,9 @@ import {
   RENDER_BLOCK,
   ROOT_BLOCK,
   TRY_BLOCK,
-} from './constants';
-import { next_sibling } from './operations';
-import { apply_element_spread } from './render';
+} from './constants.js';
+import { next_sibling } from './operations.js';
+import { apply_element_spread } from './render.js';
 import {
   active_block,
   active_component,
@@ -22,8 +22,8 @@ import {
   run_block,
   run_teardown,
   schedule_update,
-} from './runtime';
-import { suspend } from './try';
+} from './runtime.js';
+import { suspend } from './try.js';
 
 /**
  * @param {Function} fn

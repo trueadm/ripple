@@ -1,14 +1,14 @@
-import { destroy_block, ref } from './blocks';
-import { REF_PROP } from './constants';
+import { destroy_block, ref } from './blocks.js';
+import { REF_PROP } from './constants.js';
 import {
   get_descriptors,
   get_own_property_symbols,
   get_prototype_of,
   is_tracked_object,
-} from './utils';
-import { delegate, event } from './events';
-import { get_attribute_event_name, is_delegated, is_event_attribute } from '../../../utils/events';
-import { get } from './runtime';
+} from './utils.js';
+import { delegate, event } from './events.js';
+import { get_attribute_event_name, is_delegated, is_event_attribute } from '../../../utils/events.js';
+import { get } from './runtime.js';
 
 export function set_text(text, value) {
   // For objects, we apply string coercion (which might make things like $state array references in the template reactive) before diffing

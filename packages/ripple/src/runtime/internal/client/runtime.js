@@ -24,9 +24,9 @@ import {
   TRY_BLOCK,
   UNINITIALIZED,
   REF_PROP,
-} from './constants';
+} from './constants.js';
 import { capture, suspend } from './try.js';
-import { define_property, is_tracked_object } from './utils';
+import { define_property, is_tracked_object } from './utils.js';
 
 const FLUSH_MICROTASK = 0;
 const FLUSH_SYNC = 1;
