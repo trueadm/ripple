@@ -1,5 +1,5 @@
-import { branch, destroy_block, render } from './blocks';
-import { IF_BLOCK, UNINITIALIZED } from './constants';
+import { branch, destroy_block, render } from './blocks.js';
+import { IF_BLOCK, UNINITIALIZED } from './constants.js';
 
 export function if_block(node, fn) {
   var anchor = node;

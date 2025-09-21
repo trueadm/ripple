@@ -33,3 +33,7 @@ playground/src
 tmp
 dist
 debug
+
+# Temporary folders
+tmp/
+temp/

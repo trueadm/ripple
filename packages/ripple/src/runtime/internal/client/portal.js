@@ -1,7 +1,7 @@
-import { branch, destroy_block, render } from './blocks';
-import { UNINITIALIZED } from './constants';
-import { handle_root_events } from './events';
-import { create_text } from './operations';
+import { branch, destroy_block, render } from './blocks.js';
+import { UNINITIALIZED } from './constants.js';
+import { handle_root_events } from './events.js';
+import { create_text } from './operations.js';
 
 export function Portal(_, props) {
   let target = UNINITIALIZED;
