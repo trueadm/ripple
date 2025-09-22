@@ -1,7 +1,7 @@
 <a href="https://ripplejs.com">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-transparent-dark.png">
-    <img src="assets/ripple-transparent-light.png" alt="Ripple - the elegant TypeScript UI framework" />
+    <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-transparent.png">
+    <img src="assets/ripple-transparent.png" alt="Ripple - the elegant TypeScript UI framework" />
   </picture>
 </a>
 
