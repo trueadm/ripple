@@ -33,3 +33,26 @@ component EventExample() {
   </div>
 }
 ```
+
+### `on()`
+
+Attaches an event handler to an element and returns a function to remove it.
+Unlike using `addEventListener`, `on()` guarantees proper execution order with
+respect to attribute-based handlers such as `onClick`, and is optimized
+with event delegation for events that support it.
+
+```ripple
+import { effect, on } from 'ripple';
+
+export component App() {
+  effect(() => {
+    // on component mount
+    const removeListener = on(window, 'resize', () => {
+      console.log('Window resized!');
+    });
+
+    // return the removeListener when the component unmounts
+    return removeListener;
+  });
+}
+```
