@@ -296,25 +296,6 @@ const visitors = {
       );
     }
 
-    if (parent.type !== 'AssignmentExpression') {
-      const object = node.object;
-      const property = node.property;
-
-      if (object.type === 'Identifier' && object.name === 'Object') {
-        const binding = context.state.scope.get(object.name);
-
-        if (binding === null) {
-          if (property.type === 'Identifier' && property.name === 'values') {
-            return b.id('$.object_values');
-          } else if (property.type === 'Identifier' && property.name === 'entries') {
-            return b.id('$.object_entries');
-          } else if (property.type === 'Identifier' && property.name === 'keys') {
-            return b.id('$.object_keys');
-          }
-        }
-      }
-    }
-
     if (node.object.type === 'MemberExpression' && node.object.optional) {
       const metadata = { tracking: false, await: false };
 
@@ -433,7 +414,7 @@ const visitors = {
   Element(node, context) {
     const { state, visit } = context;
 
-    const is_dom_element = is_element_dom_element(node, context);
+    const is_dom_element = is_element_dom_element(node);
     const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
     const spread_attributes = is_spreading ? [] : null;
 
@@ -1296,7 +1277,7 @@ function transform_ts_child(node, context) {
     }
 
     if (!node.selfClosing && !has_children_props && node.children.length > 0) {
-      const is_dom_element = is_element_dom_element(node, context);
+      const is_dom_element = is_element_dom_element(node);
 
       const component_scope = context.state.scopes.get(node);
       const thunk = b.thunk(
@@ -1436,7 +1417,7 @@ function transform_children(children, context) {
         node.type === 'TryStatement' ||
         node.type === 'ForOfStatement' ||
         (node.type === 'Element' &&
-          (node.id.type !== 'Identifier' || !is_element_dom_element(node, context))),
+          (node.id.type !== 'Identifier' || !is_element_dom_element(node))),
     ) ||
     normalized.filter(
       (node) => node.type !== 'VariableDeclaration' && node.type !== 'EmptyStatement',
@@ -1447,7 +1428,7 @@ function transform_children(children, context) {
 
   const get_id = (node) => {
     return b.id(
-      node.type == 'Element' && is_element_dom_element(node, context)
+      node.type == 'Element' && is_element_dom_element(node)
         ? state.scope.generate(node.id.name)
         : node.type == 'Text'
           ? state.scope.generate('text')
@@ -1483,7 +1464,8 @@ function transform_children(children, context) {
       node.type === 'ThrowStatement' ||
       node.type === 'FunctionDeclaration' ||
       node.type === 'DebuggerStatement' ||
-      node.type === 'ClassDeclaration'
+      node.type === 'ClassDeclaration' ||
+      node.type === 'Component'
     ) {
       const metadata = { await: false };
       state.init.push(visit(node, { ...state, metadata }));
@@ -1554,7 +1536,7 @@ function transform_children(children, context) {
             const id = state.flush_node();
             state.template.push(' ');
             state.init.push(
-              b.stmt(b.assignment('=', b.member(id, b.id('textContent')), expression)),
+              b.stmt(b.assignment('=', b.member(b.member(id, b.id('firstChild')), b.id('nodeValue')), expression)),
             );
           }
         } else {

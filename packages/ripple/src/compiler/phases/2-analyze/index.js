@@ -363,7 +363,7 @@ const visitors = {
     context.next();
   },
 
-  JSXElement(_, context) {
+  JSXElement(node, context) {
     {
       error(
         'Elements cannot be used as generic expressions, only as statements within a component',
@@ -375,7 +375,7 @@ const visitors = {
 
   Element(node, context) {
     const { state, visit, path } = context;
-    const is_dom_element = is_element_dom_element(node, context);
+    const is_dom_element = is_element_dom_element(node);
     const attribute_names = new Set();
 
     mark_control_flow_has_template(path);

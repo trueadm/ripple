@@ -611,51 +611,11 @@ export function hash(str) {
   return (hash >>> 0).toString(36);
 }
 
-const common_dom_names = new Set([
-  'div',
-  'span',
-  'input',
-  'textarea',
-  'select',
-  'button',
-  'a',
-  'p',
-  'img',
-  'form',
-  'label',
-  'ul',
-  'ol',
-  'li',
-  'table',
-  'thead',
-  'tbody',
-  'tr',
-  'td',
-  'th',
-  'section',
-  'header',
-  'footer',
-  'nav',
-  'main',
-  'article',
-  'aside',
-  'h1',
-  'h2',
-  'h3',
-  'h4',
-  'h5',
-  'h6',
-]);
-
-export function is_element_dom_element(node, context) {
-  if (node.id.type === 'Identifier' && node.id.name[0].toLowerCase() === node.id.name[0]) {
-    if (common_dom_names.has(node.id.name)) {
-      return true;
-    }
-    const binding = context.state.scope.get(node.id.name);
-    if (binding == null) {
-      return true;
-    }
-  }
-  return false;
+export function is_element_dom_element(node) {
+  return (
+    node.id.type === 'Identifier' &&
+    node.id.name[0].toLowerCase() === node.id.name[0] &&
+    node.id.name !== 'children' &&
+    !node.id.tracked
+  );
 }

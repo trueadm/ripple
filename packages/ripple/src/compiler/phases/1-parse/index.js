@@ -25,7 +25,6 @@ function RipplePlugin(config) {
 
     class RippleParser extends Parser {
       #path = [];
-      skip_decorator = false;
 
       // Helper method to get the element name from a JSX identifier or member expression
       getElementName(node) {
@@ -39,10 +38,45 @@ function RipplePlugin(config) {
         return null;
       }
 
-      // Override getTokenFromCode to handle @ as an identifier prefix
       getTokenFromCode(code) {
+        if (code === 60) {
+          // < character
+          if (this.#path.findLast((n) => n.type === 'Component')) {
+            // Check if everything before this position on the current line is whitespace
+            let lineStart = this.pos - 1;
+            while (
+              lineStart >= 0 &&
+              this.input.charCodeAt(lineStart) !== 10 &&
+              this.input.charCodeAt(lineStart) !== 13
+            ) {
+              lineStart--;
+            }
+            lineStart++; // Move past the newline character
+
+            // Check if all characters from line start to current position are whitespace
+            let allWhitespace = true;
+            for (let i = lineStart; i < this.pos; i++) {
+              const ch = this.input.charCodeAt(i);
+              if (ch !== 32 && ch !== 9) {
+                allWhitespace = false;
+                break;
+              }
+            }
+
+            // Check if the character after < is not whitespace
+            if (allWhitespace && this.pos + 1 < this.input.length) {
+              const nextChar = this.input.charCodeAt(this.pos + 1);
+              if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
+                const tokTypes = this.acornTypeScript.tokTypes;
+                ++this.pos;
+                return this.finishToken(tokTypes.jsxTagStart);
+              }
+            }
+          }
+        }
+
         if (code === 64) {
-          // '@' character
+          // @ character
           // Look ahead to see if this is followed by a valid identifier character
           if (this.pos + 1 < this.input.length) {
             const nextChar = this.input.charCodeAt(this.pos + 1);
@@ -145,7 +179,6 @@ function RipplePlugin(config) {
           this.#path.push(node);
 
           this.parseTemplateBody(node.body);
-
           this.#path.pop();
           this.exitScope();
 
@@ -269,6 +302,71 @@ function RipplePlugin(config) {
         return this.finishNode(node, 'JSXAttribute');
       }
 
+      jsx_parseNamespacedName() {
+        const base = this.jsx_parseIdentifier();
+        if (!this.eat(tt.colon)) return base;
+        const node = this.startNodeAt(base.start, base.loc.start);
+        node.namespace = base;
+        node.name = this.jsx_parseIdentifier();
+        return this.finishNode(node, 'JSXNamespacedName');
+      }
+
+      jsx_parseIdentifier() {
+        const node = this.startNode();
+
+        if (this.type.label === '@') {
+          this.next(); // consume @
+
+          if (this.type === tt.name || this.type.label === 'jsxName') {
+            node.name = this.value;
+            node.tracked = true;
+            this.next();
+          } else {
+            // Unexpected token after @
+            this.unexpected();
+          }
+        } else if (
+          (this.type === tt.name || this.type.label === 'jsxName') &&
+          this.value &&
+          this.value.startsWith('@')
+        ) {
+          node.name = this.value.substring(1);
+          node.tracked = true;
+          this.next();
+        } else if (this.type === tt.name || this.type.keyword || this.type.label === 'jsxName') {
+          node.name = this.value;
+          node.tracked = false; // Explicitly mark as not tracked
+          this.next();
+        } else {
+          return super.jsx_parseIdentifier();
+        }
+
+        return this.finishNode(node, 'JSXIdentifier');
+      }
+
+      // Override jsx_parseElementName to support @ syntax in member expressions
+      jsx_parseElementName() {
+        let node = this.jsx_parseIdentifier();
+        if (this.eat(tt.dot)) {
+          let memberExpr = this.startNodeAt(node.start, node.loc && node.loc.start);
+          memberExpr.object = node;
+          memberExpr.property = this.jsx_parseIdentifier();
+          memberExpr.computed = false;
+          while (this.eat(tt.dot)) {
+            let newMemberExpr = this.startNodeAt(
+              memberExpr.start,
+              memberExpr.loc && memberExpr.loc.start,
+            );
+            newMemberExpr.object = memberExpr;
+            newMemberExpr.property = this.jsx_parseIdentifier();
+            newMemberExpr.computed = false;
+            memberExpr = this.finishNode(newMemberExpr, 'JSXMemberExpression');
+          }
+          return this.finishNode(memberExpr, 'JSXMemberExpression');
+        }
+        return node;
+      }
+
       jsx_parseAttributeValue() {
         const tok = this.acornTypeScript.tokTypes;
 
@@ -323,6 +421,7 @@ function RipplePlugin(config) {
         }
         return this.finishNode(node, 'TryStatement');
       }
+
       jsx_readToken() {
         let out = '',
           chunkStart = this.pos;
@@ -584,53 +683,6 @@ function RipplePlugin(config) {
         return element;
       }
 
-      parseSubscript(base, startPos, startLoc, noCalls, maybeAsyncArrow, optionalChained, forInit) {
-        const prev_char = this.input.at(this.pos - 2);
-
-        if (
-          this.value === '<' &&
-          (prev_char === ' ' || prev_char === '\t') &&
-          this.#path.findLast((n) => n.type === 'Component')
-        ) {
-          this.input.charCodeAt(this.pos);
-          // Check if this looks like JSX by looking ahead
-          const ahead = this.lookahead();
-          const curContext = this.curContext();
-          if (
-            curContext.token !== '(' &&
-            (ahead.type.label === 'name' || ahead.value === '/' || ahead.value === '>')
-          ) {
-            // This is JSX, rewind to the end of the object expression
-            // and let ASI handle the semicolon insertion naturally
-            this.pos = base.end;
-            this.type = tt.braceR;
-            this.value = '}';
-            this.start = base.end - 1;
-            this.end = base.end;
-            const position = this.curPosition();
-            this.startLoc = position;
-            this.endLoc = position;
-            // Avoid triggering onComment handlers, as they will have
-            // already been triggered when parsing the subscript before
-            const onComment = this.options.onComment;
-            this.options.onComment = () => {};
-            this.next();
-            this.options.onComment = onComment;
-
-            return base;
-          }
-        }
-        return super.parseSubscript(
-          base,
-          startPos,
-          startLoc,
-          noCalls,
-          maybeAsyncArrow,
-          optionalChained,
-          forInit,
-        );
-      }
-
       parseTemplateBody(body) {
         var inside_func =
           this.context.some((n) => n.token === 'function') || this.scopeStack.length > 1;
@@ -645,6 +697,11 @@ function RipplePlugin(config) {
           if (this.type.label === 'break') {
             throw new Error('`break` statements are not allowed in components');
           }
+        }
+
+        if (this.type.label === '</>/<=/>=') {
+          debugger;
+          console.log('HERE', this.value, this.type);
         }
 
         if (this.type.label === '{') {
@@ -735,7 +792,7 @@ function RipplePlugin(config) {
         }
 
         if (this.type.label === '@') {
-          // Try to parse as an expression statement first using tryParse
+		  // Try to parse as an expression statement first using tryParse
           // This allows us to handle Ripple @ syntax like @count++ without
           // interfering with legitimate decorator syntax
           this.skip_decorator = true;
@@ -743,7 +800,7 @@ function RipplePlugin(config) {
             const node = this.startNode();
             this.next();
             // Force expression context to ensure @ is tokenized correctly
-            const oldExprAllowed = this.exprAllowed;
+            const old_expr_allowed = this.exprAllowed;
             this.exprAllowed = true;
             node.expression = this.parseExpression();
 
@@ -769,7 +826,7 @@ function RipplePlugin(config) {
               // TODO?
             }
 
-            this.exprAllowed = oldExprAllowed;
+            this.exprAllowed = old_expr_allowed;
             return this.finishNode(node, 'ExpressionStatement');
           });
           this.skip_decorator = false;
