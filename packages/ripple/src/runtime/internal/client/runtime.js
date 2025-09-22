@@ -1,4 +1,5 @@
 /** @import { Block, Component, Dependency, Derived, Tracked } from '#client' */
+/** @import { TrackOptions } from '#public' */
 
 import {
   destroy_block,
@@ -26,7 +27,7 @@ import {
   REF_PROP,
 } from './constants.js';
 import { capture, suspend } from './try.js';
-import { define_property, is_tracked_object } from './utils.js';
+import { define_property, get_descriptors, is_array, is_tracked_object } from './utils.js';
 
 const FLUSH_MICROTASK = 0;
 const FLUSH_SYNC = 1;
@@ -276,6 +277,91 @@ export function derived(fn, block) {
     fn,
     v: UNINITIALIZED,
   };
+}
+
+/**
+ * @param {any} v
+ * @param {Block | TrackOptions} o
+ * @param {Block | undefined} b
+ * @returns {Tracked | Derived | Tracked[]}
+ */
+export function track(v, o, b) {
+  var is_tracked = is_tracked_object(v);
+
+  if (b === undefined) {
+    b = o;
+
+    if (is_tracked) {
+      return v;
+    }
+
+    if (typeof v === 'function') {
+      return derived(v, b);
+    }
+    return tracked(v, b);
+  }
+
+  if (is_tracked || typeof v !== "object" || v === null || is_array(v)) {
+    throw new TypeError('Invalid value: expected a non-tracked object');
+  }
+
+  var list;
+
+  if (
+    typeof o !== "object" ||
+    o === null ||
+    is_array(o) ||
+    !("split" in o) ||
+    !is_array(list = o.split) ||
+    list.length < 1
+  ) {
+    throw new TypeError(
+      'Invalid options: expected { split: (string|symbol|number)[] }'
+    );
+  }
+
+  /** @type {Tracked[]} */
+  var out = []
+  /** @type {Record<string|symbol, any>} */
+  var rest = {};
+  /** @type {Record<PropertyKey, PropertyDescriptor>} */
+  var descriptors = get_descriptors(v);
+  var props = Reflect.ownKeys(descriptors);
+  /** @type {Record<string|symbol, Tracked>} */
+  var done = {};
+
+  for (let i = 0, props_i = 0, key, t; i < list.length; i++) {
+    key = list[i];
+
+    if (done[key]) {
+      // in case of duplicate keys just return as requested
+      out[i] = done[key];
+      continue;
+    }
+
+    if (is_tracked_object(v[key])) {
+      t = v[key];
+    } else {
+      t = tracked(undefined, b);
+      delete t.v;
+      define_property(t, 'v', descriptors[key]);
+    }
+
+    out[i] = t;
+    done[key] = t;
+    if ((props_i = props.indexOf(key)) !== -1) {
+      props.splice(props_i, 1);
+    }
+  }
+
+  for (let i = 0, key; i < props.length; i++) {
+    key = props[i];
+    define_property(rest, key, descriptors[key]);
+  }
+
+  out.push(tracked(rest, b));
+
+  return out;
 }
 
 /**

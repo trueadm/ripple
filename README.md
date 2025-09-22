@@ -183,6 +183,50 @@ effect(() => {
 })
 ```
 
+#### Split Option
+
+The `track` function also offers a `split` option to "split" a plain object, such as component props, into specifed tracked variables and an extra `rest` (can be any name) containing the remaining unspecified object properties.
+
+```jsx
+const [children, count, rest] = track(props, {split: ['children', 'count']});
+```
+
+Frequently when processing properties passed in to a component, a `rest` destructuring is highly desirable to apply any number of supplied properties to an element or another child component.  To make sure that the `rest` is reactive as it may have none, all or a mixture of reactive properties – depending on what was passed in to the component, applying `track` with a `split` option guarantees `rest`'s reactivity.
+
+A full example utilizing various Ripple constructs demonstrates its usage.
+
+```jsx
+import { track } from 'ripple';
+import type { PropsWithChildren, Tracked } from 'ripple';
+
+component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
+  const [children, count, rest] = track(props, {split: ['children', 'count']});
+
+  <button {...@rest}><@children /></button>
+  <pre>{`Count is: ${@count}`}</pre>
+  <button onClick={() => @count++}>{'Increment Count'}</button>
+}
+
+export component App() {
+  let count = track(0);
+  let name = track('Click Me');
+
+  function buttonRef(el) {
+    console.log('ref called with', el);
+    return () => {
+      console.log('cleanup ref for', el);
+    };
+  }
+
+  <Child
+    class="my-button"
+    onClick={() => @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'}
+    count:={() => @count, (v) => {console.log('inside setter'); @count++}}
+    {ref buttonRef}
+  >{@name}</Child>;
+}
+```
+
 > Note: you cannot create `Tracked` objects in module/global scope, they have to be created on access from an active component context.
 
 #### Transporting Reactivity
