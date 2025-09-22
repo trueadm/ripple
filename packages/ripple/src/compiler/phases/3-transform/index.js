@@ -29,8 +29,8 @@ import { is_event_attribute, is_passive_event } from '../../../utils/events.js';
 
 function add_ripple_internal_import(context) {
   if (!context.state.to_ts) {
-    if (!context.state.imports.has(`import * as $ from 'ripple/internal/client'`)) {
-      context.state.imports.add(`import * as $ from 'ripple/internal/client'`);
+    if (!context.state.imports.has(`import * as _$_ from 'ripple/internal/client'`)) {
+      context.state.imports.add(`import * as _$_ from 'ripple/internal/client'`);
     }
   }
 }
@@ -66,7 +66,7 @@ function visit_function(node, context) {
 
     if (!is_inside_component(context, true) && is_component_level_function(context)) {
       add_ripple_internal_import(context);
-      new_body.push(b.var('__block', b.call('$.scope')));
+      new_body.push(b.var('__block', b.call('_$_.scope')));
     }
     if (body.type === 'BlockStatement') {
       new_body.push(...body.body);
@@ -135,7 +135,7 @@ const visitors = {
             context.state.metadata.tracking = true;
           }
           if (node.tracked) {
-            return b.call('$.get', build_getter(node, context));
+            return b.call('_$_.get', build_getter(node, context));
           }
         }
 
@@ -167,8 +167,12 @@ const visitors = {
 
     if (
       !context.state.to_ts &&
-      callee.type === 'Identifier' &&
-      callee.name === 'track' &&
+      ((callee.type === 'Identifier' && callee.name === 'track') ||
+        (callee.type === 'MemberExpression' &&
+          callee.object.type === 'Identifier' &&
+          callee.property.type === 'Identifier' &&
+          callee.property.name === 'track' &&
+          !callee.computed)) &&
       is_ripple_import(callee, context)
     ) {
       if (node.arguments.length === 0) {
@@ -186,9 +190,6 @@ const visitors = {
       (parent?.type === 'MemberExpression' && parent.property === node) ||
       is_inside_call_expression(context) ||
       !context.path.some((node) => node.type === 'Component') ||
-      (is_ripple_import(callee, context) &&
-        (callee.type !== 'Identifier' ||
-          (callee.name !== 'array' && callee.name !== 'deferred'))) ||
       is_declared_function_within_component(callee, context)
     ) {
       return context.next();
@@ -200,11 +201,11 @@ const visitors = {
 
       if (callee.computed) {
         return b.call(
-          '$.with_scope',
+          '_$_.with_scope',
           b.id('__block'),
           b.thunk(
             b.call(
-              '$.call_property',
+              '_$_.call_property',
               context.visit(callee.object),
               context.visit(property),
               callee.optional ? b.true : undefined,
@@ -217,7 +218,7 @@ const visitors = {
     }
 
     return b.call(
-      '$.with_scope',
+      '_$_.with_scope',
       b.id('__block'),
       b.thunk(
         {
@@ -269,7 +270,7 @@ const visitors = {
     }
 
     return b.call(
-      '$.with_scope',
+      '_$_.with_scope',
       b.id('__block'),
       b.thunk({
         ...node,
@@ -290,7 +291,7 @@ const visitors = {
       add_ripple_internal_import(context);
 
       return b.call(
-        '$.get_property',
+        '_$_.get_property',
         context.visit(node.object),
         node.computed ? context.visit(node.property) : b.literal(node.property.name),
         node.optional ? b.true : undefined,
@@ -351,13 +352,13 @@ const visitors = {
             // TypeScript mode: lighter transformation
             if (metadata.tracking && !metadata.await) {
               expression = b.call(
-                '$.derived',
+                '_$_.derived',
                 b.thunk(context.visit(declarator.init)),
                 b.id('__block'),
               );
             } else {
               expression = b.call(
-                '$.tracked',
+                '_$_.tracked',
                 declarator.init === null ? undefined : context.visit(declarator.init),
                 b.id('__block'),
               );
@@ -369,9 +370,9 @@ const visitors = {
               expression = b.call(
                 b.await(
                   b.call(
-                    '$.resume_context',
+                    '_$_.resume_context',
                     b.call(
-                      '$.async_computed',
+                      '_$_.async_computed',
                       b.thunk(context.visit(declarator.init), true),
                       b.id('__block'),
                     ),
@@ -380,13 +381,13 @@ const visitors = {
               );
             } else if (metadata.tracking && !metadata.await) {
               expression = b.call(
-                '$.derived',
+                '_$_.derived',
                 b.thunk(context.visit(declarator.init)),
                 b.id('__block'),
               );
             } else {
               expression = b.call(
-                '$.tracked',
+                '_$_.tracked',
                 declarator.init === null ? undefined : context.visit(declarator.init),
                 b.id('__block'),
               );
@@ -481,9 +482,9 @@ const visitors = {
               const expression = visit(attr.value, { ...state, metadata });
 
               if (name === '$value' || metadata.tracking) {
-                local_updates.push(b.stmt(b.call('$.set_value', id, expression)));
+                local_updates.push(b.stmt(b.call('_$_.set_value', id, expression)));
               } else {
-                state.init.push(b.stmt(b.call('$.set_value', id, expression)));
+                state.init.push(b.stmt(b.call('_$_.set_value', id, expression)));
               }
 
               continue;
@@ -495,9 +496,9 @@ const visitors = {
               const expression = visit(attr.value, { ...state, metadata });
 
               if (name === '$checked' || metadata.tracking) {
-                local_updates.push(b.stmt(b.call('$.set_checked', id, expression)));
+                local_updates.push(b.stmt(b.call('_$_.set_checked', id, expression)));
               } else {
-                state.init.push(b.stmt(b.call('$.set_checked', id, expression)));
+                state.init.push(b.stmt(b.call('_$_.set_checked', id, expression)));
               }
               continue;
             }
@@ -508,9 +509,9 @@ const visitors = {
               const expression = visit(attr.value, { ...state, metadata });
 
               if (name === '$selected' || metadata.tracking) {
-                local_updates.push(b.stmt(b.call('$.set_selected', id, expression)));
+                local_updates.push(b.stmt(b.call('_$_.set_selected', id, expression)));
               } else {
-                state.init.push(b.stmt(b.call('$.set_selected', id, expression)));
+                state.init.push(b.stmt(b.call('_$_.set_selected', id, expression)));
               }
               continue;
             }
@@ -563,7 +564,7 @@ const visitors = {
                 state.init.push(
                   b.stmt(
                     b.call(
-                      '$.event',
+                      '_$_.event',
                       b.literal(event_name),
                       id,
                       handler,
@@ -588,7 +589,7 @@ const visitors = {
                 local_updates.push(b.stmt(b.assignment('=', b.member(id, attribute), expression)));
               } else {
                 local_updates.push(
-                  b.stmt(b.call('$.set_attribute', id, b.literal(attribute), expression)),
+                  b.stmt(b.call('_$_.set_attribute', id, b.literal(attribute), expression)),
                 );
               }
             } else {
@@ -597,7 +598,9 @@ const visitors = {
               if (is_dom_property(name)) {
                 state.init.push(b.stmt(b.assignment('=', b.member(id, name), expression)));
               } else {
-                state.init.push(b.stmt(b.call('$.set_attribute', id, b.literal(name), expression)));
+                state.init.push(
+                  b.stmt(b.call('_$_.set_attribute', id, b.literal(name), expression)),
+                );
               }
             }
           }
@@ -605,7 +608,7 @@ const visitors = {
           spread_attributes.push(b.spread(visit(attr.argument, state)));
         } else if (attr.type === 'RefAttribute') {
           const id = state.flush_node();
-          state.init.push(b.stmt(b.call('$.ref', id, b.thunk(visit(attr.argument, state)))));
+          state.init.push(b.stmt(b.call('_$_.ref', id, b.thunk(visit(attr.argument, state)))));
         }
       }
 
@@ -628,9 +631,9 @@ const visitors = {
           }
 
           if (class_attribute.name.name === '$class' || metadata.tracking) {
-            local_updates.push(b.stmt(b.call('$.set_class', id, expression)));
+            local_updates.push(b.stmt(b.call('_$_.set_class', id, expression)));
           } else {
-            state.init.push(b.stmt(b.call('$.set_class', id, expression)));
+            state.init.push(b.stmt(b.call('_$_.set_class', id, expression)));
           }
         }
       } else if (node.metadata.scoped && state.component.css) {
@@ -644,7 +647,7 @@ const visitors = {
       if (spread_attributes !== null && spread_attributes.length > 0) {
         const id = state.flush_node();
         state.init.push(
-          b.stmt(b.call('$.render_spread', id, b.thunk(b.object(spread_attributes)))),
+          b.stmt(b.call('_$_.render_spread', id, b.thunk(b.object(spread_attributes)))),
         );
       }
 
@@ -668,7 +671,7 @@ const visitors = {
 
       if (update.length > 0) {
         if (state.scope.parent.declarations.size > 0) {
-          state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(update), !!update.async))));
+          state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(update), !!update.async))));
         } else {
           state.update.push(...update);
         }
@@ -710,7 +713,7 @@ const visitors = {
             ),
           );
         } else if (attr.type === 'RefAttribute') {
-          props.push(b.prop('init', b.call('$.ref_prop'), visit(attr.argument, state), true));
+          props.push(b.prop('init', b.call('_$_.ref_prop'), visit(attr.argument, state), true));
         } else if (attr.type === 'AccessorAttribute') {
           let get_expr;
 
@@ -791,14 +794,14 @@ const visitors = {
             b.call(
               node.id,
               id,
-              b.call('$.spread_props', b.thunk(b.object(props)), b.id('__block')),
-              b.id('$.active_block'),
+              b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block')),
+              b.id('_$_.active_block'),
             ),
           ),
         );
       } else {
         state.init.push(
-          b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('$.active_block'))),
+          b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('_$_.active_block'))),
         );
       }
     }
@@ -821,7 +824,7 @@ const visitors = {
       [b.id('__anchor'), ...node.params.map((param) => context.visit(param, context.state))],
       b.block(
         metadata.await
-          ? [b.stmt(b.call('$.async', b.thunk(b.block(body_statements), true)))]
+          ? [b.stmt(b.call('_$_.async', b.thunk(b.block(body_statements), true)))]
           : body_statements,
       ),
     );
@@ -859,12 +862,12 @@ const visitors = {
     }
 
     const body_statements = [
-      b.stmt(b.call('$.push_component')),
+      b.stmt(b.call('_$_.push_component')),
       ...transform_body(node.body, {
         ...context,
         state: { ...context.state, component: node, metadata },
       }),
-      b.stmt(b.call('$.pop_component')),
+      b.stmt(b.call('_$_.pop_component')),
     ];
 
     if (node.css !== null && node.css) {
@@ -879,7 +882,7 @@ const visitors = {
       b.block([
         ...(prop_statements ?? []),
         ...(metadata.await
-          ? [b.stmt(b.call('$.async', b.thunk(b.block(body_statements), true)))]
+          ? [b.stmt(b.call('_$_.async', b.thunk(b.block(body_statements), true)))]
           : body_statements),
       ]),
     );
@@ -906,7 +909,7 @@ const visitors = {
       }
 
       return b.call(
-        '$.set_property',
+        '_$_.set_property',
         context.visit(left.object, { ...context.state, metadata: { tracking: false } }),
         left.computed ? context.visit(left.property) : b.literal(left.property.name),
         operator === '='
@@ -926,7 +929,7 @@ const visitors = {
       const right = node.right;
 
       return b.call(
-        '$.set',
+        '_$_.set',
         context.visit(left, { ...context.state, metadata: { tracking: null } }),
         operator === '='
           ? context.visit(right)
@@ -960,7 +963,7 @@ const visitors = {
       context.state.metadata.tracking = true;
 
       return b.call(
-        node.prefix ? '$.update_pre_property' : '$.update_property',
+        node.prefix ? '_$_.update_pre_property' : '_$_.update_property',
         context.visit(argument.object, { ...context.state, metadata: { tracking: false } }),
         argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
         b.id('__block'),
@@ -970,7 +973,7 @@ const visitors = {
 
     if (argument.type === 'Identifier' && argument.tracked) {
       return b.call(
-        node.prefix ? '$.update_pre' : '$.update',
+        node.prefix ? '_$_.update_pre' : '_$_.update',
         context.visit(argument, { ...context.state, metadata: { tracking: null } }),
         b.id('__block'),
         node.operator === '--' ? b.literal(-1) : undefined,
@@ -1010,7 +1013,7 @@ const visitors = {
     context.state.init.push(
       b.stmt(
         b.call(
-          '$.for',
+          '_$_.for',
           id,
           b.thunk(context.visit(node.right)),
           b.arrow(
@@ -1070,7 +1073,7 @@ const visitors = {
     statements.push(
       b.stmt(
         b.call(
-          '$.if',
+          '_$_.if',
           id,
           b.arrow(
             [b.id('__render')],
@@ -1119,13 +1122,13 @@ const visitors = {
     });
 
     if (metadata.pending) {
-      body = [b.stmt(b.call('$.async', b.thunk(b.block(body), true)))];
+      body = [b.stmt(b.call('_$_.async', b.thunk(b.block(body), true)))];
     }
 
     context.state.init.push(
       b.stmt(
         b.call(
-          '$.try',
+          '_$_.try',
           id,
           b.arrow([b.id('__anchor')], b.block(body)),
           node.handler === null
@@ -1151,7 +1154,7 @@ const visitors = {
       context.state.metadata.await = true;
     }
 
-    return b.call(b.await(b.call('$.maybe_tracked', context.visit(node.argument))));
+    return b.call(b.await(b.call('_$_.maybe_tracked', context.visit(node.argument))));
   },
 
   BinaryExpression(node, context) {
@@ -1489,7 +1492,7 @@ function transform_children(children, context) {
       const metadata = { await: false };
       state.init.push(visit(node, { ...state, metadata }));
       if (metadata.await) {
-        state.init.push(b.if(b.call('$.aborted'), b.return(null)));
+        state.init.push(b.if(b.call('_$_.aborted'), b.return(null)));
         if (state.metadata?.await === false) {
           state.metadata.await = true;
         }
@@ -1508,13 +1511,13 @@ function transform_children(children, context) {
           return cached;
         } else if (current_prev !== null) {
           const id = get_id(node);
-          state.setup.push(b.var(id, b.call('$.sibling', current_prev())));
+          state.setup.push(b.var(id, b.call('_$_.sibling', current_prev())));
           cached = id;
           return id;
         } else if (initial !== null) {
           if (is_fragment) {
             const id = get_id(node);
-            state.setup.push(b.var(id, b.call('$.child_frag', initial)));
+            state.setup.push(b.var(id, b.call('_$_.child_frag', initial)));
             cached = id;
             return id;
           }
@@ -1525,7 +1528,7 @@ function transform_children(children, context) {
           }
 
           const id = get_id(node);
-          state.setup.push(b.var(id, b.call('$.child', state.flush_node())));
+          state.setup.push(b.var(id, b.call('_$_.child', state.flush_node())));
           cached = id;
           return id;
         } else {
@@ -1544,7 +1547,7 @@ function transform_children(children, context) {
         if (metadata.tracking) {
           state.template.push(' ');
           const id = flush_node();
-          state.update.push(b.stmt(b.call('$.set_text', id, expression)));
+          state.update.push(b.stmt(b.call('_$_.set_text', id, expression)));
           if (metadata.await) {
             state.update.async = true;
           }
@@ -1556,7 +1559,7 @@ function transform_children(children, context) {
             state.template.push(' ');
             state.init.push(
               b.stmt(
-                b.assignment('=', b.member(b.call('$.child', id), b.id('nodeValue')), expression),
+                b.assignment('=', b.member(b.call('_$_.child', id), b.id('nodeValue')), expression),
               ),
             );
           }
@@ -1564,7 +1567,7 @@ function transform_children(children, context) {
           // Handle Text nodes in fragments
           state.template.push(' ');
           const id = flush_node();
-          state.update.push(b.stmt(b.call('$.set_text', id, expression)));
+          state.update.push(b.stmt(b.call('_$_.set_text', id, expression)));
           if (metadata.await) {
             state.update.async = true;
           }
@@ -1589,9 +1592,9 @@ function transform_children(children, context) {
 
   if (root && initial !== null && template_id !== null) {
     const flags = is_fragment ? b.literal(TEMPLATE_FRAGMENT) : b.literal(0);
-    state.final.push(b.stmt(b.call('$.append', b.id('__anchor'), initial)));
+    state.final.push(b.stmt(b.call('_$_.append', b.id('__anchor'), initial)));
     state.hoisted.push(
-      b.var(template_id, b.call('$.template', join_template(state.template), flags)),
+      b.var(template_id, b.call('_$_.template', join_template(state.template), flags)),
     );
   }
 }
@@ -1610,7 +1613,7 @@ function transform_body(body, { visit, state }) {
   transform_children(body, { visit, state: body_state, root: true });
 
   if (body_state.update.length > 0) {
-    body_state.init.push(b.stmt(b.call('$.render', b.thunk(b.block(body_state.update)))));
+    body_state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(body_state.update)))));
   }
 
   return [...body_state.setup, ...body_state.init, ...body_state.final];
@@ -1646,7 +1649,7 @@ export function transform(filename, source, analysis, to_ts) {
   if (state.events.size > 0) {
     program.body.push(
       b.stmt(
-        b.call('$.delegate', b.array(Array.from(state.events).map((name) => b.literal(name)))),
+        b.call('_$_.delegate', b.array(Array.from(state.events).map((name) => b.literal(name)))),
       ),
     );
   }

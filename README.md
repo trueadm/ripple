@@ -39,8 +39,8 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 
 ## Missing Features
 
-- **SSR**: Ripple is currently an SPA only, this is because I haven't gotten around to it
-- **Types**: The codebase is very raw with limited types; we're getting around to it
+- **SSR**: Ripple is currently an SPA only. It will have SSR soon! Hydration to follow after.
+- **Types**: The codebase is gradually improving its JSDoc TS types, help welcome!
 
 ## Getting Started
 
@@ -135,8 +135,8 @@ Ripple's templating language also supports shorthands and object spreads too:
 
 ### Reactivity
 
-You use `track` to create a single tracked value. The `track` function will created a `Tracked<V>` object that
-is not accessible from the outside, and instead you must use `@` to read or write to the tracked value. You can pass the `Tracked<V>` object between components, functions and context
+You use `track` to create a single tracked value. The `track` function will created a boxed `Tracked<V>` object that
+is not accessible from the outside, and instead you must use `@` to unbox the `Tracked<V>` object to read or write its underlying value. You can pass the `Tracked<V>` object between components, functions and context
 to read and write to the value in different parts of your codebase.
 
 ```ts
@@ -755,6 +755,32 @@ component Parent() {
   MyContext.set("Hello from context!");
 
   <Child />
+}
+```
+
+You can also pass a reactive `Tracked<V>` object through context and read it at the other side.
+
+```jsx
+import { createContext, effect } from 'ripple';
+
+const MyContext = createContext(null);
+
+component Child() {
+  const count = MyContext.get();
+
+  effect(() => {
+    console.log(@count);
+  });
+}
+
+component Parent() {
+  const count = track(0);
+
+  MyContext.set(count);
+
+  <Child />
+
+  <button onClick={() => @count++}>{"increment count"}</button>
 }
 ```
 

@@ -101,7 +101,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
               }
             }
 
-            return b.call('$.exclude_from_object', expression(object), b.array(props));
+            return b.call('_$_.exclude_from_object', expression(object), b.array(props));
           };
 
           if (prop.argument.type === 'Identifier') {
@@ -202,7 +202,7 @@ function _extract_paths(assignments = [], param, expression, update_expression, 
 }
 
 export function build_fallback(expression, fallback) {
-  return b.call('$.fallback', expression, fallback);
+  return b.call('_$_.fallback', expression, fallback);
 }
 
 /**

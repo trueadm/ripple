@@ -5,7 +5,6 @@ import {
   get_delegated_event,
   is_element_dom_element,
   is_inside_component,
-  is_ripple_import,
   is_void_element,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
@@ -145,7 +144,7 @@ const visitors = {
   },
 
   VariableDeclaration(node, context) {
-    const { state, visit, path } = context;
+    const { state, visit } = context;
 
     for (const declarator of node.declarations) {
       if (is_inside_component(context) && node.kind === 'var') {
@@ -156,13 +155,6 @@ const visitors = {
         );
       }
       const metadata = { tracking: false, await: false };
-      const parent = path.at(-1);
-      const init_is_untracked =
-        declarator.init !== null &&
-        declarator.init.type === 'CallExpression' &&
-        is_ripple_import(declarator.init.callee, context) &&
-        declarator.init.callee.type === 'Identifier' &&
-        (declarator.init.callee.name === 'untrack' || declarator.init.callee.name === 'deferred');
 
       if (declarator.id.type === 'Identifier') {
   		visit(declarator, state);
