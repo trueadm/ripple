@@ -3,12 +3,6 @@
 	"cleanUrls": true,
 	"buildCommand": "vitepress build",
 	"outputDirectory": ".vitepress/dist",
-	"rewrites": [
-		{
-			"source": "/playground",
-			"destination": "/playground.html"
-		}
-	],
 	"headers": [
 		{
 			"source": "/(.*)",

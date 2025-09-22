@@ -11,6 +11,9 @@
 	"author": "",
 	"license": "MIT",
 	"packageManager": "pnpm@10.14.0",
+	"dependencies": {
+		"livecodes": "0.11.1"
+	},
 	"devDependencies": {
 		"vitepress": "2.0.0-alpha.12",
 		"vitepress-plugin-npm-commands": "^0.8.1",
