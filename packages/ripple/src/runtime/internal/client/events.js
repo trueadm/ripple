@@ -6,7 +6,7 @@ import {
   set_active_reaction,
   set_tracking,
   tracking,
-} from './runtime';
+} from './runtime.js';
 import { array_from, define_property, is_array } from './utils.js';
 
 /** @type {Set<string>} */
