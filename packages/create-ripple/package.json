@@ -21,6 +21,9 @@
     "url": "https://github.com/trueadm/ripple/issues"
   },
   "homepage": "https://ripplejs.com",
+  "files": [
+    "./dist/index.js"
+  ],
   "bin": {
     "create-ripple": "./dist/index.js"
   },
