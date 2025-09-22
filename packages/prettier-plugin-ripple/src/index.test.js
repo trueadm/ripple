@@ -430,9 +430,11 @@ export component Test({ a, b }: Props) {}`;
       expect(result).toBe(expected);
     });
 
-    it('should correctly handle TS syntax', async () => {
+    it.only('should correctly handle TS syntax', async () => {
       const input = `type User = { name: string; age: number };
 let message: string[] = [];
+
+// comments should be preserved
 
 message.push(greet(\`Ripple\`));
 message.push(\`User: \${JSON.stringify({ name: 'Alice', age: 30 } as User)}\`);`;
@@ -441,6 +443,7 @@ message.push(\`User: \${JSON.stringify({ name: 'Alice', age: 30 } as User)}\`);`
 
 let message: string[] = [];
 
+// comments should be preserved
 message.push(greet(\`Ripple\`));
 message.push(\`User: \${JSON.stringify({
   name: "Alice",

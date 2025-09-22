@@ -1473,6 +1473,7 @@ function transform_children(children, context) {
       node.type === 'FunctionDeclaration' ||
       node.type === 'DebuggerStatement' ||
       node.type === 'ClassDeclaration' ||
+      node.type === 'TSTypeAliasDeclaration' ||
       node.type === 'Component'
     ) {
       const metadata = { await: false };
