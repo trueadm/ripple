@@ -1,7 +1,20 @@
 .VPNavBarTitle {
-	font-family: "Recursive";
+	font-family: 'Recursive';
 
 	.title {
 		font-size: 2rem;
 	}
+}
+
+.VPHome:has(.main-playground) {
+	margin-bottom: 24px !important;
+}
+
+.VPHome .container:has(.main-playground) {
+	padding: 0 24px !important;
+}
+
+.main-playground {
+	/* avoid scrollbar flicker with suspense */
+	min-height: calc(100vh - 200px);
 }
