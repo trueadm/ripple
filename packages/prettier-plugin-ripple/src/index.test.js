@@ -315,6 +315,33 @@ export default component App() {
         const result = await format(input, { singleQuote: true });
         expect(result).toBe(expected);
     });
+    
+    it('should handle @ prefix', async () => {
+        const input = `export default component App() {
+  <div>
+    let count = track(0);
+    @count = 2;
+    console.log(@count);
+    console.log(count);
+    if (@count > 1) {
+      <button onClick={() => @count++}>{@count}</button>
+    }
+  </div>
+}`;
+        const expected = `export default component App() {
+  <div>
+    let count = track(0);
+    @count = 2;
+    console.log(@count);
+    console.log(count);
+    if (@count > 1) {
+      <button onClick={() => @count++}>{@count}</button>
+    }
+  </div>
+}`;
+        const result = await format(input, { singleQuote: true });
+        expect(result).toBe(expected);
+    });
 	});
 
 	describe('edge cases', () => {

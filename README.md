@@ -660,7 +660,9 @@ component Input({ id, value, ...rest }) {
 }
 ```
 
-### Event Props
+### Events
+
+#### Event Props
 
 Like React, events are props that start with `on` and then continue with an uppercase character, such as:
 
@@ -677,6 +679,25 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 - `onKeyDownCapture`
 
 > Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
+
+#### on
+Adds an event handler to an element and returns a function to remove it. Compared to using addEventListener directly, this method guarantees the proper execution order with respect to attribute-based handlers such as `onClick`, and similarly optimized through event delegation for those events that support it. We strongly advise to use it instead of addEventListener.
+
+```jsx
+import { effect, on } from 'ripple';
+
+export component App() {
+  effect(() => {
+    // on component mount
+    const removeListener = on(window, 'resize', () => {
+      console.log('Window resized!');
+    });
+
+    // return the removeListener when the component unmounts
+    return removeListener;
+  });
+}
+```
 
 ### Styling
 

@@ -364,11 +364,13 @@ function printRippleNode(node, path, options, print, args) {
 		}
 
 		case 'Identifier':
+			
 			// Simple case - just return the name directly like Prettier core
+			const trackedPrefix  = node.tracked ? "@" : "";
 			if (node.typeAnnotation) {
-				return concat([node.name, ': ', path.call(print, 'typeAnnotation')]);
+				return concat([trackedPrefix + node.name, ': ', path.call(print, 'typeAnnotation')]);
 			}
-			return node.name;
+			return trackedPrefix + node.name;
 
 		case 'Literal':
 			return formatStringLiteral(node.value, options);

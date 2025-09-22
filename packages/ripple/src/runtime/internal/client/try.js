@@ -11,7 +11,7 @@ import {
   set_active_reaction,
   set_tracking,
   tracking,
-} from './runtime';
+} from './runtime.js';
 
 export function try_block(node, fn, catch_fn, pending_fn = null) {
   var anchor = node;

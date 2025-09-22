@@ -63,3 +63,5 @@ export { user_effect as effect } from './internal/client/blocks.js';
 export { Portal } from './internal/client/portal.js';
 
 export { ref_prop as createRefKey } from './internal/client/runtime.js';
+
+export { on } from './internal/client/events.js';

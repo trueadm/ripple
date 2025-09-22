@@ -454,7 +454,7 @@ const visitors = {
             if (attr.value === null) {
               handle_static_attr(name, true);
               continue;
-            } 
+            }
 
             if (attr.value.type === 'Literal' && name !== 'class') {
               handle_static_attr(name, attr.value.value);
@@ -1089,6 +1089,13 @@ const visitors = {
     context.state.init.push(b.block(statements));
   },
 
+  TSAsExpression(node, context) {
+    if (!context.state.to_ts) {
+      return context.visit(node.expression);
+    }
+    return context.next();
+  },
+
   TryStatement(node, context) {
     if (!is_inside_component(context)) {
       context.next();
@@ -1536,7 +1543,9 @@ function transform_children(children, context) {
             const id = state.flush_node();
             state.template.push(' ');
             state.init.push(
-              b.stmt(b.assignment('=', b.member(b.member(id, b.id('firstChild')), b.id('nodeValue')), expression)),
+              b.stmt(
+                b.assignment('=', b.member(b.call('$.child', id), b.id('nodeValue')), expression),
+              ),
             );
           }
         } else {
