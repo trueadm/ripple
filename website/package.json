@@ -18,5 +18,11 @@
 		"vitepress": "2.0.0-alpha.12",
 		"vitepress-plugin-npm-commands": "^0.8.1",
 		"vitepress-plugin-tabs": "^0.7.1"
+	},
+	"prettier": {
+		"singleQuote": true,
+		"useTabs": true,
+		"tabWidth": 2,
+		"semi": false
 	}
 }
