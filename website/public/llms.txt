@@ -203,7 +203,7 @@ effect(() => {
 
 The `track` function also offers a `split` option to "split" a plain object, such as component props, into specifed tracked variables and an extra `rest` (can be any name) containing the remaining unspecified object properties.
 
-```jsx
+```ripple
 const [children, count, rest] = track(props, {split: ['children', 'count']});
 ```
 
@@ -211,7 +211,7 @@ Frequently when processing properties passed in to a component, a `rest` destruc
 
 A full example utilizing various Ripple constructs demonstrates its usage.
 
-```jsx
+```ripple
 import { track } from 'ripple';
 import type { PropsWithChildren, Tracked } from 'ripple';
 
