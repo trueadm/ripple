@@ -324,6 +324,13 @@ const visitors = {
     }
   },
 
+  PropertyDefinition(node, context) {
+    if (!context.state.to_ts) {
+      delete node.typeAnnotation;
+    }
+    return context.next();
+  },
+
   VariableDeclaration(node, context) {
     const declarations = [];
 
@@ -1152,7 +1159,9 @@ const visitors = {
   },
 
   TemplateLiteral(node, context) {
-    if (node.expressions.length === 0) {
+    const parent = context.path.at(-1);
+
+    if (node.expressions.length === 0 && parent?.type !== 'TaggedTemplateExpression') {
       return b.literal(node.quasis[0].value.cooked);
     }
 
@@ -1474,6 +1483,7 @@ function transform_children(children, context) {
       node.type === 'DebuggerStatement' ||
       node.type === 'ClassDeclaration' ||
       node.type === 'TSTypeAliasDeclaration' ||
+      node.type === 'TSInterfaceDeclaration' ||
       node.type === 'Component'
     ) {
       const metadata = { await: false };
