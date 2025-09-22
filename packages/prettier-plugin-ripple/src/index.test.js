@@ -342,6 +342,31 @@ export default component App() {
         const result = await format(input, { singleQuote: true });
         expect(result).toBe(expected);
     });
+
+    it('should handle type annotations in object params', async () => {
+      const input = `interface Props {
+  a: number;
+  b: string;
+}
+
+export component Test({ a, b }: Props) {}`;
+
+      const expected = `interface Props {
+  a: number;
+  b: string;
+}
+
+export component Test({ a, b }: Props) {}`;
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
+
+    it('should handle inline type annotations in object params', async () => {
+      const input = `export component Test({ a, b}: { a: number; b: string }) {}`;
+      const expected = `export component Test({ a, b }: { a: number; b: string }) {}`;
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 	});
 
 	describe('edge cases', () => {
