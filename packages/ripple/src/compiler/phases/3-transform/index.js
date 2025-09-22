@@ -629,7 +629,7 @@ const visitors = {
       } else if (node.metadata.scoped && state.component.css) {
         const value = state.component.css.hash;
 
-        handle_static_attr('class', value);
+        handle_static_attr(is_spreading ? '#class' : 'class', value);
       }
 
       state.template.push('>');

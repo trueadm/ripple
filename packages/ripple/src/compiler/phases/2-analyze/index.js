@@ -486,12 +486,6 @@ const visitors = {
             state.analysis.module.filename,
             attribute,
           );
-        } else {
-          error(
-            'Cannot have a `children` prop on a component, did you mean `$children`?',
-            state.analysis.module.filename,
-            attribute,
-          );
         }
       }
     }
