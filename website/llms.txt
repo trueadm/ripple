@@ -259,9 +259,15 @@ export component App() {
 import { track } from 'ripple';
 
 export component App() {
-  let Button = track(() => SomeButton);
-  let AnotherButton = track(() => SomeButton);
+  const tracked_basic = track(() => basic);
+  const obj = {
+    tracked_basic,
+  };
+  const tracked_object = track(obj);
+  const Button = track(() => SomeButton);
+  const AnotherButton = track(() => SomeButton);
 
+  <@tracked_object.@tracked_basic />
   <Child {Button}>{'Child Button'}</Child>
   <AnotherChild Button={AnotherButton}>{'Another Child Button'}</AnotherChild>
 }
@@ -276,6 +282,10 @@ component AnotherChild(props) {
 
 component SomeButton({ children }) {
   <button><children /></button>
+}
+
+component basic() {
+  <div>{'Basic Component'}</div>
 }
 ```
 
