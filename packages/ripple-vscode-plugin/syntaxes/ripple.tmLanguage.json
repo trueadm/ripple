@@ -99,6 +99,9 @@
 					"include": "#var-expr"
 				},
 				{
+					"include": "#server-block"
+				},
+				{
 					"include": "#component-declaration"
 				},
 				{
@@ -314,6 +317,9 @@
 							"name": "variable.other.js"
 						}
 					}
+				},
+				{
+					"include": "#server-member-expression"
 				},
 				{
 					"include": "#jsx-ref-modifier"
@@ -6501,6 +6507,44 @@
 					"include": "#jsx-entities"
 				}
 			]
+		},
+		"server-block": {
+			"name": "meta.server-block.js",
+			"begin": "(#server)\\s*(\\{)",
+			"beginCaptures": {
+				"1": {
+					"name": "storage.type.server.js"
+				},
+				"2": {
+					"name": "punctuation.definition.block.js"
+				}
+			},
+			"end": "\\}",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.definition.block.js"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#statements"
+				}
+			]
+		},
+		"server-member-expression": {
+			"name": "meta.server-member-expression.js",
+			"match": "(#server)(\\.)([_$[:alpha:]][_$[:alnum:]]*)",
+			"captures": {
+				"1": {
+					"name": "storage.type.server.js"
+				},
+				"2": {
+					"name": "punctuation.accessor.js"
+				},
+				"3": {
+					"name": "entity.name.function.js"
+				}
+			}
 		},
 		"jsx-ref-modifier": {
 			"name": "storage.modifier.js",
