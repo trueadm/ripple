@@ -1234,6 +1234,7 @@ function printPropertyDefinition(node, path, options, print) {
 
 	// Type annotation
 	if (node.typeAnnotation) {
+		parts.push(': ');
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
@@ -1677,6 +1678,7 @@ function printObjectPattern(node, path, options, print) {
 	parts.push(' }');
 
 	if (node.typeAnnotation) {
+		parts.push(': ');
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
