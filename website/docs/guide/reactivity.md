@@ -156,6 +156,42 @@ export component App() {
 }
 ```
 
+## Component Transport Pattern
+
+```ripple
+import { track } from 'ripple';
+
+export component App() {
+  const tracked_basic = track(() => basic);
+  const obj = {
+    tracked_basic,
+  };
+  const tracked_object = track(obj);
+  const Button = track(() => SomeButton);
+  const AnotherButton = track(() => SomeButton);
+
+  <@tracked_object.@tracked_basic />
+  <Child {Button}>{'Child Button'}</Child>
+  <AnotherChild Button={AnotherButton}>{'Another Child Button'}</AnotherChild>
+}
+
+component Child({ Button, children }) {
+  <@Button><children /></@Button>
+}
+
+component AnotherChild(props) {
+  <props.@Button><props.children /></props.@Button>
+}
+
+component SomeButton({ children }) {
+  <button><children /></button>
+}
+
+component basic() {
+  <div>{'Basic Component'}</div>
+}
+```
+
 **Transport Rules:**
 - Reactive state must be connected to a component
 - Cannot be global or created at module/global scope
