@@ -430,7 +430,7 @@ export component Test({ a, b }: Props) {}`;
       expect(result).toBe(expected);
     });
 
-    it.only('should correctly handle TS syntax', async () => {
+    it('should correctly handle TS syntax', async () => {
       const input = `type User = { name: string; age: number };
 let message: string[] = [];
 
