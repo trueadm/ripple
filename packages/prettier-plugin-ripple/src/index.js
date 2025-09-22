@@ -267,19 +267,25 @@ function printRippleNode(node, path, options, print, args) {
 		case 'CallExpression': {
 			const parts = [];
 			parts.push(path.call(print, 'callee'));
-			parts.push('(');
-			const args = path.map(print, 'arguments');
-			for (let i = 0; i < args.length; i++) {
-				if (i > 0) parts.push(', ');
-				parts.push(args[i]);
+			
+			if (node.arguments && node.arguments.length > 0) {
+				parts.push('(');
+				const args = path.map(print, 'arguments');
+				for (let i = 0; i < args.length; i++) {
+					if (i > 0) parts.push(', ');
+					parts.push(args[i]);
+				}
+				parts.push(')');
+			} else {
+				parts.push('()');
 			}
-			parts.push(')');
-			return parts;
+			
+			return concat(parts);
 		}
 
 		case 'AwaitExpression': {
 			const parts = ['await ', path.call(print, 'argument')];
-			return parts;
+			return concat(parts);
 		}
 
 		case 'UnaryExpression':
@@ -287,6 +293,14 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'YieldExpression':
 			return printYieldExpression(node, path, options, print);
+
+		case 'TSAsExpression': {
+			return concat([
+				path.call(print, 'expression'),
+				' as ',
+				path.call(print, 'typeAnnotation')
+			]);
+		}
 
 		case 'NewExpression':
 			return printNewExpression(node, path, options, print);
@@ -459,8 +473,8 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 		case 'TSArrayType': {
-			const parts = ['Array<', path.call(print, 'elementType'), '>'];
-			return parts;
+			const parts = [path.call(print, 'elementType'), '[]'];
+			return concat(parts);
 		}
 
 		case 'TSNumberKeyword':
@@ -1313,9 +1327,9 @@ function printMemberExpression(node, path, options, print) {
 	const propertyPart = path.call(print, 'property');
 
 	if (node.computed) {
-		return objectPart + '[' + propertyPart + ']';
+		return concat([objectPart, '[', propertyPart, ']']);
 	} else {
-		return objectPart + '.' + propertyPart;
+		return concat([objectPart, '.', propertyPart]);
 	}
 }
 
@@ -1335,7 +1349,7 @@ function printUnaryExpression(node, path, options, print) {
 		parts.push(node.operator);
 	}
 
-	return parts;
+	return concat(parts);
 }
 
 function printYieldExpression(node, path, options, print) {
