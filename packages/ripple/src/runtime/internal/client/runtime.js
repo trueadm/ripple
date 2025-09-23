@@ -564,9 +564,11 @@ function flush_queued_root_blocks(root_blocks) {
 }
 
 // https://github.com/sveltejs/svelte/blob/ded13b825d7efcdf064fd65a5aa9e7e61293a48b/packages/svelte/src/internal/client/runtime.js#L501
+/**
+ * @returns {Promise<void>}
+ */
 export async function tick() {
-  await Promise.resolve();
-  flush_sync();
+  return new Promise((f) => requestAnimationFrame(() => f()));
 }
 
 function flush_microtasks() {
