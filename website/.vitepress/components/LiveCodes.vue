@@ -82,7 +82,7 @@ const onReady = (sdk: Playground) => {
 
 const style = {
 	height:
-		(props.height ?? props.isMainPlayground) ? 'calc(100vh - 65px)' : undefined,
+		(props.height ?? props.isMainPlayground) ? 'calc(100vh - 68px)' : undefined,
 	minHeight: props.isMainPlayground ? '400px' : undefined,
 	marginTop: props.isMainPlayground ? '1.5rem' : undefined,
 }
