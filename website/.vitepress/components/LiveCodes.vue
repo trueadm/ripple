@@ -82,14 +82,17 @@ const onReady = (sdk: Playground) => {
 
 const style = {
 	height:
-		(props.height ?? props.isMainPlayground)
-			? 'calc(100vh - 100px)'
-			: undefined,
+		(props.height ?? props.isMainPlayground) ? 'calc(100vh - 65px)' : undefined,
 	minHeight: props.isMainPlayground ? '400px' : undefined,
 	marginTop: props.isMainPlayground ? '1.5rem' : undefined,
 }
 </script>
 
 <template>
-	<LiveCodes v-bind="options" :style="style" @sdk-ready="onReady" />
+	<LiveCodes
+		v-bind="options"
+		:style="style"
+		:data-default-styles="!props.isMainPlayground"
+		@sdk-ready="onReady"
+	/>
 </template>

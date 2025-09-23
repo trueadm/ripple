@@ -6,12 +6,17 @@
 	}
 }
 
+.VPContent {
+	margin-top: -20px !important;
+}
+
 .VPHome:has(.main-playground) {
-	margin-bottom: 24px !important;
+	margin-bottom: 0 !important;
 }
 
 .VPHome .container:has(.main-playground) {
-	padding: 0 24px !important;
+	padding: 0 !important;
+	max-width: unset !important;
 }
 
 .main-playground {
