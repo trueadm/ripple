@@ -629,11 +629,12 @@ const visitors = {
           if (node.metadata.scoped && state.component.css) {
             expression = b.binary('+', b.literal(state.component.css.hash + ' '), expression);
           }
+          const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg'
 
-          if (class_attribute.name.name === '$class' || metadata.tracking) {
-            local_updates.push(b.stmt(b.call('_$_.set_class', id, expression)));
+          if (metadata.tracking) {
+            local_updates.push(b.stmt(b.call('_$_.set_class', id, expression, is_html)));
           } else {
-            state.init.push(b.stmt(b.call('_$_.set_class', id, expression)));
+            state.init.push(b.stmt(b.call('_$_.set_class', id, expression, is_html)));
           }
         }
       } else if (node.metadata.scoped && state.component.css) {
