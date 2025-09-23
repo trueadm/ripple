@@ -7,51 +7,51 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 describe('prettier-plugin-ripple', () => {
-	const format = async (code, options = {}) => {
-		return await prettier.format(code, {
-			parser: 'ripple',
-			plugins: [join(__dirname, 'index.js')],
-			...options,
-		});
-	};
+  const format = async (code, options = {}) => {
+    return await prettier.format(code, {
+      parser: 'ripple',
+      plugins: [join(__dirname, 'index.js')],
+      ...options,
+    });
+  };
 
-	const formatWithCursorHelper = async (code, options = {}) => {
-		return await prettier.formatWithCursor(code, {
-			parser: 'ripple',
-			plugins: [join(__dirname, 'index.js')],
-			...options,
-		});
-	};
+  const formatWithCursorHelper = async (code, options = {}) => {
+    return await prettier.formatWithCursor(code, {
+      parser: 'ripple',
+      plugins: [join(__dirname, 'index.js')],
+      ...options,
+    });
+  };
 
-	describe('basic formatting', () => {
-		it('should format a simple component', async () => {
-			const input = `export component Test(){let count=0;<div>{"Hello"}</div>}`;
-			const expected = `export component Test() {
+  describe('basic formatting', () => {
+    it('should format a simple component', async () => {
+      const input = `export component Test(){let count=0;<div>{"Hello"}</div>}`;
+      const expected = `export component Test() {
   let count = 0;
 
   <div>{'Hello'}</div>
 }`;
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
-		});
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
-		it('should format a simple component with cursorOffset', async () => {
-			const input = `export component Test(){let count=0;<div>{"Hello"}</div>}`;
-			const expected = `export component Test() {
+    it('should format a simple component with cursorOffset', async () => {
+      const input = `export component Test(){let count=0;<div>{"Hello"}</div>}`;
+      const expected = `export component Test() {
   let count = 0;
 
   <div>{'Hello'}</div>
 }`;
-			const result = await formatWithCursorHelper(input, {
-				singleQuote: true,
-				cursorOffset: 50,
-			});
-			expect(result.formatted).toBe(expected);
-			expect(typeof result.cursorOffset).toBe('number');
-		});
+      const result = await formatWithCursorHelper(input, {
+        singleQuote: true,
+        cursorOffset: 50,
+      });
+      expect(result.formatted).toBe(expected);
+      expect(typeof result.cursorOffset).toBe('number');
+    });
 
-		it('should format whitespace correctly', async () => {
-			const input = `export component Test(){
+    it('should format whitespace correctly', async () => {
+      const input = `export component Test(){
         let count=0
 
         // comment
@@ -63,7 +63,7 @@ describe('prettier-plugin-ripple', () => {
           {"Hello"}
         </div>
     }`;
-			const expected = `export component Test() {
+      const expected = `export component Test() {
   let count = 0;
 
   // comment
@@ -74,12 +74,12 @@ describe('prettier-plugin-ripple', () => {
     {'Hello'}
   </div>
 }`;
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
-		});
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
-		it('should format whitespace correctly #2', async () => {
-			const input = `export component Test(){
+    it('should format whitespace correctly #2', async () => {
+      const input = `export component Test(){
         let count=0
 
           const x = () => {
@@ -108,7 +108,7 @@ describe('prettier-plugin-ripple', () => {
           {"Hello"}
         </div>
     }`;
-			const expected = `export component Test() {
+      const expected = `export component Test() {
   let count = 0;
 
   const x = () => {
@@ -134,12 +134,12 @@ describe('prettier-plugin-ripple', () => {
     {'Hello'}
   </div>
 }`;
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
-		});
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
-		it('formatting already formatted code should not change it', async () => {
-			const already_formatted = `export component App() {
+    it('formatting already formatted code should not change it', async () => {
+      const already_formatted = `export component App() {
   let $node;
 
   const createRef = node => {
@@ -196,13 +196,13 @@ export default component Basic() {
     </div>
   </div>
 }`;
-			const formatted = await format(already_formatted, { singleQuote: true });
+      const formatted = await format(already_formatted, { singleQuote: true });
 
-			expect(formatted).toBe(already_formatted);
-		});
+      expect(formatted).toBe(already_formatted);
+    });
 
-		it('formatting already formatted code should not change it #2', async () => {
-			const already_formatted = `import type { Component } from 'ripple';
+    it('formatting already formatted code should not change it #2', async () => {
+      const already_formatted = `import type { Component } from 'ripple';
 
 export default component App() {
   <div class='container'>
@@ -223,24 +223,24 @@ export default component App() {
     }
   </style>
 }`;
-			const formatted = await format(already_formatted, { singleQuote: true });
+      const formatted = await format(already_formatted, { singleQuote: true });
 
-			expect(formatted).toBe(already_formatted);
-		});
+      expect(formatted).toBe(already_formatted);
+    });
 
-		it('should handle arrow functions with block bodies', async () => {
-			const input = `export component Test(){const handler=()=>{};handler}`;
-			const expected = `export component Test() {
+    it('should handle arrow functions with block bodies', async () => {
+      const input = `export component Test(){const handler=()=>{};handler}`;
+      const expected = `export component Test() {
   const handler = () => {};
   handler;
 }`;
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
-		});
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
-		it('should handle style tags inside component body', async () => {
-			const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
-			const expected = `export component Test() {
+    it('should handle style tags inside component body', async () => {
+      const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
+      const expected = `export component Test() {
   <div>{'Test'}</div>
 
   <style>
@@ -249,13 +249,13 @@ export default component App() {
     }
   </style>
 }`;
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
-		});
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
-		it('should handle TypeScript types and interfaces', async () => {
-			const input = `export component Test(){interface User{id:number;name:string}let user:User={id:1,name:"test"};user}`;
-			const expected = `export component Test() {
+    it('should handle TypeScript types and interfaces', async () => {
+      const input = `export component Test(){interface User{id:number;name:string}let user:User={id:1,name:"test"};user}`;
+      const expected = `export component Test() {
   interface User {
     id: number;
     name: string;
@@ -267,32 +267,32 @@ export default component App() {
   };
   user;
 }`;
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
-		});
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
-		it('should handle async/await in component body', async () => {
-			const input = `export component Test(){const data=await fetchData();data}`;
-			const expected = `export component Test() {
+    it('should handle async/await in component body', async () => {
+      const input = `export component Test(){const data=await fetchData();data}`;
+      const expected = `export component Test() {
   const data = await fetchData();
   data;
 }`;
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
-		});
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
-		it('should handle for...of loops in component body', async () => {
-			const input = `export component Test(){const items=[1,2,3];for(const item of items){<li>{item}</li>}}`;
-			const expected = `export component Test() {
+    it('should handle for...of loops in component body', async () => {
+      const input = `export component Test(){const items=[1,2,3];for(const item of items){<li>{item}</li>}}`;
+      const expected = `export component Test() {
   const items = [1, 2, 3];
 
   for (const item of items) {
     <li>{item}</li>
   }
 }`;
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
-		});
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
     it('should handle TypeScript function return type', async () => {
       const input = `export component FooBar() { function Foo() : string { return ""; }}`;
@@ -301,23 +301,23 @@ export default component App() {
     return '';
   }
 }`;
-        const result = await format(input, { singleQuote: true });
-        expect(result).toBe(expected);
-      });
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
 
     it('should handle TypeScript method return type', async () => {
-        const input = `class Foo { bar() : number { return 1; }}`;
-        const expected = `class Foo {
+      const input = `class Foo { bar() : number { return 1; }}`;
+      const expected = `class Foo {
   bar(): number {
     return 1;
   }
 }`;
-        const result = await format(input, { singleQuote: true });
-        expect(result).toBe(expected);
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
     });
-    
+
     it('should handle @ prefix', async () => {
-        const input = `export default component App() {
+      const input = `export default component App() {
   <div>
     let count = track(0);
     @count = 2;
@@ -328,7 +328,7 @@ export default component App() {
     }
   </div>
 }`;
-        const expected = `export default component App() {
+      const expected = `export default component App() {
   <div>
     let count = track(0);
     @count = 2;
@@ -339,48 +339,119 @@ export default component App() {
     }
   </div>
 }`;
-        const result = await format(input, { singleQuote: true });
-        expect(result).toBe(expected);
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
     });
-	});
 
-	describe('edge cases', () => {
-		it('should handle empty component', async () => {
-			const input = 'export component Empty() {}';
-			const result = await format(input);
-			expect(result).toBe('export component Empty() {}');
-		});
+    it('should handle type annotations in object params', async () => {
+      const input = `interface Props {
+  a: number;
+  b: string;
+}
 
-		it('should handle component with only style', async () => {
-			const input = `export component Styled(){<style>body{background:#fff}</style>}`;
-			const expected = `export component Styled() {
+export component Test({ a, b }: Props) {}`;
+
+      const expected = `interface Props {
+  a: number;
+  b: string;
+}
+
+export component Test({ a, b }: Props) {}`;
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
+
+    it('should handle inline type annotations in object params', async () => {
+      const input = `export component Test({ a, b}: { a: number; b: string }) {}`;
+      const expected = `export component Test({ a, b }: { a: number; b: string }) {}`;
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle empty component', async () => {
+      const input = 'export component Empty() {}';
+      const result = await format(input);
+      expect(result).toBe('export component Empty() {}');
+    });
+
+    it('should handle component with only style', async () => {
+      const input = `export component Styled(){<style>body{background:#fff}</style>}`;
+      const expected = `export component Styled() {
   <style>
     body {
       background: #fff;
     }
   </style>
 }`;
-			const result = await format(input);
-			expect(result).toBe(expected);
-		});
+      const result = await format(input);
+      expect(result).toBe(expected);
+    });
 
     it('should handle empty component using cursor', async () => {
-			const input = 'export component Empty() {}';
-			const result = await format(input);
-			expect(result).toBe('export component Empty() {}');
-		});
+      const input = 'export component Empty() {}';
+      const result = await format(input);
+      expect(result).toBe('export component Empty() {}');
+    });
 
-		it('should handle component with only style', async () => {
-			const input = `export component Styled(){<style>body{background:#fff}</style>}`;
-			const expected = `export component Styled() {
+    it('should handle component with only style', async () => {
+      const input = `export component Styled(){<style>body{background:#fff}</style>}`;
+      const expected = `export component Styled() {
   <style>
     body {
       background: #fff;
     }
   </style>
 }`;
-			const result = await formatWithCursorHelper(input, { cursorOffset: 50 });
-			expect(result.formatted).toBe(expected);
-		});
-	});
+      const result = await formatWithCursorHelper(input, { cursorOffset: 50 });
+      expect(result.formatted).toBe(expected);
+    });
+
+    it('should correctly handle call expressions', async () => {
+      const input = `export component App() {
+	const context = track(globalContext.get().theme);
+	<div>
+		<TypedComponent />
+		{@context}
+	</div>
+}`;
+
+      const expected = `export component App() {
+  const context = track(globalContext.get().theme);
+
+  <div>
+    <TypedComponent />
+    {@context}
+  </div>
+}`;
+
+      const result = await format(input);
+      expect(result).toBe(expected);
+    });
+
+    it('should correctly handle TS syntax', async () => {
+      const input = `type User = { name: string; age: number };
+let message: string[] = [];
+
+// comments should be preserved
+
+message.push(greet(\`Ripple\`));
+message.push(\`User: \${JSON.stringify({ name: 'Alice', age: 30 } as User)}\`);`;
+
+      const expected = `type User = { name: string; age: number };
+
+let message: string[] = [];
+
+// comments should be preserved
+message.push(greet(\`Ripple\`));
+message.push(\`User: \${JSON.stringify({
+  name: "Alice",
+  age: 30,
+} as User)}\`);`;
+
+      const result = await format(input);
+      expect(result).toBe(expected);
+    });
+  });
 });

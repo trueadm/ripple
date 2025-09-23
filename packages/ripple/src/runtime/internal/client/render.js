@@ -7,7 +7,11 @@ import {
   is_tracked_object,
 } from './utils.js';
 import { delegate, event } from './events.js';
-import { get_attribute_event_name, is_delegated, is_event_attribute } from '../../../utils/events.js';
+import {
+  get_attribute_event_name,
+  is_delegated,
+  is_event_attribute,
+} from '../../../utils/events.js';
 import { get } from './runtime.js';
 
 export function set_text(text, value) {
@@ -81,6 +85,9 @@ export function set_attributes(element, attributes) {
 
     if (key === 'class') {
       set_class(element, value);
+    } else if (key === '#class') {
+      // Special case for static class when spreading props
+      element.classList.add(value);
     } else if (is_event_attribute(key)) {
       // Handle event handlers in spread props
       const event_name = get_attribute_event_name(key);

@@ -24,6 +24,11 @@ export function is_positive_integer(value) {
   return Number.isInteger(value) && /**@type {number} */ (value) >= 0;
 }
 
+/**
+ * Checks if an object is a tracked object (has a numeric 'f' property).
+ * @param {object} v - The object to check.
+ * @returns {boolean}
+ */
 export function is_tracked_object(v) {
   return typeof v === 'object' && v !== null && typeof v.f === 'number';
 }
