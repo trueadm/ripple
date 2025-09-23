@@ -836,8 +836,6 @@ const visitors = {
         );
       }
     }
-
-    // No need to restore namespace since we didn't mutate it
   },
 
   Fragment(node, context) {

@@ -97,15 +97,12 @@ export function append(anchor, dom) {
  * @returns {DocumentFragment}
  */
 function from_namespace(content, ns = 'svg') {
-  // Wrap content in namespace element (like Svelte does)
   var wrapped = `<${ns}>${content}</${ns}>`;
 
-  // Create fragment from wrapped HTML
   var elem = document.createElement('template');
   elem.innerHTML = wrapped;
   var fragment = elem.content;
 
-  // Extract content from inside the wrapper
   var root = /** @type {Element} */ (first_child(fragment));
   var result = document.createDocumentFragment();
 
