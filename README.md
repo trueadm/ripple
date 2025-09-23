@@ -728,8 +728,39 @@ component MyComponent() {
 Ripple has the concept of `context` where a value or reactive object can be shared through the component tree –
 like in other frameworks. This all happens from the `createContext` function that is imported from `ripple`.
 
-When you create a context, you can `get` and `set` the values, but this must happen within the context of a component (they can physically live anywhwere, they just need to be called from a component context). Using them outside will result in an error being thrown.
+Creating contexts may take place anywhere. Contexts can contain anything including tracked values or objects. However, context cannot be read via `get` or written to via `set` inside an event handler or at the module level as it must happen within the context of a component. A good strategy is to assign the contents of a context to a variable via the `.get()` method during the component initialization and use this variable for reading and writing.
 
+Example with tracked / reactive contents:
+```jsx
+import { track, createContext } from "ripple"
+
+// create context with an empty object
+const context  = createContext({});
+const context2 = createContext();
+
+export component App() {
+  // get reference to the object
+  const obj = context.get();
+  // set your reactive value
+  obj.count = track(0);
+
+  // create another tracked variable
+  const count2 = track(0);
+  // context2 now contains a trackrf variable
+  context2.set(count2);
+
+  <button onClick={() => { obj.@count++; @count2++ }}>
+    {'Click Me'}
+  </button>
+
+  // context's reactive property count gets updated
+  <pre>{'Context: '}{context.get().@count}</pre>
+  <pre>{'Context2: '}{@count2}</pre>
+}
+```
+> Note: `@(context2.get())` usage with `@()` wrapping syntax will be enabled in the near future
+
+Passing data between components:
 ```jsx
 import { createContext } from 'ripple';
 
