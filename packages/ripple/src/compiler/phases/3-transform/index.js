@@ -1478,30 +1478,6 @@ function transform_children(children, context) {
     normalize_child(node, normalized);
   }
 
-  let template_namespace = state.namespace || 'html';
-  const hasNamespaceElement = normalized.some((node) => {
-    if (node.type === 'Element' && node.id.type === 'Identifier') {
-      const name = node.id.name;
-      return (
-        name === 'svg' ||
-        name === 'math' ||
-        (template_namespace === 'svg' && name !== 'foreignObject')
-      );
-    }
-    return false;
-  });
-
-  if (hasNamespaceElement) {
-    const firstElement = normalized.find(
-      (node) => node.type === 'Element' && node.id.type === 'Identifier',
-    );
-    if (firstElement) {
-      template_namespace = determine_namespace_for_children(
-        firstElement.id.name,
-        template_namespace,
-      );
-    }
-  }
 
   const is_fragment =
     normalized.some(
@@ -1662,6 +1638,8 @@ function transform_children(children, context) {
       }
     }
   }
+
+  const template_namespace = state.namespace || 'html';
 
   if (root && initial !== null && template_id !== null) {
     let flags = is_fragment ? TEMPLATE_FRAGMENT : 0;
