@@ -192,44 +192,20 @@ Ripple doesn't constrain reactivity to components only. `Tracked<V>` objects can
 ```jsx
 import { effect, track } from 'ripple';
 
-function createDouble([ count ]) {
+function createDouble(count) {
   const double = track(() => @count * 2);
 
   effect(() => {
     console.log('Count:', @count)
   });
 
-  return [ double ];
+  return double;
 }
 
 export component App() {
   let count = track(0);
 
-  const [ double ] = createDouble([ count ]);
-
-  <div>{'Double: ' + @double}</div>
-  <button onClick={() => { @count++; }}>{'Increment'}</button>
-}
-```
-
-You can do the same with objects too:
-
-```jsx
-import { effect, track } from 'ripple';
-
-function createDouble({ count }) {
-  const double = track(() => @count * 2);
-
-  effect(() => {
-    console.log('Count:', @count)
-  });
-
-  return { double };
-}
-
-export component App() {
-  let count = track(0);
-  const { double } = createDouble({ count });
+  const double = createDouble(count);
 
   <div>{'Double: ' + @double}</div>
   <button onClick={() => { @count++; }}>{'Increment'}</button>
