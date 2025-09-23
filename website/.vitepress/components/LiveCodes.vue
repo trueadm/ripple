@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useData } from 'vitepress'
 import VpButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
 import LiveCodes from 'livecodes/vue'
 import type { EmbedOptions, Playground } from 'livecodes'
 import { playgroundProps } from './playgroundProps'
 
 const props = defineProps<playgroundProps>()
+const { isDark } = useData()
 
 const playgroundUrl = 'https://ripple.livecodes.pages.dev'
 const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple'
@@ -39,6 +41,13 @@ export default component App() {
 }
 `.trimStart()
 
+const getStyle = () => ({
+	language: 'css' as const,
+	content: props.styles ?? '',
+	hiddenContent: `body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; ${isDark.value ? 'background: hsl(0, 0%, 18%); color: #fff' : ''} }`,
+	hideTitle: true,
+})
+
 const hash = props.isMainPlayground ? window.location.hash : undefined
 
 const config: EmbedOptions['config'] = {
@@ -54,13 +63,8 @@ const config: EmbedOptions['config'] = {
 		language: 'html',
 		hideTitle: true,
 	},
-	style: {
-		language: 'css',
-		hideTitle: true,
-		content:
-			props.styles ??
-			`body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background: hsl(0, 0%, 18%); color: #fff }`,
-	},
+	style: getStyle(),
+	theme: isDark.value ? 'dark' : 'light',
 }
 
 const options: EmbedOptions = {
@@ -75,11 +79,25 @@ const onReady = (sdk: Playground) => {
 	playground = sdk
 
 	playground.getConfig().then((config) => {
+		let newConfig = {}
 		if (!config.markup.hideTitle || !config.style.hideTitle) {
-			playground?.setConfig({
+			newConfig = {
 				markup: { ...config.markup, hideTitle: true },
 				style: { ...config.style, hideTitle: true },
-			})
+			}
+		}
+		if (
+			(isDark.value && config.theme !== 'dark') ||
+			(!isDark.value && config.theme !== 'light')
+		) {
+			newConfig = {
+				...newConfig,
+				theme: isDark.value ? 'dark' : 'light',
+				style: getStyle(),
+			}
+		}
+		if (Object.keys(newConfig).length > 0) {
+			playground?.setConfig(newConfig)
 		}
 	})
 
@@ -115,6 +133,15 @@ const copyUrl = async () => {
 		}, 1000)
 	}
 }
+
+watch(isDark, () => {
+	if (playground) {
+		playground.setConfig({
+			theme: isDark.value ? 'dark' : 'light',
+			style: getStyle(),
+		})
+	}
+})
 </script>
 
 <template>
