@@ -41,6 +41,7 @@ export {
   exclude_from_object,
   derived,
   maybe_tracked,
+  tick,
 } from './runtime.js';
 
 export { for_block as for } from './for.js';

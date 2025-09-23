@@ -36,7 +36,7 @@ export function mount(component, options) {
 
 export { create_context as createContext } from './internal/client/context.js';
 
-export { flush_sync as flushSync, untrack, deferred } from './internal/client/runtime.js';
+export { flush_sync as flushSync, untrack, deferred, tick } from './internal/client/runtime.js';
 
 /**
  * @param {any} v
