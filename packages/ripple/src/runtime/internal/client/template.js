@@ -1,4 +1,8 @@
-import { TEMPLATE_FRAGMENT, TEMPLATE_USE_IMPORT_NODE } from '../../../constants.js';
+import {
+  TEMPLATE_FRAGMENT,
+  TEMPLATE_USE_IMPORT_NODE,
+  TEMPLATE_SVG_NAMESPACE,
+} from '../../../constants.js';
 import { first_child, is_firefox } from './operations.js';
 import { active_block } from './runtime.js';
 
@@ -12,8 +16,8 @@ export function assign_nodes(start, end) {
   }
 }
 
-function create_fragment_from_html(html) {
-  if (is_svg_template(html)) {
+function create_fragment_from_html(html, use_svg_namespace = false) {
+  if (use_svg_namespace) {
     return create_svg_fragment_from_html(html);
   }
 
@@ -25,12 +29,13 @@ function create_fragment_from_html(html) {
 export function template(content, flags) {
   var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
   var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
+  var use_svg_namespace = (flags & TEMPLATE_SVG_NAMESPACE) !== 0;
   var node;
   var has_start = !content.startsWith('<!>');
 
   return () => {
     if (node === undefined) {
-      node = create_fragment_from_html(has_start ? content : '<!>' + content);
+      node = create_fragment_from_html(has_start ? content : '<!>' + content, use_svg_namespace);
       if (!is_fragment) node = first_child(node);
     }
 
@@ -52,77 +57,6 @@ export function template(content, flags) {
 
 export function append(anchor, dom) {
   anchor.before(/** @type {Node} */ (dom));
-}
-
-const SVG_ELEMENTS = new Set([
-  'svg',
-  'g',
-  'defs',
-  'symbol',
-  'use',
-  'switch',
-  'rect',
-  'circle',
-  'ellipse',
-  'line',
-  'polyline',
-  'polygon',
-  'path',
-  'text',
-  'tspan',
-  'textPath',
-  'linearGradient',
-  'radialGradient',
-  'pattern',
-  'stop',
-  'clipPath',
-  'mask',
-  'filter',
-  'feBlend',
-  'feColorMatrix',
-  'feComponentTransfer',
-  'feComposite',
-  'feConvolveMatrix',
-  'feDiffuseLighting',
-  'feDisplacementMap',
-  'feDistantLight',
-  'feDropShadow',
-  'feFlood',
-  'feFuncA',
-  'feFuncR',
-  'feFuncG',
-  'feFuncB',
-  'feGaussianBlur',
-  'feImage',
-  'feMerge',
-  'feMergeNode',
-  'feMorphology',
-  'feOffset',
-  'fePointLight',
-  'feSpecularLighting',
-  'feSpotLight',
-  'feTile',
-  'feTurbulence',
-  'image',
-  'foreignObject',
-  'a',
-  'view',
-  'animate',
-  'animateMotion',
-  'animateTransform',
-  'set',
-  'mpath',
-  'title',
-  'desc',
-  'metadata',
-  'marker',
-  'script',
-  'style',
-]);
-
-function is_svg_template(html) {
-  const match = html.match(/<(\w+)/);
-  return match && SVG_ELEMENTS.has(match[1].toLowerCase());
 }
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';

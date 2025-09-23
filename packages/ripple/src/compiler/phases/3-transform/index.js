@@ -3,7 +3,7 @@ import path from 'node:path';
 import { print } from 'esrap';
 import tsx from 'esrap/languages/tsx';
 import * as b from '../../../utils/builders.js';
-import { IS_CONTROLLED, TEMPLATE_FRAGMENT } from '../../../constants.js';
+import { IS_CONTROLLED, TEMPLATE_FRAGMENT, TEMPLATE_SVG_NAMESPACE } from '../../../constants.js';
 import { sanitize_template_string } from '../../../utils/sanitize_template_string.js';
 import {
   build_hoisted_params,
@@ -103,6 +103,22 @@ function build_getter(node, context) {
   }
 
   return node;
+}
+
+function determine_namespace_for_children(element_name, current_namespace) {
+  if (element_name === 'foreignObject') {
+    return 'html';
+  }
+
+  if (element_name === 'svg') {
+    return 'svg';
+  }
+
+  if (current_namespace === 'svg' && element_name !== 'foreignObject') {
+    return 'svg';
+  }
+
+  return 'html';
 }
 
 const visitors = {
@@ -437,6 +453,11 @@ const visitors = {
     const is_dom_element = is_element_dom_element(node, context);
     const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
     const spread_attributes = is_spreading ? [] : null;
+
+    const previous_namespace = state.namespace;
+    if (is_dom_element) {
+      state.namespace = determine_namespace_for_children(node.id.name, state.namespace);
+    }
 
     const handle_static_attr = (name, value) => {
       const attr_value = b.literal(
@@ -809,6 +830,8 @@ const visitors = {
         );
       }
     }
+
+    state.namespace = previous_namespace;
   },
 
   Fragment(node, context) {
@@ -1581,10 +1604,15 @@ function transform_children(children, context) {
   }
 
   if (root && initial !== null && template_id !== null) {
-    const flags = is_fragment ? b.literal(TEMPLATE_FRAGMENT) : b.literal(0);
+    let flags = is_fragment ? TEMPLATE_FRAGMENT : 0;
+
+    if (state.namespace === 'svg') {
+      flags |= TEMPLATE_SVG_NAMESPACE;
+    }
+
     state.final.push(b.stmt(b.call('$.append', b.id('__anchor'), initial)));
     state.hoisted.push(
-      b.var(template_id, b.call('$.template', join_template(state.template), flags)),
+      b.var(template_id, b.call('$.template', join_template(state.template), b.literal(flags))),
     );
   }
 }
@@ -1624,6 +1652,7 @@ export function transform(filename, source, analysis, to_ts) {
     scopes: analysis.scopes,
     stylesheets: [],
     to_ts,
+    namespace: 'html', // Track current namespace context
   };
 
   const program = /** @type {ESTree.Program} */ (walk(analysis.ast, state, visitors));
