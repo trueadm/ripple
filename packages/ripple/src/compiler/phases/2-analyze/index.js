@@ -87,6 +87,10 @@ const visitors = {
     next(scope !== undefined && scope !== state.scope ? { ...state, scope } : state);
   },
 
+  Program(_, context) {
+    return context.next({ ...context.state, function_depth: 0, expression: null });
+  },
+
   Identifier(node, context) {
     const binding = context.state.scope.get(node.name);
     const parent = context.path.at(-1);
@@ -133,6 +137,25 @@ const visitors = {
   },
 
   CallExpression(node, context) {
+    const callee = node.callee;
+
+    if (
+      context.state.function_depth === 0 &&
+      ((callee.type === 'Identifier' && callee.name === 'track') ||
+        (callee.type === 'MemberExpression' &&
+          callee.object.type === 'Identifier' &&
+          callee.property.type === 'Identifier' &&
+          callee.property.name === 'track' &&
+          !callee.computed)) &&
+      is_ripple_import(callee, context)
+    ) {
+      error(
+        '`track` can only be used within a reactive context, such as a component, function or class that is used or created from a component',
+        context.state.analysis.module.filename,
+        node,
+      );
+    }
+
     if (context.state.metadata?.tracking === false) {
       context.state.metadata.tracking = true;
     }
@@ -145,27 +168,20 @@ const visitors = {
   },
 
   VariableDeclaration(node, context) {
-    const { state, visit, path } = context;
+    const { state, visit } = context;
 
     for (const declarator of node.declarations) {
       if (is_inside_component(context) && node.kind === 'var') {
         error(
-          'var declarations are not allowed in components, use let or const instead',
+          '`var` declarations are not allowed in components, use let or const instead',
           state.analysis.module.filename,
           declarator,
         );
       }
       const metadata = { tracking: false, await: false };
-      const parent = path.at(-1);
-      const init_is_untracked =
-        declarator.init !== null &&
-        declarator.init.type === 'CallExpression' &&
-        is_ripple_import(declarator.init.callee, context) &&
-        declarator.init.callee.type === 'Identifier' &&
-        (declarator.init.callee.name === 'untrack' || declarator.init.callee.name === 'deferred');
 
       if (declarator.id.type === 'Identifier') {
-  		visit(declarator, state);
+        visit(declarator, state);
       } else {
         const paths = extract_paths(declarator.id);
 
@@ -234,7 +250,7 @@ const visitors = {
     }
     const elements = [];
 
-    context.next({ ...context.state, elements });
+    context.next({ ...context.state, elements, function_depth: context.state.function_depth + 1 });
 
     const css = node.css;
 
@@ -483,12 +499,6 @@ const visitors = {
         if (is_dom_element) {
           error(
             'Cannot have a `children` prop on an element',
-            state.analysis.module.filename,
-            attribute,
-          );
-        } else {
-          error(
-            'Cannot have a `children` prop on a component, did you mean `$children`?',
             state.analysis.module.filename,
             attribute,
           );

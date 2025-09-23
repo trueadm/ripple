@@ -30,7 +30,7 @@ export function jsxs(
  * JSX Fragment component
  * In Ripple, fragments are imperative and don't return anything
  */
-export function Fragment(props: { $children?: any }): void;
+export function Fragment(props: { children?: any }): void;
 
 // Base HTML attributes
 interface HTMLAttributes {
@@ -41,7 +41,7 @@ interface HTMLAttributes {
 	onClick?: (event: MouseEvent) => void;
 	onInput?: (event: InputEvent) => void;
 	onChange?: (event: Event) => void;
-	$children?: any;
+	children?: any;
 	[key: string]: any;
 }
 
@@ -88,7 +88,7 @@ declare global {
 		}
 
 		interface ElementChildrenAttribute {
-			$children: {};
+			children: {};
 		}
 	}
 }

@@ -423,6 +423,18 @@ export function is_ripple_import(callee, context) {
       binding.initial.source.type === 'Literal' &&
       binding.initial.source.value === 'ripple'
     );
+  } else if (
+    callee.type === 'MemberExpression' &&
+    callee.object.type === 'Identifier' &&
+    !callee.computed
+  ) {
+    const binding = context.state.scope.get(callee.object.name);
+
+    return (
+      binding?.declaration_kind === 'import' &&
+      binding.initial.source.type === 'Literal' &&
+      binding.initial.source.value === 'ripple'
+    );
   }
 
   return false;
