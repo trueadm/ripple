@@ -656,9 +656,29 @@ const visitors = {
           }
 
           if (class_attribute.name.name === '$class' || metadata.tracking) {
-            local_updates.push(b.stmt(b.call('_$_.set_class', id, expression)));
+            local_updates.push(
+              b.stmt(
+                b.call(
+                  '_$_.set_class',
+                  id,
+                  expression,
+                  undefined,
+                  b.literal(state.namespace === 'html'),
+                ),
+              ),
+            );
           } else {
-            state.init.push(b.stmt(b.call('_$_.set_class', id, expression)));
+            state.init.push(
+              b.stmt(
+                b.call(
+                  '_$_.set_class',
+                  id,
+                  expression,
+                  undefined,
+                  b.literal(state.namespace === 'html'),
+                ),
+              ),
+            );
           }
         }
       } else if (node.metadata.scoped && state.component.css) {

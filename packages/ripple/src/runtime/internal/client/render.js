@@ -84,7 +84,8 @@ export function set_attributes(element, attributes) {
     }
 
     if (key === 'class') {
-      set_class(element, value);
+      const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
+      set_class(element, value, undefined, is_html);
     } else if (key === '#class') {
       // Special case for static class when spreading props
       element.classList.add(value);
@@ -120,9 +121,10 @@ function to_class(value, hash) {
  * @param {HTMLElement} dom
  * @param {string} value
  * @param {string} [hash]
+ * @param {boolean} [is_html]
  * @returns {void}
  */
-export function set_class(dom, value, hash) {
+export function set_class(dom, value, hash, is_html = true) {
   // @ts-expect-error need to add __className to patched prototype
   var prev_class_name = dom.__className;
   var next_class_name = to_class(value, hash);
@@ -134,14 +136,10 @@ export function set_class(dom, value, hash) {
     if (value == null && !hash) {
       dom.removeAttribute('class');
     } else {
-      // SVG and MathML elements don't support className property, must use setAttribute
-      if (
-        dom.namespaceURI === 'http://www.w3.org/2000/svg' ||
-        dom.namespaceURI === 'http://www.w3.org/1998/Math/MathML'
-      ) {
-        dom.setAttribute('class', next_class_name);
-      } else {
+      if (is_html) {
         dom.className = next_class_name;
+      } else {
+        dom.setAttribute('class', next_class_name);
       }
     }
 
