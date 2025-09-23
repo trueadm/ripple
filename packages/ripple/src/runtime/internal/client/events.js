@@ -1,4 +1,4 @@
-import { is_passive_event } from '../../../compiler/utils';
+import { is_passive_event } from '../../../utils/events.js';
 import {
   active_block,
   active_reaction,
@@ -6,14 +6,28 @@ import {
   set_active_reaction,
   set_tracking,
   tracking,
-} from './runtime';
-import { array_from, define_property, is_array } from './utils';
+} from './runtime.js';
+import { array_from, define_property, is_array } from './utils.js';
 
 /** @type {Set<string>} */
 var all_registered_events = new Set();
 
 /** @type {Set<(events: Array<string>) => void>} */
 var root_event_handles = new Set();
+
+/**
+ * @param {EventTarget} element
+ * @param {string} type
+ * @param {EventListener} handler
+ * @param {AddEventListenerOptions} [options]
+ */
+export function on(element, type, handler, options = {}) {
+	var target_handler = create_event(type.toLowerCase(), element, handler, options);
+
+	return () => {
+		element.removeEventListener(type, target_handler, options);
+	};
+}
 
 /**
  * @this {EventTarget}
@@ -160,8 +174,6 @@ export function handle_event_propagation(event) {
  * @param {AddEventListenerOptions} [options]
  */
 function create_event(event_name, dom, handler, options = {}) {
-  var block = active_block;
-
   function target_handler(/** @type {Event} */ event) {
     var previous_block = active_block;
     var previous_reaction = active_reaction;

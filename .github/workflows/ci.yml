@@ -45,7 +45,11 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --prod false --frozen-lockfile
+
+      - name: Build create-ripple
+        working-directory: ./packages/create-ripple
+        run: pnpm build
 
       - name: Run tests
         run: pnpm test

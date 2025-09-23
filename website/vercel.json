@@ -1,6 +1,14 @@
 {
 	"$schema": "https://openapi.vercel.sh/vercel.json",
-	"rewrites": [{ "source": "/playground", "destination": "/playground.html" }],
+	"cleanUrls": true,
+	"buildCommand": "vitepress build",
+	"outputDirectory": ".vitepress/dist",
+	"rewrites": [
+		{
+			"source": "/playground",
+			"destination": "/playground.html"
+		}
+	],
 	"headers": [
 		{
 			"source": "/(.*)",

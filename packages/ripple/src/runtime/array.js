@@ -16,7 +16,7 @@ export function TrackedArray(...elements) {
 
   var block = safe_scope();
 
-  return proxy(elements, block);
+  return proxy({ elements, block });
 }
 
 /**
@@ -29,7 +29,7 @@ export function TrackedArray(...elements) {
 TrackedArray.from = function (arrayLike, mapFn, thisArg) {
   var block = safe_scope();
   var elements = mapFn ? Array.from(arrayLike, mapFn, thisArg) : Array.from(arrayLike);
-  return proxy(elements, block, true);
+  return proxy({ elements, block, from_static: true });
 };
 
 /**
@@ -40,7 +40,7 @@ TrackedArray.from = function (arrayLike, mapFn, thisArg) {
 TrackedArray.of = function (...items) {
   var block = safe_scope();
   var elements = Array.of(...items);
-  return proxy(elements, block, true);
+  return proxy({ elements, block, from_static: true });
 };
 
 /**
@@ -55,26 +55,31 @@ TrackedArray.fromAsync = async function (arrayLike, mapFn, thisArg) {
   var elements = mapFn
     ? await Array.fromAsync(arrayLike, mapFn, thisArg)
     : await Array.fromAsync(arrayLike);
-  return proxy(elements, block, true);
+  return proxy({ elements, block, from_static: true });
 };
 
 /**
  * @template T
- * @param {Iterable<T>} elements
- * @param {Block} block
- * @param {boolean} is_from_static
+ * @param {{
+ *  elements: Iterable<T>,
+ *  block: Block,
+ *  from_static?: boolean,
+ *  use_array?: boolean
+ * }} params
  * @returns {TrackedArray<T>}
  */
-function proxy(elements, block, is_from_static = false) {
+function proxy({ elements, block, from_static = false, use_array = false }) {
   var arr;
   var first;
 
   if (
-    is_from_static &&
+    from_static &&
     (first = get_first_if_length(/** @type {Array<T>} */ (elements))) !== undefined
   ) {
     arr = new Array();
     arr[0] = first;
+  } else if (use_array) {
+    arr = elements;
   } else {
     arr = new Array(...elements);
   }
@@ -98,7 +103,22 @@ function proxy(elements, block, is_from_static = false) {
         return v === UNINITIALIZED ? undefined : v;
       }
 
-      return Reflect.get(target, prop, receiver);
+      var result = Reflect.get(target, prop, receiver);
+
+      if (typeof result === "function" && methods_returning_arrays.has(prop)) {
+        /** @type {(this: any, ...args: any[]) => any} */
+        return function (...args) {
+          var output = Reflect.apply(result, receiver, args)
+
+          if (Array.isArray(output) && output !== target) {
+            return proxy({ elements: output, block, use_array: true });
+          }
+
+          return output;
+        };
+      }
+
+      return result;
     },
 
     set(target, prop, value, receiver) {
@@ -197,6 +217,32 @@ function proxy(elements, block, is_from_static = false) {
 
       return exists;
     },
+
+    defineProperty(_, prop, descriptor) {
+      if (
+        !('value' in descriptor) ||
+        descriptor.configurable === false ||
+        descriptor.enumerable === false ||
+        descriptor.writable === false
+      ) {
+        // we disallow non-basic descriptors, because unless they are applied to the
+        // target object — which we avoid, so that state can be forked — we will run
+        // afoul of the various invariants
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/getOwnPropertyDescriptor#invariants
+        throw new Error('Only basic property descriptors are supported with value and configurable, enumerable, and writable set to true');
+      }
+
+      var t = tracked_elements.get(prop);
+
+      if (t === undefined) {
+          t = tracked(descriptor.value, block);
+          tracked_elements.set(prop, t);
+      } else {
+        set(t, descriptor.value, block);
+      }
+
+      return true;
+    },
   });
 }
 
@@ -218,3 +264,17 @@ function get_first_if_length(array) {
     return /** @type {number} */ (first);
   }
 }
+
+const methods_returning_arrays = new Set([
+  "concat",
+  "filter",
+  "flat",
+  "flatMap",
+  "map",
+  "slice",
+  "splice",
+  "toReversed",
+  "toSorted",
+  "toSpliced",
+  "with",
+]);

@@ -6,6 +6,11 @@ import {
 import { first_child, is_firefox } from './operations.js';
 import { active_block } from './runtime.js';
 
+/**
+ * Assigns start and end nodes to the active block's state.
+ * @param {Node} start - The start node.
+ * @param {Node} end - The end node.
+ */
 export function assign_nodes(start, end) {
   var block = /** @type {Effect} */ (active_block);
   if (block.s === null) {
@@ -16,16 +21,27 @@ export function assign_nodes(start, end) {
   }
 }
 
+/**
+ * Creates a DocumentFragment from an HTML string.
+ * @param {string} html - The HTML string.
+ * @param {boolean} use_svg_namespace - Whether to use SVG namespace.
+ * @returns {DocumentFragment}
+ */
 function create_fragment_from_html(html, use_svg_namespace = false) {
   if (use_svg_namespace) {
     return create_svg_fragment_from_html(html);
   }
-
   var elem = document.createElement('template');
   elem.innerHTML = html;
   return elem.content;
 }
 
+/**
+ * Creates a template node or fragment from content and flags.
+ * @param {string} content - The template content.
+ * @param {number} flags - Flags for template type.
+ * @returns {Node}
+ */
 export function template(content, flags) {
   var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
   var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
@@ -55,6 +71,11 @@ export function template(content, flags) {
   };
 }
 
+/**
+ * Appends a DOM node before the anchor node.
+ * @param {Node} anchor - The anchor node.
+ * @param {Node} dom - The DOM node to append.
+ */
 export function append(anchor, dom) {
   anchor.before(/** @type {Node} */ (dom));
 }

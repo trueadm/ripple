@@ -65,7 +65,7 @@ describe('compiler success tests', () => {
 	});
 
 
-  it('renders without crashing using < character', () => {
+  	it('renders without crashing using < character', () => {
 		component App() {
 			function bar() {
         for (let i = 0; i < 10; i++) {
@@ -204,6 +204,78 @@ describe('compiler success tests', () => {
 					b: 3
 				}
 			}
+		}
+
+		render(App);
+	});
+
+	it('renders without crashing using object destructuring', () => {
+		component App() {
+			const obj = { a: 1, b: 2, c: 3 };
+			const { a, b, ...rest } = obj;
+
+			<div>
+				{'a '}{a} {'b '} {b} {'rest '} {JSON.stringify(rest)}
+
+				<div>
+
+				</div>
+			</div>
+		}
+
+		render(App);
+	});
+
+	it('renders without crashing using object destructuring #2', () => {
+		component App() {
+			const obj = { a: 1, b: 2, c: 3 };
+			const { a, b, ...rest } = obj;
+
+			{'a '}{a} {'b '} {b} {'rest '} {JSON.stringify(rest)}
+
+			<div>
+
+			</div>
+		}
+
+		render(App);
+	});
+
+	it('should not fail with random TS syntax', () => {
+		function tagFn() {
+			return null;
+		}
+
+		function Wrapper() {
+		return {
+				unwrap: function<T>() {
+				return null as unknown as T;
+				}
+			}
+		}
+
+		component App() {
+			let x: number[] = [] as number[];
+
+			const n = new Wrapper<number>().unwrap<string>();
+
+			const tagResult = tagFn`value`;
+
+			interface Node<T> {
+				value: T;
+			}
+
+			class Box<T> {
+				value: T;
+
+				method<T>(): T {
+				return this.value;
+				}
+			}
+
+			let flag = true;
+
+			const s = flag ? new Box<number>() : new Box<string>();
 		}
 
 		render(App);

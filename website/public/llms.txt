@@ -253,6 +253,42 @@ export component App() {
 }
 ```
 
+#### Component Transport Pattern
+
+```ripple
+import { track } from 'ripple';
+
+export component App() {
+  const tracked_basic = track(() => basic);
+  const obj = {
+    tracked_basic,
+  };
+  const tracked_object = track(obj);
+  const Button = track(() => SomeButton);
+  const AnotherButton = track(() => SomeButton);
+
+  <@tracked_object.@tracked_basic />
+  <Child {Button}>{'Child Button'}</Child>
+  <AnotherChild Button={AnotherButton}>{'Another Child Button'}</AnotherChild>
+}
+
+component Child({ Button, children }) {
+  <@Button><children /></@Button>
+}
+
+component AnotherChild(props) {
+  <props.@Button><props.children /></props.@Button>
+}
+
+component SomeButton({ children }) {
+  <button><children /></button>
+}
+
+component basic() {
+  <div>{'Basic Component'}</div>
+}
+```
+
 **Transport Rules:**
 - Reactive state must be connected to a component
 - Cannot be global or created at module/global scope
@@ -384,7 +420,9 @@ component App() {
 - Component can assign directly to `props.name` to trigger setter
 - Enables debugging prop access and two-way binding patterns
 
-### Event Handling
+### Events
+
+#### Attribute Event Handling
 
 Events follow React-style naming (`onClick`, `onPointerMove`, etc.):
 
@@ -403,6 +441,27 @@ component EventExample() {
 For capture phase events, add `Capture` suffix:
 - `onClickCapture`
 - `onPointerDownCapture`
+
+#### Direct Event Handling
+
+Use function `on` to attach events to window, document or any other element instead of addEventListener.
+This method guarantees the proper execution order with respect to attribute-based handlers such as `onClick`, and similarly optimized through event delegation for those events that support it.
+
+```ripple
+import { effect, on } from 'ripple';
+
+export component App() {
+  effect(() => {
+    // on component mount
+    const removeListener = on(window, 'resize', () => {
+      console.log('Window resized!');
+    });
+
+    // return the removeListener when the component unmounts
+    return removeListener;
+  });
+}
+```
 
 ### Styling
 

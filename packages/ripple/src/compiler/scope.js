@@ -262,7 +262,7 @@ export class Scope {
 	 * @param {Identifier} node
 	 * @param {Binding['kind']} kind
 	 * @param {DeclarationKind} declaration_kind
-	 * @param {null | Expression | FunctionDeclaration | ClassDeclaration | ImportDeclaration | AST.EachBlock | AST.SnippetBlock} initial
+	 * @param {null | Expression | FunctionDeclaration | ClassDeclaration | ImportDeclaration} initial
 	 * @returns {Binding}
 	 */
 	declare(node, kind, declaration_kind, initial = null) {
@@ -276,9 +276,12 @@ export class Scope {
 			}
 		}
 
+		if (node.name === '_$_') {
+			throw new Error('Cannot declare a variable named "_$_" as it is a reserved identifier');
+		}
+
 		if (this.declarations.has(node.name)) {
-			// This also errors on var/function types, but that's arguably a good thing
-			e.declaration_duplicate(node, node.name);
+			throw new Error(`'${node.name}' has already been declared in the current scope`);
 		}
 
 		/** @type {Binding} */

@@ -1,5 +1,42 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`basic > basic operations 1`] = `
+<div>
+  <div>
+    0
+  </div>
+  <div>
+    2
+  </div>
+  <div>
+    5
+  </div>
+  <div>
+    2
+  </div>
+  
+</div>
+`;
+
+exports[`basic > handles boolean attributes with no prop value provides 1`] = `
+<div>
+  <div
+    class="container"
+  >
+    <button
+      disabled=""
+    >
+      Button
+    </button>
+    <input
+      checked=""
+      type="checkbox"
+    />
+  </div>
+  
+</div>
+`;
+
 exports[`basic > render semi-dynamic text 1`] = `
 <div>
   <div>

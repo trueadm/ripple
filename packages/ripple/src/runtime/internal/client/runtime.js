@@ -24,9 +24,9 @@ import {
   TRY_BLOCK,
   UNINITIALIZED,
   REF_PROP,
-} from './constants';
+} from './constants.js';
 import { capture, suspend } from './try.js';
-import { define_property } from './utils';
+import { define_property, is_tracked_object } from './utils.js';
 
 const FLUSH_MICROTASK = 0;
 const FLUSH_SYNC = 1;
@@ -1003,7 +1003,7 @@ export async function maybe_tracked(v) {
   var restore = capture();
   let value;
 
-  if (typeof v === 'object' && v !== null && typeof v.f === 'number') {
+  if (is_tracked_object(v)) {
     if ((v.f & DERIVED) !== 0) {
       value = await async_computed(v.fn, v.b);
     } else {

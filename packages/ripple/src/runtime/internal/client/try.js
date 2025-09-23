@@ -1,6 +1,6 @@
-import { branch, create_try_block, destroy_block, is_destroyed, resume_block } from './blocks';
-import { TRY_BLOCK } from './constants';
-import { next_sibling } from './operations';
+import { branch, create_try_block, destroy_block, is_destroyed, resume_block } from './blocks.js';
+import { TRY_BLOCK } from './constants.js';
+import { next_sibling } from './operations.js';
 import {
   active_block,
   active_component,
@@ -11,7 +11,7 @@ import {
   set_active_reaction,
   set_tracking,
   tracking,
-} from './runtime';
+} from './runtime.js';
 
 export function try_block(node, fn, catch_fn, pending_fn = null) {
   var anchor = node;

@@ -1,5 +1,85 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`for statements > correctly handles intermediate statements in for block 1`] = `
+<div>
+  <div>
+    <div>
+      <div>
+        1
+      </div>
+      <div>
+        1
+      </div>
+    </div>
+    <div>
+      <div>
+        2
+      </div>
+      <div>
+        2
+      </div>
+    </div>
+    <div>
+      <div>
+        3
+      </div>
+      <div>
+        3
+      </div>
+    </div>
+    
+  </div>
+  <button>
+    Add Item
+  </button>
+  
+</div>
+`;
+
+exports[`for statements > correctly handles intermediate statements in for block 2`] = `
+<div>
+  <div>
+    <div>
+      <div>
+        1
+      </div>
+      <div>
+        1
+      </div>
+    </div>
+    <div>
+      <div>
+        2
+      </div>
+      <div>
+        2
+      </div>
+    </div>
+    <div>
+      <div>
+        3
+      </div>
+      <div>
+        3
+      </div>
+    </div>
+    <div>
+      <div>
+        4
+      </div>
+      <div>
+        4
+      </div>
+    </div>
+    
+  </div>
+  <button>
+    Add Item
+  </button>
+  
+</div>
+`;
+
 exports[`for statements > render a simple dynamic array 1`] = `
 <div>
   <!---->

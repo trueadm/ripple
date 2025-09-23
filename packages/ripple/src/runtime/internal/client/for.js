@@ -1,9 +1,9 @@
-import { IS_CONTROLLED } from '../../../constants';
-import { branch, destroy_block, destroy_block_children, render } from './blocks';
-import { FOR_BLOCK, TRACKED_ARRAY } from './constants';
-import { create_text } from './operations';
-import { active_block, untrack } from './runtime';
-import { array_from, is_array } from './utils';
+import { IS_CONTROLLED } from '../../../constants.js';
+import { branch, destroy_block, destroy_block_children, render } from './blocks.js';
+import { FOR_BLOCK, TRACKED_ARRAY } from './constants.js';
+import { create_text } from './operations.js';
+import { active_block, untrack } from './runtime.js';
+import { array_from, is_array } from './utils.js';
 
 function create_item(anchor, value, render_fn) {
   var b = branch(() => {
