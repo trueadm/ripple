@@ -17,11 +17,15 @@ To define a component in Ripple, we can use the `component` keyword, in place of
 where we'd normally use a `function` keyword. Internally, Ripple's compiler will
 transform that into a function that it can call.
 
+<Code>
+
 ```ripple
 component Hello() {
 	<span>{'Hello World!'}</span>
 }
 ```
+
+</Code>
 
 ::: info Notice Anything Missing?
 The lack of a return statement, unlike a (functional-style) JSX component isn't
@@ -93,6 +97,7 @@ writing text in the middle of your code.
 // ❌ Wrong - Compilation error
 <span>Hello World!</span>
 ```
+
 ```js
 // Think of it like this:
 let greet_text = 'Hello World!';
@@ -153,12 +158,14 @@ component TemplateScope() {
 ```
 
 **Key Benefits:**
+
 - **Inline Logic**: Execute JavaScript directly where you need it in the template
 - **Local Variables**: Declare variables scoped to specific parts of your template
 - **Debugging**: Place `console.log()` or `debugger` statements anywhere in templates
 - **Dynamic Computation**: Calculate values inline without helper functions
 
 **Scope Rules:**
+
 - Variables declared in templates are scoped to that template block
 - Nested elements create nested scopes
 - Variables from outer scopes are accessible in inner scopes
@@ -177,9 +184,11 @@ write a JS expression that evaluates to our desired value.
 
 ::: info
 Plain attributes can still be used.
+
 ```ripple
 <input type="textarea" />
 ```
+
 :::
 
 ## Raw HTML
