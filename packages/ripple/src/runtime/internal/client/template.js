@@ -2,6 +2,7 @@ import {
   TEMPLATE_FRAGMENT,
   TEMPLATE_USE_IMPORT_NODE,
   TEMPLATE_SVG_NAMESPACE,
+  TEMPLATE_MATHML_NAMESPACE,
 } from '../../../constants.js';
 import { first_child, is_firefox } from './operations.js';
 import { active_block } from './runtime.js';
@@ -25,11 +26,15 @@ export function assign_nodes(start, end) {
  * Creates a DocumentFragment from an HTML string.
  * @param {string} html - The HTML string.
  * @param {boolean} use_svg_namespace - Whether to use SVG namespace.
+ * @param {boolean} use_mathml_namespace - Whether to use MathML namespace.
  * @returns {DocumentFragment}
  */
-function create_fragment_from_html(html, use_svg_namespace = false) {
+function create_fragment_from_html(html, use_svg_namespace = false, use_mathml_namespace = false) {
   if (use_svg_namespace) {
     return create_svg_fragment_from_html(html);
+  }
+  if (use_mathml_namespace) {
+    return create_mathml_fragment_from_html(html);
   }
   var elem = document.createElement('template');
   elem.innerHTML = html;
@@ -46,12 +51,17 @@ export function template(content, flags) {
   var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
   var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
   var use_svg_namespace = (flags & TEMPLATE_SVG_NAMESPACE) !== 0;
+  var use_mathml_namespace = (flags & TEMPLATE_MATHML_NAMESPACE) !== 0;
   var node;
   var has_start = !content.startsWith('<!>');
 
   return () => {
     if (node === undefined) {
-      node = create_fragment_from_html(has_start ? content : '<!>' + content, use_svg_namespace);
+      node = create_fragment_from_html(
+        has_start ? content : '<!>' + content,
+        use_svg_namespace,
+        use_mathml_namespace,
+      );
       if (!is_fragment) node = first_child(node);
     }
 
@@ -81,6 +91,7 @@ export function append(anchor, dom) {
 }
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
 
 function create_svg_fragment_from_html(html) {
   var svgContainer = document.createElementNS(SVG_NAMESPACE, 'svg');
@@ -89,6 +100,17 @@ function create_svg_fragment_from_html(html) {
   var fragment = document.createDocumentFragment();
   while (svgContainer.firstChild) {
     fragment.appendChild(svgContainer.firstChild);
+  }
+  return fragment;
+}
+
+function create_mathml_fragment_from_html(html) {
+  var mathContainer = document.createElementNS(MATHML_NAMESPACE, 'math');
+  mathContainer.innerHTML = html;
+
+  var fragment = document.createDocumentFragment();
+  while (mathContainer.firstChild) {
+    fragment.appendChild(mathContainer.firstChild);
   }
   return fragment;
 }

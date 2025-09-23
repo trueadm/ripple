@@ -3,7 +3,12 @@ import path from 'node:path';
 import { print } from 'esrap';
 import tsx from 'esrap/languages/tsx';
 import * as b from '../../../utils/builders.js';
-import { IS_CONTROLLED, TEMPLATE_FRAGMENT, TEMPLATE_SVG_NAMESPACE } from '../../../constants.js';
+import {
+  IS_CONTROLLED,
+  TEMPLATE_FRAGMENT,
+  TEMPLATE_SVG_NAMESPACE,
+  TEMPLATE_MATHML_NAMESPACE,
+} from '../../../constants.js';
 import { sanitize_template_string } from '../../../utils/sanitize_template_string.js';
 import {
   build_hoisted_params,
@@ -113,11 +118,11 @@ function determine_namespace_for_children(element_name, current_namespace) {
     return 'svg';
   }
 
-  if (current_namespace === 'svg' && element_name !== 'foreignObject') {
-    return 'svg';
+  if (element_name === 'math') {
+    return 'mathml';
   }
 
-  return 'html';
+  return current_namespace;
 }
 
 const visitors = {
@@ -443,10 +448,9 @@ const visitors = {
     const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
     const spread_attributes = is_spreading ? [] : null;
 
-    const previous_namespace = state.namespace;
-    if (is_dom_element) {
-      state.namespace = determine_namespace_for_children(node.id.name, state.namespace);
-    }
+    const child_namespace = is_dom_element
+      ? determine_namespace_for_children(node.id.name, state.namespace)
+      : state.namespace;
 
     const handle_static_attr = (name, value) => {
       const attr_value = b.literal(
@@ -678,7 +682,7 @@ const visitors = {
       if (!is_void) {
         transform_children(node.children, {
           visit,
-          state: { ...state, init, update },
+          state: { ...state, init, update, namespace: child_namespace },
           root: false,
         });
         state.template.push(`</${node.id.name}>`);
@@ -789,7 +793,7 @@ const visitors = {
       for (const child of node.children) {
         if (child.type === 'Component') {
           const id = child.id;
-          props.push(b.prop('init', id, visit(child, state)));
+          props.push(b.prop('init', id, visit(child, { ...state, namespace: child_namespace })));
         } else {
           children_filtered.push(child);
         }
@@ -800,6 +804,7 @@ const visitors = {
         const children = visit(b.component(b.id('children'), [], children_filtered), {
           ...context.state,
           scope: component_scope,
+          namespace: child_namespace,
         });
 
         if (children_prop) {
@@ -827,7 +832,7 @@ const visitors = {
       }
     }
 
-    state.namespace = previous_namespace;
+    // No need to restore namespace since we didn't mutate it
   },
 
   Fragment(node, context) {
@@ -1044,7 +1049,7 @@ const visitors = {
             b.block(
               transform_body(node.body.body, {
                 ...context,
-                state: { ...context.state, scope: body_scope },
+                state: { ...context.state, scope: body_scope, namespace: context.state.namespace },
               }),
             ),
           ),
@@ -1453,6 +1458,31 @@ function transform_children(children, context) {
     normalize_child(node, normalized);
   }
 
+  let template_namespace = state.namespace || 'html';
+  const hasNamespaceElement = normalized.some((node) => {
+    if (node.type === 'Element' && node.id.type === 'Identifier') {
+      const name = node.id.name;
+      return (
+        name === 'svg' ||
+        name === 'math' ||
+        (template_namespace === 'svg' && name !== 'foreignObject')
+      );
+    }
+    return false;
+  });
+
+  if (hasNamespaceElement) {
+    const firstElement = normalized.find(
+      (node) => node.type === 'Element' && node.id.type === 'Identifier',
+    );
+    if (firstElement) {
+      template_namespace = determine_namespace_for_children(
+        firstElement.id.name,
+        template_namespace,
+      );
+    }
+  }
+
   const is_fragment =
     normalized.some(
       (node) =>
@@ -1562,7 +1592,7 @@ function transform_children(children, context) {
       prev = flush_node;
 
       if (node.type === 'Element') {
-        visit(node, { ...state, flush_node });
+        visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'Text') {
         const metadata = { tracking: false, await: false };
         const expression = visit(node.expression, { ...state, metadata });
@@ -1598,15 +1628,15 @@ function transform_children(children, context) {
       } else if (node.type === 'ForOfStatement') {
         const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
-        visit(node, { ...state, flush_node });
+        visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'IfStatement') {
         const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
-        visit(node, { ...state, flush_node });
+        visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'TryStatement') {
         const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
-        visit(node, { ...state, flush_node });
+        visit(node, { ...state, flush_node, namespace: state.namespace });
       } else {
         debugger;
       }
@@ -1615,8 +1645,10 @@ function transform_children(children, context) {
 
   if (root && initial !== null && template_id !== null) {
     let flags = is_fragment ? TEMPLATE_FRAGMENT : 0;
-    if (state.namespace === 'svg') {
+    if (template_namespace === 'svg') {
       flags |= TEMPLATE_SVG_NAMESPACE;
+    } else if (template_namespace === 'mathml') {
+      flags |= TEMPLATE_MATHML_NAMESPACE;
     }
     state.final.push(b.stmt(b.call('_$_.append', b.id('__anchor'), initial)));
     state.hoisted.push(
@@ -1634,6 +1666,7 @@ function transform_body(body, { visit, state }) {
     update: [],
     final: [],
     metadata: state.metadata,
+    namespace: state.namespace || 'html', // Preserve namespace context
   };
 
   transform_children(body, { visit, state: body_state, root: true });
@@ -1660,10 +1693,11 @@ export function transform(filename, source, analysis, to_ts) {
     scopes: analysis.scopes,
     stylesheets: [],
     to_ts,
-    namespace: 'html', // Track current namespace context
   };
 
-  const program = /** @type {ESTree.Program} */ (walk(analysis.ast, state, visitors));
+  const program = /** @type {ESTree.Program} */ (
+    walk(analysis.ast, { ...state, namespace: 'html' }, visitors)
+  );
 
   for (const hoisted of state.hoisted) {
     program.body.unshift(hoisted);

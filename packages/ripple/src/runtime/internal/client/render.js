@@ -134,7 +134,15 @@ export function set_class(dom, value, hash) {
     if (value == null && !hash) {
       dom.removeAttribute('class');
     } else {
-      dom.className = next_class_name;
+      // SVG and MathML elements don't support className property, must use setAttribute
+      if (
+        dom.namespaceURI === 'http://www.w3.org/2000/svg' ||
+        dom.namespaceURI === 'http://www.w3.org/1998/Math/MathML'
+      ) {
+        dom.setAttribute('class', next_class_name);
+      } else {
+        dom.className = next_class_name;
+      }
     }
 
     // @ts-expect-error need to add __className to patched prototype
