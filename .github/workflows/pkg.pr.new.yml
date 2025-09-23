@@ -81,6 +81,13 @@ jobs:
           node-version: 24
           cache: "pnpm"
 
+      - name: Install dependencies
+        run: pnpm install --prod false --frozen-lockfile
+
+      - name: Build create-ripple
+        working-directory: ./packages/create-ripple
+        run: pnpm build
+
       - name: Publish
         run: |
           pnpm dlx pkg-pr-new publish \

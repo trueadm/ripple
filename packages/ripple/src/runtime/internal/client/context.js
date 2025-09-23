@@ -1,6 +1,6 @@
 /** @import { Component } from '#client' */
 
-import { active_component } from './runtime';
+import { active_component } from './runtime.js';
 
 /**
  * @template T

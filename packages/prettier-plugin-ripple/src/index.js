@@ -175,38 +175,49 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 
 		case 'ExportNamedDeclaration':
-			return printExportNamedDeclaration(node, path, options, print);
+			nodeContent = printExportNamedDeclaration(node, path, options, print);
+			break;
 
 		case 'ExportDefaultDeclaration':
-			return printExportDefaultDeclaration(node, path, options, print);
+			nodeContent = printExportDefaultDeclaration(node, path, options, print);
+			break;
 
 		case 'FunctionDeclaration':
-			return printFunctionDeclaration(node, path, options, print);
+			nodeContent = printFunctionDeclaration(node, path, options, print);
+			break;
 
 		case 'IfStatement':
-			return printIfStatement(node, path, options, print);
+			nodeContent = printIfStatement(node, path, options, print);
+			break;
 
 		case 'ForOfStatement':
-			return printForOfStatement(node, path, options, print);
+			nodeContent = printForOfStatement(node, path, options, print);
+			break;
 
 		case 'ForStatement':
-			return printForStatement(node, path, options, print);
+			nodeContent = printForStatement(node, path, options, print);
+			break;
 
 		case 'WhileStatement':
-			return printWhileStatement(node, path, options, print);
+			nodeContent = printWhileStatement(node, path, options, print);
+			break;
 
 		case 'DoWhileStatement':
-			return printDoWhileStatement(node, path, options, print);
+			nodeContent = printDoWhileStatement(node, path, options, print);
+			break;
 
 		case 'ClassDeclaration':
-			return printClassDeclaration(node, path, options, print);
+			nodeContent = printClassDeclaration(node, path, options, print);
+			break;
 
 		case 'TryStatement':
-			return printTryStatement(node, path, options, print);
+			nodeContent = printTryStatement(node, path, options, print);
+			break;
 
 		case 'ArrayExpression': {
 			if (!node.elements || node.elements.length === 0) {
-				return '[]';
+				nodeContent = '[]';
+				break;
 			}
 
 			const elements = path.map(print, 'elements');
@@ -219,7 +230,8 @@ function printRippleNode(node, path, options, print, args) {
 					parts.push(elements[i]);
 				}
 				parts.push(']');
-				return parts;
+				nodeContent = parts;
+				break;
 			}
 
 			// Multi-line for longer arrays
@@ -234,150 +246,209 @@ function printRippleNode(node, path, options, print, args) {
 			}
 			parts.push(line);
 			parts.push(']');
-			return parts;
+			nodeContent = parts;
+			break;
 		}
 
 		case 'ObjectExpression':
-			return printObjectExpression(node, path, options, print);
+			nodeContent = printObjectExpression(node, path, options, print);
+			break;
 
 		case 'ClassBody':
-			return printClassBody(node, path, options, print);
+			nodeContent = printClassBody(node, path, options, print);
+			break;
 
 		case 'PropertyDefinition':
-			return printPropertyDefinition(node, path, options, print);
+			nodeContent = printPropertyDefinition(node, path, options, print);
+			break;
 
 		case 'MethodDefinition':
-			return printMethodDefinition(node, path, options, print);
+			nodeContent = printMethodDefinition(node, path, options, print);
+			break;
 
 		case 'PrivateIdentifier':
-			return '#' + node.name;
+			nodeContent = '#' + node.name;
+			break;
 
 		case 'AssignmentExpression':
-			return concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
+			nodeContent = concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
+			break;
 
 		case 'MemberExpression':
-			return printMemberExpression(node, path, options, print);
+			nodeContent = printMemberExpression(node, path, options, print);
+			break;
 
 		case 'Super':
-			return 'super';
+			nodeContent = 'super';
+			break;
 
 		case 'ThisExpression':
-			return 'this';
+			nodeContent = 'this';
+			break;
 
 		case 'CallExpression': {
 			const parts = [];
 			parts.push(path.call(print, 'callee'));
-			parts.push('(');
-			const args = path.map(print, 'arguments');
-			for (let i = 0; i < args.length; i++) {
-				if (i > 0) parts.push(', ');
-				parts.push(args[i]);
+			
+			if (node.arguments && node.arguments.length > 0) {
+				parts.push('(');
+				const args = path.map(print, 'arguments');
+				for (let i = 0; i < args.length; i++) {
+					if (i > 0) parts.push(', ');
+					parts.push(args[i]);
+				}
+				parts.push(')');
+			} else {
+				parts.push('()');
 			}
-			parts.push(')');
-			return parts;
+			
+			nodeContent = concat(parts);
+			break;
 		}
 
 		case 'AwaitExpression': {
 			const parts = ['await ', path.call(print, 'argument')];
-			return parts;
+			nodeContent = concat(parts);
+			break;
 		}
 
 		case 'UnaryExpression':
-			return printUnaryExpression(node, path, options, print);
+			nodeContent = printUnaryExpression(node, path, options, print);
+			break;
 
 		case 'YieldExpression':
-			return printYieldExpression(node, path, options, print);
+			nodeContent = printYieldExpression(node, path, options, print);
+			break;
+
+		case 'TSAsExpression': {
+			nodeContent = concat([
+				path.call(print, 'expression'),
+				' as ',
+				path.call(print, 'typeAnnotation')
+			]);
+			break;
+		}
 
 		case 'NewExpression':
-			return printNewExpression(node, path, options, print);
+			nodeContent = printNewExpression(node, path, options, print);
+			break;
 
 		case 'TemplateLiteral':
-			return printTemplateLiteral(node, path, options, print);
+			nodeContent = printTemplateLiteral(node, path, options, print);
+			break;
 
 		case 'TaggedTemplateExpression':
-			return printTaggedTemplateExpression(node, path, options, print);
+			nodeContent = printTaggedTemplateExpression(node, path, options, print);
+			break;
 
 		case 'ThrowStatement':
-			return printThrowStatement(node, path, options, print);
+			nodeContent = printThrowStatement(node, path, options, print);
+			break;
 
 		case 'TSInterfaceDeclaration':
-			return printTSInterfaceDeclaration(node, path, options, print);
+			nodeContent = printTSInterfaceDeclaration(node, path, options, print);
+			break;
 
 		case 'TSTypeAliasDeclaration':
-			return printTSTypeAliasDeclaration(node, path, options, print);
+			nodeContent = printTSTypeAliasDeclaration(node, path, options, print);
+			break;
 
 		case 'TSTypeParameterDeclaration':
-			return printTSTypeParameterDeclaration(node, path, options, print);
+			nodeContent = printTSTypeParameterDeclaration(node, path, options, print);
+			break;
 
 		case 'TSTypeParameter':
-			return printTSTypeParameter(node, path, options, print);
+			nodeContent = printTSTypeParameter(node, path, options, print);
+			break;
 
 		case 'TSNumberKeyword':
-			return 'number';
+			nodeContent = 'number';
+			break;
 
 		case 'TSBooleanKeyword':
-			return 'boolean';
+			nodeContent = 'boolean';
+			break;
 
 		case 'TSInterfaceBody':
-			return printTSInterfaceBody(node, path, options, print);
+			nodeContent = printTSInterfaceBody(node, path, options, print);
+			break;
 
 		case 'SwitchStatement':
-			return printSwitchStatement(node, path, options, print);
+			nodeContent = printSwitchStatement(node, path, options, print);
+			break;
 
 		case 'SwitchCase':
-			return printSwitchCase(node, path, options, print);
+			nodeContent = printSwitchCase(node, path, options, print);
+			break;
 
 		case 'BreakStatement':
-			return printBreakStatement(node, path, options, print);
+			nodeContent = printBreakStatement(node, path, options, print);
+			break;
 
 		case 'ContinueStatement':
-			return printContinueStatement(node, path, options, print);
+			nodeContent = printContinueStatement(node, path, options, print);
+			break;
 
 		case 'SequenceExpression':
-			return printSequenceExpression(node, path, options, print);
+			nodeContent = printSequenceExpression(node, path, options, print);
+			break;
 
 		case 'SpreadElement': {
 			const parts = ['...', path.call(print, 'argument')];
-			return parts;
+			nodeContent = concat(parts);
+			break;
 		}
 
 		case 'EmptyStatement':
-			return '';
+			nodeContent = '';
+			break;
 
 		case 'VariableDeclaration':
-			return printVariableDeclaration(node, path, options, print);
+			nodeContent = printVariableDeclaration(node, path, options, print);
+			break;
 
 		case 'ExpressionStatement':
-			return concat([path.call(print, 'expression'), ';']);
+			nodeContent = concat([path.call(print, 'expression'), ';']);
+			break;
 
 		case 'JSXExpressionContainer': {
 			const parts = ['{', path.call(print, 'expression'), '}'];
-			return parts;
+			nodeContent = concat(parts);
+			break;
 		}
 
 		case 'RefAttribute':
-			return concat(['{ref ', path.call(print, 'argument'), '}']);
+			nodeContent = concat(['{ref ', path.call(print, 'argument'), '}']);
+			break;
 
 		case 'SpreadAttribute': {
 			const parts = ['{...', path.call(print, 'argument'), '}'];
-			return concat(parts);
+			nodeContent = concat(parts);
+			break;
 		}
 
-		case 'Identifier':
+		case 'Identifier': {
 			// Simple case - just return the name directly like Prettier core
+			const trackedPrefix  = node.tracked ? "@" : "";
 			if (node.typeAnnotation) {
-				return concat([node.name, ': ', path.call(print, 'typeAnnotation')]);
+				nodeContent = concat([trackedPrefix + node.name, ': ', path.call(print, 'typeAnnotation')]);
+			} else {
+				nodeContent = trackedPrefix + node.name;
 			}
-			return node.name;
+			break;
+		}
 
 		case 'Literal':
-			return formatStringLiteral(node.value, options);
+			nodeContent = formatStringLiteral(node.value, options);
+			break;
 
 		case 'ArrowFunctionExpression':
-			return printArrowFunction(node, path, options, print);
+			nodeContent = printArrowFunction(node, path, options, print);
+			break;
 
 		case 'FunctionExpression':
-			return printFunctionExpression(node, path, options, print);
+			nodeContent = printFunctionExpression(node, path, options, print);
+			break;
 
 		case 'BlockStatement': {
 			// Apply the same block formatting pattern as component bodies
@@ -421,7 +492,8 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			// Use proper block statement pattern
-			return group(['{', indent([hardline, concat(statements)]), hardline, '}']);
+			nodeContent = group(['{', indent([hardline, concat(statements)]), hardline, '}']);
+			break;
 		}
 
 		case 'ReturnStatement': {
@@ -431,127 +503,161 @@ function printRippleNode(node, path, options, print, args) {
 				parts.push(path.call(print, 'argument'));
 			}
 			parts.push(';');
-			return parts;
+			nodeContent = concat(parts);
+			break;
 		}
 
 		case 'BinaryExpression':
-			return concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
+			nodeContent = concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
+			break;
 
 		case 'LogicalExpression':
-			return concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
+			nodeContent = concat([path.call(print, 'left'), ' ', node.operator, ' ', path.call(print, 'right')]);
+			break;
 
 		case 'ConditionalExpression':
-			return concat([
+			nodeContent = concat([
 				path.call(print, 'test'),
 				' ? ',
 				path.call(print, 'consequent'),
 				' : ',
 				path.call(print, 'alternate'),
 			]);
+			break;
 
 		case 'UpdateExpression':
 			if (node.prefix) {
-				return concat([node.operator, path.call(print, 'argument')]);
+				nodeContent = concat([node.operator, path.call(print, 'argument')]);
 			} else {
-				return concat([path.call(print, 'argument'), node.operator]);
+				nodeContent = concat([path.call(print, 'argument'), node.operator]);
 			}
+			break;
 
 		case 'TSArrayType': {
-			const parts = ['Array<', path.call(print, 'elementType'), '>'];
-			return parts;
+			const parts = [path.call(print, 'elementType'), '[]'];
+			nodeContent = concat(parts);
+			break;
 		}
 
 		case 'TSNumberKeyword':
-			return 'number';
+			nodeContent = 'number';
+			break;
 
 		case 'MemberExpression':
-			return printMemberExpression(node, path, options, print);
+			nodeContent = printMemberExpression(node, path, options, print);
+			break;
 
 		case 'ObjectPattern':
-			return printObjectPattern(node, path, options, print);
+			nodeContent = printObjectPattern(node, path, options, print);
+			break;
 
 		case 'Property':
-			return printProperty(node, path, options, print);
+			nodeContent = printProperty(node, path, options, print);
+			break;
 
 		case 'VariableDeclarator':
-			return printVariableDeclarator(node, path, options, print);
+			nodeContent = printVariableDeclarator(node, path, options, print);
+			break;
 
 		case 'AssignmentPattern':
-			return printAssignmentPattern(node, path, options, print);
+			nodeContent = printAssignmentPattern(node, path, options, print);
+			break;
 
 		case 'TSTypeAnnotation': {
-			return path.call(print, 'typeAnnotation');
+			nodeContent = path.call(print, 'typeAnnotation');
+			break;
 		}
 
 		case 'TSTypeLiteral':
-			return printTSTypeLiteral(node, path, options, print);
+			nodeContent = printTSTypeLiteral(node, path, options, print);
+			break;
 
 		case 'TSPropertySignature':
-			return printTSPropertySignature(node, path, options, print);
+			nodeContent = printTSPropertySignature(node, path, options, print);
+			break;
 
 		case 'TSStringKeyword':
-			return 'string';
+			nodeContent = 'string';
+			break;
 
 		case 'TSNumberKeyword':
-			return 'number';
+			nodeContent = 'number';
+			break;
 
 		case 'TSNullKeyword':
-			return 'null';
+			nodeContent = 'null';
+			break;
 
 		case 'TSLiteralType':
-			return path.call(print, 'literal');
+			nodeContent = path.call(print, 'literal');
+			break;
 
 		case 'TSUnionType': {
 			const types = path.map(print, 'types');
-			return join(' | ', types);
+			nodeContent = join(' | ', types);
+			break;
 		}
 
 		case 'TSTypeReference':
-			return printTSTypeReference(node, path, options, print);
+			nodeContent = printTSTypeReference(node, path, options, print);
+			break;
 
 		case 'Element':
 			nodeContent = printElement(node, path, options, print);
 			break;
 
 		case 'StyleSheet':
-			return printStyleSheet(node, path, options, print);
+			nodeContent = printStyleSheet(node, path, options, print);
+			break;
 
 		case 'Rule':
-			return printCSSRule(node, path, options, print);
+			nodeContent = printCSSRule(node, path, options, print);
+			break;
 
 		case 'Declaration':
-			return printCSSDeclaration(node, path, options, print);
+			nodeContent = printCSSDeclaration(node, path, options, print);
+			break;
 
 		case 'Atrule':
-			return printCSSAtrule(node, path, options, print);
+			nodeContent = printCSSAtrule(node, path, options, print);
+			break;
 
 		case 'SelectorList':
-			return printCSSSelectorList(node, path, options, print);
+			nodeContent = printCSSSelectorList(node, path, options, print);
+			break;
 
 		case 'ComplexSelector':
-			return printCSSComplexSelector(node, path, options, print);
+			nodeContent = printCSSComplexSelector(node, path, options, print);
+			break;
 
 		case 'RelativeSelector':
-			return printCSSRelativeSelector(node, path, options, print);
+			nodeContent = printCSSRelativeSelector(node, path, options, print);
+			break;
 
 		case 'TypeSelector':
-			return printCSSTypeSelector(node, path, options, print);
+			nodeContent = printCSSTypeSelector(node, path, options, print);
+			break;
 
 		case 'IdSelector':
-			return printCSSIdSelector(node, path, options, print);
+			nodeContent = printCSSIdSelector(node, path, options, print);
+			break;
 
 		case 'ClassSelector':
-			return printCSSClassSelector(node, path, options, print);
+			nodeContent = printCSSClassSelector(node, path, options, print);
+			break;
 
 		case 'Block':
-			return printCSSBlock(node, path, options, print);
+			nodeContent = printCSSBlock(node, path, options, print);
+			break;
 
 		case 'Attribute':
-			return printAttribute(node, path, options, print);
+			nodeContent = printAttribute(node, path, options, print);
+			break;
 
 		case 'Text': {
 			const parts = ['{', path.call(print, 'expression'), '}'];
-			return parts;
+			nodeContent = concat(parts);
+			break;
 		}
 
 		default:
@@ -1232,6 +1338,7 @@ function printPropertyDefinition(node, path, options, print) {
 
 	// Type annotation
 	if (node.typeAnnotation) {
+		parts.push(': ');
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 
@@ -1310,9 +1417,9 @@ function printMemberExpression(node, path, options, print) {
 	const propertyPart = path.call(print, 'property');
 
 	if (node.computed) {
-		return objectPart + '[' + propertyPart + ']';
+		return concat([objectPart, '[', propertyPart, ']']);
 	} else {
-		return objectPart + '.' + propertyPart;
+		return concat([objectPart, '.', propertyPart]);
 	}
 }
 
@@ -1332,7 +1439,7 @@ function printUnaryExpression(node, path, options, print) {
 		parts.push(node.operator);
 	}
 
-	return parts;
+	return concat(parts);
 }
 
 function printYieldExpression(node, path, options, print) {
@@ -1675,6 +1782,7 @@ function printObjectPattern(node, path, options, print) {
 	parts.push(' }');
 
 	if (node.typeAnnotation) {
+		parts.push(': ');
 		parts.push(path.call(print, 'typeAnnotation'));
 	}
 

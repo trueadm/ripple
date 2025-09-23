@@ -1,7 +1,7 @@
 <a href="https://ripplejs.com">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/ripple-dark.png">
-    <img src="assets/ripple-light.png" alt="Ripple - the elegant TypeScript UI framework" />
+    <source media="(min-width: 768px)" srcset="assets/ripple-desktop.png">
+    <img src="assets/ripple-mobile.png" alt="Ripple - the elegant TypeScript UI framework" />
   </picture>
 </a>
 
@@ -39,8 +39,8 @@ If you'd like to know more, join the [Ripple Discord](https://discord.gg/JBF2ySr
 
 ## Missing Features
 
-- **SSR**: Ripple is currently an SPA only, this is because I haven't gotten around to it
-- **Types**: The codebase is very raw with limited types; we're getting around to it
+- **SSR**: Ripple is currently an SPA only. It will have SSR soon! Hydration to follow after.
+- **Types**: The codebase is gradually improving its JSDoc TS types, help welcome!
 
 ## Getting Started
 
@@ -56,7 +56,7 @@ cd my-app
 npm i # or yarn or pnpm
 npm run dev # or yarn or pnpm
 ```
-or use create-ripple interactive CLI tool for creating new Ripple applications with features like tailwindcss or bootsrap setup.
+or use create-ripple interactive CLI tool for creating new Ripple applications with features like Tailwind CSS or Bootstrap setup.
 ```
 npx create-ripple  # or yarn create ripple or pnpm create ripple
 
@@ -135,8 +135,8 @@ Ripple's templating language also supports shorthands and object spreads too:
 
 ### Reactivity
 
-You use `track` to create a single tracked value. The `track` function will created a `Tracked<V>` object that
-is not accessible from the outside, and instead you must use `@` to read or write to the tracked value. You can pass the `Tracked<V>` object between components, functions and context
+You use `track` to create a single tracked value. The `track` function will created a boxed `Tracked<V>` object that
+is not accessible from the outside, and instead you must use `@` to unbox the `Tracked<V>` object to read or write its underlying value. You can pass the `Tracked<V>` object between components, functions and context
 to read and write to the value in different parts of your codebase.
 
 ```ts
@@ -338,7 +338,7 @@ When dealing with reactive state, you might want to be able to create side-effec
 To do this, you can use `effect`:
 
 ```jsx
-import { effect } from 'ripple';
+import { effect, track } from 'ripple';
 
 export component App() {
   let count = track(0);
@@ -660,7 +660,9 @@ component Input({ id, value, ...rest }) {
 }
 ```
 
-### Event Props
+### Events
+
+#### Event Props
 
 Like React, events are props that start with `on` and then continue with an uppercase character, such as:
 
@@ -677,6 +679,25 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 - `onKeyDownCapture`
 
 > Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
+
+#### on
+Adds an event handler to an element and returns a function to remove it. Compared to using addEventListener directly, this method guarantees the proper execution order with respect to attribute-based handlers such as `onClick`, and similarly optimized through event delegation for those events that support it. We strongly advise to use it instead of addEventListener.
+
+```jsx
+import { effect, on } from 'ripple';
+
+export component App() {
+  effect(() => {
+    // on component mount
+    const removeListener = on(window, 'resize', () => {
+      console.log('Window resized!');
+    });
+
+    // return the removeListener when the component unmounts
+    return removeListener;
+  });
+}
+```
 
 ### Styling
 
@@ -734,6 +755,32 @@ component Parent() {
   MyContext.set("Hello from context!");
 
   <Child />
+}
+```
+
+You can also pass a reactive `Tracked<V>` object through context and read it at the other side.
+
+```jsx
+import { createContext, effect } from 'ripple';
+
+const MyContext = createContext(null);
+
+component Child() {
+  const count = MyContext.get();
+
+  effect(() => {
+    console.log(@count);
+  });
+}
+
+component Parent() {
+  const count = track(0);
+
+  MyContext.set(count);
+
+  <Child />
+
+  <button onClick={() => @count++}>{"increment count"}</button>
 }
 ```
 

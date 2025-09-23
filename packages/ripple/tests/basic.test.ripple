@@ -1259,7 +1259,20 @@ describe('basic', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	it('tick function', async () => {
+	it('basic operations', () => {
+		component App() {
+			let count = track(0)
+			<div>{@count++}</div>
+			<div>{++@count}</div>
+			<div>{5}</div>
+			<div>{@count}</div>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
+  
+  it('tick function', async () => {
 		let resolve;
 		const promise = new Promise((res) => (resolve = res));
 

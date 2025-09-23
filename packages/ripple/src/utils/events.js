@@ -34,6 +34,11 @@ export function is_delegated(event_name) {
   return DELEGATED_EVENTS.includes(event_name);
 }
 
+/**
+ * Determines if an attribute is an event attribute (e.g., 'onClick').
+ * @param {string} attr - The attribute name.
+ * @returns {boolean}
+ */
 export function is_event_attribute(attr) {
   return attr.startsWith('on') && attr.length > 2 && attr[2] === attr[2].toUpperCase();
 }
@@ -62,6 +67,11 @@ export function get_attribute_event_name(event_name) {
 
 const PASSIVE_EVENTS = ['touchstart', 'touchmove'];
 
+/**
+ * Checks if an event is passive (e.g., 'touchstart', 'touchmove').
+ * @param {string} name - The event name.
+ * @returns {boolean}
+ */
 export function is_passive_event(name) {
   return PASSIVE_EVENTS.includes(name);
 }
