@@ -1470,9 +1470,9 @@ function transform_children(children, context) {
 
     if (child.type === 'Text' && prev_child?.type === 'Text') {
       if (child.expression.type === 'Literal' && prev_child.expression.type === 'Literal') {
-        prev_child.expression = b.literal(prev_child.expression.value + child.expression.value);
+        prev_child.expression = b.literal(prev_child.expression.value + String(child.expression.value));
       } else {
-        prev_child.expression = b.binary('+', prev_child.expression, child.expression);
+        prev_child.expression = b.binary('+', prev_child.expression, b.call('String', child.expression));
       }
       normalized.splice(i, 1);
     }

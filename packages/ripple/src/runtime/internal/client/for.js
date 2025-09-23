@@ -45,7 +45,7 @@ export function for_block(node, get_collection, render_fn, flags) {
         : array_from(collection);
 
     // If we are working with a tracked array, then we need to get a copy of
-	// the elements, as the array itself is proxied, and not useful in diffing
+    // the elements, as the array itself is proxied, and not useful in diffing
     if (TRACKED_ARRAY in array) {
       array = array_from(array);
     }

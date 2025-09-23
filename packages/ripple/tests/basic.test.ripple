@@ -1271,4 +1271,19 @@ describe('basic', () => {
 		render(App);
 		expect(container).toMatchSnapshot();
 	});
+
+	it('correctly renders adjacent text nodes', () => {
+		component App() {
+			let a = 1;
+			let b = 1;
+			<div>{1}{1}</div>
+			<div>{a}{b}</div>
+			<div>{true}{true}</div>
+			<div>{true}{true}</div>
+		}
+
+		render(App);
+
+		expect(container).toMatchSnapshot();
+	});
 });
