@@ -10,8 +10,8 @@
 	margin-top: -20px !important;
 }
 
-.VPHome:has(.main-playground) {
-	margin-bottom: 0 !important;
+body:has(.main-playground) {
+	overflow: hidden;
 }
 
 .VPHome .container:has(.main-playground) {
@@ -19,7 +19,18 @@
 	max-width: unset !important;
 }
 
-.main-playground {
-	/* avoid scrollbar flicker with suspense */
-	min-height: calc(100vh - 200px);
+.playground-actions {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 1rem;
+	margin: 1rem 1rem -1rem;
+	height: 30px;
+}
+
+.main-playground .playground-actions button.text-btn {
+	min-width: 5rem;
+	padding: 0 8px;
+	line-height: 28px;
+	font-size: 11px;
 }

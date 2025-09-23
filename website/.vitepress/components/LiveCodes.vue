@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import VpButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
 import LiveCodes from 'livecodes/vue'
 import type { EmbedOptions, Playground } from 'livecodes'
 import { playgroundProps } from './playgroundProps'
@@ -68,8 +70,18 @@ const options: EmbedOptions = {
 }
 
 let playground: Playground | undefined
+const isReady = ref(false)
 const onReady = (sdk: Playground) => {
 	playground = sdk
+
+	playground.getConfig().then((config) => {
+		if (!config.markup.hideTitle || !config.style.hideTitle) {
+			playground?.setConfig({
+				markup: { ...config.markup, hideTitle: true },
+				style: { ...config.style, hideTitle: true },
+			})
+		}
+	})
 
 	if (props.isMainPlayground) {
 		playground.watch('code', async () => {
@@ -77,18 +89,46 @@ const onReady = (sdk: Playground) => {
 			const shareUrl = await playground.getShareUrl()
 			window.location.hash = new URL(shareUrl).hash
 		})
+		playground.watch('ready', async () => {
+			isReady.value = true
+		})
 	}
 }
 
 const style = {
 	height:
-		(props.height ?? props.isMainPlayground) ? 'calc(100vh - 68px)' : undefined,
+		(props.height ?? props.isMainPlayground) ? 'calc(100vh - 98px)' : undefined,
 	minHeight: props.isMainPlayground ? '400px' : undefined,
 	marginTop: props.isMainPlayground ? '1.5rem' : undefined,
+}
+
+const copyUrlText = ref('Copy URL')
+const copyUrl = async () => {
+	if (playground) {
+		const shareUrl = new URL(await playground.getShareUrl())
+		const url = new URL(window.location.href)
+		url.hash = shareUrl.hash
+		await navigator.clipboard.writeText(url.href)
+		copyUrlText.value = 'Copied!'
+		setTimeout(() => {
+			copyUrlText.value = 'Copy URL'
+		}, 1000)
+	}
 }
 </script>
 
 <template>
+	<div v-if="props.isMainPlayground" class="playground-actions">
+		<VpButton
+			v-if="isReady"
+			theme="alt"
+			:onclick="copyUrl"
+			size="medium"
+			title="Copy Shareable URL"
+			class="text-btn"
+			>{{ copyUrlText }}</VpButton
+		>
+	</div>
 	<LiveCodes
 		v-bind="options"
 		:style="style"
