@@ -8,12 +8,16 @@ import { active_block } from './runtime.js';
  * @param {Node} end - The end node.
  */
 export function assign_nodes(start, end) {
-  var block = /** @type {Effect} */ (active_block);
-  if (block.s === null) {
+  var block = /** @type {Block} */ (active_block);
+  var s = block.s;
+  if (s === null) {
     block.s = {
       start,
       end,
     };
+  } else if (s.start === null) {
+    s.start = start;
+    s.end = end;
   }
 }
 

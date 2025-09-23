@@ -13,7 +13,6 @@ import {
   escape_html,
   is_boolean_attribute,
   is_dom_property,
-  is_ripple_import,
   is_declared_function_within_component,
   is_inside_call_expression,
   is_value_static,
@@ -21,6 +20,7 @@ import {
   is_component_level_function,
   is_element_dom_element,
   is_top_level_await,
+  is_ripple_track_call,
 } from '../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../utils/ast.js';
@@ -165,16 +165,7 @@ const visitors = {
       context.state.metadata.tracking = true;
     }
 
-    if (
-      !context.state.to_ts &&
-      ((callee.type === 'Identifier' && callee.name === 'track') ||
-        (callee.type === 'MemberExpression' &&
-          callee.object.type === 'Identifier' &&
-          callee.property.type === 'Identifier' &&
-          callee.property.name === 'track' &&
-          !callee.computed)) &&
-      is_ripple_import(callee, context)
-    ) {
+    if (!context.state.to_ts && is_ripple_track_call(callee, context)) {
       if (node.arguments.length === 0) {
         node.arguments.push(b.void0);
       }
@@ -629,7 +620,7 @@ const visitors = {
           if (node.metadata.scoped && state.component.css) {
             expression = b.binary('+', b.literal(state.component.css.hash + ' '), expression);
           }
-          const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg'
+          const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg';
 
           if (metadata.tracking) {
             local_updates.push(b.stmt(b.call('_$_.set_class', id, expression, is_html)));
@@ -1470,9 +1461,15 @@ function transform_children(children, context) {
 
     if (child.type === 'Text' && prev_child?.type === 'Text') {
       if (child.expression.type === 'Literal' && prev_child.expression.type === 'Literal') {
-        prev_child.expression = b.literal(prev_child.expression.value + String(child.expression.value));
+        prev_child.expression = b.literal(
+          prev_child.expression.value + String(child.expression.value),
+        );
       } else {
-        prev_child.expression = b.binary('+', prev_child.expression, b.call('String', child.expression));
+        prev_child.expression = b.binary(
+          '+',
+          prev_child.expression,
+          b.call('String', child.expression),
+        );
       }
       normalized.splice(i, 1);
     }

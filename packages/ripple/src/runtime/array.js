@@ -105,17 +105,24 @@ function proxy({ elements, block, from_static = false, use_array = false }) {
 
       var result = Reflect.get(target, prop, receiver);
 
-      if (typeof result === "function" && methods_returning_arrays.has(prop)) {
-        /** @type {(this: any, ...args: any[]) => any} */
-        return function (...args) {
-          var output = Reflect.apply(result, receiver, args)
+      if (typeof result === 'function') {
+        if (methods_returning_arrays.has(prop)) {
+          /** @type {(this: any, ...args: any[]) => any} */
+          return function (...args) {
+            var output = Reflect.apply(result, receiver, args);
 
-          if (Array.isArray(output) && output !== target) {
-            return proxy({ elements: output, block, use_array: true });
-          }
+            if (Array.isArray(output) && output !== target) {
+              return proxy({ elements: output, block, use_array: true });
+            }
 
-          return output;
-        };
+            return output;
+          };
+        }
+
+        // When generating an iterator, we need to ensure that length is tracked
+        if (prop === 'entries' || prop === 'values' || prop === 'keys') {
+          receiver.length;
+        }
       }
 
       return result;
@@ -229,14 +236,16 @@ function proxy({ elements, block, from_static = false, use_array = false }) {
         // target object — which we avoid, so that state can be forked — we will run
         // afoul of the various invariants
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy/Proxy/getOwnPropertyDescriptor#invariants
-        throw new Error('Only basic property descriptors are supported with value and configurable, enumerable, and writable set to true');
+        throw new Error(
+          'Only basic property descriptors are supported with value and configurable, enumerable, and writable set to true',
+        );
       }
 
       var t = tracked_elements.get(prop);
 
       if (t === undefined) {
-          t = tracked(descriptor.value, block);
-          tracked_elements.set(prop, t);
+        t = tracked(descriptor.value, block);
+        tracked_elements.set(prop, t);
       } else {
         set(t, descriptor.value, block);
       }
@@ -266,15 +275,15 @@ function get_first_if_length(array) {
 }
 
 const methods_returning_arrays = new Set([
-  "concat",
-  "filter",
-  "flat",
-  "flatMap",
-  "map",
-  "slice",
-  "splice",
-  "toReversed",
-  "toSorted",
-  "toSpliced",
-  "with",
+  'concat',
+  'filter',
+  'flat',
+  'flatMap',
+  'map',
+  'slice',
+  'splice',
+  'toReversed',
+  'toSorted',
+  'toSpliced',
+  'with',
 ]);

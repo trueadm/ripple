@@ -378,6 +378,18 @@ export function is_component_level_function(context) {
   return true;
 }
 
+export function is_ripple_track_call(callee, context) {
+  return (
+    (callee.type === 'Identifier' && callee.name === 'track') ||
+    (callee.type === 'MemberExpression' &&
+      callee.object.type === 'Identifier' &&
+      callee.property.type === 'Identifier' &&
+      callee.property.name === 'track' &&
+      !callee.computed &&
+      is_ripple_import(callee, context))
+  );
+}
+
 export function is_inside_call_expression(context) {
   for (let i = context.path.length - 1; i >= 0; i -= 1) {
     const context_node = context.path[i];
@@ -391,6 +403,10 @@ export function is_inside_call_expression(context) {
       return false;
     }
     if (type === 'CallExpression') {
+      const callee = context_node.callee;
+      if (is_ripple_track_call(callee, context)) {
+        return false;
+      }
       return true;
     }
   }
