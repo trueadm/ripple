@@ -654,30 +654,15 @@ const visitors = {
           if (node.metadata.scoped && state.component.css) {
             expression = b.binary('+', b.literal(state.component.css.hash + ' '), expression);
           }
+          const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg';
 
           if (class_attribute.name.name === '$class' || metadata.tracking) {
             local_updates.push(
-              b.stmt(
-                b.call(
-                  '_$_.set_class',
-                  id,
-                  expression,
-                  undefined,
-                  b.literal(state.namespace === 'html'),
-                ),
-              ),
+              b.stmt(b.call('_$_.set_class', id, expression, undefined, b.literal(is_html))),
             );
           } else {
             state.init.push(
-              b.stmt(
-                b.call(
-                  '_$_.set_class',
-                  id,
-                  expression,
-                  undefined,
-                  b.literal(state.namespace === 'html'),
-                ),
-              ),
+              b.stmt(b.call('_$_.set_class', id, expression, undefined, b.literal(is_html))),
             );
           }
         }
@@ -1477,7 +1462,6 @@ function transform_children(children, context) {
   for (const node of children) {
     normalize_child(node, normalized);
   }
-
 
   const is_fragment =
     normalized.some(
