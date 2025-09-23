@@ -31,10 +31,10 @@ export function assign_nodes(start, end) {
  */
 function create_fragment_from_html(html, use_svg_namespace = false, use_mathml_namespace = false) {
   if (use_svg_namespace) {
-    return create_svg_fragment_from_html(html);
+    return from_namespace(html, 'svg');
   }
   if (use_mathml_namespace) {
-    return create_mathml_fragment_from_html(html);
+    return from_namespace(html, 'math');
   }
   var elem = document.createElement('template');
   elem.innerHTML = html;
@@ -90,27 +90,28 @@ export function append(anchor, dom) {
   anchor.before(/** @type {Node} */ (dom));
 }
 
-const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
-const MATHML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML';
+/**
+ * Create fragment with proper namespace using Svelte's wrapping approach
+ * @param {string} content
+ * @param {'svg' | 'math'} ns
+ * @returns {DocumentFragment}
+ */
+function from_namespace(content, ns = 'svg') {
+  // Wrap content in namespace element (like Svelte does)
+  var wrapped = `<${ns}>${content}</${ns}>`;
 
-function create_svg_fragment_from_html(html) {
-  var svgContainer = document.createElementNS(SVG_NAMESPACE, 'svg');
-  svgContainer.innerHTML = html;
+  // Create fragment from wrapped HTML
+  var elem = document.createElement('template');
+  elem.innerHTML = wrapped;
+  var fragment = elem.content;
 
-  var fragment = document.createDocumentFragment();
-  while (svgContainer.firstChild) {
-    fragment.appendChild(svgContainer.firstChild);
+  // Extract content from inside the wrapper
+  var root = /** @type {Element} */ (first_child(fragment));
+  var result = document.createDocumentFragment();
+
+  while (first_child(root)) {
+    result.appendChild(/** @type {Node} */ (first_child(root)));
   }
-  return fragment;
-}
 
-function create_mathml_fragment_from_html(html) {
-  var mathContainer = document.createElementNS(MATHML_NAMESPACE, 'math');
-  mathContainer.innerHTML = html;
-
-  var fragment = document.createDocumentFragment();
-  while (mathContainer.firstChild) {
-    fragment.appendChild(mathContainer.firstChild);
-  }
-  return fragment;
+  return result;
 }
