@@ -2,15 +2,15 @@ import { walk } from 'zimmerframe';
 import path from 'node:path';
 import { print } from 'esrap';
 import tsx from 'esrap/languages/tsx';
-import * as b from '../../../utils/builders.js';
+import * as b from '../../../../utils/builders.js';
 import {
   IS_CONTROLLED,
   IS_INDEXED,
   TEMPLATE_FRAGMENT,
   TEMPLATE_SVG_NAMESPACE,
   TEMPLATE_MATHML_NAMESPACE,
-} from '../../../constants.js';
-import { sanitize_template_string } from '../../../utils/sanitize_template_string.js';
+} from '../../../../constants.js';
+import { sanitize_template_string } from '../../../../utils/sanitize_template_string.js';
 import {
   build_hoisted_params,
   is_inside_component,
@@ -27,11 +27,11 @@ import {
   is_element_dom_element,
   is_top_level_await,
   is_ripple_track_call,
-} from '../../utils.js';
+} from '../../../utils.js';
 import is_reference from 'is-reference';
-import { object } from '../../../utils/ast.js';
-import { render_stylesheets } from './stylesheet.js';
-import { is_event_attribute, is_passive_event } from '../../../utils/events.js';
+import { object } from '../../../../utils/ast.js';
+import { render_stylesheets } from '../stylesheet.js';
+import { is_event_attribute, is_passive_event } from '../../../../utils/events.js';
 
 function add_ripple_internal_import(context) {
   if (!context.state.to_ts) {
@@ -1667,7 +1667,7 @@ function transform_body(body, { visit, state }) {
   return [...body_state.setup, ...body_state.init, ...body_state.final];
 }
 
-export function transform(filename, source, analysis, to_ts) {
+export function transform_client(filename, source, analysis, to_ts) {
   const state = {
     imports: new Set(),
     events: new Set(),
@@ -1704,16 +1704,10 @@ export function transform(filename, source, analysis, to_ts) {
     );
   }
 
-  const js = print(
-    program,
-    tsx({
-      comments: analysis.ast.comments || [],
-    }),
-    {
-      sourceMapContent: source,
-      sourceMapSource: path.basename(filename),
-    },
-  );
+  const js = print(program, tsx(), {
+    sourceMapContent: source,
+    sourceMapSource: path.basename(filename),
+  });
 
   const css = render_stylesheets(state.stylesheets);
 

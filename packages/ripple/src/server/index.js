@@ -1,0 +1,1 @@
+export { renderToString } from '../runtime/internal/server/index.js';

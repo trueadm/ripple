@@ -29,6 +29,10 @@
       "default": "./src/runtime/index.js"
     },
     "./package.json": "./package.json",
+    "./server": {
+      "types": "./types/server.d.ts",
+      "default": "./src/server/index.js"
+    },
     "./compiler": {
       "types": "./types/index.d.ts",
       "require": "./compiler/index.js",
@@ -41,6 +45,9 @@
     },
     "./internal/client": {
       "default": "./src/runtime/internal/client/index.js"
+    },
+    "./internal/server": {
+      "default": "./src/runtime/internal/server/index.js"
     },
     "./jsx-runtime": {
       "types": "./src/jsx-runtime.d.ts",

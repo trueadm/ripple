@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "ssr": "node ./ssr-dev.js",
     "build": "vite build --outDir dist/client",
     "test": "vitest run",
     "debug": "node cli.js"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.12",
+    "polka": "^1.0.0-next.25",
     "ripple": "workspace:*",
     "typescript": "catalog:",
     "vite": "catalog:",
