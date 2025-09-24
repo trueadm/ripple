@@ -303,55 +303,28 @@ export function track(v, o, b) {
     throw new TypeError('Invalid value: expected a non-tracked object');
   }
 
-  var list;
-
-  if (
-    typeof o !== "object" ||
-    o === null ||
-    is_array(o) ||
-    !("split" in o) ||
-    !is_array(list = o.split) ||
-    list.length < 1
-  ) {
-    throw new TypeError(
-      'Invalid options: expected { split: (string|symbol|number)[] }'
-    );
-  }
-
+  var list = o.split ?? [];
   /** @type {Tracked[]} */
-  var out = []
+  var out = [];
   /** @type {Record<string|symbol, any>} */
   var rest = {};
   /** @type {Record<PropertyKey, PropertyDescriptor>} */
   var descriptors = get_descriptors(v);
-  var props = Reflect.ownKeys(descriptors);
-  /** @type {Record<string|symbol, Tracked>} */
-  var done = {};
 
   for (let i = 0, props_i = 0, key, t; i < list.length; i++) {
     key = list[i];
 
-    if (done[key]) {
-      // in case of duplicate keys just return as requested
-      out[i] = done[key];
-      continue;
-    }
-
     if (is_tracked_object(v[key])) {
       t = v[key];
     } else {
-      t = tracked(undefined, b);
-      delete t.v;
-      define_property(t, 'v', descriptors[key]);
+      t = define_property(tracked(undefined, b), 'v', descriptors[key]);
     }
 
     out[i] = t;
-    done[key] = t;
-    if ((props_i = props.indexOf(key)) !== -1) {
-      props.splice(props_i, 1);
-    }
+    delete descriptors[key]
   }
 
+  var props = Reflect.ownKeys(descriptors);
   for (let i = 0, key; i < props.length; i++) {
     key = props[i];
     define_property(rest, key, descriptors[key]);

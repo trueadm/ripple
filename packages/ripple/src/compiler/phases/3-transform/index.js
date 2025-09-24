@@ -188,7 +188,7 @@ const visitors = {
 
     if (!context.state.to_ts && is_ripple_track_call(callee, context)) {
       if (node.arguments.length === 0) {
-        node.arguments.push(b.void0);
+        node.arguments.push(b.void0, b.void0);
       } else if (node.arguments.length === 1) {
         node.arguments.push(b.void0);
       }

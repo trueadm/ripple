@@ -1368,25 +1368,6 @@ describe('basic', () => {
 		expect(pre.textContent).toBe('Invalid value: expected a non-tracked object');
 	});
 
-	it('errors on invalid split option for track with split', () => {
-		component App() {
-			let message = track('');
-
-			try{
-				const [a, b, rest] = track({a: 1, b: 2, c: 3}, { split: {a: 1, b: 2} });
-			} catch(e) {
-				@message = e.message;
-			}
-
-			<pre>{@message}</pre>
-		}
-
-		render(App);
-
-		const pre = container.querySelectorAll('pre')[0];
-		expect(pre.textContent).toBe('Invalid options: expected { split: (string|symbol|number)[] }');
-	});
-
 	it('errors on invalid value as tracked for track with split', () => {
 		component App() {
 			const t = track({a: 1, b: 2, c: 3});
