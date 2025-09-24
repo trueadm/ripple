@@ -14,23 +14,17 @@ body:has(.main-playground) {
 	overflow: hidden;
 }
 
+@media (max-height: 500px) {
+	body:has(.main-playground) {
+		overflow: auto; /* avoid hiding the lower part of playground on mobile (landscape) */
+	}
+
+	.VPHome:has(.main-playground) {
+		margin-bottom: 0 !important;
+	}
+}
+
 .VPHome .container:has(.main-playground) {
 	padding: 0 !important;
 	max-width: unset !important;
-}
-
-.playground-actions {
-	display: flex;
-	justify-content: flex-end;
-	align-items: center;
-	gap: 1rem;
-	margin: 1rem 1rem -1rem;
-	height: 30px;
-}
-
-.main-playground .playground-actions button.text-btn {
-	min-width: 5rem;
-	padding: 0 8px;
-	line-height: 28px;
-	font-size: 11px;
 }

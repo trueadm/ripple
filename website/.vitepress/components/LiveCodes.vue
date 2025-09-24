@@ -1,13 +1,38 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, useTemplateRef } from 'vue'
 import { useData } from 'vitepress'
-import VpButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
+import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
+import VPSwitch from 'vitepress/dist/client/theme-default/components/VPSwitch.vue'
 import LiveCodes from 'livecodes/vue'
 import type { EmbedOptions, Playground } from 'livecodes'
 import { playgroundProps } from './playgroundProps'
 
+type UserConfig = { vim: boolean }
+
+const getUserConfig = (): Partial<UserConfig> => {
+	const config = window.localStorage.getItem('playgroundConfig') || '{}'
+	try {
+		return JSON.parse(config)
+	} catch (e) {
+		return {}
+	}
+}
+
+const setUserConfig = (config: UserConfig) => {
+	window.localStorage.setItem(
+		'playgroundConfig',
+		JSON.stringify({
+			...getUserConfig(),
+			...config,
+		}),
+	)
+}
+
 const props = defineProps<playgroundProps>()
 const { isDark } = useData()
+const playgroundActions = useTemplateRef('playground-actions')
+const tailwind = ref(false)
+const vim = ref(getUserConfig().vim ?? false)
 
 const playgroundUrl = 'https://ripple.livecodes.pages.dev'
 const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple'
@@ -65,6 +90,8 @@ const config: EmbedOptions['config'] = {
 	},
 	style: getStyle(),
 	theme: isDark.value ? 'dark' : 'light',
+	processors: tailwind.value ? ['tailwindcss'] : [],
+	editorMode: vim.value ? 'vim' : undefined,
 }
 
 const options: EmbedOptions = {
@@ -74,11 +101,14 @@ const options: EmbedOptions = {
 }
 
 let playground: Playground | undefined
-const isReady = ref(false)
 const onReady = (sdk: Playground) => {
 	playground = sdk
 
 	playground.getConfig().then((config) => {
+		if (config.processors.includes('tailwindcss')) {
+			tailwind.value = true
+		}
+
 		let newConfig = {}
 		if (!config.markup.hideTitle || !config.style.hideTitle) {
 			newConfig = {
@@ -108,14 +138,16 @@ const onReady = (sdk: Playground) => {
 			window.location.hash = new URL(shareUrl).hash
 		})
 		playground.watch('ready', async () => {
-			isReady.value = true
+			playgroundActions.value.style.visibility = 'visible'
 		})
 	}
 }
 
 const style = {
 	height:
-		(props.height ?? props.isMainPlayground) ? 'calc(100vh - 98px)' : undefined,
+		(props.height ?? props.isMainPlayground)
+			? 'calc(100dvh - 98px)'
+			: undefined,
 	minHeight: props.isMainPlayground ? '400px' : undefined,
 	marginTop: props.isMainPlayground ? '1.5rem' : undefined,
 }
@@ -142,18 +174,47 @@ watch(isDark, () => {
 		})
 	}
 })
+
+watch(tailwind, async () => {
+	if (!playground) return
+	const currentConfig = await playground.getConfig()
+	playground.setConfig({
+		...currentConfig,
+		processors: tailwind.value ? ['tailwindcss'] : [],
+	})
+})
+
+watch(vim, async () => {
+	if (!playground) return
+	const currentConfig = await playground.getConfig()
+	playground.setConfig({
+		...currentConfig,
+		editorMode: vim.value ? 'vim' : undefined,
+	})
+	setUserConfig({ vim: vim.value })
+})
 </script>
 
 <template>
-	<div v-if="props.isMainPlayground" class="playground-actions">
-		<VpButton
-			v-if="isReady"
+	<div
+		v-if="props.isMainPlayground"
+		ref="playground-actions"
+		class="playground-actions"
+		style="visibility: hidden"
+	>
+		<span class="switch-label" @click="tailwind = !tailwind">
+			Tailwind <VPSwitch :aria-checked="tailwind"></VPSwitch>
+		</span>
+		<span class="switch-label" @click="vim = !vim">
+			Vim mode <VPSwitch :aria-checked="vim"></VPSwitch>
+		</span>
+		<VPButton
 			theme="alt"
 			:onclick="copyUrl"
 			size="medium"
 			title="Copy Shareable URL"
 			class="text-btn"
-			>{{ copyUrlText }}</VpButton
+			>{{ copyUrlText }}</VPButton
 		>
 	</div>
 	<LiveCodes
@@ -163,3 +224,41 @@ watch(isDark, () => {
 		@sdk-ready="onReady"
 	/>
 </template>
+
+<style scoped>
+.playground-actions {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 1rem;
+	margin: 1rem 1rem -1rem;
+	height: 30px;
+}
+
+.playground-actions button.text-btn {
+	min-width: 5rem;
+	padding: 0 8px;
+	line-height: 28px;
+	font-size: 11px;
+}
+
+.switch-label {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+}
+
+.VPSwitch {
+	zoom: 0.8;
+}
+
+.VPSwitch[aria-checked='true'] :deep(.check) {
+	/*rtl:ignore*/
+	transform: translateX(18px);
+}
+
+.VPSwitch[aria-checked='true'] {
+	background-color: var(--vp-c-brand-3);
+}
+</style>
