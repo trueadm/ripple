@@ -94,6 +94,7 @@ export async function createCommand(projectName, options) {
 		});
 
 		showNextSteps(projectName, packageManager);
+		process.exit(0);
 	} catch (error) {
 		console.error(red('✖ Failed to create project:'));
 		console.error(error.message);
