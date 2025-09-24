@@ -297,6 +297,11 @@ function printRippleNode(node, path, options, print, args) {
 			const parts = [];
 			parts.push(path.call(print, 'callee'));
 			
+			// Add TypeScript generics if present
+			if (node.typeParameters) {
+				parts.push(path.call(print, 'typeParameters'));
+			}
+			
 			if (node.arguments && node.arguments.length > 0) {
 				parts.push('(');
 
@@ -370,6 +375,10 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSTypeParameter':
 			nodeContent = printTSTypeParameter(node, path, options, print);
+			break;
+
+		case 'TSTypeParameterInstantiation':
+			nodeContent = printTSTypeParameterInstantiation(node, path, options, print);
 			break;
 
 		case 'TSNumberKeyword':
@@ -556,6 +565,10 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printObjectPattern(node, path, options, print);
 			break;
 
+		case 'ArrayPattern':
+			nodeContent = printArrayPattern(node, path, options, print);
+			break;
+
 		case 'Property':
 			nodeContent = printProperty(node, path, options, print);
 			break;
@@ -591,6 +604,10 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSNullKeyword':
 			nodeContent = 'null';
+			break;
+
+		case 'TSUnknownKeyword':
+			nodeContent = 'unknown';
 			break;
 
 		case 'TSLiteralType':
@@ -1493,6 +1510,22 @@ function printTSTypeParameter(node, path, options, print) {
 	return parts;
 }
 
+function printTSTypeParameterInstantiation(node, path, options, print) {
+	if (!node.params || node.params.length === 0) {
+		return '';
+	}
+
+	const parts = [];
+	parts.push('<');
+	const paramList = path.map(print, 'params');
+	for (let i = 0; i < paramList.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(paramList[i]);
+	}
+	parts.push('>');
+	return concat(parts);
+}
+
 function printSwitchStatement(node, path, options, print) {
 	const parts = [];
 	parts.push('switch (');
@@ -1685,6 +1718,24 @@ function printObjectPattern(node, path, options, print) {
 		parts.push(propList[i]);
 	}
 	parts.push(' }');
+
+	if (node.typeAnnotation) {
+		parts.push(': ');
+		parts.push(path.call(print, 'typeAnnotation'));
+	}
+
+	return concat(parts);
+}
+
+function printArrayPattern(node, path, options, print) {
+	const parts = [];
+	parts.push('[ ');
+	const elementList = path.map(print, 'elements');
+	for (let i = 0; i < elementList.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(elementList[i]);
+	}
+	parts.push(' ]');
 
 	if (node.typeAnnotation) {
 		parts.push(': ');

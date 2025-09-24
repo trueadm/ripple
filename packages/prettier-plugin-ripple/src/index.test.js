@@ -544,4 +544,29 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
     const result = await format(input);
     expect(result).toBe(expected);
   });
+
+  it('should handle array and object patterns correctly', async () => {
+    const input = `for (const [i = 0, item] of items.entries()) {}
+for (const {i = 0, item} of items.entries()) {}`;
+
+    const expected = `for (const [ i = 0, item ] of items.entries()) {}
+for (const { i = 0, item } of items.entries()) {}`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should handle various other TS things', async () => {
+    const input = `const globalContext = createContext<{ theme: string, array: number[] }>({ theme: 'light', array: [] });
+const items = [] as unknown[];`
+
+    const expected = `const globalContext = createContext<{ theme: string; array: number[] }>({
+  theme: "light",
+  array: [],
+});
+const items = [] as unknown[];`
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
 });
