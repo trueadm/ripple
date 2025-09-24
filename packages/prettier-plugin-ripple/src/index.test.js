@@ -482,4 +482,50 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
     const result = await format(input);
     expect(result).toBe(expected);
   });
+
+  it('should correctly handle for loops with variable declarations', async () => {
+    const input = `for (let i = 0, len = array.length; i < len; i++) {
+  console.log(i);
+}`;
+    const expected = `for (let i = 0, len = array.length; i < len; i++) {
+  console.log(i);
+}`;
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should correctly render attributes in template', async () => {
+    const input = `export component App() {
+  <div>
+   <Expand name='' startingLength={20} />
+  </div>
+}`;
+
+    const expected = `export component App() {
+  <div><Expand name="" startingLength={20} /></div>
+}`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should handle different attribute value types correctly', async () => {
+    const input = `export component Test() {
+  <div 
+    stringProp="hello"
+    numberProp={42}
+    booleanProp={true}
+    falseProp={false}
+    nullProp={null}
+    expression={x + 1}
+  />
+}`;
+
+    const expected = `export component Test() {
+  <div stringProp="hello" numberProp={42} booleanProp={true} falseProp={false} nullProp={null} expression={x + 1} />
+}`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
 });

@@ -422,12 +422,6 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = concat([path.call(print, 'expression'), ';']);
 			break;
 
-		case 'JSXExpressionContainer': {
-			const parts = ['{', path.call(print, 'expression'), '}'];
-			nodeContent = concat(parts);
-			break;
-		}
-
 		case 'RefAttribute':
 			nodeContent = concat(['{ref ', path.call(print, 'argument'), '}']);
 			break;
@@ -921,113 +915,13 @@ function printVariableDeclaration(node, path, options, print) {
 		);
 
 	const declarations = path.map(print, 'declarations');
+	const declarationParts = join(', ', declarations);
 
 	if (!hasForLoopParent) {
-		return concat([kind, ' ', declarations, ';']);
+		return concat([kind, ' ', declarationParts, ';']);
 	}
 
-	return concat([kind, ' ', declarations]);
-}
-
-function printJSXElement(node, path, options, print) {
-	const openingElement = printJSXOpeningElement(node.openingElement, path, options, print);
-
-	if (node.selfClosing || (node.children && node.children.length === 0)) {
-		// Convert to self-closing tag - create new opening with ' />' instead of '>'
-		const parts = ['<', node.openingElement.name.name];
-		if (node.openingElement.attributes && node.openingElement.attributes.length > 0) {
-			for (let i = 0; i < node.openingElement.attributes.length; i++) {
-				parts.push(' ');
-				parts.push(path.call(print, 'openingElement', 'attributes', i));
-			}
-		}
-		parts.push(' />');
-		return concat(parts);
-	}
-
-	const children = node.children
-		.map((child, i) => {
-			if (child.type === 'JSXText') {
-				return child.value.trim();
-			}
-			return path.call(print, 'children', i);
-		})
-		.filter((child) => child !== '');
-
-	const closingTag = concat(['</', node.openingElement.name.name, '>']);
-
-	if (children.length === 0) {
-		// Self-closing version
-		const parts = ['<', node.openingElement.name.name];
-		if (node.openingElement.attributes && node.openingElement.attributes.length > 0) {
-			for (let i = 0; i < node.openingElement.attributes.length; i++) {
-				parts.push(' ');
-				parts.push(path.call(print, 'openingElement', 'attributes', i));
-			}
-		}
-		parts.push(' />');
-		return concat(parts);
-	}
-
-	if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 20) {
-		// Single line
-		return concat([openingElement, children[0], closingTag]);
-	}
-
-	// Multi-line
-	const parts = [openingElement];
-	parts.push(line);
-	for (let i = 0; i < children.length; i++) {
-		if (i > 0) parts.push(line);
-		parts.push(indent(children[i]));
-	}
-	parts.push(line);
-	parts.push(closingTag);
-
-	return concat(parts);
-}
-
-function printJSXOpeningElement(node, path, options, print) {
-	const tag = node.name.name;
-
-	if (!node.attributes || node.attributes.length === 0) {
-		return group(['<', tag, '>']);
-	}
-
-	const openingTag = group([
-		'<',
-		tag,
-		indent(
-			group([
-				...path.map((attrPath) => {
-					return concat([' ', print(attrPath)]);
-				}, 'attributes'),
-			]),
-		),
-		'>',
-	]);
-
-	return openingTag;
-}
-
-function printJSXAttribute(node, path, options, print) {
-	let result = node.name.name;
-
-	if (node.value) {
-		if (node.value.type === 'Literal') {
-			result += '=' + formatStringLiteral(node.value.value, options);
-		} else if (node.value.type === 'JSXExpressionContainer') {
-			result += '={' + node.value.expression.name + '}';
-		}
-	}
-
-	// Return as simple string since this is a complete atomic unit
-	return result;
-}
-
-function printJSXFragment(node, path, options, print) {
-	const children = path.map(print, 'children').join('\n');
-	return '<>\n' + children + '\n</>';
+	return concat([kind, ' ', declarationParts]);
 }
 
 function printFunctionExpression(node, path, options, print) {
@@ -2143,10 +2037,12 @@ function printAttribute(node, path, options, print) {
 	parts.push(node.name.name);
 
 	if (node.value) {
-		if (node.value.type === 'Literal') {
+		if (node.value.type === 'Literal' && typeof node.value.value === 'string') {
+			// String literals don't need curly braces
 			parts.push('=');
 			parts.push(formatStringLiteral(node.value.value, options));
 		} else {
+			// All other values need curly braces: numbers, booleans, null, expressions, etc.
 			parts.push('={');
 			parts.push(path.call(print, 'value'));
 			parts.push('}');
