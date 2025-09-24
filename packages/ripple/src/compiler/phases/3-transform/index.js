@@ -1593,13 +1593,10 @@ function transform_children(children, context) {
           if (expression.type === 'Literal') {
             state.template.push(escape_html(expression.value));
           } else {
-            const id = state.flush_node();
+            const id = flush_node();
             state.template.push(' ');
-            state.init.push(
-              b.stmt(
-                b.assignment('=', b.member(b.call('_$_.child', id), b.id('nodeValue')), expression),
-              ),
-            );
+            // avoid set_text overhead for single text nodes
+            state.init.push(b.stmt(b.assignment('=', b.member(id, b.id('nodeValue')), expression)));
           }
         } else {
           // Handle Text nodes in fragments
