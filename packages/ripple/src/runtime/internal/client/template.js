@@ -1,4 +1,9 @@
-import { TEMPLATE_FRAGMENT, TEMPLATE_USE_IMPORT_NODE } from '../../../constants.js';
+import {
+  TEMPLATE_FRAGMENT,
+  TEMPLATE_USE_IMPORT_NODE,
+  TEMPLATE_SVG_NAMESPACE,
+  TEMPLATE_MATHML_NAMESPACE,
+} from '../../../constants.js';
 import { first_child, is_firefox } from './operations.js';
 import { active_block } from './runtime.js';
 
@@ -24,9 +29,17 @@ export function assign_nodes(start, end) {
 /**
  * Creates a DocumentFragment from an HTML string.
  * @param {string} html - The HTML string.
+ * @param {boolean} use_svg_namespace - Whether to use SVG namespace.
+ * @param {boolean} use_mathml_namespace - Whether to use MathML namespace.
  * @returns {DocumentFragment}
  */
-function create_fragment_from_html(html) {
+function create_fragment_from_html(html, use_svg_namespace = false, use_mathml_namespace = false) {
+  if (use_svg_namespace) {
+    return from_namespace(html, 'svg');
+  }
+  if (use_mathml_namespace) {
+    return from_namespace(html, 'math');
+  }
   var elem = document.createElement('template');
   elem.innerHTML = html;
   return elem.content;
@@ -41,12 +54,18 @@ function create_fragment_from_html(html) {
 export function template(content, flags) {
   var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
   var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
+  var use_svg_namespace = (flags & TEMPLATE_SVG_NAMESPACE) !== 0;
+  var use_mathml_namespace = (flags & TEMPLATE_MATHML_NAMESPACE) !== 0;
   var node;
   var has_start = !content.startsWith('<!>');
 
   return () => {
     if (node === undefined) {
-      node = create_fragment_from_html(has_start ? content : '<!>' + content);
+      node = create_fragment_from_html(
+        has_start ? content : '<!>' + content,
+        use_svg_namespace,
+        use_mathml_namespace,
+      );
       if (!is_fragment) node = first_child(node);
     }
 
@@ -73,4 +92,27 @@ export function template(content, flags) {
  */
 export function append(anchor, dom) {
   anchor.before(/** @type {Node} */ (dom));
+}
+
+/**
+ * Create fragment with proper namespace using Svelte's wrapping approach
+ * @param {string} content
+ * @param {'svg' | 'math'} ns
+ * @returns {DocumentFragment}
+ */
+function from_namespace(content, ns = 'svg') {
+  var wrapped = `<${ns}>${content}</${ns}>`;
+
+  var elem = document.createElement('template');
+  elem.innerHTML = wrapped;
+  var fragment = elem.content;
+
+  var root = /** @type {Element} */ (first_child(fragment));
+  var result = document.createDocumentFragment();
+
+  while (first_child(root)) {
+    result.appendChild(/** @type {Node} */ (first_child(root)));
+  }
+
+  return result;
 }
