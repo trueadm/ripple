@@ -210,10 +210,9 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
               sources[j - b_start] = i + 1;
               if (fast_path_removal) {
                 fast_path_removal = false;
-                // while (a_start < i) {
-                //     debugger
-                //     destroy_block(a_blocks[a_start++]);
-                // }
+                while (a_start < i) {
+                  destroy_block(a_blocks[a_start++]);
+                }
               }
               if (pos > j) {
                 moved = true;
