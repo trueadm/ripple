@@ -29,7 +29,7 @@ export type Context<T> = {
 
 export declare function createContext<T>(initialValue: T): Context<T>;
 
-export class TrackedSet<T> extends Set<T> {
+export declare class TrackedSet<T> extends Set<T> {
 	isDisjointFrom(other: TrackedSet<T> | Set<T>): boolean;
 	isSubsetOf(other: TrackedSet<T> | Set<T>): boolean;
 	isSupersetOf(other: TrackedSet<T> | Set<T>): boolean;
@@ -40,7 +40,7 @@ export class TrackedSet<T> extends Set<T> {
 	toJSON(): T[];
 }
 
-export class TrackedMap<K, V> extends Map<K, V> {
+export declare class TrackedMap<K, V> extends Map<K, V> {
 	toJSON(): [K, V][];
 }
 
@@ -56,7 +56,7 @@ declare global {
 	 * Ripple runtime namespace - injected by the compiler
 	 * These functions are available in compiled Ripple components for TypeScript analysis
 	 */
-	var $: {
+	var _$_: {
 		tracked<T>(value: T, block?: any): T;
 		computed<T>(fn: () => T, block?: any): T;
 		scope(): any;
