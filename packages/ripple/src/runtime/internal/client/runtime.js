@@ -308,10 +308,10 @@ export function track(v, o, b) {
   var out = [];
   /** @type {Record<string|symbol, any>} */
   var rest = {};
-  /** @type {Record<PropertyKey, PropertyDescriptor>} */
+  /** @type {Record<PropertyKey, any | null>} */
   var descriptors = get_descriptors(v);
 
-  for (let i = 0, props_i = 0, key, t; i < list.length; i++) {
+  for (let i = 0, key, t; i < list.length; i++) {
     key = list[i];
 
     if (is_tracked_object(v[key])) {
@@ -321,12 +321,15 @@ export function track(v, o, b) {
     }
 
     out[i] = t;
-    delete descriptors[key]
+    descriptors[key] = null;
   }
 
   var props = Reflect.ownKeys(descriptors);
   for (let i = 0, key; i < props.length; i++) {
     key = props[i];
+    if (descriptors[key] === null) {
+      continue;
+    }
     define_property(rest, key, descriptors[key]);
   }
 
