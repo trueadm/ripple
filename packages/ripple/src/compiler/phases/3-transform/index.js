@@ -65,7 +65,11 @@ function visit_function(node, context) {
     });
   }
 
-  let body = context.visit(node.body, state);
+  let body = context.visit(node.body, {
+    ...state,
+    // we are new context so tracking no longer applies
+    metadata: { ...state.metadata, tracked: false },
+  });
 
   if (metadata?.tracked === true) {
     const new_body = [];
