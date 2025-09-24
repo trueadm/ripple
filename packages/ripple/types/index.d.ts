@@ -41,7 +41,7 @@ export declare class TrackedSet<T> extends Set<T> {
 }
 
 export declare class TrackedMap<K, V> extends Map<K, V> {
-    toJSON(): [K, V][];
+	toJSON(): [K, V][];
 }
 
 // Compiler-injected runtime symbols (for Ripple component development)
