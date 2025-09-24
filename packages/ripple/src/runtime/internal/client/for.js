@@ -1,11 +1,9 @@
-import { IS_CONTROLLED } from '../../../constants.js';
+import { IS_CONTROLLED, IS_INDEXED } from '../../../constants.js';
 import { branch, destroy_block, destroy_block_children, render } from './blocks.js';
 import { FOR_BLOCK, TRACKED_ARRAY } from './constants.js';
 import { create_text } from './operations.js';
 import { active_block, set, tracked, untrack } from './runtime.js';
 import { array_from, is_array } from './utils.js';
-
-let collection_is_indexed = false;
 
 function create_item(anchor, value, index, render_fn, is_indexed) {
   var b = branch(() => {
@@ -25,8 +23,10 @@ function create_item(anchor, value, index, render_fn, is_indexed) {
       } else {
         tracked_index = block.s.i;
       }
+      render_fn(anchor, value, tracked_index);
+    } else {
+      render_fn(anchor, value);
     }
-    render_fn(anchor, is_indexed ? [value, tracked_index] : value);
   });
   return b;
 }
@@ -60,6 +60,7 @@ function collection_to_array(collection) {
 
 export function for_block(node, get_collection, render_fn, flags) {
   var is_controlled = (flags & IS_CONTROLLED) !== 0;
+  var is_indexed = (flags & IS_INDEXED) !== 0;
   var anchor = node;
 
   if (is_controlled) {
@@ -69,17 +70,7 @@ export function for_block(node, get_collection, render_fn, flags) {
   render(() => {
     var block = /** @type {Block} */ (active_block);
     var collection = get_collection();
-    var previous_collection_is_indexed = collection_is_indexed;
-    var array;
-    /** @type {boolean} */
-    var is_indexed;
-
-    try {
-      array = collection_to_array(collection);
-      is_indexed = collection_is_indexed;
-    } finally {
-      collection_is_indexed = previous_collection_is_indexed;
-    }
+    var array = collection_to_array(collection);
 
     untrack(() => {
       reconcile(anchor, block, array, render_fn, is_controlled, is_indexed);
@@ -431,13 +422,4 @@ export function keyed(collection, key_fn) {
   }
 
   return b_array;
-}
-
-export function trackIndex(collection) {
-  var block = active_block;
-  if (block === null || (block.f & FOR_BLOCK) === 0) {
-    throw new Error('trackIndex() must be used inside a for...of block inside a template');
-  }
-  collection_is_indexed = true;
-  return collection;
 }
