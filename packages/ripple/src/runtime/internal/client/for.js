@@ -1,7 +1,7 @@
 import { IS_CONTROLLED } from '../../../constants.js';
 import { branch, destroy_block, destroy_block_children, render } from './blocks.js';
 import { FOR_BLOCK, TRACKED_ARRAY } from './constants.js';
-import { create_text } from './operations.js';
+import { create_text, next_sibling } from './operations.js';
 import { active_block, set, tracked, untrack } from './runtime.js';
 import { array_from, is_array } from './utils.js';
 
@@ -40,7 +40,7 @@ function move(block, anchor) {
     return;
   }
   while (node !== end) {
-    var next_node = /** @type {TemplateNode} */ (get_next_sibling(node));
+    var next_node = /** @type {TemplateNode} */ (next_sibling(node));
     anchor.before(node);
     node = next_node;
   }
