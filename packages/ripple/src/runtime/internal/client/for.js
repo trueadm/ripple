@@ -272,7 +272,7 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
 
   if (fast_path_removal) {
     reconcile_fast_clear(anchor, block, []);
-    reconcile(anchor, block, b, render_fn, is_controlled);
+    reconcile(anchor, block, b, render_fn, is_controlled, is_indexed);
     return;
   } else if (moved) {
     var next_pos = 0;
