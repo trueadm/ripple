@@ -680,7 +680,7 @@ const visitors = {
       const update = [];
 
       if (!is_void) {
-        transform_children(node.children, {
+        transform_children(node.children, node, {
           visit,
           state: { ...state, init, update, namespace: child_namespace },
           root: false,
@@ -1454,7 +1454,7 @@ function transform_ts_child(node, context) {
   }
 }
 
-function transform_children(children, context) {
+function transform_children(children, element, context) {
   const { visit, state, root } = context;
   const normalized = [];
 
@@ -1576,6 +1576,8 @@ function transform_children(children, context) {
 
       prev = flush_node;
 
+      const is_controlled = normalized.length === 1 && element !== null;
+
       if (node.type === 'Element') {
         visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'Text') {
@@ -1608,15 +1610,12 @@ function transform_children(children, context) {
           }
         }
       } else if (node.type === 'ForOfStatement') {
-        const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
         visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'IfStatement') {
-        const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
         visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'TryStatement') {
-        const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
         visit(node, { ...state, flush_node, namespace: state.namespace });
       } else {
@@ -1653,7 +1652,7 @@ function transform_body(body, { visit, state }) {
     namespace: state.namespace || 'html', // Preserve namespace context
   };
 
-  transform_children(body, { visit, state: body_state, root: true });
+  transform_children(body, null, { visit, state: body_state, root: true });
 
   if (body_state.update.length > 0) {
     body_state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(body_state.update)))));

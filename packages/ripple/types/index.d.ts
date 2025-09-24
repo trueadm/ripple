@@ -29,7 +29,7 @@ export type Context<T> = {
 
 export declare function createContext<T>(initialValue: T): Context<T>;
 
-export class TrackedSet<T> extends Set<T> {
+export declare class TrackedSet<T> extends Set<T> {
 	isDisjointFrom(other: TrackedSet<T> | Set<T>): boolean;
 	isSubsetOf(other: TrackedSet<T> | Set<T>): boolean;
 	isSupersetOf(other: TrackedSet<T> | Set<T>): boolean;
@@ -40,7 +40,7 @@ export class TrackedSet<T> extends Set<T> {
 	toJSON(): T[];
 }
 
-export class TrackedMap<K, V> extends Map<K, V> {
+export declare class TrackedMap<K, V> extends Map<K, V> {
 	toJSON(): [K, V][];
 }
 
@@ -56,7 +56,7 @@ declare global {
 	 * Ripple runtime namespace - injected by the compiler
 	 * These functions are available in compiled Ripple components for TypeScript analysis
 	 */
-	var $: {
+	var _$_: {
 		tracked<T>(value: T, block?: any): T;
 		computed<T>(fn: () => T, block?: any): T;
 		scope(): any;
@@ -107,3 +107,27 @@ export function on(
 	handler: EventListener,
 	options?: AddEventListenerOptions | undefined
 ): () => void;
+
+export type TrackedObjectShallow<T> = {
+  [K in keyof T]: T[K] | Tracked<T[K]>;
+};
+
+export type TrackedObjectDeep<T> =
+  T extends string | number | boolean | null | undefined | symbol | bigint
+    ? T | Tracked<T>
+    : T extends TrackedArray<infer U>
+      ? TrackedArray<U> | Tracked<TrackedArray<U>>
+    : T extends TrackedSet<infer U>
+      ? TrackedSet<U> | Tracked<TrackedSet<U>>
+    : T extends TrackedMap<infer K, infer V>
+      ? TrackedMap<K, V> | Tracked<TrackedMap<K, V>>
+    : T extends Array<infer U>
+      ? Array<TrackedObjectDeep<U>> | Tracked<Array<TrackedObjectDeep<U>>>
+    : T extends Set<infer U>
+      ? Set<TrackedObjectDeep<U>> | Tracked<Set<TrackedObjectDeep<U>>>
+    : T extends Map<infer K, infer V>
+      ? Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>> |
+        Tracked<Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>>>
+    : T extends object
+      ? { [K in keyof T]: TrackedObjectDeep<T[K]> | Tracked<TrackedObjectDeep<T[K]>> }
+    : T | Tracked<T>;
