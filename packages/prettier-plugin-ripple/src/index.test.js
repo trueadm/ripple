@@ -454,4 +454,32 @@ message.push(\`User: \${JSON.stringify({
       expect(result).toBe(expected);
     });
   });
+
+  it('should correctly handle inline jsx like comments', async () => {
+    const input = `let message: string[] = []; // comments should be preserved
+
+message.push(/* Some test comment */ greet(\`Ripple\`));
+`;
+
+    const expected = `let message: string[] = []; // comments should be preserved
+
+message.push(/* Some test comment */ greet(\`Ripple\`));`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should correctly handle inline document like comments', async () => {
+    const input = `let message: string[] = []; // comments should be preserved
+
+message.push(/* Some test comment */ greet( /* Some text */ \`Ripple\`));
+`;
+
+    const expected = `let message: string[] = []; // comments should be preserved
+
+message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
 });
