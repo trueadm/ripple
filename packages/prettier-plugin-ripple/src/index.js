@@ -92,15 +92,22 @@ function printRippleNode(node, path, options, print, args) {
 
 	const parts = [];
 
+	const isInlineContext = args && args.isInlineContext;
+
 	// Handle leading comments
 	if (node.leadingComments) {
 		for (const comment of node.leadingComments) {
 			if (comment.type === 'Line') {
 				parts.push('//' + comment.value);
+				parts.push(hardline);
 			} else if (comment.type === 'Block') {
 				parts.push('/*' + comment.value + '*/');
+				if (!isInlineContext) {
+					parts.push(hardline);
+				} else {
+					parts.push(' ');
+				}
 			}
-			parts.push(hardline);
 		}
 	}
 
@@ -292,7 +299,11 @@ function printRippleNode(node, path, options, print, args) {
 			
 			if (node.arguments && node.arguments.length > 0) {
 				parts.push('(');
-				const args = path.map(print, 'arguments');
+
+				const args = path.map((argPath) => {
+					return print(argPath, { isInlineContext: true });
+				}, 'arguments');
+
 				for (let i = 0; i < args.length; i++) {
 					if (i > 0) parts.push(', ');
 					parts.push(args[i]);
