@@ -77,7 +77,7 @@
 					"include": "#label"
 				},
 				{
-					"include": "#expression"
+					"include": "#component-expression"
 				},
 				{
 					"include": "#punctuation-semicolon"
@@ -332,6 +332,95 @@
 				},
 				{
 					"include": "#expressionPunctuations"
+				}
+			]
+		},
+		"component-expression": {
+			"patterns": [
+				{
+					"name": "meta.identifier.tracked.js",
+					"match": "(@)([_$[:alpha:]][_$[:alnum:]]*)",
+					"captures": {
+						"1": {
+							"name": "punctuation.section.embedded.begin.js"
+						},
+						"2": {
+							"name": "variable.other.js"
+						}
+					}
+				},
+				{
+					"include": "#server-member-expression"
+				},
+				{
+					"include": "#jsx-ref-modifier"
+				},
+				{
+					"include": "#component-expressionWithoutIdentifiers"
+				},
+				{
+					"include": "#identifiers"
+				},
+				{
+					"include": "#expressionPunctuations"
+				}
+			]
+		},
+		"component-expressionWithoutIdentifiers": {
+			"patterns": [
+				{
+					"include": "#string"
+				},
+				{
+					"include": "#regex"
+				},
+				{
+					"include": "#comment"
+				},
+				{
+					"include": "#function-expression"
+				},
+				{
+					"include": "#eval-expression"
+				},
+				{
+					"include": "#class-expression"
+				},
+				{
+					"include": "#component-arrow-function"
+				},
+				{
+					"include": "#paren-expression-possibly-arrow"
+				},
+				{
+					"include": "#cast"
+				},
+				{
+					"include": "#ternary-expression"
+				},
+				{
+					"include": "#new-expr"
+				},
+				{
+					"include": "#instanceof-expr"
+				},
+				{
+					"include": "#object-literal"
+				},
+				{
+					"include": "#expression-operators"
+				},
+				{
+					"include": "#function-call"
+				},
+				{
+					"include": "#literal"
+				},
+				{
+					"include": "#support-objects"
+				},
+				{
+					"include": "#paren-expression-workaround"
 				}
 			]
 		},
@@ -1802,6 +1891,67 @@
 						},
 						{
 							"include": "#expression"
+						}
+					]
+				}
+			]
+		},
+		"component-arrow-function": {
+			"patterns": [
+				{
+					"name": "meta.arrow.js",
+					"match": "(?:(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(\\basync)\\s+)?([_$[:alpha:]][_$[:alnum:]]*)\\s*(?==>)",
+					"captures": {
+						"1": {
+							"name": "storage.modifier.async.js"
+						},
+						"2": {
+							"name": "variable.parameter.js"
+						}
+					}
+				},
+				{
+					"name": "meta.arrow.js",
+					"begin": "(?:(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(\\basync)\\s+)?\\s*(?=\\([^)]*\\)\\s*=>)",
+					"beginCaptures": {
+						"1": {
+							"name": "storage.modifier.async.js"
+						}
+					},
+					"end": "(?==>)",
+					"patterns": [
+						{
+							"include": "#comment"
+						},
+						{
+							"include": "#type-parameters"
+						},
+						{
+							"include": "#function-parameters"
+						},
+						{
+							"include": "#arrow-return-type"
+						}
+					]
+				},
+				{
+					"name": "meta.arrow.js",
+					"begin": "=>",
+					"beginCaptures": {
+						"0": {
+							"name": "storage.type.function.arrow.js"
+						}
+					},
+					"end": "((?<=\\}|\\S)(?<!=>)|((?!\\{)(?=\\S)))(?!\\/[\\/\\*])",
+					"patterns": [
+						{
+							"include": "#single-line-comment-consuming-line-ending"
+						},
+						{
+							"include": "#component-decl-block"
+						},
+						{
+							"include": "#component-expression"
 						}
 					]
 				}
