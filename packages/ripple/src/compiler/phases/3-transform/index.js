@@ -1585,7 +1585,11 @@ function transform_children(children, context) {
           } else {
             const id = flush_node();
             state.template.push(' ');
-            state.update.push(b.stmt(b.call('_$_.set_text', id, expression)));
+            state.init.push(
+              b.stmt(
+                b.assignment('=', b.member(b.call('_$_.child', id), b.id('nodeValue')), expression),
+              ),
+            );
           }
         } else {
           // Handle Text nodes in fragments
