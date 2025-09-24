@@ -528,4 +528,20 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
     const result = await format(input);
     expect(result).toBe(expected);
   });
+
+  it('should handle default arguments correctly', async () => {
+    const input = `component Expand({ name, startingLength = 10 }: { name: string; startingLength?: number }) {
+  <div></div>
+}`;
+
+    const expected = `component Expand({ name, startingLength = 10 }: {
+  name: string;
+  startingLength?: number
+}) {
+  <div />
+}`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
 });

@@ -1696,6 +1696,11 @@ function printObjectPattern(node, path, options, print) {
 
 function printProperty(node, path, options, print) {
 	if (node.shorthand) {
+		// For shorthand properties, if value is AssignmentPattern, print the value (which includes the default)
+		// Otherwise just print the key
+		if (node.value.type === 'AssignmentPattern') {
+			return path.call(print, 'value');
+		}
 		return path.call(print, 'key');
 	}
 
