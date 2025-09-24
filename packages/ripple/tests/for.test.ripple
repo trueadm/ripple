@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, TrackedArray, trackIndex } from 'ripple';
+import { mount, flushSync, TrackedArray } from 'ripple';
 
 describe('for statements', () => {
 	let container;
@@ -90,8 +90,8 @@ describe('for statements', () => {
 			const items = new TrackedArray('a', 'b', 'c');
 
 			<div>
-				for (let [item, i] of trackIndex(items)) {
-					<div>{@i + ' : ' + item}</div>
+				for (let item of items; index i) {
+					<div>{i + ' : ' + item}</div>
 				}
 			</div>
 

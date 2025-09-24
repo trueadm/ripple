@@ -5,6 +5,7 @@ import tsx from 'esrap/languages/tsx';
 import * as b from '../../../utils/builders.js';
 import {
   IS_CONTROLLED,
+  IS_INDEXED,
   TEMPLATE_FRAGMENT,
   TEMPLATE_SVG_NAMESPACE,
   TEMPLATE_MATHML_NAMESPACE,
@@ -149,7 +150,10 @@ const visitors = {
         if (
           (context.state.metadata?.tracking === false ||
             (parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression')) &&
-          (node.tracked || binding?.kind === 'prop' || binding?.kind === 'prop_fallback') &&
+          (node.tracked ||
+            binding?.kind === 'prop' ||
+            binding?.kind === 'index' ||
+            binding?.kind === 'prop_fallback') &&
           binding?.node !== node
         ) {
           if (context.state.metadata?.tracking === false) {
@@ -1022,6 +1026,12 @@ const visitors = {
       return;
     }
     const is_controlled = node.is_controlled;
+    const index = node.index;
+    let flags = is_controlled ? IS_CONTROLLED : 0;
+
+    if (index !== null) {
+      flags |= IS_INDEXED;
+    }
 
     // do only if not controller
     if (!is_controlled) {
@@ -1039,7 +1049,7 @@ const visitors = {
           id,
           b.thunk(context.visit(node.right)),
           b.arrow(
-            [b.id('__anchor'), pattern],
+            index ? [b.id('__anchor'), pattern, index] : [b.id('__anchor'), pattern],
             b.block(
               transform_body(node.body.body, {
                 ...context,
@@ -1047,7 +1057,7 @@ const visitors = {
               }),
             ),
           ),
-          b.literal(is_controlled ? IS_CONTROLLED : 0),
+          b.literal(flags),
         ),
       ),
     );
@@ -1583,13 +1593,10 @@ function transform_children(children, context) {
           if (expression.type === 'Literal') {
             state.template.push(escape_html(expression.value));
           } else {
-            const id = state.flush_node();
+            const id = flush_node();
             state.template.push(' ');
-            state.init.push(
-              b.stmt(
-                b.assignment('=', b.member(b.call('_$_.child', id), b.id('nodeValue')), expression),
-              ),
-            );
+            // avoid set_text overhead for single text nodes
+            state.init.push(b.stmt(b.assignment('=', b.member(id, b.id('nodeValue')), expression)));
           }
         } else {
           // Handle Text nodes in fragments

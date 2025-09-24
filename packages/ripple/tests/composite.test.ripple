@@ -647,4 +647,21 @@ describe('composite components', () => {
 
 		expect(container.textContent).toBe('Basic Component');
 	});
+
+	it('render simple text as children', () => {
+		component App() {
+			let name = 'Click Me';
+
+			<Child
+				class="my-button"
+			>{name}</Child>;
+		}
+
+		component Child({children, ...rest}) {
+			<button {...rest}><children /></button>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	})
 });

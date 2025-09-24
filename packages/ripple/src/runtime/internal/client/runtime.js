@@ -667,6 +667,11 @@ export function get_derived(computed) {
  * @param {Derived | Tracked} tracked
  */
 export function get(tracked) {
+  // reflect back the value if it's not boxed
+  if (!is_tracked_object(tracked)) {
+    return tracked;
+  }
+
   return (tracked.f & DERIVED) !== 0
     ? get_derived(/** @type {Derived} */ (tracked))
     : get_tracked(tracked);

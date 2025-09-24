@@ -269,6 +269,21 @@ const visitors = {
       return context.next();
     }
 
+    if (node.index) {
+      const state = context.state;
+      const scope = state.scopes.get(node);
+      const binding = scope.get(node.index.name);
+      binding.kind = 'index'
+
+      if (binding !== null) {
+        binding.transform = {
+          read: (node) => {
+            return b.call('_$_.get', node)
+          },
+        };
+      }
+    }
+
     node.metadata = {
       has_template: false,
     };
