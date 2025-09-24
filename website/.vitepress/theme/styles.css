@@ -28,3 +28,7 @@ body:has(.main-playground) {
 	padding: 0 !important;
 	max-width: unset !important;
 }
+
+.main-playground .VPMenu {
+	max-height: calc(100dvh - 98px) !important;
+}

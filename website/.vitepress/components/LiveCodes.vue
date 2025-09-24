@@ -2,6 +2,7 @@
 import { ref, watch, useTemplateRef } from 'vue'
 import { useData } from 'vitepress'
 import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vue'
+import VPFlyout from 'vitepress/dist/client/theme-default/components/VPFlyout.vue'
 import VPSwitch from 'vitepress/dist/client/theme-default/components/VPSwitch.vue'
 import LiveCodes from 'livecodes/vue'
 import type { EmbedOptions, Playground } from 'livecodes'
@@ -41,6 +42,11 @@ const pkg = await fetch(apiUrl)
 	.then((res) => res.json())
 	.catch(() => ({}))
 const latest = pkg.tags?.latest || 'latest'
+const versions = pkg.versions
+	.filter((_v: string, i: number) => i < 30)
+	.map((v: { version: string }) => v.version)
+
+const version = ref(latest)
 
 const defaultContent = `
 import { track } from 'ripple';
@@ -76,7 +82,7 @@ const getStyle = () => ({
 const hash = props.isMainPlayground ? window.location.hash : undefined
 
 const config: EmbedOptions['config'] = {
-	customSettings: { ripple: { version: latest } },
+	customSettings: { ripple: { version: version.value } },
 	view: props.view ?? 'split',
 	mode: props.mode ?? 'full',
 	activeEditor: 'script',
@@ -126,6 +132,18 @@ const onReady = (sdk: Playground) => {
 				style: getStyle(),
 			}
 		}
+		if (
+			config.customSettings?.ripple?.version &&
+			config.customSettings?.ripple?.version !== version.value
+		) {
+			newConfig = {
+				...newConfig,
+				customSettings: {
+					ripple: { version: config.customSettings.ripple.version },
+				},
+			}
+			version.value = config.customSettings.ripple.version
+		}
 		if (Object.keys(newConfig).length > 0) {
 			playground?.setConfig(newConfig)
 		}
@@ -145,9 +163,8 @@ const onReady = (sdk: Playground) => {
 
 const style = {
 	height:
-		(props.height ?? props.isMainPlayground)
-			? 'calc(100dvh - 98px)'
-			: undefined,
+		props.height ??
+		(props.isMainPlayground ? 'calc(100dvh - 98px)' : undefined),
 	minHeight: props.isMainPlayground ? '400px' : undefined,
 	marginTop: props.isMainPlayground ? '1.5rem' : undefined,
 }
@@ -193,6 +210,15 @@ watch(vim, async () => {
 	})
 	setUserConfig({ vim: vim.value })
 })
+
+watch(version, async () => {
+	if (!playground) return
+	playground.setConfig({
+		customSettings: { ripple: { version: version.value } },
+	})
+})
+
+const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><title>ionicons-v5-i</title><line x1="368" y1="128" x2="448" y2="128" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="128" x2="304" y2="128" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="368" y1="384" x2="448" y2="384" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="384" x2="304" y2="384" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="208" y1="256" x2="448" y2="256" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="256" x2="144" y2="256" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><circle cx="336" cy="128" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle><circle cx="176" cy="256" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle><circle cx="336" cy="384" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle></g></svg>`
 </script>
 
 <template>
@@ -202,12 +228,26 @@ watch(vim, async () => {
 		class="playground-actions"
 		style="visibility: hidden"
 	>
-		<span class="switch-label" @click="tailwind = !tailwind">
-			Tailwind <VPSwitch :aria-checked="tailwind"></VPSwitch>
-		</span>
-		<span class="switch-label" @click="vim = !vim">
-			Vim mode <VPSwitch :aria-checked="vim"></VPSwitch>
-		</span>
+		<VPFlyout :button="`Version: ${version}`">
+			<div
+				v-for="(v, i) in versions"
+				:class="`menu-item ${version === v ? 'active' : ''}`"
+				@click="version = v"
+				:key="i"
+			>
+				{{ v }}{{ latest === v ? ' (latest)' : '' }}
+			</div>
+		</VPFlyout>
+
+		<VPFlyout :button="settingsIcon">
+			<div class="menu-item" @click="tailwind = !tailwind">
+				Tailwind <VPSwitch :aria-checked="tailwind"></VPSwitch>
+			</div>
+			<div class="menu-item" @click="vim = !vim">
+				Vim mode <VPSwitch :aria-checked="vim"></VPSwitch>
+			</div>
+		</VPFlyout>
+
 		<VPButton
 			theme="alt"
 			:onclick="copyUrl"
@@ -242,11 +282,22 @@ watch(vim, async () => {
 	font-size: 11px;
 }
 
-.switch-label {
+.menu-item {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
+	justify-content: space-between;
+	gap: 1rem;
 	cursor: pointer;
+	white-space: nowrap;
+	padding: 6px 12px;
+	color: var(--vp-button-alt-hover-text);
+	border-radius: 6px;
+
+	&:hover,
+	&.active {
+		color: var(--vp-c-brand-1);
+		background-color: var(--vp-c-default-soft);
+	}
 }
 
 .VPSwitch {
@@ -254,7 +305,6 @@ watch(vim, async () => {
 }
 
 .VPSwitch[aria-checked='true'] :deep(.check) {
-	/*rtl:ignore*/
 	transform: translateX(18px);
 }
 
