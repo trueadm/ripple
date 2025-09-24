@@ -39,10 +39,14 @@ function move(block, anchor) {
     anchor.before(node);
     return;
   }
-  while (node !== end) {
+  while (node !== null) {
     var next_node = /** @type {TemplateNode} */ (next_sibling(node));
     anchor.before(node);
     node = next_node;
+    if (node === end) {
+      anchor.before(end);
+      break;
+    }
   }
 }
 
@@ -167,6 +171,8 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
     }
   }
 
+  var fast_path_removal = false;
+
   if (j > a_end) {
     if (j <= b_end) {
       while (j <= b_end) {
@@ -185,12 +191,13 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
     var b_start = j;
     var a_left = a_end - j + 1;
     var b_left = b_end - j + 1;
-    var fast_path_removal = is_controlled && a_left === a_length;
     var sources = new Int32Array(b_left + 1);
     var moved = false;
     var pos = 0;
     var patched = 0;
     var i = 0;
+
+    fast_path_removal = is_controlled && a_left === a_length;
 
     // When sizes are small, just loop them through
     if (b_length < 4 || (a_left | b_left) < 32) {
@@ -244,8 +251,8 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
           if (j !== undefined) {
             if (fast_path_removal) {
               fast_path_removal = false;
-              // while (i > aStart) {
-              //     remove(a[aStart++], dom, animations);
+              // while (i > a_start) {
+              //     destroy_block(a[a_start++]);
               // }
             }
             sources[j - b_start] = i + 1;
@@ -385,6 +392,16 @@ export function keyed(collection, key_fn) {
   if (block === null || (block.f & FOR_BLOCK) === 0) {
     throw new Error('keyed() must be used inside a for block');
   }
+
+  var b_array = collection_to_array(collection);
+  var b_keys = b_array.map(key_fn);
+
+  // We only need to do this in DEV
+  var b = new Set(b_keys);
+  if (b.size !== b_keys.length) {
+    throw new Error('Duplicate keys are not allowed');
+  }
+
   var state = block.s;
 
   if (state === null) {
@@ -400,15 +417,6 @@ export function keyed(collection, key_fn) {
   }
 
   if (a.size !== a_keys.length) {
-    throw new Error('Duplicate keys are not allowed');
-  }
-
-  var b_array = collection_to_array(collection);
-  var b_keys = b_array.map(key_fn);
-
-  // We only need to do this in DEV
-  var b = new Set(b_keys);
-  if (b.size !== b_keys.length) {
     throw new Error('Duplicate keys are not allowed');
   }
 
