@@ -183,6 +183,8 @@ effect(() => {
 })
 ```
 
+> Note: you cannot create `Tracked` objects in module/global scope, they have to be created on access from an active component context.
+
 #### Split Option
 
 The `track` function also offers a `split` option to "split" a plain object, such as component props, into specifed tracked variables and an extra `rest` (can be any name) containing the remaining unspecified object properties.
@@ -191,7 +193,7 @@ The `track` function also offers a `split` option to "split" a plain object, suc
 const [children, count, rest] = track(props, {split: ['children', 'count']});
 ```
 
-Frequently when processing properties passed in to a component, a `rest` destructuring is highly desirable to apply any number of supplied properties to an element or another child component.  To make sure that the `rest` is reactive as it may have none, all or a mixture of reactive properties – depending on what was passed in to the component, applying `track` with a `split` option guarantees `rest`'s reactivity.
+Frequently when processing properties passed in to a component, a destructuring is highly desirable for direct use as variablse and to apply any number of unspecified properties to an element or another child component, such as `rest` (could be named anything).  To make sure that these resulting destructured variables remain reactive, applying `track` with the `split` option guarantees their reactivity.
 
 A full example utilizing various Ripple constructs demonstrates its usage.
 
@@ -227,7 +229,14 @@ export component App() {
 }
 ```
 
-> Note: you cannot create `Tracked` objects in module/global scope, they have to be created on access from an active component context.
+With the regular destructuring, such as the one below, the `count` property would lose its reactivity:
+
+```jsx
+// ❌ WRONG Reactivity would be lost
+let { children, count, class: className, ...rest } = props;
+```
+
+> Note: Make sure the resulting `rest` if it's going to be spread onto a dom element, does not contain `Tracked` values.  Otherwise, you'd be spreading not the actual values but the boxed ones which are objects that will appear as `[Object object]` on the dom element.
 
 #### Transporting Reactivity
 

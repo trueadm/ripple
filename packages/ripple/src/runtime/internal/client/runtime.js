@@ -281,16 +281,14 @@ export function derived(fn, block) {
 
 /**
  * @param {any} v
- * @param {Block | TrackOptions} o
- * @param {Block | undefined} b
+ * @param {TrackOptions | undefined} o
+ * @param {Block} b
  * @returns {Tracked | Derived | Tracked[]}
  */
 export function track(v, o, b) {
   var is_tracked = is_tracked_object(v);
 
-  if (b === undefined) {
-    b = o;
-
+  if (o === undefined) {
     if (is_tracked) {
       return v;
     }

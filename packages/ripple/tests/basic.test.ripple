@@ -1343,6 +1343,8 @@ describe('basic', () => {
 			<pre>{@message}</pre>
 		}
 
+		render(App);
+
 		const pre = container.querySelectorAll('pre')[0];
 		expect(pre.textContent).toBe('Invalid value: expected a non-tracked object');
 	});
