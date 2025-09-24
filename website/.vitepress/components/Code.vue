@@ -2,6 +2,7 @@
 import { useSlots, computed } from 'vue'
 import Playground from './Playground.vue'
 
+const props = defineProps<{ height: string }>()
 const slots = useSlots()
 const slotContentAsString = computed(() => {
 	if (!slots.default) {
@@ -46,7 +47,7 @@ const modifyContent = (content: string) => {
 			<slot />
 		</PluginTabsTab>
 		<PluginTabsTab label="Playground">
-			<Playground :code="slotContentAsString" />
+			<Playground :code="slotContentAsString" :height="props.height" />
 		</PluginTabsTab>
 	</PluginTabs>
 </template>
