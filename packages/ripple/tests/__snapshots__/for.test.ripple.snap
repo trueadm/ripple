@@ -1,5 +1,83 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`for statements > correctly handle the index in a for...of loop 1`] = `
+<div>
+  <div>
+    <div>
+      0 : a
+    </div>
+    <div>
+      1 : b
+    </div>
+    <div>
+      2 : c
+    </div>
+    
+  </div>
+  <button>
+    Add Item
+  </button>
+  <button>
+    Reverse
+  </button>
+  
+</div>
+`;
+
+exports[`for statements > correctly handle the index in a for...of loop 2`] = `
+<div>
+  <div>
+    <div>
+      0 : a
+    </div>
+    <div>
+      1 : b
+    </div>
+    <div>
+      2 : c
+    </div>
+    <div>
+      3 : d
+    </div>
+    
+  </div>
+  <button>
+    Add Item
+  </button>
+  <button>
+    Reverse
+  </button>
+  
+</div>
+`;
+
+exports[`for statements > correctly handle the index in a for...of loop 3`] = `
+<div>
+  <div>
+    <div>
+      0 : d
+    </div>
+    <div>
+      1 : c
+    </div>
+    <div>
+      2 : b
+    </div>
+    <div>
+      3 : a
+    </div>
+    
+  </div>
+  <button>
+    Add Item
+  </button>
+  <button>
+    Reverse
+  </button>
+  
+</div>
+`;
+
 exports[`for statements > correctly handles intermediate statements in for block 1`] = `
 <div>
   <div>

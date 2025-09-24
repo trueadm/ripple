@@ -3,7 +3,12 @@ import path from 'node:path';
 import { print } from 'esrap';
 import tsx from 'esrap/languages/tsx';
 import * as b from '../../../utils/builders.js';
-import { IS_CONTROLLED, TEMPLATE_FRAGMENT } from '../../../constants.js';
+import {
+  IS_CONTROLLED,
+  TEMPLATE_FRAGMENT,
+  TEMPLATE_SVG_NAMESPACE,
+  TEMPLATE_MATHML_NAMESPACE,
+} from '../../../constants.js';
 import { sanitize_template_string } from '../../../utils/sanitize_template_string.js';
 import {
   build_hoisted_params,
@@ -13,7 +18,6 @@ import {
   escape_html,
   is_boolean_attribute,
   is_dom_property,
-  is_ripple_import,
   is_declared_function_within_component,
   is_inside_call_expression,
   is_value_static,
@@ -21,6 +25,7 @@ import {
   is_component_level_function,
   is_element_dom_element,
   is_top_level_await,
+  is_ripple_track_call,
 } from '../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../utils/ast.js';
@@ -104,6 +109,22 @@ function build_getter(node, context) {
   return node;
 }
 
+function determine_namespace_for_children(element_name, current_namespace) {
+  if (element_name === 'foreignObject') {
+    return 'html';
+  }
+
+  if (element_name === 'svg') {
+    return 'svg';
+  }
+
+  if (element_name === 'math') {
+    return 'mathml';
+  }
+
+  return current_namespace;
+}
+
 const visitors = {
   _: function set_scope(node, { next, state }) {
     const scope = state.scopes.get(node);
@@ -165,16 +186,7 @@ const visitors = {
       context.state.metadata.tracking = true;
     }
 
-    if (
-      !context.state.to_ts &&
-      ((callee.type === 'Identifier' && callee.name === 'track') ||
-        (callee.type === 'MemberExpression' &&
-          callee.object.type === 'Identifier' &&
-          callee.property.type === 'Identifier' &&
-          callee.property.name === 'track' &&
-          !callee.computed)) &&
-      is_ripple_import(callee, context)
-    ) {
+    if (!context.state.to_ts && is_ripple_track_call(callee, context)) {
       if (node.arguments.length === 0) {
         node.arguments.push(b.void0);
       }
@@ -427,6 +439,10 @@ const visitors = {
     const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
     const spread_attributes = is_spreading ? [] : null;
 
+    const child_namespace = is_dom_element
+      ? determine_namespace_for_children(node.id.name, state.namespace)
+      : state.namespace;
+
     const handle_static_attr = (name, value) => {
       const attr_value = b.literal(
         ` ${name}${
@@ -629,12 +645,16 @@ const visitors = {
           if (node.metadata.scoped && state.component.css) {
             expression = b.binary('+', b.literal(state.component.css.hash + ' '), expression);
           }
-          const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg'
+          const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg';
 
-          if (metadata.tracking) {
-            local_updates.push(b.stmt(b.call('_$_.set_class', id, expression, is_html)));
+          if (class_attribute.name.name === '$class' || metadata.tracking) {
+            local_updates.push(
+              b.stmt(b.call('_$_.set_class', id, expression, undefined, b.literal(is_html))),
+            );
           } else {
-            state.init.push(b.stmt(b.call('_$_.set_class', id, expression, is_html)));
+            state.init.push(
+              b.stmt(b.call('_$_.set_class', id, expression, undefined, b.literal(is_html))),
+            );
           }
         }
       } else if (node.metadata.scoped && state.component.css) {
@@ -658,7 +678,7 @@ const visitors = {
       if (!is_void) {
         transform_children(node.children, {
           visit,
-          state: { ...state, init, update },
+          state: { ...state, init, update, namespace: child_namespace },
           root: false,
         });
         state.template.push(`</${node.id.name}>`);
@@ -769,7 +789,7 @@ const visitors = {
       for (const child of node.children) {
         if (child.type === 'Component') {
           const id = child.id;
-          props.push(b.prop('init', id, visit(child, state)));
+          props.push(b.prop('init', id, visit(child, { ...state, namespace: child_namespace })));
         } else {
           children_filtered.push(child);
         }
@@ -780,6 +800,7 @@ const visitors = {
         const children = visit(b.component(b.id('children'), [], children_filtered), {
           ...context.state,
           scope: component_scope,
+          namespace: child_namespace,
         });
 
         if (children_prop) {
@@ -1022,7 +1043,7 @@ const visitors = {
             b.block(
               transform_body(node.body.body, {
                 ...context,
-                state: { ...context.state, scope: body_scope },
+                state: { ...context.state, scope: body_scope, namespace: context.state.namespace },
               }),
             ),
           ),
@@ -1470,9 +1491,15 @@ function transform_children(children, context) {
 
     if (child.type === 'Text' && prev_child?.type === 'Text') {
       if (child.expression.type === 'Literal' && prev_child.expression.type === 'Literal') {
-        prev_child.expression = b.literal(prev_child.expression.value + child.expression.value);
+        prev_child.expression = b.literal(
+          prev_child.expression.value + String(child.expression.value),
+        );
       } else {
-        prev_child.expression = b.binary('+', prev_child.expression, child.expression);
+        prev_child.expression = b.binary(
+          '+',
+          prev_child.expression,
+          b.call('String', child.expression),
+        );
       }
       normalized.splice(i, 1);
     }
@@ -1540,7 +1567,7 @@ function transform_children(children, context) {
       prev = flush_node;
 
       if (node.type === 'Element') {
-        visit(node, { ...state, flush_node });
+        visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'Text') {
         const metadata = { tracking: false, await: false };
         const expression = visit(node.expression, { ...state, metadata });
@@ -1576,26 +1603,33 @@ function transform_children(children, context) {
       } else if (node.type === 'ForOfStatement') {
         const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
-        visit(node, { ...state, flush_node });
+        visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'IfStatement') {
         const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
-        visit(node, { ...state, flush_node });
+        visit(node, { ...state, flush_node, namespace: state.namespace });
       } else if (node.type === 'TryStatement') {
         const is_controlled = normalized.length === 1;
         node.is_controlled = is_controlled;
-        visit(node, { ...state, flush_node });
+        visit(node, { ...state, flush_node, namespace: state.namespace });
       } else {
         debugger;
       }
     }
   }
 
+  const template_namespace = state.namespace || 'html';
+
   if (root && initial !== null && template_id !== null) {
-    const flags = is_fragment ? b.literal(TEMPLATE_FRAGMENT) : b.literal(0);
+    let flags = is_fragment ? TEMPLATE_FRAGMENT : 0;
+    if (template_namespace === 'svg') {
+      flags |= TEMPLATE_SVG_NAMESPACE;
+    } else if (template_namespace === 'mathml') {
+      flags |= TEMPLATE_MATHML_NAMESPACE;
+    }
     state.final.push(b.stmt(b.call('_$_.append', b.id('__anchor'), initial)));
     state.hoisted.push(
-      b.var(template_id, b.call('_$_.template', join_template(state.template), flags)),
+      b.var(template_id, b.call('_$_.template', join_template(state.template), b.literal(flags))),
     );
   }
 }
@@ -1609,6 +1643,7 @@ function transform_body(body, { visit, state }) {
     update: [],
     final: [],
     metadata: state.metadata,
+    namespace: state.namespace || 'html', // Preserve namespace context
   };
 
   transform_children(body, { visit, state: body_state, root: true });
@@ -1637,7 +1672,9 @@ export function transform(filename, source, analysis, to_ts) {
     to_ts,
   };
 
-  const program = /** @type {ESTree.Program} */ (walk(analysis.ast, state, visitors));
+  const program = /** @type {ESTree.Program} */ (
+    walk(analysis.ast, { ...state, namespace: 'html' }, visitors)
+  );
 
   for (const hoisted of state.hoisted) {
     program.body.unshift(hoisted);

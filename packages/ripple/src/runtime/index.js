@@ -56,7 +56,7 @@ export { TrackedSet } from './set.js';
 
 export { TrackedMap } from './map.js';
 
-export { keyed } from './internal/client/for.js';
+export { trackIndex, keyed } from './internal/client/for.js';
 
 export { user_effect as effect } from './internal/client/blocks.js';
 

@@ -2,12 +2,31 @@ import { IS_CONTROLLED } from '../../../constants.js';
 import { branch, destroy_block, destroy_block_children, render } from './blocks.js';
 import { FOR_BLOCK, TRACKED_ARRAY } from './constants.js';
 import { create_text } from './operations.js';
-import { active_block, untrack } from './runtime.js';
+import { active_block, set, tracked, untrack } from './runtime.js';
 import { array_from, is_array } from './utils.js';
 
-function create_item(anchor, value, render_fn) {
+let collection_is_indexed = false;
+
+function create_item(anchor, value, index, render_fn, is_indexed) {
   var b = branch(() => {
-    render_fn(anchor, value);
+    var tracked_index;
+
+    if (is_indexed) {
+      var block = /** @type {Block} */ (active_block);
+
+      if (block.s === null) {
+        tracked_index = tracked(index, block);
+
+        block.s = {
+          start: null,
+          end: null,
+          i: tracked_index,
+        };
+      } else {
+        tracked_index = block.s.i;
+      }
+    }
+    render_fn(anchor, is_indexed ? [value, tracked_index] : value);
   });
   return b;
 }
@@ -27,6 +46,18 @@ function move(block, anchor) {
   }
 }
 
+function collection_to_array(collection) {
+  var array = is_array(collection) ? collection : collection == null ? [] : array_from(collection);
+
+  // If we are working with a tracked array, then we need to get a copy of
+  // the elements, as the array itself is proxied, and not useful in diffing
+  if (TRACKED_ARRAY in array) {
+    array = array_from(array);
+  }
+
+  return array;
+}
+
 export function for_block(node, get_collection, render_fn, flags) {
   var is_controlled = (flags & IS_CONTROLLED) !== 0;
   var anchor = node;
@@ -36,21 +67,23 @@ export function for_block(node, get_collection, render_fn, flags) {
   }
 
   render(() => {
-    var block = active_block;
+    var block = /** @type {Block} */ (active_block);
     var collection = get_collection();
-    var array = is_array(collection)
-      ? collection
-      : collection == null
-        ? []
-        : array_from(collection);
+    var previous_collection_is_indexed = collection_is_indexed;
+    var array;
+    /** @type {boolean} */
+    var is_indexed;
 
-    // If we are working with a tracked array, then we need to get a copy of
-	// the elements, as the array itself is proxied, and not useful in diffing
-    if (TRACKED_ARRAY in array) {
-      array = array_from(array);
+    try {
+      array = collection_to_array(collection);
+      is_indexed = collection_is_indexed;
+    } finally {
+      collection_is_indexed = previous_collection_is_indexed;
     }
 
-    untrack(() => reconcile(anchor, block, array, render_fn, is_controlled));
+    untrack(() => {
+      reconcile(anchor, block, array, render_fn, is_controlled, is_indexed);
+    });
   }, FOR_BLOCK);
 }
 
@@ -64,7 +97,11 @@ function reconcile_fast_clear(anchor, block, array) {
   state.blocks = [];
 }
 
-function reconcile(anchor, block, b, render_fn, is_controlled) {
+function update_index(block, index) {
+  set(block.s.i, index, block);
+}
+
+function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
   var state = block.s;
 
   if (state === null) {
@@ -91,7 +128,7 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
   // Fast-path for create
   if (a_length === 0) {
     for (; j < b_length; j++) {
-      b_blocks[j] = create_item(anchor, b[j], render_fn);
+      b_blocks[j] = create_item(anchor, b[j], j, render_fn, is_indexed);
     }
     state.array = b;
     state.blocks = b_blocks;
@@ -103,11 +140,15 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
   var b_val = b[j];
   var a_end = a_length - 1;
   var b_end = b_length - 1;
+  var b_block;
 
   outer: {
     while (a_val === b_val) {
       a[j] = b_val;
-      b_blocks[j] = a_blocks[j];
+      b_block = b_blocks[j] = a_blocks[j];
+      if (is_indexed) {
+        update_index(b_block, j);
+      }
       ++j;
       if (j > a_end || j > b_end) {
         break outer;
@@ -121,7 +162,10 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
 
     while (a_val === b_val) {
       a[a_end] = b_val;
-      b_blocks[b_end] = a_blocks[a_end];
+      b_block = b_blocks[b_end] = a_blocks[a_end];
+      if (is_indexed) {
+        update_index(b_block, b_end);
+      }
       a_end--;
       b_end--;
       if (j > a_end || j > b_end) {
@@ -137,7 +181,8 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
       while (j <= b_end) {
         b_val = b[j];
         var target = j >= a_length ? anchor : a_blocks[j].s.start;
-        b_blocks[j++] = create_item(target, b_val, render_fn);
+        b_blocks[j] = create_item(target, b_val, j, render_fn, is_indexed);
+        j++;
       }
     }
   } else if (j > b_end) {
@@ -177,7 +222,10 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
               } else {
                 pos = j;
               }
-              b_blocks[j] = a_blocks[i];
+              b_block = b_blocks[j] = a_blocks[i];
+              if (is_indexed) {
+                update_index(b_block, j);
+              }
               ++patched;
               break;
             }
@@ -216,7 +264,10 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
               pos = j;
             }
             b_val = b[j];
-            b_blocks[j] = a_blocks[i];
+            block = b_blocks[j] = a_blocks[i];
+            if (is_indexed) {
+              update_index(block, j);
+            }
             ++patched;
           } else if (!fast_path_removal) {
             destroy_block(a_blocks[i]);
@@ -244,7 +295,7 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
         next_pos = pos + 1;
 
         var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
-        b_blocks[pos] = create_item(target, b_val, render_fn);
+        b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed);
       } else if (j < 0 || i !== seq[j]) {
         pos = i + b_start;
         b_val = b[pos];
@@ -264,7 +315,7 @@ function reconcile(anchor, block, b, render_fn, is_controlled) {
         next_pos = pos + 1;
 
         var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
-        b_blocks[pos] = create_item(target, b_val, render_fn);
+        b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed);
       }
     }
   }
@@ -361,11 +412,7 @@ export function keyed(collection, key_fn) {
     throw new Error('Duplicate keys are not allowed');
   }
 
-  var b_array = is_array(collection)
-    ? collection
-    : collection == null
-      ? []
-      : array_from(collection);
+  var b_array = collection_to_array(collection);
   var b_keys = b_array.map(key_fn);
 
   // We only need to do this in DEV
@@ -384,4 +431,13 @@ export function keyed(collection, key_fn) {
   }
 
   return b_array;
+}
+
+export function trackIndex(collection) {
+  var block = active_block;
+  if (block === null || (block.f & FOR_BLOCK) === 0) {
+    throw new Error('trackIndex() must be used inside a for...of block inside a template');
+  }
+  collection_is_indexed = true;
+  return collection;
 }
