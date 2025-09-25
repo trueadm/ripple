@@ -569,4 +569,20 @@ const items = [] as unknown[];`
     const result = await format(input);
     expect(result).toBe(expected);
   });
+
+  it('should correctly handle for loop with index syntax, plus comments', async () => {
+    const input = `const test = () => {
+  // some comments
+  for (const item of []; index i) {
+    // comment
+  }
+
+  // some comments
+  const test = ""; // some comments 2
+};`;
+
+    const result = await format(input);
+    expect(result).toBe(input);
+
+  });
 });

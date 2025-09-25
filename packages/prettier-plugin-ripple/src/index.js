@@ -1091,6 +1091,13 @@ function printForOfStatement(node, path, options, print) {
 	parts.push(path.call(print, 'left'));
 	parts.push(' of ');
 	parts.push(path.call(print, 'right'));
+	
+	// Handle Ripple-specific index syntax
+	if (node.index) {
+		parts.push('; index ');
+		parts.push(path.call(print, 'index'));
+	}
+	
 	parts.push(') ');
 	parts.push(path.call(print, 'body'));
 
