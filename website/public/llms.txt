@@ -376,6 +376,18 @@ component List({ items }) {
 }
 ```
 
+#### For Loops with index
+```jsx
+component ListView({ title, items }) {
+  <h2>{title}</h2>
+  <ul>
+    for (const item of items; index i) {
+      <li>{item.text}{' at index'}{i}</li>
+    }
+  </ul>
+}
+```
+
 #### Try-Catch (Error Boundaries)
 ```ripple
 component ErrorBoundary() {
