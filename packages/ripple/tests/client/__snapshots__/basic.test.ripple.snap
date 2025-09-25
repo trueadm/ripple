@@ -111,3 +111,12 @@ exports[`basic > renders simple JS expression logic correctly 1`] = `
   
 </div>
 `;
+
+exports[`basic > should handle lexical scopes correctly 1`] = `
+<div>
+  <section>
+    Nested scope variable
+  </section>
+  
+</div>
+`;
