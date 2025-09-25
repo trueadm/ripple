@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { useSlots, computed } from 'vue'
 import Playground from './Playground.vue'
-import { Config } from 'livecodes'
 
-const props = defineProps<{
-	height?: string
-	tools?: Config['tools']
-}>()
+const props = defineProps<{ console?: boolean }>()
 const slots = useSlots()
 const slotContentAsString = computed(() => {
 	if (!slots.default) {
@@ -43,6 +39,17 @@ const modifyContent = (content: string) => {
 	}
 	return content
 }
+
+const tools = props.console ? { status: 'open' } : undefined
+const codeLines = slotContentAsString.value.split('\n').length
+const height =
+	codeLines > 25
+		? '500px'
+		: codeLines > 20
+			? '450px'
+			: codeLines > 15
+				? '400px'
+				: undefined
 </script>
 
 <template>
@@ -51,11 +58,7 @@ const modifyContent = (content: string) => {
 			<slot />
 		</PluginTabsTab>
 		<PluginTabsTab label="Playground">
-			<Playground
-				:code="slotContentAsString"
-				:height="props.height"
-				:tools="props.tools"
-			/>
+			<Playground :code="slotContentAsString" :height="height" :tools="tools" />
 		</PluginTabsTab>
 	</PluginTabs>
 </template>
