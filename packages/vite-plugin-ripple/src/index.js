@@ -59,7 +59,7 @@ export function ripple(inlineOptions) {
           const ssr = this.environment.config.consumer === 'server';
 
           const { js, css } = await compile(code, filename, {
-            environment: ssr ? 'server' : 'client',
+            mode: ssr ? 'server' : 'client',
           });
 
           if (css !== '') {

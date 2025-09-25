@@ -20,6 +20,12 @@ export function mount(component, options) {
   const props = options.props || {};
   const target = options.target;
   const anchor = create_anchor();
+
+  // Clear target content in case of SSR
+  if (target.firstChild) {
+    target.textContent = '';
+  }
+  
   target.append(anchor);
 
   const cleanup_events = handle_root_events(target);

@@ -27,6 +27,8 @@ import {
   is_element_dom_element,
   is_top_level_await,
   is_ripple_track_call,
+  normalize_children,
+  build_getter,
 } from '../../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
@@ -92,28 +94,6 @@ function visit_function(node, context) {
   context.next(state);
 }
 
-function build_getter(node, context) {
-  const state = context.state;
-
-  for (let i = context.path.length - 1; i >= 0; i -= 1) {
-    const binding = state.scope.get(node.name);
-    const transform = binding?.transform;
-
-    // don't transform the declaration itself
-    if (node !== binding?.node) {
-      const read_fn = transform?.read;
-
-      if (read_fn) {
-        add_ripple_internal_import(context);
-
-        return read_fn(node, context.state?.metadata?.spread, context.visit);
-      }
-    }
-  }
-
-  return node;
-}
-
 function determine_namespace_for_children(element_name, current_namespace) {
   if (element_name === 'foreignObject') {
     return 'html';
@@ -164,10 +144,12 @@ const visitors = {
             context.state.metadata.tracking = true;
           }
           if (node.tracked) {
+            add_ripple_internal_import(context);
             return b.call('_$_.get', build_getter(node, context));
           }
         }
 
+        add_ripple_internal_import(context);
         return build_getter(node, context);
       }
     }
@@ -686,7 +668,7 @@ const visitors = {
       const update = [];
 
       if (!is_void) {
-        transform_children(node.children, node, {
+        transform_children(node.children, {
           visit,
           state: { ...state, init, update, namespace: child_namespace },
           root: false,
@@ -1278,16 +1260,6 @@ function join_template(items) {
   return template;
 }
 
-function normalize_child(node, normalized) {
-  if (node.type === 'EmptyStatement') {
-    return;
-  } else if (node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'style') {
-    return;
-  } else {
-    normalized.push(node);
-  }
-}
-
 function transform_ts_child(node, context) {
   const { state, visit } = context;
 
@@ -1460,13 +1432,9 @@ function transform_ts_child(node, context) {
   }
 }
 
-function transform_children(children, element, context) {
+function transform_children(children, context) {
   const { visit, state, root } = context;
-  const normalized = [];
-
-  for (const node of children) {
-    normalize_child(node, normalized);
-  }
+  const normalized = normalize_children(children);
 
   const is_fragment =
     normalized.some(
@@ -1500,26 +1468,6 @@ function transform_children(children, element, context) {
     template_id = state.scope.generate('root');
     state.setup.push(b.var(id, b.call(template_id)));
   };
-
-  for (let i = normalized.length - 1; i >= 0; i--) {
-    const child = normalized[i];
-    const prev_child = normalized[i - 1];
-
-    if (child.type === 'Text' && prev_child?.type === 'Text') {
-      if (child.expression.type === 'Literal' && prev_child.expression.type === 'Literal') {
-        prev_child.expression = b.literal(
-          prev_child.expression.value + String(child.expression.value),
-        );
-      } else {
-        prev_child.expression = b.binary(
-          '+',
-          prev_child.expression,
-          b.call('String', child.expression),
-        );
-      }
-      normalized.splice(i, 1);
-    }
-  }
 
   for (const node of normalized) {
     if (
@@ -1582,7 +1530,7 @@ function transform_children(children, element, context) {
 
       prev = flush_node;
 
-      const is_controlled = normalized.length === 1 && element !== null;
+      const is_controlled = normalized.length === 1 && !root;
 
       if (node.type === 'Element') {
         visit(node, { ...state, flush_node, namespace: state.namespace });
@@ -1658,7 +1606,7 @@ function transform_body(body, { visit, state }) {
     namespace: state.namespace || 'html', // Preserve namespace context
   };
 
-  transform_children(body, null, { visit, state: body_state, root: true });
+  transform_children(body, { visit, state: body_state, root: true });
 
   if (body_state.update.length > 0) {
     body_state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(body_state.update)))));

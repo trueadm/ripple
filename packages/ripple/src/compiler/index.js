@@ -19,13 +19,13 @@ export function parse(source) {
 /**
  * @param {string} source 
  * @param {string} filename 
- * @param {{ environment?: 'client' | 'server' }} options 
+ * @param {{ mode?: 'client' | 'server' }} options 
  * @returns {{ js: { code: string, map: RawSourceMap }, css: { code: string, map: RawSourceMap } | null }}
  */
 export function compile(source, filename, options = {}) {
   const ast = parse_module(source);
   const analysis = analyze(ast, filename);
-  const result = options.environment === 'server'
+  const result = options.mode === 'server'
       ? transform_server(filename, source, analysis)
       : transform_client(filename, source, analysis, false);
 

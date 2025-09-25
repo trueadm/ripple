@@ -8,7 +8,8 @@
     "ssr": "node ./ssr-dev.js",
     "build": "vite build --outDir dist/client",
     "test": "vitest run",
-    "debug": "node cli.js"
+    "debug-volar": "node volar-debug.js",
+    "debug-ssr": "node ssr-debug.js"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.12",
