@@ -62,7 +62,7 @@ You cannot create `Tracked` objects in module/global scope, they have to be crea
 
 The `track` function also offers a `split` option to "split" a plain object — such as component props — into specified tracked variables and an extra `rest` property containing the remaining unspecified object properties.
 
-```jsx
+```ripple
 const [children, count, rest] = track(props, {split: ['children', 'count']});
 ```
 
@@ -70,7 +70,7 @@ When working with component props, destructuring is often useful — both for di
 
 A full example utilizing various Ripple constructs demonstrates the `split` option usage:
 
-```jsx
+```ripple
 import { track } from 'ripple';
 import type { PropsWithChildren, Tracked } from 'ripple';
 
@@ -105,7 +105,7 @@ export component App() {
 
 With the regular destructuring, such as the one below, the `count` and `class` properties would lose their reactivity:
 
-```jsx
+```ripple
 // ❌ WRONG Reactivity would be lost
 let { children, count, class: className, ...rest } = props;
 ```
