@@ -42,7 +42,7 @@ component Truthy({ x }) {
 }
 ```
 
-### For statements
+## For statements
 
 You can render collections using a `for...of` loop.
 
