@@ -545,14 +545,14 @@ Use `{ref fn}` syntax to capture DOM element references:
 
 ```ripple
 export component App() {
-  let node = track();
+  let div = track();
 
   const divRef = (node) => {
-    @node = node;
+    @div = node;
     console.log("mounted", node);
 
     return () => {
-      @node = undefined;
+      @div = undefined;
       console.log("unmounted", node);
     };
   };

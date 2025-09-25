@@ -606,14 +606,14 @@ the reference to the underlying DOM element.
 
 ```jsx
 export component App() {
-  let node = track();
+  let div = track();
 
   const divRef = (node) => {
-    @node = node;
+    @div = node;
     console.log("mounted", node);
 
     return () => {
-      @node = undefined;
+      @div = undefined;
       console.log("unmounted", node);
     };
   };
@@ -626,11 +626,11 @@ You can also create `{ref}` functions inline.
 
 ```jsx
 export component App() {
-  let node = track();
+  let div = track();
 
   <div {ref (node) => {
-    @node = node;
-    return () => @node = undefined;
+    @div = node;
+    return () => @div = undefined;
   }}>{"Hello world"}</div>
 }
 ```
