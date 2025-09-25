@@ -305,7 +305,7 @@ function updateScripts(packageJson, packageManager) {
 /**
  * Get package manager version string
  * @param {string} packageManager - Package manager name
- * @returns {string} - Package manager with ver>sion
+ * @returns {string} - Package manager with version
  */
 function getPackageManagerVersion(packageManager) {
 	const versions = {
