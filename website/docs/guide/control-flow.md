@@ -48,8 +48,7 @@ component Truthy({ x }) {
 
 ## For statements
 
-You can render collections using a `for...of` block, and you don't need to specify a `key` prop unlike
-other frameworks.
+You can render collections using a `for...of` loop.
 
 <Code>
 
@@ -78,6 +77,14 @@ export default component App() {
 
 </Code>
 
+The `for...of` loop has also a built-in support for accessing the loops numerical index. The `label` index declares a variable that will used to assign the loop's index.
+
+```ripple
+  for (const item of items; index i) {
+    <div>{item}{' at index '}{i}</div>
+  }
+```
+
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
 <Code>
@@ -86,19 +93,23 @@ You can use Ripple's reactive arrays to easily compose contents of an array.
 import { TrackedArray } from 'ripple';
 
 component Numbers() {
-  const items = new TrackedArray(1, 2, 3);
+  const array = new TrackedArray(1, 2, 3);
 
-  for (const item of items) {
-    <div>{item}</div>
+  for (const item of array; index i) {
+    <div>{item}{' at index '}{i}</div>
   }
 
-  <button onClick={() => items.push(items.@length + 1)}>{"Add Item"}</button>
+  <button onClick={() => array.push(array.length + 1)}>{"Add Item"}</button>
 }
 ```
 
 </Code>
 
-Clicking the `<button>` will create a new item. Note that `items` is not `@` prefixed, because it's not reactive, but rather its properties are instead.
+Clicking the `<button>` will create a new item.
+
+::: info Note
+`for...of` loops inside components must contain either dom elements or components. Otherwise, the loop can be run inside an `effect` or function.
+:::
 
 ## Try statements
 
