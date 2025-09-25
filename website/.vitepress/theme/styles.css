@@ -6,12 +6,17 @@
 	}
 }
 
-.VPContent {
+div.VPContent {
 	margin-top: -20px !important;
 }
 
+/* Playground */
 body:has(.main-playground) {
 	overflow: hidden;
+}
+
+body:has(.main-playground) .VPFooter {
+	display: none;
 }
 
 @media (max-height: 500px) {
@@ -20,15 +25,15 @@ body:has(.main-playground) {
 	}
 
 	.VPHome:has(.main-playground) {
-		margin-bottom: 0 !important;
+		margin-bottom: 0;
 	}
 }
 
 .VPHome .container:has(.main-playground) {
-	padding: 0 !important;
-	max-width: unset !important;
+	padding: 0;
+	max-width: unset;
 }
 
 .main-playground .VPMenu {
-	max-height: calc(100dvh - 98px) !important;
+	max-height: calc(100dvh - 98px);
 }
