@@ -7,15 +7,29 @@ export default defineConfig({
 		...configDefaults.test,
 		projects: [
 			{
-				include: ['packages/ripple/tests/**/*.test.ts', 'packages/ripple/tests/**/*.test.ripple'],
-				environment: 'jsdom',
+				name: 'ripple-core',
+				test: {
+					include: ['packages/ripple/tests/**/*.test.ts', 'packages/ripple/tests/**/*.test.ripple'],
+					environment: 'jsdom',
+				},
+				plugins: [ripple()],
 				resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
 			},
 			{
-				include: [
-					'packages/prettier-plugin-ripple/src/*.test.js',
-					'packages/create-ripple/tests/**/*.test.js',
-				],
+				name: 'prettier-plugin',
+				test: {
+					include: ['packages/prettier-plugin-ripple/src/*.test.js'],
+					environment: 'jsdom',
+				},
+				plugins: [ripple()],
+			},
+			{
+				name: 'create-ripple',
+				test: {
+					include: ['packages/create-ripple/tests/**/*.test.js'],
+					environment: 'jsdom',
+				},
+				plugins: [ripple()],
 			},
 		],
 	},
