@@ -478,18 +478,18 @@ const visitors = {
 							continue;
 						}
 
-						if (name === 'class' || name === '$class') {
+						if (name === 'class') {
 							class_attribute = attr;
 
 							continue;
 						}
 
-						if (name === 'value' || name === '$value') {
+						if (name === 'value') {
 							const id = state.flush_node();
 							const metadata = { tracking: false, await: false };
 							const expression = visit(attr.value, { ...state, metadata });
 
-							if (name === '$value' || metadata.tracking) {
+							if (metadata.tracking) {
 								local_updates.push(b.stmt(b.call('_$_.set_value', id, expression)));
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_value', id, expression)));
@@ -498,7 +498,7 @@ const visitors = {
 							continue;
 						}
 
-						if (name === 'checked' || name === '$checked') {
+						if (name === 'checked') {
 							const id = state.flush_node();
 							const metadata = { tracking: false, await: false };
 							const expression = visit(attr.value, { ...state, metadata });
@@ -511,12 +511,12 @@ const visitors = {
 							continue;
 						}
 
-						if (name === 'selected' || name === '$selected') {
+						if (name === 'selected') {
 							const id = state.flush_node();
 							const metadata = { tracking: false, await: false };
 							const expression = visit(attr.value, { ...state, metadata });
 
-							if (name === '$selected' || metadata.tracking) {
+							if (metadata.tracking) {
 								local_updates.push(b.stmt(b.call('_$_.set_selected', id, expression)));
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_selected', id, expression)));
@@ -635,11 +635,11 @@ const visitors = {
 					let expression = visit(class_attribute.value, { ...state, metadata });
 
 					if (node.metadata.scoped && state.component.css) {
-						expression = b.binary('+', b.literal(state.component.css.hash + ' '), expression);
+						expression = b.binary('+', expression, b.literal(' ' + state.component.css.hash));
 					}
 					const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg';
 
-					if (class_attribute.name.name === '$class' || metadata.tracking) {
+					if (metadata.tracking) {
 						local_updates.push(
 							b.stmt(b.call('_$_.set_class', id, expression, undefined, b.literal(is_html))),
 						);

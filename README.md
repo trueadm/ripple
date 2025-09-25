@@ -844,6 +844,27 @@ component Parent() {
 }
 ```
 
+## Testing
+
+We recommend using Ripple using Ripple's Vite plugin. We also recommend using Vitest for testing. When using Vitest, make sure to configure your `vitest.config.js` according by using this template config:
+
+```js
+import { configDefaults, defineConfig } from 'vitest/config';
+import { ripple } from 'vite-plugin-ripple';
+
+export default defineConfig({
+	plugins: [ripple()],
+  resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
+	test: {
+    include: ['**/*.test.ripple'],
+    environment: 'jsdom',
+		...configDefaults.test,
+	},
+});
+```
+
+Then you can create a `example.test.ripple` module and put your Vitest test assertions in that module.
+
 ## Contributing
 
 We are happy for your interest in contributing. Please see our [contributing guidelines](CONTRIBUTING.md) for more information.
