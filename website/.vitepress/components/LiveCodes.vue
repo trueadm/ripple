@@ -6,7 +6,7 @@ import VPFlyout from 'vitepress/dist/client/theme-default/components/VPFlyout.vu
 import VPSwitch from 'vitepress/dist/client/theme-default/components/VPSwitch.vue'
 import LiveCodes from 'livecodes/vue'
 import type { EmbedOptions, Playground } from 'livecodes'
-import { playgroundProps } from './playgroundProps'
+import { PlaygroundProps } from './PlaygroundProps'
 
 type UserConfig = { vim: boolean }
 
@@ -29,7 +29,7 @@ const setUserConfig = (config: UserConfig) => {
 	)
 }
 
-const props = defineProps<playgroundProps>()
+const props = defineProps<PlaygroundProps>()
 const { isDark } = useData()
 const playgroundActions = useTemplateRef('playground-actions')
 const tailwind = ref(false)
@@ -105,6 +105,7 @@ const config: EmbedOptions['config'] = {
 	customSettings: { ripple: { version: version.value } },
 	view: props.view ?? 'split',
 	mode: props.mode ?? 'full',
+	tools: props.tools ?? undefined,
 	activeEditor: 'script',
 	script: {
 		language: 'ripple',
