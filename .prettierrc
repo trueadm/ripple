@@ -14,7 +14,7 @@
 		{
 			"files": ["README.md", "packages/*/README.md", "**/package.json" , "**/*.js"],
 			"options": {
-				"useTabs": false,
+				"useTabs": true,
 				"tabWidth": 2
 			}
 		}

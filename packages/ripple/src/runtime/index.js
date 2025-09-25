@@ -20,6 +20,12 @@ export function mount(component, options) {
   const props = options.props || {};
   const target = options.target;
   const anchor = create_anchor();
+
+  // Clear target content in case of SSR
+  if (target.firstChild) {
+    target.textContent = '';
+  }
+  
   target.append(anchor);
 
   const cleanup_events = handle_root_events(target);
@@ -36,19 +42,7 @@ export function mount(component, options) {
 
 export { create_context as createContext } from './internal/client/context.js';
 
-export { flush_sync as flushSync, untrack, deferred } from './internal/client/runtime.js';
-
-/**
- * @param {any} v
- * @param {Block} b
- * @returns {Tracked | Derived}
- */
-export function track(v, b) {
-  if (typeof v === 'function') {
-    return derived(v, b);
-  }
-  return tracked(v, b);
-}
+export { flush_sync as flushSync, track, untrack, deferred } from './internal/client/runtime.js';
 
 export { TrackedArray } from './array.js';
 

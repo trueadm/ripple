@@ -828,11 +828,6 @@ function RipplePlugin(config) {
           }
         }
 
-        if (this.type.label === '</>/<=/>=') {
-          debugger;
-          console.log('HERE', this.value, this.type);
-        }
-
         if (this.type.label === '{') {
           const node = this.jsx_parseExpressionContainer();
           node.type = 'Text';

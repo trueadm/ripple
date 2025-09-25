@@ -2,15 +2,15 @@ import { walk } from 'zimmerframe';
 import path from 'node:path';
 import { print } from 'esrap';
 import tsx from 'esrap/languages/tsx';
-import * as b from '../../../utils/builders.js';
+import * as b from '../../../../utils/builders.js';
 import {
   IS_CONTROLLED,
   IS_INDEXED,
   TEMPLATE_FRAGMENT,
   TEMPLATE_SVG_NAMESPACE,
   TEMPLATE_MATHML_NAMESPACE,
-} from '../../../constants.js';
-import { sanitize_template_string } from '../../../utils/sanitize_template_string.js';
+} from '../../../../constants.js';
+import { sanitize_template_string } from '../../../../utils/sanitize_template_string.js';
 import {
   build_hoisted_params,
   is_inside_component,
@@ -27,11 +27,13 @@ import {
   is_element_dom_element,
   is_top_level_await,
   is_ripple_track_call,
-} from '../../utils.js';
+  normalize_children,
+  build_getter,
+} from '../../../utils.js';
 import is_reference from 'is-reference';
-import { object } from '../../../utils/ast.js';
-import { render_stylesheets } from './stylesheet.js';
-import { is_event_attribute, is_passive_event } from '../../../utils/events.js';
+import { object } from '../../../../utils/ast.js';
+import { render_stylesheets } from '../stylesheet.js';
+import { is_event_attribute, is_passive_event } from '../../../../utils/events.js';
 
 function add_ripple_internal_import(context) {
   if (!context.state.to_ts) {
@@ -65,7 +67,11 @@ function visit_function(node, context) {
     });
   }
 
-  let body = context.visit(node.body, state);
+  let body = context.visit(node.body, {
+    ...state,
+    // we are new context so tracking no longer applies
+    metadata: { ...state.metadata, tracked: false },
+  });
 
   if (metadata?.tracked === true) {
     const new_body = [];
@@ -86,28 +92,6 @@ function visit_function(node, context) {
   }
 
   context.next(state);
-}
-
-function build_getter(node, context) {
-  const state = context.state;
-
-  for (let i = context.path.length - 1; i >= 0; i -= 1) {
-    const binding = state.scope.get(node.name);
-    const transform = binding?.transform;
-
-    // don't transform the declaration itself
-    if (node !== binding?.node) {
-      const read_fn = transform?.read;
-
-      if (read_fn) {
-        add_ripple_internal_import(context);
-
-        return read_fn(node, context.state?.metadata?.spread, context.visit);
-      }
-    }
-  }
-
-  return node;
 }
 
 function determine_namespace_for_children(element_name, current_namespace) {
@@ -160,10 +144,12 @@ const visitors = {
             context.state.metadata.tracking = true;
           }
           if (node.tracked) {
+            add_ripple_internal_import(context);
             return b.call('_$_.get', build_getter(node, context));
           }
         }
 
+        add_ripple_internal_import(context);
         return build_getter(node, context);
       }
     }
@@ -192,6 +178,8 @@ const visitors = {
 
     if (!context.state.to_ts && is_ripple_track_call(callee, context)) {
       if (node.arguments.length === 0) {
+        node.arguments.push(b.void0, b.void0);
+      } else if (node.arguments.length === 1) {
         node.arguments.push(b.void0);
       }
       return {
@@ -680,7 +668,7 @@ const visitors = {
       const update = [];
 
       if (!is_void) {
-        transform_children(node.children, node, {
+        transform_children(node.children, {
           visit,
           state: { ...state, init, update, namespace: child_namespace },
           root: false,
@@ -1272,16 +1260,6 @@ function join_template(items) {
   return template;
 }
 
-function normalize_child(node, normalized) {
-  if (node.type === 'EmptyStatement') {
-    return;
-  } else if (node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'style') {
-    return;
-  } else {
-    normalized.push(node);
-  }
-}
-
 function transform_ts_child(node, context) {
   const { state, visit } = context;
 
@@ -1454,13 +1432,9 @@ function transform_ts_child(node, context) {
   }
 }
 
-function transform_children(children, element, context) {
+function transform_children(children, context) {
   const { visit, state, root } = context;
-  const normalized = [];
-
-  for (const node of children) {
-    normalize_child(node, normalized);
-  }
+  const normalized = normalize_children(children);
 
   const is_fragment =
     normalized.some(
@@ -1494,26 +1468,6 @@ function transform_children(children, element, context) {
     template_id = state.scope.generate('root');
     state.setup.push(b.var(id, b.call(template_id)));
   };
-
-  for (let i = normalized.length - 1; i >= 0; i--) {
-    const child = normalized[i];
-    const prev_child = normalized[i - 1];
-
-    if (child.type === 'Text' && prev_child?.type === 'Text') {
-      if (child.expression.type === 'Literal' && prev_child.expression.type === 'Literal') {
-        prev_child.expression = b.literal(
-          prev_child.expression.value + String(child.expression.value),
-        );
-      } else {
-        prev_child.expression = b.binary(
-          '+',
-          prev_child.expression,
-          b.call('String', child.expression),
-        );
-      }
-      normalized.splice(i, 1);
-    }
-  }
 
   for (const node of normalized) {
     if (
@@ -1576,7 +1530,7 @@ function transform_children(children, element, context) {
 
       prev = flush_node;
 
-      const is_controlled = normalized.length === 1 && element !== null;
+      const is_controlled = normalized.length === 1 && !root;
 
       if (node.type === 'Element') {
         visit(node, { ...state, flush_node, namespace: state.namespace });
@@ -1652,7 +1606,7 @@ function transform_body(body, { visit, state }) {
     namespace: state.namespace || 'html', // Preserve namespace context
   };
 
-  transform_children(body, null, { visit, state: body_state, root: true });
+  transform_children(body, { visit, state: body_state, root: true });
 
   if (body_state.update.length > 0) {
     body_state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(body_state.update)))));
@@ -1661,7 +1615,7 @@ function transform_body(body, { visit, state }) {
   return [...body_state.setup, ...body_state.init, ...body_state.final];
 }
 
-export function transform(filename, source, analysis, to_ts) {
+export function transform_client(filename, source, analysis, to_ts) {
   const state = {
     imports: new Set(),
     events: new Set(),
@@ -1698,16 +1652,10 @@ export function transform(filename, source, analysis, to_ts) {
     );
   }
 
-  const js = print(
-    program,
-    tsx({
-      comments: analysis.ast.comments || [],
-    }),
-    {
-      sourceMapContent: source,
-      sourceMapSource: path.basename(filename),
-    },
-  );
+  const js = print(program, tsx(), {
+    sourceMapContent: source,
+    sourceMapSource: path.basename(filename),
+  });
 
   const css = render_stylesheets(state.stylesheets);
 

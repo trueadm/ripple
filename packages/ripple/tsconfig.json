@@ -11,7 +11,7 @@
 		"allowSyntheticDefaultImports": true,
 		"verbatimModuleSyntax": true,
 		"types": ["node"],
-    "jsx": "preserve",
+		"jsx": "preserve",
 		"jsxImportSource": "ripple",
 		"strict": true,
 		"allowJs": true,
