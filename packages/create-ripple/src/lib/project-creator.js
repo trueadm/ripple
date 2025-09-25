@@ -21,7 +21,7 @@ export async function createProject({
 	projectPath,
 	template,
 	packageManager = 'npm',
-	gitInit = true,
+	gitInit = false,
 	stylingFramework = 'vanilla'
 }) {
 	console.log(dim(`Creating project: ${projectName}`));
@@ -305,7 +305,7 @@ function updateScripts(packageJson, packageManager) {
 /**
  * Get package manager version string
  * @param {string} packageManager - Package manager name
- * @returns {string} - Package manager with version
+ * @returns {string} - Package manager with ver>sion
  */
 function getPackageManagerVersion(packageManager) {
 	const versions = {

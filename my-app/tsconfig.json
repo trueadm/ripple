@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"moduleResolution": "bundler",
+		"jsx": "preserve",
+		"jsxImportSource": "ripple",
+		"noEmit": true,
+		"isolatedModules": true
+	}
+}
