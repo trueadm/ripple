@@ -462,7 +462,7 @@ component Numbers() {
 
 Clicking the `<button>` will create a new item.
 
-> Note: `for...of` loops inside components must contain either dom elements or components. Otherwise, the loop can be run inside an `effect` or in a function.
+> Note: `for...of` loops inside components must contain either dom elements or components. Otherwise, the loop can be run inside an `effect` or function.
 
 ### Try statements
 
