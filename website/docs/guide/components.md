@@ -7,9 +7,10 @@ title: Components in Ripple
 ## Lifecycle
 
 ::: details Glossary
+
 - **Pure**: The idea that a function should produce no side-effects.
 - **Side-effect**: A permanent, externally observable state change.
-:::
+  :::
 
 Ripple's component lifecycle is akin to Vue/Svelte/Solid. The root scope of your
 component only runs once, akin to the "setup" scope in Vue/Svelte/Solid. However,
@@ -24,6 +25,8 @@ Use `children` prop and then use it in the form of `<children />` for component 
 
 When you pass in children to a component, it gets implicitly passed as the `children` prop, in the form of a component.
 
+<Code>
+
 ```ripple
 import type { Component } from 'ripple';
 
@@ -34,12 +37,18 @@ component Card(props: { children: Component }) {
 }
 
 // Usage
-<Card>
-  <p>{"Card content here"}</p>
-</Card>
+export default component App() {
+	<Card>
+		<p>{"Card content here"}</p>
+	</Card>
+}
 ```
 
+</Code>
+
 You could also explicitly write the same code as shown:
+
+<Code>
 
 ```ripple
 import type { Component } from 'ripple';
@@ -51,18 +60,23 @@ component Card(props: { children: Component }) {
 }
 
 // Usage with explicit component
-<Card>
-  component children() {
-    <p>{"Card content here"}</p>
-  }
-</Card>
+export default component App() {
+	<Card>
+		component children() {
+			<p>{"Card content here"}</p>
+		}
+	</Card>
+}
 ```
+
+</Code>
 
 ## Reactive Props
 
 See [Reactivity](/docs/guide/reactivity#Props-and-Attributes).
 
 ## Prop Shorthands
+
 ```ripple
 // Object spread
 <div {...properties}>{"Content"}</div>

@@ -125,6 +125,8 @@ In Ripple, templates act as lexical scopes, allowing you to declare variables,
 call functions, and execute JavaScript statements directly within JSX elements -
 similar to block statements in regular JavaScript.
 
+<Code console>
+
 ```ripple
 component TemplateScope() {
 	<div>
@@ -156,6 +158,8 @@ component TemplateScope() {
 	</div>
 }
 ```
+
+</Code>
 
 **Key Benefits:**
 
