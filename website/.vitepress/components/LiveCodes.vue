@@ -55,24 +55,40 @@ const version = ref(versionParam || latest)
 const defaultContent = `
 import { track } from 'ripple';
 
-export default component App() {
-	<div class="container">
-		let count = track(0);
+export default component Counter() {
+  let count = track(0);
+  let double = track(() => @count * 2);
 
-		<button onClick={() => @count++}>{@count}</button>
+  <div class="container">
+    <h2>{'Counter'}</h2>
+    <p>{\`Count: \${@count}\`}</p>
+    <p>{\`Double: \${@double}\`}</p>
 
-		if (@count > 1) {
-			<div>{"Greater than 1!"}</div>
-		}
-	</div>
+    <button onClick={() => @count--}>{'-'}</button>
+    <button onClick={() => @count++}>{'+'}</button>
+    if (@count !== 0) {
+      <div><button onClick={() => @count = 0}>{'Reset'}</button></div>
+    }
+  </div>
 
-	<style>
-		button {
-			padding: 1rem;
-			font-size: 1rem;
-			cursor: pointer;
-		}
-	</style>
+  <style>
+    .container {
+      text-align: center;
+    }
+
+    button {
+      font-family: "Courier New", monospace;
+      font-size: 1em;
+      margin: 6px;
+      padding: 6px 12px;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #e0e0e0;
+    }
+  </style>
 }
 `.trimStart()
 
