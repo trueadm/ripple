@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, flushSync, effect, untrack, TrackedArray, track } from 'ripple';
-import { MAX_ARRAY_LENGTH } from '../src/runtime/internal/client/constants.js';
+import { MAX_ARRAY_LENGTH } from '../../src/runtime/internal/client/constants.js';
 
 describe('TrackedArray', () => {
 	let container;

@@ -378,6 +378,18 @@ export function is_component_level_function(context) {
   return true;
 }
 
+export function is_ripple_track_call(callee, context) {
+  return (
+    (callee.type === 'Identifier' && callee.name === 'track') ||
+    (callee.type === 'MemberExpression' &&
+      callee.object.type === 'Identifier' &&
+      callee.property.type === 'Identifier' &&
+      callee.property.name === 'track' &&
+      !callee.computed &&
+      is_ripple_import(callee, context))
+  );
+}
+
 export function is_inside_call_expression(context) {
   for (let i = context.path.length - 1; i >= 0; i -= 1) {
     const context_node = context.path[i];
@@ -391,6 +403,10 @@ export function is_inside_call_expression(context) {
       return false;
     }
     if (type === 'CallExpression') {
+      const callee = context_node.callee;
+      if (is_ripple_track_call(callee, context)) {
+        return false;
+      }
       return true;
     }
   }
@@ -630,4 +646,64 @@ export function is_element_dom_element(node) {
     node.id.name !== 'children' &&
     !node.id.tracked
   );
+}
+
+export function normalize_children(children) {
+  const normalized = [];
+
+  for (const node of children) {
+    normalize_child(node, normalized);
+  }
+
+  for (let i = normalized.length - 1; i >= 0; i--) {
+    const child = normalized[i];
+    const prev_child = normalized[i - 1];
+
+    if (child.type === 'Text' && prev_child?.type === 'Text') {
+      if (child.expression.type === 'Literal' && prev_child.expression.type === 'Literal') {
+        prev_child.expression = b.literal(
+          prev_child.expression.value + String(child.expression.value),
+        );
+      } else {
+        prev_child.expression = b.binary(
+          '+',
+          prev_child.expression,
+          b.call('String', child.expression),
+        );
+      }
+      normalized.splice(i, 1);
+    }
+  }
+
+  return normalized;
+}
+
+function normalize_child(node, normalized) {
+  if (node.type === 'EmptyStatement') {
+    return;
+  } else if (node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'style') {
+    return;
+  } else {
+    normalized.push(node);
+  }
+}
+
+export function build_getter(node, context) {
+  const state = context.state;
+
+  for (let i = context.path.length - 1; i >= 0; i -= 1) {
+    const binding = state.scope.get(node.name);
+    const transform = binding?.transform;
+
+    // don't transform the declaration itself
+    if (node !== binding?.node) {
+      const read_fn = transform?.read;
+
+      if (read_fn) {
+        return read_fn(node, context.state?.metadata?.spread, context.visit);
+      }
+    }
+  }
+
+  return node;
 }

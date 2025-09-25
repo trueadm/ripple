@@ -58,6 +58,62 @@ effect(() => {
 You cannot create `Tracked` objects in module/global scope, they have to be created on access from an active component context.
 :::
 
+#### Split Option
+
+The `track` function also offers a `split` option to "split" a plain object — such as component props — into specified tracked variables and an extra `rest` property containing the remaining unspecified object properties.
+
+```ripple
+const [children, count, rest] = track(props, {split: ['children', 'count']});
+```
+
+When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity. However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, does not preserve reactivity due to various edge cases. To ensure destructured variables remain reactive in this case, use the `track` function with the `split` option.
+
+A full example utilizing various Ripple constructs demonstrates the `split` option usage:
+
+```ripple
+import { track } from 'ripple';
+import type { PropsWithChildren, Tracked } from 'ripple';
+
+component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
+  const [children, count, className, rest] = track(props, {split: ['children', 'count', 'class']});
+
+  <button class={@className} {...@rest}><@children /></button>
+  <pre>{`Count is: ${@count}`}</pre>
+  <button onClick={() => @count++}>{'Increment Count'}</button>
+}
+
+export component App() {
+  let count = track(0);
+  let className = track('shadow');
+  let name = track('Click Me');
+
+  function buttonRef(el) {
+    console.log('ref called with', el);
+    return () => {
+      console.log('cleanup ref for', el);
+    };
+  }
+
+  <Child
+    class={@className}
+    onClick={() => { @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'; @className = ''}}
+    count:={() => @count, (v) => {console.log('inside setter'); @count++}}
+    {ref buttonRef}
+  >{@name}</Child>;
+}
+```
+
+With the regular destructuring, such as the one below, the `count` and `class` properties would lose their reactivity:
+
+```ripple
+// ❌ WRONG Reactivity would be lost
+let { children, count, class: className, ...rest } = props;
+```
+
+::: info Note
+Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values.  Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
+:::
+
 ## Transporting Reactivity
 
 Ripple doesn't constrain reactivity to components only. `Tracked<T>` objects can simply be passed by reference between boundaries:

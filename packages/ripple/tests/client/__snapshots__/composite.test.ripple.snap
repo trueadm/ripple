@@ -21,3 +21,17 @@ exports[`composite components > correct handles passing through component props 
   
 </div>
 `;
+
+exports[`composite components > render simple text as children 1`] = `
+<div>
+  <!---->
+  <button
+    class="my-button"
+  >
+    Click Me
+    <!---->
+  </button>
+  <!---->
+  
+</div>
+`;

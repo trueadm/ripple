@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-
 import { mount, flushSync, TrackedArray } from 'ripple';
 
 describe('for statements', () => {
@@ -84,5 +83,36 @@ describe('for statements', () => {
 		flushSync();
 
 		expect(container).toMatchSnapshot();
-	})
+	});
+
+	it('correctly handle the index in a for...of loop', () => {
+		component App() {
+			const items = new TrackedArray('a', 'b', 'c');
+
+			<div>
+				for (let item of items; index i) {
+					<div>{i + ' : ' + item}</div>
+				}
+			</div>
+
+			<button onClick={() => items.push(String.fromCharCode(97 + items.length))}>{'Add Item'}</button>
+			<button onClick={() => items.reverse()}>{'Reverse'}</button>
+		}
+
+		render(App);
+
+		expect(container).toMatchSnapshot();
+
+		const [button, button2] = container.querySelectorAll('button');
+
+		button.click();
+		flushSync();
+
+		expect(container).toMatchSnapshot();
+
+		button2.click();
+		flushSync();
+
+		expect(container).toMatchSnapshot();
+	});
 });

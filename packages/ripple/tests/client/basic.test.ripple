@@ -474,13 +474,13 @@ describe('basic', () => {
 		component Basic() {
 			let count = track(0);
 
-			const minus = { 
+			const minus = {
 				onClick() {
 					@count--
 				}
 			}
 
-			const plus = { 
+			const plus = {
 				onClick() {
 					@count++
 				}
@@ -524,7 +524,7 @@ describe('basic', () => {
 			let clickCount = track(0);
 			let focusCount = track(0);
 
-			const mixedHandler = { 
+			const mixedHandler = {
 				onClick() {  // Delegated event
 					@clickCount++
 				},
@@ -980,7 +980,7 @@ describe('basic', () => {
 				div {
 					animation-name: anim;
 				}
-				
+
 				@keyframes anim {}
 
 				p {
@@ -1266,6 +1266,149 @@ describe('basic', () => {
 			<div>{++@count}</div>
 			<div>{5}</div>
 			<div>{@count}</div>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
+
+	it('can retain reactivity for destructure rest via track split', () => {
+		let logs = [];
+
+		component App() {
+			let count = track(0);
+			let name = track('Click Me');
+
+			function buttonRef(el) {
+				logs.push('ref called');
+				return () => {
+					logs.push('cleanup ref');
+				};
+			}
+
+			<Child
+				class="my-button"
+				onClick={() => @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'}
+				count:={() => @count, (v) => {logs.push('inside setter'); @count++}}
+				{ref buttonRef}
+			>{@name}</Child>;
+		}
+
+		component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
+			const [children, count, rest] = track(props, {split: ['children', 'count']});
+
+			if (@count < 2) {
+				<button {...@rest}><@children /></button>
+			}
+			<pre>{@count}</pre>
+			<button onClick={() => @count++}>{'Increment Count'}</button>
+		}
+
+		render(App);
+		flushSync();
+
+		const buttonClickMe = container.querySelectorAll('button')[0];
+		const buttonIncrement = container.querySelectorAll('button')[1];
+		const countPre = container.querySelector('pre');
+
+		expect(buttonClickMe.textContent).toBe('Click Me');
+		expect(countPre.textContent).toBe('0');
+		expect(logs).toEqual(['ref called']);
+
+
+		buttonClickMe.click();
+		buttonIncrement.click();
+		flushSync();
+
+		expect(buttonClickMe.textContent).toBe('Clicked');
+		expect(countPre.textContent).toBe('1');
+		expect(logs).toEqual(['ref called','inside setter']);
+
+		buttonIncrement.click();
+		flushSync();
+
+		expect(logs).toEqual(['ref called','inside setter','inside setter','cleanup ref']);
+	});
+
+	it('errors on invalid value as null for track with split', () => {
+		component App() {
+			let message = track('');
+
+			try{
+				const [a, b, rest] = track(null, { split: ['a', 'b'] });
+			} catch(e) {
+				@message = e.message;
+			}
+
+			<pre>{@message}</pre>
+		}
+
+		render(App);
+
+		const pre = container.querySelectorAll('pre')[0];
+		expect(pre.textContent).toBe('Invalid value: expected a non-tracked object');
+	});
+
+	it('errors on invalid value as array for track with split', () => {
+		component App() {
+			let message = track('');
+
+			try{
+				const [a, b, rest] = track([1, 2, 3], { split: ['a', 'b'] });
+			} catch(e) {
+				@message = e.message;
+			}
+
+			<pre>{@message}</pre>
+		}
+
+		render(App);
+
+		const pre = container.querySelectorAll('pre')[0];
+		expect(pre.textContent).toBe('Invalid value: expected a non-tracked object');
+	});
+
+	it('errors on invalid value as tracked for track with split', () => {
+		component App() {
+			const t = track({a: 1, b: 2, c: 3});
+			let message = track('');
+
+			try{
+				const [a, b, rest] = track(t, { split: ['a', 'b'] });
+			} catch(e) {
+				@message = e.message;
+			}
+
+			<pre>{@message}</pre>
+		}
+
+		render(App);
+
+		const pre = container.querySelectorAll('pre')[0];
+		expect(pre.textContent).toBe('Invalid value: expected a non-tracked object');
+	});
+
+	it('returns the same tracked object if plain track is called with a tracked object', () => {
+		component App() {
+			const t = track({a: 1, b: 2, c: 3});
+			const doublet = track(t);
+
+			<pre>{t === doublet}</pre>
+		}
+
+		render(App);
+
+		const pre = container.querySelectorAll('pre')[0];
+		expect(pre.textContent).toBe('true');
+	});
+
+	it('should handle lexical scopes correctly', () => {
+		component App() {
+			<section>
+				let sectionData = 'Nested scope variable';
+
+				{sectionData}
+			</section>
 		}
 
 		render(App);

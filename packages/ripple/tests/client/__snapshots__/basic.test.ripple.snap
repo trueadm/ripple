@@ -18,6 +18,24 @@ exports[`basic > basic operations 1`] = `
 </div>
 `;
 
+exports[`basic > correctly renders adjacent text nodes 1`] = `
+<div>
+  <div>
+    11
+  </div>
+  <div>
+    11
+  </div>
+  <div>
+    truetrue
+  </div>
+  <div>
+    truetrue
+  </div>
+  
+</div>
+`;
+
 exports[`basic > handles boolean attributes with no prop value provides 1`] = `
 <div>
   <div
@@ -90,6 +108,15 @@ exports[`basic > renders simple JS expression logic correctly 1`] = `
   <div>
     1
   </div>
+  
+</div>
+`;
+
+exports[`basic > should handle lexical scopes correctly 1`] = `
+<div>
+  <section>
+    Nested scope variable
+  </section>
   
 </div>
 `;

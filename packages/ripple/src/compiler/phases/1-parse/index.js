@@ -192,6 +192,135 @@ function RipplePlugin(config) {
         return super.parseExportDefaultDeclaration();
       }
 
+      parseForStatement(node) {
+        this.next()
+        let awaitAt = (this.options.ecmaVersion >= 9 && this.canAwait && this.eatContextual("await")) ? this.lastTokStart : -1
+        this.labels.push({kind: "loop"})
+        this.enterScope(0)
+        this.expect(tt.parenL)
+        
+        if (this.type === tt.semi) {
+          if (awaitAt > -1) this.unexpected(awaitAt)
+          return this.parseFor(node, null)
+        }
+        
+        let isLet = this.isLet()
+        if (this.type === tt._var || this.type === tt._const || isLet) {
+          let init = this.startNode(), kind = isLet ? "let" : this.value
+          this.next()
+          this.parseVar(init, true, kind)
+          this.finishNode(init, "VariableDeclaration")
+          return this.parseForAfterInitWithIndex(node, init, awaitAt)
+        }
+        
+        // Handle other cases like using declarations if they exist
+        let startsWithLet = this.isContextual("let"), isForOf = false
+        let usingKind = (this.isUsing && this.isUsing(true)) ? "using" : (this.isAwaitUsing && this.isAwaitUsing(true)) ? "await using" : null
+        if (usingKind) {
+          let init = this.startNode()
+          this.next()
+          if (usingKind === "await using") {
+            if (!this.canAwait) {
+              this.raise(this.start, "Await using cannot appear outside of async function")
+            }
+            this.next()
+          }
+          this.parseVar(init, true, usingKind)
+          this.finishNode(init, "VariableDeclaration")
+          return this.parseForAfterInitWithIndex(node, init, awaitAt)
+        }
+        
+        let containsEsc = this.containsEsc
+        let refDestructuringErrors = {}
+        let initPos = this.start
+        let init = awaitAt > -1
+          ? this.parseExprSubscripts(refDestructuringErrors, "await")
+          : this.parseExpression(true, refDestructuringErrors)
+        
+        if (this.type === tt._in || (isForOf = this.options.ecmaVersion >= 6 && this.isContextual("of"))) {
+          if (awaitAt > -1) { // implies `ecmaVersion >= 9`
+            if (this.type === tt._in) this.unexpected(awaitAt)
+            node.await = true
+          } else if (isForOf && this.options.ecmaVersion >= 8) {
+            if (init.start === initPos && !containsEsc && init.type === "Identifier" && init.name === "async") this.unexpected()
+            else if (this.options.ecmaVersion >= 9) node.await = false
+          }
+          if (startsWithLet && isForOf) this.raise(init.start, "The left-hand side of a for-of loop may not start with 'let'.")
+          this.toAssignable(init, false, refDestructuringErrors)
+          this.checkLValPattern(init)
+          return this.parseForInWithIndex(node, init)
+        } else {
+          this.checkExpressionErrors(refDestructuringErrors, true)
+        }
+        
+        if (awaitAt > -1) this.unexpected(awaitAt)
+        return this.parseFor(node, init)
+      }
+
+      parseForAfterInitWithIndex(node, init, awaitAt) {
+        if ((this.type === tt._in || (this.options.ecmaVersion >= 6 && this.isContextual("of"))) && init.declarations.length === 1) {
+          if (this.options.ecmaVersion >= 9) {
+            if (this.type === tt._in) {
+              if (awaitAt > -1) this.unexpected(awaitAt)
+            } else node.await = awaitAt > -1
+          }
+          return this.parseForInWithIndex(node, init)
+        }
+        if (awaitAt > -1) this.unexpected(awaitAt)
+        return this.parseFor(node, init)
+      }
+
+      parseForInWithIndex(node, init) {
+        const isForIn = this.type === tt._in
+        this.next()
+
+        if (
+          init.type === "VariableDeclaration" &&
+          init.declarations[0].init != null &&
+          (
+            !isForIn ||
+            this.options.ecmaVersion < 8 ||
+            this.strict ||
+            init.kind !== "var" ||
+            init.declarations[0].id.type !== "Identifier"
+          )
+        ) {
+          this.raise(
+            init.start,
+            `${isForIn ? "for-in" : "for-of"} loop variable declaration may not have an initializer`
+          )
+        }
+        
+        node.left = init
+        node.right = isForIn ? this.parseExpression() : this.parseMaybeAssign()
+        
+        // Check for our extended syntax: "; index varName"
+        if (!isForIn && this.type === tt.semi) {
+          this.next() // consume ';'
+          
+          if (this.isContextual('index')) {
+            this.next() // consume 'index'
+            
+            if (this.type === tt.name) {
+              node.index = this.parseIdent()
+            } else {
+              this.raise(this.start, 'Expected identifier after "index" keyword')
+            }
+          } else {
+            this.raise(this.start, 'Expected "index" keyword after semicolon in for-of loop')
+          }
+        } else if (!isForIn) {
+          // Set index to null for standard for-of loops
+          node.index = null
+        }
+        
+        this.expect(tt.parenR)
+        node.body = this.parseStatement("for")
+        this.exitScope()
+        this.labels.pop()
+        return this.finishNode(node, isForIn ? "ForInStatement" : "ForOfStatement")
+      }
+
       shouldParseExportStatement() {
         if (super.shouldParseExportStatement()) {
           return true;
@@ -699,11 +828,6 @@ function RipplePlugin(config) {
           }
         }
 
-        if (this.type.label === '</>/<=/>=') {
-          debugger;
-          console.log('HERE', this.value, this.type);
-        }
-
         if (this.type.label === '{') {
           const node = this.jsx_parseExpressionContainer();
           node.type = 'Text';
@@ -790,6 +914,8 @@ function RipplePlugin(config) {
 
           return node;
         }
+
+
 
         if (this.type.label === '@') {
 		  // Try to parse as an expression statement first using tryParse

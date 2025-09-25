@@ -92,15 +92,22 @@ function printRippleNode(node, path, options, print, args) {
 
 	const parts = [];
 
+	const isInlineContext = args && args.isInlineContext;
+
 	// Handle leading comments
 	if (node.leadingComments) {
 		for (const comment of node.leadingComments) {
 			if (comment.type === 'Line') {
 				parts.push('//' + comment.value);
+				parts.push(hardline);
 			} else if (comment.type === 'Block') {
 				parts.push('/*' + comment.value + '*/');
+				if (!isInlineContext) {
+					parts.push(hardline);
+				} else {
+					parts.push(' ');
+				}
 			}
-			parts.push(hardline);
 		}
 	}
 
@@ -290,9 +297,18 @@ function printRippleNode(node, path, options, print, args) {
 			const parts = [];
 			parts.push(path.call(print, 'callee'));
 			
+			// Add TypeScript generics if present
+			if (node.typeParameters) {
+				parts.push(path.call(print, 'typeParameters'));
+			}
+			
 			if (node.arguments && node.arguments.length > 0) {
 				parts.push('(');
-				const args = path.map(print, 'arguments');
+
+				const args = path.map((argPath) => {
+					return print(argPath, { isInlineContext: true });
+				}, 'arguments');
+
 				for (let i = 0; i < args.length; i++) {
 					if (i > 0) parts.push(', ');
 					parts.push(args[i]);
@@ -361,6 +377,10 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSTypeParameter(node, path, options, print);
 			break;
 
+		case 'TSTypeParameterInstantiation':
+			nodeContent = printTSTypeParameterInstantiation(node, path, options, print);
+			break;
+
 		case 'TSNumberKeyword':
 			nodeContent = 'number';
 			break;
@@ -410,12 +430,6 @@ function printRippleNode(node, path, options, print, args) {
 		case 'ExpressionStatement':
 			nodeContent = concat([path.call(print, 'expression'), ';']);
 			break;
-
-		case 'JSXExpressionContainer': {
-			const parts = ['{', path.call(print, 'expression'), '}'];
-			nodeContent = concat(parts);
-			break;
-		}
 
 		case 'RefAttribute':
 			nodeContent = concat(['{ref ', path.call(print, 'argument'), '}']);
@@ -551,6 +565,10 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printObjectPattern(node, path, options, print);
 			break;
 
+		case 'ArrayPattern':
+			nodeContent = printArrayPattern(node, path, options, print);
+			break;
+
 		case 'Property':
 			nodeContent = printProperty(node, path, options, print);
 			break;
@@ -586,6 +604,10 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSNullKeyword':
 			nodeContent = 'null';
+			break;
+
+		case 'TSUnknownKeyword':
+			nodeContent = 'unknown';
 			break;
 
 		case 'TSLiteralType':
@@ -910,113 +932,13 @@ function printVariableDeclaration(node, path, options, print) {
 		);
 
 	const declarations = path.map(print, 'declarations');
+	const declarationParts = join(', ', declarations);
 
 	if (!hasForLoopParent) {
-		return concat([kind, ' ', declarations, ';']);
+		return concat([kind, ' ', declarationParts, ';']);
 	}
 
-	return concat([kind, ' ', declarations]);
-}
-
-function printJSXElement(node, path, options, print) {
-	const openingElement = printJSXOpeningElement(node.openingElement, path, options, print);
-
-	if (node.selfClosing || (node.children && node.children.length === 0)) {
-		// Convert to self-closing tag - create new opening with ' />' instead of '>'
-		const parts = ['<', node.openingElement.name.name];
-		if (node.openingElement.attributes && node.openingElement.attributes.length > 0) {
-			for (let i = 0; i < node.openingElement.attributes.length; i++) {
-				parts.push(' ');
-				parts.push(path.call(print, 'openingElement', 'attributes', i));
-			}
-		}
-		parts.push(' />');
-		return concat(parts);
-	}
-
-	const children = node.children
-		.map((child, i) => {
-			if (child.type === 'JSXText') {
-				return child.value.trim();
-			}
-			return path.call(print, 'children', i);
-		})
-		.filter((child) => child !== '');
-
-	const closingTag = concat(['</', node.openingElement.name.name, '>']);
-
-	if (children.length === 0) {
-		// Self-closing version
-		const parts = ['<', node.openingElement.name.name];
-		if (node.openingElement.attributes && node.openingElement.attributes.length > 0) {
-			for (let i = 0; i < node.openingElement.attributes.length; i++) {
-				parts.push(' ');
-				parts.push(path.call(print, 'openingElement', 'attributes', i));
-			}
-		}
-		parts.push(' />');
-		return concat(parts);
-	}
-
-	if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 20) {
-		// Single line
-		return concat([openingElement, children[0], closingTag]);
-	}
-
-	// Multi-line
-	const parts = [openingElement];
-	parts.push(line);
-	for (let i = 0; i < children.length; i++) {
-		if (i > 0) parts.push(line);
-		parts.push(indent(children[i]));
-	}
-	parts.push(line);
-	parts.push(closingTag);
-
-	return concat(parts);
-}
-
-function printJSXOpeningElement(node, path, options, print) {
-	const tag = node.name.name;
-
-	if (!node.attributes || node.attributes.length === 0) {
-		return group(['<', tag, '>']);
-	}
-
-	const openingTag = group([
-		'<',
-		tag,
-		indent(
-			group([
-				...path.map((attrPath) => {
-					return concat([' ', print(attrPath)]);
-				}, 'attributes'),
-			]),
-		),
-		'>',
-	]);
-
-	return openingTag;
-}
-
-function printJSXAttribute(node, path, options, print) {
-	let result = node.name.name;
-
-	if (node.value) {
-		if (node.value.type === 'Literal') {
-			result += '=' + formatStringLiteral(node.value.value, options);
-		} else if (node.value.type === 'JSXExpressionContainer') {
-			result += '={' + node.value.expression.name + '}';
-		}
-	}
-
-	// Return as simple string since this is a complete atomic unit
-	return result;
-}
-
-function printJSXFragment(node, path, options, print) {
-	const children = path.map(print, 'children').join('\n');
-	return '<>\n' + children + '\n</>';
+	return concat([kind, ' ', declarationParts]);
 }
 
 function printFunctionExpression(node, path, options, print) {
@@ -1588,6 +1510,22 @@ function printTSTypeParameter(node, path, options, print) {
 	return parts;
 }
 
+function printTSTypeParameterInstantiation(node, path, options, print) {
+	if (!node.params || node.params.length === 0) {
+		return '';
+	}
+
+	const parts = [];
+	parts.push('<');
+	const paramList = path.map(print, 'params');
+	for (let i = 0; i < paramList.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(paramList[i]);
+	}
+	parts.push('>');
+	return concat(parts);
+}
+
 function printSwitchStatement(node, path, options, print) {
 	const parts = [];
 	parts.push('switch (');
@@ -1789,8 +1727,31 @@ function printObjectPattern(node, path, options, print) {
 	return concat(parts);
 }
 
+function printArrayPattern(node, path, options, print) {
+	const parts = [];
+	parts.push('[ ');
+	const elementList = path.map(print, 'elements');
+	for (let i = 0; i < elementList.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(elementList[i]);
+	}
+	parts.push(' ]');
+
+	if (node.typeAnnotation) {
+		parts.push(': ');
+		parts.push(path.call(print, 'typeAnnotation'));
+	}
+
+	return concat(parts);
+}
+
 function printProperty(node, path, options, print) {
 	if (node.shorthand) {
+		// For shorthand properties, if value is AssignmentPattern, print the value (which includes the default)
+		// Otherwise just print the key
+		if (node.value.type === 'AssignmentPattern') {
+			return path.call(print, 'value');
+		}
 		return path.call(print, 'key');
 	}
 
@@ -2132,10 +2093,12 @@ function printAttribute(node, path, options, print) {
 	parts.push(node.name.name);
 
 	if (node.value) {
-		if (node.value.type === 'Literal') {
+		if (node.value.type === 'Literal' && typeof node.value.value === 'string') {
+			// String literals don't need curly braces
 			parts.push('=');
 			parts.push(formatStringLiteral(node.value.value, options));
 		} else {
+			// All other values need curly braces: numbers, booleans, null, expressions, etc.
 			parts.push('={');
 			parts.push(path.call(print, 'value'));
 			parts.push('}');

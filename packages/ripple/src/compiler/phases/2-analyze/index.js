@@ -5,7 +5,7 @@ import {
   get_delegated_event,
   is_element_dom_element,
   is_inside_component,
-  is_ripple_import,
+  is_ripple_track_call,
   is_void_element,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
@@ -88,7 +88,7 @@ const visitors = {
   },
 
   Program(_, context) {
-	return context.next({ ...context.state, function_depth: 0, expression: null });
+    return context.next({ ...context.state, function_depth: 0, expression: null });
   },
 
   Identifier(node, context) {
@@ -139,21 +139,12 @@ const visitors = {
   CallExpression(node, context) {
     const callee = node.callee;
 
-    if (
-      context.state.function_depth === 0 &&
-      ((callee.type === 'Identifier' && callee.name === 'track') ||
-        (callee.type === 'MemberExpression' &&
-          callee.object.type === 'Identifier' &&
-          callee.property.type === 'Identifier' &&
-          callee.property.name === 'track' &&
-          !callee.computed)) &&
-      is_ripple_import(callee, context)
-    ) {
+    if (context.state.function_depth === 0 && is_ripple_track_call(callee, context)) {
       error(
-		'`track` can only be used within a reactive context, such as a component, function or class that is used or created from a component',
-		context.state.analysis.module.filename,
-		node,
-	  );
+        '`track` can only be used within a reactive context, such as a component, function or class that is used or created from a component',
+        context.state.analysis.module.filename,
+        node,
+      );
     }
 
     if (context.state.metadata?.tracking === false) {
@@ -250,7 +241,7 @@ const visitors = {
     }
     const elements = [];
 
-    context.next({ ...context.state, elements });
+    context.next({ ...context.state, elements, function_depth: context.state.function_depth + 1 });
 
     const css = node.css;
 
@@ -276,6 +267,21 @@ const visitors = {
   ForOfStatement(node, context) {
     if (!is_inside_component(context)) {
       return context.next();
+    }
+
+    if (node.index) {
+      const state = context.state;
+      const scope = state.scopes.get(node);
+      const binding = scope.get(node.index.name);
+      binding.kind = 'index'
+
+      if (binding !== null) {
+        binding.transform = {
+          read: (node) => {
+            return b.call('_$_.get', node)
+          },
+        };
+      }
     }
 
     node.metadata = {

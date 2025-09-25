@@ -185,6 +185,60 @@ effect(() => {
 
 > Note: you cannot create `Tracked` objects in module/global scope, they have to be created on access from an active component context.
 
+#### Split Option
+
+The `track` function also offers a `split` option to "split" a plain object — such as component props — into specified tracked variables and an extra `rest` property containing the remaining unspecified object properties.
+
+```jsx
+const [children, count, rest] = track(props, {split: ['children', 'count']});
+```
+
+When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity. However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, does not preserve reactivity due to various edge cases. To ensure destructured variables remain reactive in this case, use the `track` function with the `split` option.
+
+A full example utilizing various Ripple constructs demonstrates the `split` option usage:
+
+```jsx
+import { track } from 'ripple';
+import type { PropsWithChildren, Tracked } from 'ripple';
+
+component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
+  const [children, count, className, rest] = track(props, {split: ['children', 'count', 'class']});
+
+  <button class={@className} {...@rest}><@children /></button>
+  <pre>{`Count is: ${@count}`}</pre>
+  <button onClick={() => @count++}>{'Increment Count'}</button>
+}
+
+export component App() {
+  let count = track(0);
+  let className = track('shadow');
+  let name = track('Click Me');
+
+  function buttonRef(el) {
+    console.log('ref called with', el);
+    return () => {
+      console.log('cleanup ref for', el);
+    };
+  }
+
+  <Child
+    class={@className}
+    onClick={() => { @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'; @className = ''}}
+    count:={() => @count, (v) => {console.log('inside setter'); @count++}}
+    {ref buttonRef}
+  >{@name}</Child>;
+}
+```
+
+With the regular destructuring, such as the one below, the `count` and `class` properties would lose their reactivity:
+
+```jsx
+// ❌ WRONG Reactivity would be lost
+let { children, count, class: className, ...rest } = props;
+```
+
+> Note: Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values.  Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
+
 #### Transporting Reactivity
 
 Ripple doesn't constrain reactivity to components only. `Tracked<V>` objects can simply be passed by reference between boundaries:
@@ -192,44 +246,20 @@ Ripple doesn't constrain reactivity to components only. `Tracked<V>` objects can
 ```jsx
 import { effect, track } from 'ripple';
 
-function createDouble([ count ]) {
+function createDouble(count) {
   const double = track(() => @count * 2);
 
   effect(() => {
     console.log('Count:', @count)
   });
 
-  return [ double ];
+  return double;
 }
 
 export component App() {
   let count = track(0);
 
-  const [ double ] = createDouble([ count ]);
-
-  <div>{'Double: ' + @double}</div>
-  <button onClick={() => { @count++; }}>{'Increment'}</button>
-}
-```
-
-You can do the same with objects too:
-
-```jsx
-import { effect, track } from 'ripple';
-
-function createDouble({ count }) {
-  const double = track(() => @count * 2);
-
-  effect(() => {
-    console.log('Count:', @count)
-  });
-
-  return { double };
-}
-
-export component App() {
-  let count = track(0);
-  const { double } = createDouble({ count });
+  const double = createDouble(count);
 
   <div>{'Double: ' + @double}</div>
   <button onClick={() => { @count++; }}>{'Increment'}</button>
@@ -393,8 +423,7 @@ component Truthy({ x }) {
 
 ### For statements
 
-You can render collections using a `for...of` block, and you don't need to specify a `key` prop like
-other frameworks.
+You can render collections using a `for...of` loop.
 
 ```jsx
 component ListView({ title, items }) {
@@ -407,23 +436,33 @@ component ListView({ title, items }) {
 }
 ```
 
+The `for...of` loop has also a built-in support for accessing the loops numerical index. The `label` index declares a variable that will used to assign the loop's index.
+
+```jsx
+  for (const item of items; index i) {
+    <div>{item}{' at index '}{i}</div>
+  }
+```
+
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
 ```jsx
 import { TrackedArray } from 'ripple';
 
 component Numbers() {
-  const items = new TrackedArray(1, 2, 3);
+  const array = new TrackedArray(1, 2, 3);
 
-  for (const item of items) {
-    <div>{item}</div>
+  for (const item of array; index i) {
+    <div>{item}{' at index '}{i}</div>
   }
 
-  <button onClick={() => items.push(`Item ${items.length + 1}`)}>{"Add Item"}</button>
+  <button onClick={() => array.push(`Item ${array.length + 1}`)}>{"Add Item"}</button>
 }
 ```
 
 Clicking the `<button>` will create a new item.
+
+> Note: `for...of` loops inside components must contain either dom elements or components. Otherwise, the loop can be run inside an `effect` or function.
 
 ### Try statements
 
@@ -577,14 +616,14 @@ the reference to the underlying DOM element.
 
 ```jsx
 export component App() {
-  let node = track();
+  let div = track();
 
   const divRef = (node) => {
-    @node = node;
+    @div = node;
     console.log("mounted", node);
 
     return () => {
-      @node = undefined;
+      @div = undefined;
       console.log("unmounted", node);
     };
   };
@@ -597,11 +636,11 @@ You can also create `{ref}` functions inline.
 
 ```jsx
 export component App() {
-  let node = track();
+  let div = track();
 
   <div {ref (node) => {
-    @node = node;
-    return () => @node = undefined;
+    @div = node;
+    return () => @div = undefined;
   }}>{"Hello world"}</div>
 }
 ```
@@ -728,8 +767,39 @@ component MyComponent() {
 Ripple has the concept of `context` where a value or reactive object can be shared through the component tree –
 like in other frameworks. This all happens from the `createContext` function that is imported from `ripple`.
 
-When you create a context, you can `get` and `set` the values, but this must happen within the context of a component (they can physically live anywhwere, they just need to be called from a component context). Using them outside will result in an error being thrown.
+Creating contexts may take place anywhere. Contexts can contain anything including tracked values or objects. However, context cannot be read via `get` or written to via `set` inside an event handler or at the module level as it must happen within the context of a component. A good strategy is to assign the contents of a context to a variable via the `.get()` method during the component initialization and use this variable for reading and writing.
 
+Example with tracked / reactive contents:
+```jsx
+import { track, createContext } from "ripple"
+
+// create context with an empty object
+const context  = createContext({});
+const context2 = createContext();
+
+export component App() {
+  // get reference to the object
+  const obj = context.get();
+  // set your reactive value
+  obj.count = track(0);
+
+  // create another tracked variable
+  const count2 = track(0);
+  // context2 now contains a trackrf variable
+  context2.set(count2);
+
+  <button onClick={() => { obj.@count++; @count2++ }}>
+    {'Click Me'}
+  </button>
+
+  // context's reactive property count gets updated
+  <pre>{'Context: '}{context.get().@count}</pre>
+  <pre>{'Context2: '}{@count2}</pre>
+}
+```
+> Note: `@(context2.get())` usage with `@()` wrapping syntax will be enabled in the near future
+
+Passing data between components:
 ```jsx
 import { createContext } from 'ripple';
 
@@ -783,6 +853,27 @@ component Parent() {
   <button onClick={() => @count++}>{"increment count"}</button>
 }
 ```
+
+## Testing
+
+We recommend using Ripple using Ripple's Vite plugin. We also recommend using Vitest for testing. When using Vitest, make sure to configure your `vitest.config.js` according by using this template config:
+
+```js
+import { configDefaults, defineConfig } from 'vitest/config';
+import { ripple } from 'vite-plugin-ripple';
+
+export default defineConfig({
+	plugins: [ripple()],
+  resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
+	test: {
+    include: ['**/*.test.ripple'],
+    environment: 'jsdom',
+		...configDefaults.test,
+	},
+});
+```
+
+Then you can create a `example.test.ripple` module and put your Vitest test assertions in that module.
 
 ## Contributing
 
