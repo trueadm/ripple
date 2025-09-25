@@ -440,7 +440,7 @@ The `for...of` loop has also a built-in support for accessing the loops numerica
 
 ```jsx
   for (const item of items; index i) {
-    <div>{item}{'at index '}{i}</div>
+    <div>{item}{' at index '}{i}</div>
   }
 ```
 
@@ -453,7 +453,7 @@ component Numbers() {
   const array = new TrackedArray(1, 2, 3);
 
   for (const item of array; index i) {
-    <div>{item}{'at index '}{i}</div>
+    <div>{item}{' at index '}{i}</div>
   }
 
   <button onClick={() => array.push(`Item ${array.length + 1}`)}>{"Add Item"}</button>
