@@ -1401,4 +1401,17 @@ describe('basic', () => {
 		const pre = container.querySelectorAll('pre')[0];
 		expect(pre.textContent).toBe('true');
 	});
+
+	it('should handle lexical scopes correctly', () => {
+		component App() {
+			<section>
+				let sectionData = 'Nested scope variable';
+
+				{sectionData}
+			</section>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
 });
