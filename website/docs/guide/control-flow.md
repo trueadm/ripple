@@ -7,7 +7,7 @@ title: Control flow in Ripple
 The JSX-like syntax might take some time to get used to if you're coming from another framework. For one, templating in Ripple
 can only occur _inside_ a `component` body – you can't create JSX inside functions, or assign it to variables as an expression.
 
-```jsx
+```ripple
 <div>
   // you can create variables inside the template!
   const str = "hello world";
@@ -46,7 +46,7 @@ component Truthy({ x }) {
 
 You can render collections using a `for...of` loop.
 
-```jsx
+```ripple
 component ListView({ title, items }) {
   <h2>{title}</h2>
   <ul>
@@ -59,7 +59,7 @@ component ListView({ title, items }) {
 
 The `for...of` loop has also a built-in support for accessing the loops numerical index. The `label` index declares a variable that will used to assign the loop's index.
 
-```jsx
+```ripple
   for (const item of items; index i) {
     <div>{item}{'at index '}{i}</div>
   }
@@ -67,7 +67,7 @@ The `for...of` loop has also a built-in support for accessing the loops numerica
 
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
-```jsx
+```ripple
 import { TrackedArray } from 'ripple';
 
 component Numbers() {

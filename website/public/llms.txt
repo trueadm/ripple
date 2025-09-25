@@ -377,7 +377,7 @@ component List({ items }) {
 ```
 
 #### For Loops with index
-```jsx
+```ripple
 component ListView({ title, items }) {
   <h2>{title}</h2>
   <ul>
