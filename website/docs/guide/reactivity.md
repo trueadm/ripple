@@ -70,6 +70,8 @@ When working with component props, destructuring is often useful — both for di
 
 A full example utilizing various Ripple constructs demonstrates the `split` option usage:
 
+<Code console>
+
 ```ripple
 import { track } from 'ripple';
 import type { PropsWithChildren, Tracked } from 'ripple';
@@ -103,6 +105,8 @@ export component App() {
 }
 ```
 
+</Code>
+
 With the regular destructuring, such as the one below, the `count` and `class` properties would lose their reactivity:
 
 ```ripple
@@ -111,7 +115,7 @@ let { children, count, class: className, ...rest } = props;
 ```
 
 ::: info Note
-Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values.  Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
+Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values. Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
 :::
 
 ## Transporting Reactivity
