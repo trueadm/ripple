@@ -187,30 +187,31 @@ effect(() => {
 
 #### Split Option
 
-The `track` function also offers a `split` option to "split" a plain object, such as component props, into specifed tracked variables and an extra `rest` (can be any name) containing the remaining unspecified object properties.
+The `track` function also offers a `split` option to "split" a plain object — such as component props — into specified tracked variables and an extra `rest` property containing the remaining unspecified object properties.
 
 ```jsx
 const [children, count, rest] = track(props, {split: ['children', 'count']});
 ```
 
-Frequently when processing properties passed in to a component, a destructuring is highly desirable for direct use as variablse and to apply any number of unspecified properties to an element or another child component, such as `rest` (could be named anything).  To make sure that these resulting destructured variables remain reactive, applying `track` with the `split` option guarantees their reactivity.
+When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity. However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, does not preserve reactivity due to various edge cases. To ensure destructured variables remain reactive in this case, use the `track` function with the `split` option.
 
-A full example utilizing various Ripple constructs demonstrates its usage.
+A full example utilizing various Ripple constructs demonstrates the `split` option usage:
 
 ```jsx
 import { track } from 'ripple';
 import type { PropsWithChildren, Tracked } from 'ripple';
 
 component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
-  const [children, count, rest] = track(props, {split: ['children', 'count']});
+  const [children, count, className, rest] = track(props, {split: ['children', 'count', 'class']});
 
-  <button {...@rest}><@children /></button>
+  <button class={@className} {...@rest}><@children /></button>
   <pre>{`Count is: ${@count}`}</pre>
   <button onClick={() => @count++}>{'Increment Count'}</button>
 }
 
 export component App() {
   let count = track(0);
+  let className = track('shadow');
   let name = track('Click Me');
 
   function buttonRef(el) {
@@ -221,22 +222,22 @@ export component App() {
   }
 
   <Child
-    class="my-button"
-    onClick={() => @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'}
+    class={@className}
+    onClick={() => { @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'; @className = ''}}
     count:={() => @count, (v) => {console.log('inside setter'); @count++}}
     {ref buttonRef}
   >{@name}</Child>;
 }
 ```
 
-With the regular destructuring, such as the one below, the `count` property would lose its reactivity:
+With the regular destructuring, such as the one below, the `count` and `class` properties would lose their reactivity:
 
 ```jsx
 // ❌ WRONG Reactivity would be lost
 let { children, count, class: className, ...rest } = props;
 ```
 
-> Note: Make sure the resulting `rest` if it's going to be spread onto a dom element, does not contain `Tracked` values.  Otherwise, you'd be spreading not the actual values but the boxed ones which are objects that will appear as `[Object object]` on the dom element.
+> Note: Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values.  Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
 
 #### Transporting Reactivity
 
@@ -422,8 +423,7 @@ component Truthy({ x }) {
 
 ### For statements
 
-You can render collections using a `for...of` block, and you don't need to specify a `key` prop like
-other frameworks.
+You can render collections using a `for...of` loop.
 
 ```jsx
 component ListView({ title, items }) {
@@ -436,23 +436,33 @@ component ListView({ title, items }) {
 }
 ```
 
+The `for...of` loop has also a built-in support for accessing the loops numerical index. The `label` index declares a variable that will used to assign the loop's index.
+
+```jsx
+  for (const item of items; index i) {
+    <div>{item}{' at index '}{i}</div>
+  }
+```
+
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
 ```jsx
 import { TrackedArray } from 'ripple';
 
 component Numbers() {
-  const items = new TrackedArray(1, 2, 3);
+  const array = new TrackedArray(1, 2, 3);
 
-  for (const item of items) {
-    <div>{item}</div>
+  for (const item of array; index i) {
+    <div>{item}{' at index '}{i}</div>
   }
 
-  <button onClick={() => items.push(`Item ${items.length + 1}`)}>{"Add Item"}</button>
+  <button onClick={() => array.push(`Item ${array.length + 1}`)}>{"Add Item"}</button>
 }
 ```
 
 Clicking the `<button>` will create a new item.
+
+> Note: `for...of` loops inside components must contain either dom elements or components. Otherwise, the loop can be run inside an `effect` or function.
 
 ### Try statements
 
