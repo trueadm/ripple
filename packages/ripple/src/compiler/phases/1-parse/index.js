@@ -75,6 +75,21 @@ function RipplePlugin(config) {
           }
         }
 
+        if (code === 35) {
+          // # character
+          // Look ahead to see if this is followed by [ for tuple syntax
+          if (this.pos + 1 < this.input.length) {
+            const nextChar = this.input.charCodeAt(this.pos + 1);
+            if (nextChar === 91) { // [ character
+              // This is a tuple literal #[
+              // Consume both # and [
+              ++this.pos; // consume #
+              ++this.pos; // consume [
+              return this.finishToken(tt.bracketL, '#[');
+            }
+          }
+        }
+
         if (code === 64) {
           // @ character
           // Look ahead to see if this is followed by a valid identifier character
@@ -159,6 +174,50 @@ function RipplePlugin(config) {
           this.pos = prev_pos;
         }
         return node;
+      }
+
+      parseExprAtom(refDestructuringErrors, forNew, forInit) {
+        // Check if this is a tuple literal starting with #[
+        if (this.type === tt.bracketL && this.value === '#[') {
+          return this.parseTrackedArrayExpression();
+        }
+        
+        return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
+      }
+
+      parseTrackedArrayExpression() {
+        const node = this.startNode();
+        this.next(); // consume the '#['
+        
+        node.elements = [];
+        
+        // Parse array elements similar to regular array parsing
+        let first = true;
+        while (!this.eat(tt.bracketR)) {
+          if (!first) {
+            this.expect(tt.comma);
+            if (this.afterTrailingComma(tt.bracketR)) break;
+          } else {
+            first = false;
+          }
+          
+          if (this.type === tt.comma) {
+            // Hole in array
+            node.elements.push(null);
+          } else if (this.type === tt.ellipsis) {
+            // Spread element
+            const element = this.parseSpread();
+            node.elements.push(element);
+            if (this.type === tt.comma && this.input.charCodeAt(this.pos) === 93) {
+              this.raise(this.pos, "Trailing comma is not permitted after the rest element");
+            }
+          } else {
+            // Regular element
+            node.elements.push(this.parseMaybeAssign(false));
+          }
+        }
+        
+        return this.finishNode(node, 'TrackedArrayExpression');
       }
 
       parseExportDefaultDeclaration() {

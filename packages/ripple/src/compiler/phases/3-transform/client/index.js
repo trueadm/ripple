@@ -269,6 +269,27 @@ const visitors = {
 		);
 	},
 
+	TrackedArrayExpression(node, context) {
+		if (context.state.to_ts) {
+			if (!context.state.imports.has(`import { TrackedArray } from 'ripple'`)) {
+				context.state.imports.add(`import { TrackedArray } from 'ripple'`);
+			}
+
+			return b.new(
+				b.call(
+					b.member(b.id('TrackedArray'), b.id('from')),
+					node.elements.map((el) => context.visit(el)),
+				),
+			);
+		}
+
+		return b.call(
+			'_$_.tracked_array',
+			b.array(node.elements.map((el) => context.visit(el))),
+			b.id('__block'),
+		);
+	},
+
 	MemberExpression(node, context) {
 		const parent = context.path.at(-1);
 

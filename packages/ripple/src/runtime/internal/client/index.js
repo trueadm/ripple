@@ -52,3 +52,5 @@ export { if_block as if } from './if.js';
 export { try_block as try, aborted } from './try.js';
 
 export { template, append } from './template.js';
+
+export { tracked_array } from '../../array.js';

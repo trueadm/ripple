@@ -790,4 +790,5 @@ export {
   null_instane as null,
   debugger_builder as debugger,
   try_builder as try,
+  new_builder as new,
 };
