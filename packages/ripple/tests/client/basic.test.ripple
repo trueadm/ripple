@@ -1272,12 +1272,16 @@ describe('basic client', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	// we removed accessor props
-	it.skip('can retain reactivity for destructure rest via track split', () => {
+	it('can retain reactivity for destructure rest via track split', () => {
 		let logs = [];
 
 		component App() {
-			let count = track(0);
+			let count = track(0, {
+				set(v) {
+					logs.push('inside setter');
+					return v;
+				}
+			});
 			let name = track('Click Me');
 
 			function buttonRef(el) {
@@ -1290,7 +1294,7 @@ describe('basic client', () => {
 			<Child
 				class="my-button"
 				onClick={() => @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'}
-				count={() => @count, (v) => {logs.push('inside setter'); @count++}}
+				count={@count}
 				{ref buttonRef}
 			>{@name}</Child>;
 		}

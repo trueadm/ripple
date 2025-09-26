@@ -697,6 +697,20 @@ const visitors = {
 							props.push(
 								b.prop('get', attr.name, b.function(null, [], b.block([b.return(property)]))),
 							);
+
+							if (attr.value.type === 'Identifier' && attr.value.tracked) {
+								props.push(
+									b.prop(
+										'set',
+										attr.name,
+										b.function(
+											null,
+											[b.id('__v')],
+											b.block([b.stmt(visit(b.assignment('=', attr.value, b.id('__v'))))]),
+										),
+									),
+								);
+							}
 						} else {
 							props.push(b.prop('init', attr.name, property));
 						}

@@ -18,6 +18,7 @@ export type Dependency = {
 };
 
 export type Tracked = {
+	a: { get?: Function, set?: Function };
 	b: Block;
 	c: number;
 	f: number;
@@ -25,6 +26,7 @@ export type Tracked = {
 };
 
 export type Derived = {
+	a: { get?: Function, set?: Function };
 	b: Block;
 	blocks: null | Block[];
 	c: number;
