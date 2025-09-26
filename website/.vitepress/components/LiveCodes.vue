@@ -8,6 +8,9 @@ import LiveCodes from 'livecodes/vue'
 import type { EmbedOptions, Playground } from 'livecodes'
 import { PlaygroundProps } from './PlaygroundProps'
 
+const playgroundUrl = 'https://ripple.livecodes.pages.dev'
+const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple'
+
 type UserConfig = { vim: boolean }
 
 const getUserConfig = (): Partial<UserConfig> => {
@@ -31,12 +34,11 @@ const setUserConfig = (config: UserConfig) => {
 
 const props = defineProps<PlaygroundProps>()
 const { isDark } = useData()
+let playground: Playground | undefined
 const playgroundActions = useTemplateRef('playground-actions')
 const tailwind = ref(false)
 const vim = ref(getUserConfig().vim ?? false)
-
-const playgroundUrl = 'https://ripple.livecodes.pages.dev'
-const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple'
+const hash = props.isMainPlayground ? window.location.hash : undefined
 
 const pkg = await fetch(apiUrl)
 	.then((res) => res.json())
@@ -99,8 +101,6 @@ const getStyle = () => ({
 	hideTitle: true,
 })
 
-const hash = props.isMainPlayground ? window.location.hash : undefined
-
 const config: EmbedOptions['config'] = {
 	customSettings: { ripple: { version: version.value } },
 	view: props.view ?? 'split',
@@ -136,7 +136,12 @@ const getShareUrl = async () => {
 	return url.href
 }
 
-let playground: Playground | undefined
+const updateUrl = async () => {
+	const url = await getShareUrl()
+	if (!url) return
+	history.replaceState(null, '', url)
+}
+
 const onReady = (sdk: Playground) => {
 	playground = sdk
 
@@ -189,12 +194,12 @@ const onReady = (sdk: Playground) => {
 	if (props.isMainPlayground) {
 		playground.watch('code', async () => {
 			if (!playground) return
-			const url = await getShareUrl()
-			if (!url) return
-			window.history.replaceState(null, '', url)
+			await updateUrl()
 		})
-		playground.watch('ready', async () => {
+
+		const readyWatcher = playground.watch('ready', async () => {
 			playgroundActions.value.style.visibility = 'visible'
+			readyWatcher.remove()
 		})
 	}
 }
@@ -256,9 +261,7 @@ watch(version, async () => {
 	playground.setConfig({
 		customSettings: { ripple: { version: version.value } },
 	})
-	const url = new URL(window.location.href)
-	url.searchParams.set('v', version.value)
-	window.history.replaceState(null, '', url.href)
+	await updateUrl()
 })
 
 const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><title>ionicons-v5-i</title><line x1="368" y1="128" x2="448" y2="128" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="128" x2="304" y2="128" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="368" y1="384" x2="448" y2="384" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="384" x2="304" y2="384" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="208" y1="256" x2="448" y2="256" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="256" x2="144" y2="256" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><circle cx="336" cy="128" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle><circle cx="176" cy="256" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle><circle cx="336" cy="384" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle></g></svg>`
@@ -284,7 +287,7 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 
 		<VPFlyout :button="settingsIcon">
 			<div class="menu-item" @click="tailwind = !tailwind">
-				Tailwind <VPSwitch :aria-checked="tailwind"></VPSwitch>
+				Tailwind CSS<VPSwitch :aria-checked="tailwind"></VPSwitch>
 			</div>
 			<div class="menu-item" @click="vim = !vim">
 				Vim mode <VPSwitch :aria-checked="vim"></VPSwitch>
