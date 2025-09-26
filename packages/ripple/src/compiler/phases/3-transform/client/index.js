@@ -95,6 +95,54 @@ function visit_function(node, context) {
 	context.next(state);
 }
 
+function visit_head_element(node, context) {
+	const { state, visit } = context;
+
+	const init = [];
+	const update = [];
+	const final = [];
+	const template = [];
+
+	transform_children(node.children, {
+		visit,
+		state: { ...state, init, update, final, template, inside_head: true },
+		root: true,
+	});
+
+	if (init.length > 0 || update.length > 0 || final.length > 0) {
+		context.state.init.push(
+			b.call('_$_.head', b.arrow([b.id('__anchor')], b.block([...init, ...update, ...final]))),
+		);
+	}
+}
+
+function visit_title_element(node, context) {
+	const normalized = normalize_children(node.children, context);
+	const content = normalized[0];
+
+	const metadata = { tracking: false, await: false };
+	const result = context.visit(content, { ...context.state, metadata }).expression;
+
+	if (metadata.tracking) {
+		context.state.init.push(
+			b.stmt(
+				b.call(
+					'_$_.render',
+					b.thunk(b.block([b.assignment('=', b.id('_$_.document.title'), result)])),
+				),
+			),
+		);
+	} else {
+		debugger;
+	}
+}
+
+function visit_style_element(node, context) {
+	context.state.template.push(
+		b.literal(`<style>${sanitize_template_string(node.css)}</style>`),
+	);
+}
+
 const visitors = {
 	_: function set_scope(node, { next, state }) {
 		const scope = state.scopes.get(node);
@@ -427,15 +475,22 @@ const visitors = {
 	FunctionDeclaration(node, context) {
 		return visit_function(node, context);
 	},
+
 	ArrowFunctionExpression(node, context) {
 		return visit_function(node, context);
 	},
+
 	FunctionExpression(node, context) {
 		return visit_function(node, context);
 	},
 
 	Element(node, context) {
 		const { state, visit } = context;
+
+		if (context.state.inside_head && node.id.type === 'Identifier' && node.id.name === 'style') {
+			state.template.push(`<style>${sanitize_template_string(node.css)}</style>`);
+			return;
+		}
 
 		const is_dom_element = is_element_dom_element(node);
 		const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
@@ -799,29 +854,6 @@ const visitors = {
 				);
 			}
 		}
-	},
-
-	Fragment(node, context) {
-		if (!context.state.to_ts) {
-			add_ripple_internal_import(context);
-		}
-
-		const metadata = { await: false };
-
-		const body_statements = transform_body(node.body, {
-			...context,
-			state: { ...context.state, component: node, metadata },
-		});
-
-		return b.function(
-			node.id,
-			[b.id('__anchor'), ...node.params.map((param) => context.visit(param, context.state))],
-			b.block(
-				metadata.await
-					? [b.stmt(b.call('_$_.async', b.thunk(b.block(body_statements), true)))]
-					: body_statements,
-			),
-		);
 	},
 
 	Component(node, context) {
@@ -1414,7 +1446,10 @@ function transform_ts_child(node, context) {
 
 function transform_children(children, context) {
 	const { visit, state, root } = context;
-	const normalized = normalize_children(children);
+	const normalized = normalize_children(children, context);
+	const head_elements = children.filter(
+		(node) => node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'head',
+	);
 
 	const is_fragment =
 		normalized.some(
@@ -1514,6 +1549,8 @@ function transform_children(children, context) {
 
 			if (node.type === 'Element') {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
+			} else if (node.type === 'HeadElement') {
+				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'Text') {
 				const metadata = { tracking: false, await: false };
 				const expression = visit(node.expression, { ...state, metadata });
@@ -1558,6 +1595,20 @@ function transform_children(children, context) {
 		}
 	}
 
+	for (const head_element of head_elements) {
+		visit_head_element(head_element, context);
+	}
+	if (context.state.inside_head) {
+		const title_element = children.find(
+			(node) =>
+				node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'title',
+		);
+
+		if (title_element) {
+			visit_title_element(title_element, context);
+		}
+	}
+
 	const template_namespace = state.namespace || 'html';
 
 	if (root && initial !== null && template_id !== null) {
@@ -1584,6 +1635,7 @@ function transform_body(body, { visit, state }) {
 		final: [],
 		metadata: state.metadata,
 		namespace: state.namespace || 'html', // Preserve namespace context
+		inside_head: state.inside_head || false,
 	};
 
 	transform_children(body, { visit, state: body_state, root: true });

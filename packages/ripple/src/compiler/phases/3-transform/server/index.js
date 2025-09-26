@@ -27,7 +27,7 @@ function add_ripple_internal_import(context) {
 
 function transform_children(children, context) {
 	const { visit, state, root } = context;
-	const normalized = normalize_children(children);
+	const normalized = normalize_children(children, context);
 
 	for (const node of normalized) {
 		if (

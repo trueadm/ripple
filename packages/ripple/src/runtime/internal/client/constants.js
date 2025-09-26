@@ -7,14 +7,15 @@ export var TRY_BLOCK = 1 << 6;
 export var IF_BLOCK = 1 << 7;
 export var COMPOSITE_BLOCK = 1 << 8;
 export var ASYNC_BLOCK = 1 << 9;
-export var CONTAINS_UPDATE = 1 << 10;
-export var CONTAINS_TEARDOWN = 1 << 11;
-export var BLOCK_HAS_RUN = 1 << 12;
-export var TRACKED = 1 << 13;
-export var DERIVED = 1 << 14;
-export var DEFERRED = 1 << 15;
-export var PAUSED = 1 << 16;
-export var DESTROYED = 1 << 17;
+export var HEAD_BLOCK = 1 << 10;
+export var CONTAINS_UPDATE = 1 << 11;
+export var CONTAINS_TEARDOWN = 1 << 12;
+export var BLOCK_HAS_RUN = 1 << 13;
+export var TRACKED = 1 << 14;
+export var DERIVED = 1 << 15;
+export var DEFERRED = 1 << 16;
+export var PAUSED = 1 << 17;
+export var DESTROYED = 1 << 18;
 
 export var CONTROL_FLOW_BLOCK = FOR_BLOCK | IF_BLOCK | TRY_BLOCK | COMPOSITE_BLOCK;
 
