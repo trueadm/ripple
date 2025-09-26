@@ -379,7 +379,6 @@ export function is_component_level_function(context) {
 }
 
 export function is_ripple_track_call(callee, context) {
-<<<<<<< Updated upstream
   return (
     (callee.type === 'Identifier' && (callee.name === 'track' || callee.name === 'trackSplit')) ||
     (callee.type === 'MemberExpression' &&
@@ -389,17 +388,6 @@ export function is_ripple_track_call(callee, context) {
       !callee.computed &&
       is_ripple_import(callee, context))
   );
-=======
-	return (
-		(callee.type === 'Identifier' && callee.name === 'track') ||
-		(callee.type === 'MemberExpression' &&
-			callee.object.type === 'Identifier' &&
-			callee.property.type === 'Identifier' &&
-			callee.property.name === 'track' &&
-			!callee.computed &&
-			is_ripple_import(callee, context))
-	);
->>>>>>> Stashed changes
 }
 
 export function is_inside_call_expression(context) {
