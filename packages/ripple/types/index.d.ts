@@ -89,13 +89,13 @@ type RestKeys<T, K extends readonly (keyof T)[]> = Expand<Omit<T, K[number]>>;
 type SplitResult<T extends Props, K extends readonly (keyof T)[]> =
   [...PickKeys<T, K>, UnwrapTracked<RestKeys<T, K>>];
 
-type TrackOptions = { split?: readonly (string | number | symbol)[] };
+type TrackOptions<T> = { split?: readonly (string | number | symbol)[], get?: (v: T) => T, set?: (v: T) => T };
 
 export declare function track<V>(value?: V | (() => V)): Tracked<V>;
 
 export declare function track<V extends Props, const K extends readonly (keyof V)[]>(
   value: V,
-  options: TrackOptions
+  options: TrackOptions<V>
 ): SplitResult<V, K>;
 
 export function on<Type extends keyof WindowEventMap>(

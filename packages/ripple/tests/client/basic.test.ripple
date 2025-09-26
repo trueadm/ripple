@@ -1276,7 +1276,12 @@ describe('basic client', () => {
 		let logs = [];
 
 		component App() {
-			let count = track(0);
+			let count = track(0, {
+				set(v) {
+					logs.push('inside setter');
+					return v;
+				}
+			});
 			let name = track('Click Me');
 
 			function buttonRef(el) {
@@ -1289,7 +1294,7 @@ describe('basic client', () => {
 			<Child
 				class="my-button"
 				onClick={() => @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'}
-				count:={() => @count, (v) => {logs.push('inside setter'); @count++}}
+				count={@count}
 				{ref buttonRef}
 			>{@name}</Child>;
 		}
