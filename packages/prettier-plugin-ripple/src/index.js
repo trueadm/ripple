@@ -409,6 +409,10 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printContinueStatement(node, path, options, print);
 			break;
 
+		case 'DebuggerStatement':
+			nodeContent = printDebuggerStatement(node, path, options, print);
+			break;
+
 		case 'SequenceExpression':
 			nodeContent = printSequenceExpression(node, path, options, print);
 			break;
@@ -1595,6 +1599,10 @@ function printContinueStatement(node, path, options, print) {
 	}
 	parts.push(';');
 	return parts;
+}
+
+function printDebuggerStatement(node, path, options, print) {
+	return 'debugger;';
 }
 
 function printSequenceExpression(node, path, options, print) {

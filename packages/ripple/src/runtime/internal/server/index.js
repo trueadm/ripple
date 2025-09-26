@@ -114,6 +114,10 @@ export function spread_attrs(attrs, css_hash) {
 
 		if (typeof value === 'function') continue;
 
+    if (is_tracked_object(value)) {
+      value = get(value);
+    }
+
     if (name === 'class' && css_hash) {
       value = (value == null ? '' : value) + ' ' + css_hash;
     }

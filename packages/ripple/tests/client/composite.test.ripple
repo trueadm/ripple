@@ -663,5 +663,41 @@ describe('composite components', () => {
 
 		render(App);
 		expect(container).toMatchSnapshot();
-	})
+	});
+
+	it('handles dynamic component switching', () => {
+		component Child1() {
+			<div>{"I am child 1"}</div>
+		}
+
+		component Child2() {
+			<div>{"I am child 2"}</div>
+		}
+
+		component App() {
+			let thing = track(() => Child1)
+
+			<div id="container">
+				<@thing />
+			</div>
+
+			<button onClick={() => @thing = @thing === Child1 ? Child2 : Child1}>{"Change Child"}</button>
+		}
+
+		render(App);
+		flushSync();
+
+		expect(container.querySelector('#container').textContent).toBe('I am child 1');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('#container').textContent).toBe('I am child 2');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('#container').textContent).toBe('I am child 1');
+	});
 });

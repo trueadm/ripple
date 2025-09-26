@@ -802,20 +802,35 @@ const visitors = {
 				}
 			}
 
-			if (is_spreading) {
+			const metadata = { tracking: false, await: false };
+			// We visit, but only to gather metadata
+			b.call(visit(node.id, { ...state, metadata }));
+
+			if (metadata.tracking) {
 				state.init.push(
 					b.stmt(
 						b.call(
-							node.id,
+							'_$_.composite',
+							b.thunk(visit(node.id, state)),
 							id,
-							b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block')),
-							b.id('_$_.active_block'),
+							is_spreading
+								? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
+								: b.object(props),
 						),
 					),
 				);
 			} else {
 				state.init.push(
-					b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('_$_.active_block'))),
+					b.stmt(
+						b.call(
+							visit(node.id, state),
+							id,
+							is_spreading
+								? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
+								: b.object(props),
+							b.id('_$_.active_block'),
+						),
+					),
 				);
 			}
 		}

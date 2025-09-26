@@ -576,6 +576,7 @@ const items = [] as unknown[];`
   for (const item of []; index i) {
     // comment
   }
+  debugger;
 
   // some comments
   const test = ""; // some comments 2
