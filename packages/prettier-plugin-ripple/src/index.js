@@ -221,9 +221,12 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTryStatement(node, path, options, print);
 			break;
 
-		case 'ArrayExpression': {
+		case 'ArrayExpression':
+		case 'TrackedArrayExpression': {
+			const prefix = node.type === 'TrackedArrayExpression' ? '#' : '';
+
 			if (!node.elements || node.elements.length === 0) {
-				nodeContent = '[]';
+				nodeContent = prefix + '[]';
 				break;
 			}
 
@@ -231,7 +234,7 @@ function printRippleNode(node, path, options, print, args) {
 
 			// Simple single-line for short arrays
 			if (elements.length <= 3) {
-				const parts = ['['];
+				const parts = [prefix + '['];
 				for (let i = 0; i < elements.length; i++) {
 					if (i > 0) parts.push(', ');
 					parts.push(elements[i]);
@@ -242,7 +245,7 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			// Multi-line for longer arrays
-			const parts = ['['];
+			const parts = [prefix + '['];
 			parts.push(line);
 			for (let i = 0; i < elements.length; i++) {
 				if (i > 0) {
