@@ -707,3 +707,19 @@ export function build_getter(node, context) {
 
   return node;
 }
+
+export function determine_namespace_for_children(element_name, current_namespace) {
+	if (element_name === 'foreignObject') {
+		return 'html';
+	}
+
+	if (element_name === 'svg') {
+		return 'svg';
+	}
+
+	if (element_name === 'math') {
+		return 'mathml';
+	}
+
+	return current_namespace;
+}
