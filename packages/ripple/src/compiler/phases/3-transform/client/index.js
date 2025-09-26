@@ -29,6 +29,7 @@ import {
 	is_ripple_track_call,
 	normalize_children,
 	build_getter,
+	determine_namespace_for_children,
 } from '../../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
@@ -92,22 +93,6 @@ function visit_function(node, context) {
 	}
 
 	context.next(state);
-}
-
-function determine_namespace_for_children(element_name, current_namespace) {
-	if (element_name === 'foreignObject') {
-		return 'html';
-	}
-
-	if (element_name === 'svg') {
-		return 'svg';
-	}
-
-	if (element_name === 'math') {
-		return 'mathml';
-	}
-
-	return current_namespace;
 }
 
 const visitors = {
@@ -430,7 +415,6 @@ const visitors = {
 		const is_dom_element = is_element_dom_element(node);
 		const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
 		const spread_attributes = is_spreading ? [] : null;
-
 		const child_namespace = is_dom_element
 			? determine_namespace_for_children(node.id.name, state.namespace)
 			: state.namespace;
