@@ -380,11 +380,11 @@ export function is_component_level_function(context) {
 
 export function is_ripple_track_call(callee, context) {
   return (
-    (callee.type === 'Identifier' && callee.name === 'track') ||
+    (callee.type === 'Identifier' && (callee.name === 'track' || callee.name === 'trackSplit')) ||
     (callee.type === 'MemberExpression' &&
       callee.object.type === 'Identifier' &&
       callee.property.type === 'Identifier' &&
-      callee.property.name === 'track' &&
+      (callee.property.name === 'track' || callee.property.name === 'trackSplit') &&
       !callee.computed &&
       is_ripple_import(callee, context))
   );
