@@ -1,7 +1,44 @@
-.VPNavBarTitle {
-	font-family: "Recursive";
+/**
+ * Colors: Palette
+ *
+ * The primitive colors used for accent colors. These colors are referenced
+ * by functional colors such as "Text", "Background", or "Brand".
+ *
+ * Each colors have exact same color scale system with 3 levels of solid
+ * colors with different brightness, and 1 soft color.
+ *
+ * - `XXX-1`: The most solid color used mainly for colored text. It must
+ *   satisfy the contrast ratio against when used on top of `XXX-soft`.
+ *
+ * - `XXX-2`: The color used mainly for hover state of the button.
+ *
+ * - `XXX-3`: The color for solid background, such as bg color of the button.
+ *    It must satisfy the contrast ratio with pure white (#ffffff) text on
+ *    top of it.
+ *
+ * - `XXX-soft`: The color used for subtle background such as custom container
+ *    or badges. It must satisfy the contrast ratio when putting `XXX-1` colors
+ *    on top of it.
+ *
+ *    The soft color must be semi transparent alpha channel. This is crucial
+ *    because it allows adding multiple "soft" colors on top of each other
+ *    to create a accent, such as when having inline code block inside
+ *    custom containers.
+ */
 
-	.title {
-		font-size: 2rem;
+:root {
+	--vp-c-brand-1: #3e95ff;
+	--vp-c-brand-2: #3989ec;
+	--vp-c-brand-3: #2d6dbf;
+	--vp-c-brand-soft: #aed1ff;
+
+	--vp-font-family-base: "Ubuntu Sans";
+	--vp-font-family-mono: "Fira Code";
+
+}
+
+.VPNavBarTitle {
+	img.logo {
+		--vp-nav-logo-height: 32px;
 	}
 }
