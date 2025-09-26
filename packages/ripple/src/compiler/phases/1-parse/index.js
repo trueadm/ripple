@@ -354,40 +354,6 @@ function RipplePlugin(config) {
 
       jsx_parseAttribute() {
         let node = this.startNode();
-        const lookahead = this.lookahead();
-
-        if (lookahead.type?.label === ':') {
-          let id = this.startNode();
-          id.name = this.value;
-          node.name = id;
-          this.next();
-          this.finishNode(id, 'Identifier');
-
-          if (this.lookahead().value !== '=') {
-            this.unexpected();
-          }
-          this.next();
-          if (this.lookahead().type !== tt.braceL) {
-            this.unexpected();
-          }
-          this.next();
-          const value = this.jsx_parseAttributeValue();
-          const expression = value.expression;
-          node.get = null;
-          node.set = null;
-
-          if (expression.type == 'SequenceExpression') {
-            node.get = expression.expressions[0];
-            node.set = expression.expressions[1];
-            if (expression.expressions.length > 2) {
-              this.unexpected();
-            }
-          } else {
-            node.get = expression;
-          }
-
-          return this.finishNode(node, 'AccessorAttribute');
-        }
 
         if (this.eat(tt.braceL)) {
           if (this.value === 'ref') {

@@ -435,12 +435,6 @@ const visitors = {
               visit(attr.value, state);
             }
           }
-        } else if (attr.type === 'AccessorAttribute') {
-          error(
-            'Accessor props are not supported on DOM elements',
-            state.analysis.module.filename,
-            attr,
-          );
         }
       }
 
@@ -458,12 +452,6 @@ const visitors = {
             attribute_names.add(attr.name);
           }
           visit(attr.value, state);
-        } else if (attr.type === 'AccessorAttribute') {
-          attribute_names.add(attr.name);
-          visit(attr.get, state);
-          if (attr.set) {
-            visit(attr.set, state);
-          }
         } else if (attr.type === 'SpreadAttribute') {
           visit(attr.argument, state);
         } else if (attr.type === 'RefAttribute') {

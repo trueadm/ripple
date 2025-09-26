@@ -711,50 +711,6 @@ const visitors = {
 					);
 				} else if (attr.type === 'RefAttribute') {
 					props.push(b.prop('init', b.call('_$_.ref_prop'), visit(attr.argument, state), true));
-				} else if (attr.type === 'AccessorAttribute') {
-					let get_expr;
-
-					if (
-						attr.get.type === 'FunctionExpression' ||
-						attr.get.type === 'ArrowFunctionExpression'
-					) {
-						get_expr = context.state.scope.generate(attr.name.name + '_get');
-
-						state.init.push(b.const(get_expr, visit(attr.get, state)));
-					} else {
-						get_expr = visit(attr.get, state);
-					}
-
-					props.push(
-						b.prop('get', attr.name, b.function(null, [], b.block([b.return(b.call(get_expr))]))),
-					);
-
-					if (attr.set) {
-						let set_expr;
-
-						if (
-							attr.set.type === 'FunctionExpression' ||
-							attr.set.type === 'ArrowFunctionExpression'
-						) {
-							set_expr = context.state.scope.generate(attr.name.name + '_set');
-
-							state.init.push(b.const(set_expr, visit(attr.set, state)));
-						} else {
-							set_expr = visit(attr.set, state);
-						}
-
-						props.push(
-							b.prop(
-								'set',
-								attr.name,
-								b.function(
-									null,
-									[b.id('__value')],
-									b.block([b.return(b.call(set_expr, b.id('__value')))]),
-								),
-							),
-						);
-					}
 				} else {
 					throw new Error('TODO');
 				}
