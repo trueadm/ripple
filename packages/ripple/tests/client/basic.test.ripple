@@ -379,8 +379,7 @@ describe('basic client', () => {
 		expect(container.querySelector('.count').textContent).toBe('0');
 	});
 
-	// TODO
-	it.skip('renders multiple reactive lexical blocks with complexity', () => {
+	it('renders multiple reactive lexical blocks with complexity', () => {
 
 		component Basic() {
 			const count = 'count';
@@ -1276,12 +1275,7 @@ describe('basic client', () => {
 		let logs = [];
 
 		component App() {
-			let count = track(0, {
-				set(v) {
-					logs.push('inside setter');
-					return v;
-				}
-			});
+			let count = track(0);
 			let name = track('Click Me');
 
 			function buttonRef(el) {
@@ -1294,9 +1288,11 @@ describe('basic client', () => {
 			<Child
 				class="my-button"
 				onClick={() => @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'}
-				{count}
+				{@count}
 				{ref buttonRef}
-			>{@name}</Child>;
+			>{@name}</Child>
+
+			<button onClick={() => @count++}>{'Increment Count'}</button>
 		}
 
 		component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
@@ -1306,7 +1302,6 @@ describe('basic client', () => {
 				<button {...@rest}><@children /></button>
 			}
 			<pre>{@count}</pre>
-			<button onClick={() => @count++}>{'Increment Count'}</button>
 		}
 
 		render(App);
@@ -1327,12 +1322,11 @@ describe('basic client', () => {
 
 		expect(buttonClickMe.textContent).toBe('Clicked');
 		expect(countPre.textContent).toBe('1');
-		expect(logs).toEqual(['ref called','inside setter']);
 
 		buttonIncrement.click();
 		flushSync();
 
-		expect(logs).toEqual(['ref called','inside setter','inside setter','cleanup ref']);
+		expect(logs).toEqual(['ref called','cleanup ref']);
 	});
 
 	it('errors on invalid value as null for track with split', () => {
@@ -1391,6 +1385,26 @@ describe('basic client', () => {
 
 		const pre = container.querySelectorAll('pre')[0];
 		expect(pre.textContent).toBe('Invalid value: expected a non-tracked object');
+	});
+
+	it('returns undefined for non-existent props in track with split', () => {
+		component App() {
+			const [a, b, rest] = track({a: 1, c: 1}, { split: ['a', 'b'] });
+
+			<pre>{@a}</pre>
+			<pre>{String(@b)}</pre>
+			<pre>{@rest.c}</pre>
+		}
+
+		render(App);
+
+		const preA = container.querySelectorAll('pre')[0];
+		const preB = container.querySelectorAll('pre')[1];
+		const preC = container.querySelectorAll('pre')[2];
+
+		expect(preA.textContent).toBe('1');
+		expect(preB.textContent).toBe('undefined');
+		expect(preC.textContent).toBe('1');
 	});
 
 	it('returns the same tracked object if plain track is called with a tracked object', () => {

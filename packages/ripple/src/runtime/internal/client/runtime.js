@@ -326,17 +326,23 @@ export function track(v, o, b) {
 	/** @type {Record<PropertyKey, any | null>} */
 	var descriptors = get_descriptors(v);
 
-	for (let i = 0, key, t; i < list.length; i++) {
+	for (let i = 0, key, t, exists = true; i < list.length; i++) {
 		key = list[i];
 
 		if (is_tracked_object(v[key])) {
 			t = v[key];
 		} else {
-			t = define_property(tracked(undefined, b), 'v', descriptors[key]);
+			t = tracked(undefined, b);
+			exists = !!descriptors[key];
+			if (exists) {
+				t = define_property(t, 'v', descriptors[key]);
+			}
 		}
 
 		out[i] = t;
-		descriptors[key] = null;
+		if (exists) {
+			descriptors[key] = null;
+		}
 	}
 
 	var props = Reflect.ownKeys(descriptors);
