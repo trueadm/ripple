@@ -1,7 +1,8 @@
 .VPNavBarTitle {
 	font-family: "Recursive";
 
-	.title {
-		font-size: 2rem;
+.VPNavBarTitle {
+	img.logo {
+		--vp-nav-logo-height: 32px;
 	}
 }

@@ -43,6 +43,11 @@ export default defineConfig({
 	},
 
 	themeConfig: {
+		logo: {
+			light: '/ripple-logo-horizontal.png',
+			dark: '/ripple-logo-horizontal.png',
+			alt: 'Ripple Logo',
+		},
 		logoLink: { target: '_self' },
 		notFound: {
 			link: '/docs/introduction',
