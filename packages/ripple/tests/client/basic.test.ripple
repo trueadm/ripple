@@ -1294,7 +1294,7 @@ describe('basic client', () => {
 			<Child
 				class="my-button"
 				onClick={() => @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'}
-				count={@count}
+				{count}
 				{ref buttonRef}
 			>{@name}</Child>;
 		}
