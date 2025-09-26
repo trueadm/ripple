@@ -1,5 +1,4 @@
 /** @import { Block, Component, Dependency, Derived, Tracked } from '#client' */
-/** @import { TrackOptions } from '#public' */
 
 import {
 	destroy_block,
