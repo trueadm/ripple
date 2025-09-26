@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, flushSync, effect, track } from 'ripple';
 import { compile } from 'ripple/compiler';
 
-describe('basic', () => {
+describe('basic client', () => {
 	let container;
 
 	function render(component) {

@@ -1,1 +1,1 @@
-export { renderToString } from '../runtime/internal/server/index.js';
+export { render } from '../runtime/internal/server/index.js';

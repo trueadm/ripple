@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`basic > basic operations 1`] = `
+exports[`basic client > basic operations 1`] = `
 <div>
   <div>
     0
@@ -18,25 +18,7 @@ exports[`basic > basic operations 1`] = `
 </div>
 `;
 
-exports[`basic > correctly renders adjacent text nodes 1`] = `
-<div>
-  <div>
-    11
-  </div>
-  <div>
-    11
-  </div>
-  <div>
-    truetrue
-  </div>
-  <div>
-    truetrue
-  </div>
-  
-</div>
-`;
-
-exports[`basic > handles boolean attributes with no prop value provides 1`] = `
+exports[`basic client > handles boolean attributes with no prop value provides 1`] = `
 <div>
   <div
     class="container"
@@ -55,7 +37,7 @@ exports[`basic > handles boolean attributes with no prop value provides 1`] = `
 </div>
 `;
 
-exports[`basic > render semi-dynamic text 1`] = `
+exports[`basic client > render semi-dynamic text 1`] = `
 <div>
   <div>
     Hello World
@@ -64,7 +46,7 @@ exports[`basic > render semi-dynamic text 1`] = `
 </div>
 `;
 
-exports[`basic > render spread props without duplication 1`] = `
+exports[`basic client > render spread props without duplication 1`] = `
 <div>
   <div>
     <input
@@ -78,7 +60,7 @@ exports[`basic > render spread props without duplication 1`] = `
 </div>
 `;
 
-exports[`basic > render static attributes 1`] = `
+exports[`basic client > render static attributes 1`] = `
 <div>
   <div
     class="foo"
@@ -91,7 +73,7 @@ exports[`basic > render static attributes 1`] = `
 </div>
 `;
 
-exports[`basic > render static text 1`] = `
+exports[`basic client > render static text 1`] = `
 <div>
   <div>
     Hello World
@@ -100,7 +82,7 @@ exports[`basic > render static text 1`] = `
 </div>
 `;
 
-exports[`basic > renders simple JS expression logic correctly 1`] = `
+exports[`basic client > renders simple JS expression logic correctly 1`] = `
 <div>
   <div>
     {"0":"Test"}
@@ -112,7 +94,7 @@ exports[`basic > renders simple JS expression logic correctly 1`] = `
 </div>
 `;
 
-exports[`basic > should handle lexical scopes correctly 1`] = `
+exports[`basic client > should handle lexical scopes correctly 1`] = `
 <div>
   <section>
     Nested scope variable

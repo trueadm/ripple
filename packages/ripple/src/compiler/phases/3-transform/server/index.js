@@ -5,6 +5,8 @@ import path from 'node:path';
 import { print } from 'esrap';
 import {
 	build_getter,
+	escape_html,
+	is_boolean_attribute,
 	is_element_dom_element,
 	is_inside_component,
 	is_void_element,
@@ -12,6 +14,7 @@ import {
 } from '../../../utils.js';
 import is_reference from 'is-reference';
 import { escape } from '../../../../utils/escaping.js';
+import { is_event_attribute } from '../../../../utils/events.js';
 
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
@@ -106,6 +109,8 @@ const visitors = {
 		const { state, visit } = context;
 
 		const is_dom_element = is_element_dom_element(node);
+		const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
+		const spread_attributes = is_spreading ? [] : null;
 
 		if (is_dom_element) {
 			const is_void = is_void_element(node.id.name);
@@ -115,13 +120,117 @@ const visitors = {
 			);
 			let class_attribute = null;
 
+			const handle_static_attr = (name, value) => {
+				const attr_value = b.literal(
+					` ${name}${
+						is_boolean_attribute(name) && value === true
+							? ''
+							: `="${value === true ? '' : escape_html(value, true)}"`
+					}`,
+				);
+
+				if (is_spreading) {
+					// For spread attributes, store just the actual value, not the full attribute string
+					const actual_value =
+						is_boolean_attribute(name) && value === true
+							? b.literal(true)
+							: b.literal(value === true ? '' : value);
+					spread_attributes.push(b.prop('init', b.literal(name), actual_value));
+				} else {
+					state.init.push(
+						b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(String(attr_value)))),
+					);
+				}
+			};
+
 			for (const attr of node.attributes) {
+				if (attr.type === 'Attribute') {
+					if (attr.name.type === 'Identifier') {
+						const name = attr.name.name;
+
+						if (attr.value === null) {
+							handle_static_attr(name, true);
+							continue;
+						}
+
+						if (attr.value.type === 'Literal' && name !== 'class') {
+							handle_static_attr(name, attr.value.value);
+							continue;
+						}
+
+						if (name === 'class') {
+							class_attribute = attr;
+
+							continue;
+						}
+
+						if (is_event_attribute(name)) {
+							continue;
+						}
+						const metadata = { tracking: false, await: false };
+						const expression = visit(attr.value, { ...state, metadata });
+
+						state.init.push(
+							b.stmt(
+								b.call(
+									b.member(b.id('__output'), b.id('push')),
+									b.call('_$_.attr', b.literal(name), expression),
+								),
+							),
+						);
+					}
+				} else if (attr.type === 'SpreadAttribute') {
+					spread_attributes.push(b.spread(visit(attr.argument, state)));
+				}
 			}
 
 			if (class_attribute !== null) {
-				debugger;
+				if (class_attribute.value.type === 'Literal') {
+					let value = class_attribute.value.value;
+
+					if (node.metadata.scoped && state.component.css) {
+						value = `${state.component.css.hash} ${value}`;
+					}
+
+					handle_static_attr(class_attribute.name.name, value);
+				} else {
+					const metadata = { tracking: false, await: false };
+					let expression = visit(class_attribute.value, { ...state, metadata });
+
+					if (node.metadata.scoped && state.component.css) {
+						expression = b.binary('+', b.literal(state.component.css.hash + ' '), expression);
+					}
+
+					state.init.push(
+						b.stmt(
+							b.call(
+								b.member(b.id('__output'), b.id('push')),
+								b.call('_$_.attr', b.literal('class'), expression),
+							),
+						),
+					);
+				}
 			} else if (node.metadata.scoped && state.component.css) {
-				debugger;
+				const value = state.component.css.hash;
+
+				// TOOO
+			}
+
+			if (spread_attributes !== null && spread_attributes.length > 0) {
+				state.init.push(
+					b.stmt(
+						b.call(
+							b.member(b.id('__output'), b.id('push')),
+							b.call(
+								'_$_.spread_attrs',
+								b.object(spread_attributes),
+								node.metadata.scoped && state.component.css
+									? b.literal(state.component.css.hash)
+									: undefined,
+							),
+						),
+					),
+				);
 			}
 
 			state.init.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(`>`))));
@@ -134,8 +243,26 @@ const visitors = {
 				);
 			}
 		} else {
-      const props = [];
-			state.init.push(b.stmt(b.call(node.id.name, b.call('__output.component'), b.object(props))));
+			const props = [];
+
+			for (const attr of node.attributes) {
+				if (attr.type === 'Attribute') {
+					if (attr.name.type === 'Identifier') {
+						const metadata = { tracking: false, await: false };
+						let property = visit(attr.value, { ...state, metadata });
+
+						props.push(b.prop('init', attr.name, property));
+					} else if (attr.type === 'SpreadAttribute') {
+						props.push(
+							b.spread(
+								visit(attr.argument, { ...state, metadata: { ...state.metadata, spread: true } }),
+							),
+						);
+					}
+				}
+			}
+
+			state.init.push(b.stmt(b.call(node.id.name, b.id('__output'), b.object(props))));
 		}
 	},
 
@@ -146,17 +273,18 @@ const visitors = {
 		}
 		const body_scope = context.state.scopes.get(node.body);
 
+		const body = transform_body(node.body.body, {
+			...context,
+			state: { ...context.state, scope: body_scope },
+		});
+
+		if (node.index) {
+			context.state.init.push(b.var(node.index, b.literal(0)));
+			body.push(b.update('++', node.index));
+		}
+
 		context.state.init.push(
-			b.for_of(
-				context.visit(node.left),
-				context.visit(node.right),
-				b.block(
-					transform_body(node.body.body, {
-						...context,
-						state: { ...context.state, scope: body_scope },
-					}),
-				),
-			),
+			b.for_of(context.visit(node.left), context.visit(node.right), b.block(body)),
 		);
 	},
 
@@ -184,7 +312,7 @@ const visitors = {
 		const parent = /** @type {Node} */ (context.path.at(-1));
 
 		if (is_reference(node, parent) && node.tracked) {
-      add_ripple_internal_import(context);
+			add_ripple_internal_import(context);
 			return b.call('_$_.get', build_getter(node, context));
 		}
 	},

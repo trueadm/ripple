@@ -43,6 +43,8 @@ export {
   maybe_tracked,
 } from './runtime.js';
 
+export { composite } from './composite.js';
+
 export { for_block as for } from './for.js';
 
 export { if_block as if } from './if.js';

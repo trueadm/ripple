@@ -19,10 +19,10 @@ polka()
 		const template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
 		const transformed_template = await vite.transformIndexHtml(req.url, template);
 
-		const { renderToString } = await vite.ssrLoadModule('ripple/server');
+		const { render } = await vite.ssrLoadModule('ripple/server');
 		const { App } = await vite.ssrLoadModule('/src/App.ripple');
 
-		const { head, body } = await renderToString(App);
+		const { head, body } = await render(App);
 
 		const html = transformed_template
 			.replace(`<!--ssr-head-->`, head)

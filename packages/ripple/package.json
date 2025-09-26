@@ -3,10 +3,10 @@
   "description": "Ripple is an elegant TypeScript UI framework",
   "license": "MIT",
   "author": "Dominic Gannaway",
-  "version": "0.2.77",
+  "version": "0.2.79",
   "type": "module",
-  "module": "src/runtime/index.js",
-  "main": "src/runtime/index.js",
+  "module": "src/runtime/index-client.js",
+  "main": "src/runtime/index-client.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trueadm/ripple.git",
@@ -24,9 +24,9 @@
   "exports": {
     ".": {
       "types": "./types/index.d.ts",
-      "worker": "./src/runtime/index.js",
-      "browser": "./src/runtime/index.js",
-      "default": "./src/runtime/index.js"
+      "worker": "./src/runtime/index-server.js",
+      "browser": "./src/runtime/index-client.js",
+      "default": "./src/runtime/index-server.js"
     },
     "./package.json": "./package.json",
     "./server": {
