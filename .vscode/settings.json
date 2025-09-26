@@ -5,8 +5,5 @@
 	},
 	"editor.tabSize": 2,
 	"editor.defaultFormatter": "esbenp.prettier-vscode",
-	"prettier.useTabs": true,
-	"[javascript]": {
-		"editor.defaultFormatter": "vscode.typescript-language-features"
-	}
+	"prettier.useTabs": true
 }
