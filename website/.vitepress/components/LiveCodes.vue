@@ -11,23 +11,24 @@ import { PlaygroundProps } from './PlaygroundProps'
 const playgroundUrl = 'https://ripple.livecodes.pages.dev'
 const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple'
 
-type UserConfig = { vim: boolean }
+type UserSettings = { vim: boolean }
 
-const getUserConfig = (): Partial<UserConfig> => {
-	const config = window.localStorage.getItem('playgroundConfig') || '{}'
+const localStorageKey = 'ripple-playground-settings'
+
+const getUserSettings = (): Partial<UserSettings> => {
+	const userSettings = window.localStorage.getItem(localStorageKey) || '{}'
 	try {
-		return JSON.parse(config)
+		return JSON.parse(userSettings)
 	} catch (e) {
 		return {}
 	}
 }
-
-const setUserConfig = (config: UserConfig) => {
+const setUserSettings = (userSettings: UserSettings) => {
 	window.localStorage.setItem(
-		'playgroundConfig',
+		localStorageKey,
 		JSON.stringify({
-			...getUserConfig(),
-			...config,
+			...getUserSettings(),
+			...userSettings,
 		}),
 	)
 }
@@ -37,7 +38,7 @@ const { isDark } = useData()
 let playground: Playground | undefined
 const playgroundActions = useTemplateRef('playground-actions')
 const tailwind = ref(false)
-const vim = ref(getUserConfig().vim ?? false)
+const vim = ref(getUserSettings().vim ?? false)
 const hash = props.isMainPlayground ? window.location.hash : undefined
 
 const pkg = await fetch(apiUrl)
@@ -145,7 +146,7 @@ const updateUrl = async () => {
 const onReady = (sdk: Playground) => {
 	playground = sdk
 
-	// update the UI by options from shared URL config
+	// sync the UI with config from  shared URL
 	playground.getConfig().then((config) => {
 		if (config.processors.includes('tailwindcss')) {
 			tailwind.value = true
@@ -184,6 +185,13 @@ const onReady = (sdk: Playground) => {
 				},
 			}
 			version.value = selectedVersion
+		}
+
+		if (vim.value && config.editorMode !== 'vim') {
+			newConfig = {
+				...newConfig,
+				editorMode: 'vim',
+			}
 		}
 
 		if (Object.keys(newConfig).length > 0) {
@@ -240,10 +248,11 @@ watch(isDark, () => {
 watch(tailwind, async () => {
 	if (!playground) return
 	const currentConfig = await playground.getConfig()
-	playground.setConfig({
+	await playground.setConfig({
 		...currentConfig,
 		processors: tailwind.value ? ['tailwindcss'] : [],
 	})
+	await updateUrl()
 })
 
 watch(vim, async () => {
@@ -253,7 +262,7 @@ watch(vim, async () => {
 		...currentConfig,
 		editorMode: vim.value ? 'vim' : undefined,
 	})
-	setUserConfig({ vim: vim.value })
+	setUserSettings({ vim: vim.value })
 })
 
 watch(version, async () => {
