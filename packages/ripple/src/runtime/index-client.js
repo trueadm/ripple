@@ -25,7 +25,7 @@ export function mount(component, options) {
   if (target.firstChild) {
     target.textContent = '';
   }
-  
+
   target.append(anchor);
 
   const cleanup_events = handle_root_events(target);
@@ -42,7 +42,13 @@ export function mount(component, options) {
 
 export { create_context as createContext } from './internal/client/context.js';
 
-export { flush_sync as flushSync, track, untrack, deferred } from './internal/client/runtime.js';
+export {
+  flush_sync as flushSync,
+  track,
+  trackSplit,
+  untrack,
+  deferred,
+} from './internal/client/runtime.js';
 
 export { TrackedArray } from './array.js';
 
