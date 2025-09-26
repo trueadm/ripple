@@ -289,36 +289,35 @@ export function derived(fn, block, get, set) {
 
 /**
  * @param {any} v
- * @param {TrackOptions<any> | undefined} o
+ * @param {Function | undefined} get
+ * @param {Function | undefined} set
  * @param {Block} b
- * @returns {Tracked | Derived | Tracked[]}
+ * @returns {Tracked | Derived}
  */
-export function track(v, o, b) {
+export function track(v, get, set, b) {
+	if (is_tracked_object(v)) {
+		return v;
+	}
+
+	if (typeof v === 'function') {
+		return derived(v, b, get, set);
+	}
+	return tracked(v, b, get, set);
+}
+
+/**
+ * @param {Record<string|symbol, any>} v
+ * @param {(symbol | string)[]} l
+ * @param {Block} b
+ * @returns {Tracked[]}
+ */
+export function trackSplit(v, l, b) {
 	var is_tracked = is_tracked_object(v);
-	var get;
-	var set;
-
-	if (o !== undefined) {
-		get = o.get;
-		set = o.set;
-	}
-
-	if (o === undefined || get || set) {
-		if (is_tracked) {
-			return v;
-		}
-
-		if (typeof v === 'function') {
-			return derived(v, b, get, set);
-		}
-		return tracked(v, b, get, set);
-	}
 
 	if (is_tracked || typeof v !== 'object' || v === null || is_array(v)) {
 		throw new TypeError('Invalid value: expected a non-tracked object');
 	}
 
-	var list = o.split ?? [];
 	/** @type {Tracked[]} */
 	var out = [];
 	/** @type {Record<string|symbol, any>} */
@@ -326,8 +325,8 @@ export function track(v, o, b) {
 	/** @type {Record<PropertyKey, any | null>} */
 	var descriptors = get_descriptors(v);
 
-	for (let i = 0, key, t, exists = true; i < list.length; i++) {
-		key = list[i];
+	for (let i = 0, key, t, exists = true; i < l.length; i++) {
+		key = l[i];
 
 		if (is_tracked_object(v[key])) {
 			t = v[key];
@@ -775,7 +774,7 @@ export function get_tracked(tracked) {
 	}
 	var get = tracked.a.get;
 	if (get) {
-		tracked.v = get(value);
+		value = get(value);
 	}
 	return value;
 }
@@ -790,10 +789,6 @@ export function set(tracked, value, block) {
 
 	if (value !== old_value) {
 		var tracked_block = tracked.b;
-
-		if (!tracked_block) {
-			debugger;
-		}
 
 		if ((block.f & CONTAINS_TEARDOWN) !== 0) {
 			if (teardown) {
