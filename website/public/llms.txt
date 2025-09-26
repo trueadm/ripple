@@ -259,87 +259,53 @@ let { children, count, class: className, ...rest } = props;
 
 **Critical Concept**: Ripple doesn't constrain reactivity to components only. `Tracked<V>` objects can simply be passed by reference between boundaries to improve expressivity and co-location.
 
-#### Array Transport Pattern
-
+#### Basic Transport Pattern
 ```ripple
 import { effect, track } from 'ripple';
 
-function createDouble([ count ]) {
+function createDouble(count) {
   const double = track(() => @count * 2);
 
   effect(() => {
     console.log('Count:', @count)
   });
 
-  return [ double ];
+  return double;
 }
 
 export component App() {
   let count = track(0);
 
-  const [ double ] = createDouble([ count ]);
+  const double = createDouble(count);
 
   <div>{'Double: ' + @double}</div>
   <button onClick={() => { @count++; }}>{'Increment'}</button>
 }
 ```
 
-#### Object Transport Pattern
+#### Dynamic Component Transport Pattern
+
+Ripple has built-in support for dynamic components, a way to render different components based on reactive state. Instead of hardcoding which component to show, you can store a component in a `Tracked` via `track()`, and update it at runtime. When the tracked value changes, Ripple automatically unmounts the previous component and mounts the new one. Dynamic components are written with the `<@Component />` tag, where the @ both unwraps the tracked reference and tells the compiler that the component is dynamic. This makes it straightforward to pass components as props or swap them directly within a component, enabling flexible, state-driven UIs with minimal boilerplate.
 
 ```ripple
-import { effect, track } from 'ripple';
-
-function createDouble({ count }) {
-  const double = track(() => @count * 2);
-
-  effect(() => {
-    console.log('Count:', @count)
-  });
-  return { double };
-}
-
 export component App() {
-  let count = track(0);
-  const { double } = createDouble({ count });
+  let swapMe = track(() => Child1);
 
-  <div>{'Double: ' + @double}</div>
-  <button onClick={() => { @count++; }}>{'Increment'}</button>
-}
-```
+  <Child {swapMe} />
 
-#### Component Transport Pattern
-
-```ripple
-import { track } from 'ripple';
-
-export component App() {
-  const tracked_basic = track(() => basic);
-  const obj = {
-    tracked_basic,
-  };
-  const tracked_object = track(obj);
-  const Button = track(() => SomeButton);
-  const AnotherButton = track(() => SomeButton);
-
-  <@tracked_object.@tracked_basic />
-  <Child {Button}>{'Child Button'}</Child>
-  <AnotherChild Button={AnotherButton}>{'Another Child Button'}</AnotherChild>
+  <button onClick={() => @swapMe = @swapMe === Child1 ? Child2 : Child1}>{'Swap Component'}</button>
 }
 
-component Child({ Button, children }) {
-  <@Button><children /></@Button>
+component Child({ swapMe }: {swapMe: Tracked<Component>}) {
+  <@swapMe />
 }
 
-component AnotherChild(props) {
-  <props.@Button><props.children /></props.@Button>
+component Child1(props) {
+  <pre>{'I am child 1'}</pre>
 }
 
-component SomeButton({ children }) {
-  <button><children /></button>
-}
-
-component basic() {
-  <div>{'Basic Component'}</div>
+component Child2(props) {
+  <pre>{'I am child 2'}</pre>
 }
 ```
 
