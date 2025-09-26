@@ -31,6 +31,10 @@
 	--vp-c-brand-2: #3989ec;
 	--vp-c-brand-3: #2d6dbf;
 	--vp-c-brand-soft: #aed1ff;
+
+	--vp-font-family-base: "Ubuntu Sans";
+	--vp-font-family-mono: "Fira Code";
+
 }
 
 .VPNavBarTitle {
