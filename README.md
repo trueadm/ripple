@@ -200,7 +200,7 @@ export component App() {
     },
     (to_be_set) => {
       if (typeof to_be_set === 'string') {
-        v = Number(to_be_set);
+        to_be_set = Number(to_be_set);
       }
 
       return to_be_set;
