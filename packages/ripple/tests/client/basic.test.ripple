@@ -1547,5 +1547,20 @@ describe('basic client', () => {
 		expect(pre1.textContent).toBe('4');
 		expect(pre2.textContent).toBe('2');
 	});
+
+	it('handles boolean props correctly', () => {
+		component App() {
+			<div data-disabled />
+
+			<Child isDisabled />
+		}
+
+		component Child({ isDisabled }) {
+			<input disabled={isDisabled} />
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
 });
 

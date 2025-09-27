@@ -37,6 +37,19 @@ exports[`basic client > handles boolean attributes with no prop value provides 1
 </div>
 `;
 
+exports[`basic client > handles boolean props correctly 1`] = `
+<div>
+  <div
+    data-disabled=""
+  />
+  <input
+    disabled=""
+  />
+  <!---->
+  
+</div>
+`;
+
 exports[`basic client > render semi-dynamic text 1`] = `
 <div>
   <div>
