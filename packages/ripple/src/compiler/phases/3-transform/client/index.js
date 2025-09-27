@@ -137,12 +137,6 @@ function visit_title_element(node, context) {
 	}
 }
 
-function visit_style_element(node, context) {
-	context.state.template.push(
-		b.literal(`<style>${sanitize_template_string(node.css)}</style>`),
-	);
-}
-
 const visitors = {
 	_: function set_scope(node, { next, state }) {
 		const scope = state.scopes.get(node);
@@ -487,9 +481,19 @@ const visitors = {
 	Element(node, context) {
 		const { state, visit } = context;
 
-		if (context.state.inside_head && node.id.type === 'Identifier' && node.id.name === 'style') {
-			state.template.push(`<style>${sanitize_template_string(node.css)}</style>`);
-			return;
+		if (context.state.inside_head) {
+			if (node.id.type === 'Identifier' && node.id.name === 'style') {
+				state.template.push(`<style>${sanitize_template_string(node.css)}</style>`);
+				return;
+			}
+			if (node.id.type === 'Identifier' && node.id.name === 'script') {
+				const id = state.flush_node();
+				state.template.push('<!>');
+				context.state.init.push(
+					b.stmt(b.call('_$_.script', id, b.literal(sanitize_template_string(node.content)))),
+				);
+				return;
+			}
 		}
 
 		const is_dom_element = is_element_dom_element(node);
@@ -766,7 +770,8 @@ const visitors = {
 				if (attr.type === 'Attribute') {
 					if (attr.name.type === 'Identifier') {
 						const metadata = { tracking: false, await: false };
-						let property = visit(attr.value, { ...state, metadata });
+						let property =
+							attr.value === null ? b.literal(true) : visit(attr.value, { ...state, metadata });
 
 						if (metadata.tracking || attr.name.tracked) {
 							if (attr.name.name === 'children') {
