@@ -11,18 +11,12 @@ like in other frameworks. This all happens from the `createContext` function tha
 
 When you create a context, you can `get` and `set` the values, but this must happen within the context of a component (they can physically live anywhwere, they just need to be called from a component context). Using them outside will result in an error being thrown.
 
-```jsx
+<Code console>
+
+```ripple
 import { createContext } from 'ripple';
 
 const MyContext = createContext(null);
-
-component Child() {
-	// Context is read in the Child component
-	const value = MyContext.get();
-
-	// value is "Hello from context!"
-	console.log(value);
-}
 
 component Parent() {
 	const value = MyContext.get();
@@ -37,4 +31,14 @@ component Parent() {
 
 	<Child />
 }
+
+component Child() {
+	// Context is read in the Child component
+	const value = MyContext.get();
+
+	// value is "Hello from context!"
+	console.log(value);
+}
 ```
+
+</Code>

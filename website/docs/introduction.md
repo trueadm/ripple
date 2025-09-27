@@ -8,6 +8,8 @@ Ripple is an elegant, compiler-driven language and view library for the web base
 
 Like JSX, Ripple is a JS-forward language. It extends JSX to allow for DOM elements to be written as statements, rather than expressions.
 
+<Code>
+
 ```ripple
 import { track } from 'ripple'
 
@@ -29,9 +31,17 @@ export component App() {
       text-align: center;
       font-family: "Arial", sans-serif;
     }
+
+    button {
+      height: 2rem;
+      width: 2rem;
+      margin: 1rem;
+    }
   </style>
 }
 ```
+
+</Code>
 
 ::: info Prerequisites
 
