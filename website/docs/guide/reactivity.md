@@ -518,26 +518,3 @@ export component App() {
 ```
 
 </Code>
-
-### Effects
-
-When dealing with reactive state, you might want to be able to create side-effects based upon changes that happen upon updates.
-To do this, you can use `effect`:
-
-<Code console>
-
-```ripple
-import { track, effect } from 'ripple';
-
-export component App() {
-  let count = track(0);
-
-  effect(() => {
-    console.log(@count);
-  });
-
-  <button onClick={() => @count++}>{'Increment'}</button>
-}
-```
-
-</Code>
