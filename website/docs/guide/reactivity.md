@@ -378,18 +378,20 @@ export component App() {
 
 ## Untracking Reactivity
 
-<Code>
+<Code console>
 
 ```ripple
-import { untrack } from 'ripple';
+import { effect, track, untrack } from 'ripple';
 
-component Counter({ startingCount = 0 }) {
-  let count = untrack(() => @startingCount);  // Initialize once, don't track changes
+export component App() {
+  let count = track(10);
+  let double = track(() => @count * 2);
+  let quadruple = track(() => @double * 2);
 
-  <div>
-    <p>{"Count: "}{@count}</p>
-    <button onClick={() => @count++}>{"Increment"}</button>
-  </div>
+  effect(() => {
+    // This effect will never fire again, as we've untracked the only dependency it has
+    console.log(untrack(() => @quadruple));
+  })
 }
 ```
 
