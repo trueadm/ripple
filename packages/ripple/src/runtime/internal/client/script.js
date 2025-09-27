@@ -1,5 +1,4 @@
 import { effect } from './blocks';
-
 /**
  * @param {Text | Comment} node
  * @param {string} content

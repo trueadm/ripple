@@ -1144,6 +1144,14 @@ const visitors = {
 		return context.next();
 	},
 
+	ExportNamedDeclaration(node, context) {
+		if (!context.state.to_ts && node.exportKind === 'type') {
+			return b.empty;
+		}
+
+		return context.next();
+	},
+
 	TryStatement(node, context) {
 		if (!is_inside_component(context)) {
 			context.next();
