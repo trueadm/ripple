@@ -687,6 +687,9 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 - `onPointerDownCapture`
 - `onKeyDownCapture`
 
+However, and important distinction is that Ripple does not have a synthetic event system like React. So for example, you should opt to use
+`onInput` instead of `onChange` and things like `onFocus` and `onBlur` do not bubble – instead use `onFocusIn` and `onFocusOut`.
+
 > Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
 
 #### on
