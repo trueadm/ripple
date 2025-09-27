@@ -81,7 +81,7 @@ function RipplePlugin(config) {
 					if (this.pos + 1 < this.input.length) {
 						const nextChar = this.input.charCodeAt(this.pos + 1);
 						if (nextChar === 91 || nextChar === 123) {
-							// [ or {character
+							// [ or { character
 							// This is a tuple literal #[ or #{
 							// Consume both # and [ or {
 							++this.pos; // consume #
