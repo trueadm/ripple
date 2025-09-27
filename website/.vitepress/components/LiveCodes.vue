@@ -5,13 +5,13 @@ import VPButton from 'vitepress/dist/client/theme-default/components/VPButton.vu
 import VPFlyout from 'vitepress/dist/client/theme-default/components/VPFlyout.vue'
 import VPSwitch from 'vitepress/dist/client/theme-default/components/VPSwitch.vue'
 import LiveCodes from 'livecodes/vue'
-import type { EmbedOptions, Playground } from 'livecodes'
+import type { Config, EmbedOptions, Playground } from 'livecodes'
 import { PlaygroundProps } from './PlaygroundProps'
 
 const playgroundUrl = 'https://ripple.livecodes.pages.dev'
 const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple'
 
-type UserSettings = { vim: boolean }
+type UserSettings = { vim?: boolean; ai?: boolean }
 
 const localStorageKey = 'ripple-playground-settings'
 
@@ -39,6 +39,7 @@ let playground: Playground | undefined
 const playgroundActions = useTemplateRef('playground-actions')
 const tailwind = ref(false)
 const vim = ref(getUserSettings().vim ?? false)
+const ai = ref(getUserSettings().ai !== false)
 const hash = props.isMainPlayground ? window.location.hash : undefined
 
 const pkg = await fetch(apiUrl)
@@ -102,7 +103,7 @@ const getStyle = () => ({
 	hideTitle: true,
 })
 
-const config: EmbedOptions['config'] = {
+const config: Partial<Config> = {
 	customSettings: { ripple: { version: version.value } },
 	view: props.view ?? 'split',
 	mode: props.mode ?? 'full',
@@ -120,6 +121,7 @@ const config: EmbedOptions['config'] = {
 	theme: isDark.value ? 'dark' : 'light',
 	processors: tailwind.value ? ['tailwindcss'] : [],
 	editorMode: vim.value ? 'vim' : undefined,
+	enableAI: ai.value,
 }
 
 const options: EmbedOptions = {
@@ -152,7 +154,7 @@ const onReady = (sdk: Playground) => {
 			tailwind.value = true
 		}
 
-		let newConfig = {}
+		let newConfig: Partial<Config> = {}
 		if (!config.markup.hideTitle || !config.style.hideTitle) {
 			newConfig = {
 				markup: { ...config.markup, hideTitle: true },
@@ -191,6 +193,13 @@ const onReady = (sdk: Playground) => {
 			newConfig = {
 				...newConfig,
 				editorMode: 'vim',
+			}
+		}
+
+		if (ai.value && !config.enableAI) {
+			newConfig = {
+				...newConfig,
+				enableAI: true,
 			}
 		}
 
@@ -247,9 +256,7 @@ watch(isDark, () => {
 
 watch(tailwind, async () => {
 	if (!playground) return
-	const currentConfig = await playground.getConfig()
 	await playground.setConfig({
-		...currentConfig,
 		processors: tailwind.value ? ['tailwindcss'] : [],
 	})
 	await updateUrl()
@@ -257,12 +264,18 @@ watch(tailwind, async () => {
 
 watch(vim, async () => {
 	if (!playground) return
-	const currentConfig = await playground.getConfig()
 	playground.setConfig({
-		...currentConfig,
 		editorMode: vim.value ? 'vim' : undefined,
 	})
 	setUserSettings({ vim: vim.value })
+})
+
+watch(ai, async () => {
+	if (!playground) return
+	playground.setConfig({
+		enableAI: ai.value,
+	})
+	setUserSettings({ ai: ai.value })
 })
 
 watch(version, async () => {
@@ -295,6 +308,9 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 		</VPFlyout>
 
 		<VPFlyout :button="settingsIcon">
+			<div class="menu-item" @click="ai = !ai">
+				AI assistant<VPSwitch :aria-checked="ai"></VPSwitch>
+			</div>
 			<div class="menu-item" @click="tailwind = !tailwind">
 				Tailwind CSS<VPSwitch :aria-checked="tailwind"></VPSwitch>
 			</div>
