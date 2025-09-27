@@ -26,7 +26,14 @@ import {
 	REF_PROP,
 } from './constants.js';
 import { capture, suspend } from './try.js';
-import { define_property, get_descriptors, is_array, is_tracked_object } from './utils.js';
+import {
+	define_property,
+	get_descriptors,
+	get_own_property_symbols,
+	is_array,
+	is_tracked_object,
+  object_keys,
+} from './utils.js';
 
 const FLUSH_MICROTASK = 0;
 const FLUSH_SYNC = 1;
@@ -479,10 +486,10 @@ export function async_computed(fn, block) {
 				for (var i = 0; i < deferred.length; i++) {
 					var tracked = deferred[i];
 					var stored = /** @type {{ v: any, c: number }} */ (new_values.get(tracked));
-						var { v, c } = stored;
-						tracked.v = v;
-						tracked.c = c;
-						schedule_update(tracked.b);
+					var { v, c } = stored;
+					tracked.v = v;
+					tracked.c = c;
+					schedule_update(tracked.b);
 				}
 				new_values.clear();
 			}
@@ -831,6 +838,14 @@ export function spread_props(fn, block) {
 				const obj = get_derived(computed);
 				return obj[property];
 			},
+      has(target, property) {
+        const obj = get_derived(computed);
+        return property in obj;
+      },
+			ownKeys() {
+				const obj = get_derived(computed);
+				return Reflect.ownKeys(obj);
+			},
 		},
 	);
 }
@@ -1066,17 +1081,30 @@ export function fallback(value, fallback) {
 }
 
 /**
- * @param {Record<string, unknown>} obj
- * @param {string[]} keys
- * @returns {Record<string, unknown>}
+ * @param {Record<string | symbol, unknown>} obj
+ * @param {string[]} exclude_keys
+ * @returns {Record<string | symbol, unknown>}
  */
-export function exclude_from_object(obj, keys) {
-	obj = { ...obj };
-	let key;
-	for (key of keys) {
-		delete obj[key];
+export function exclude_from_object(obj, exclude_keys) {
+  var keys = object_keys(obj);
+	/** @type {Record<string | symbol, unknown>} */
+	var new_obj = {};
+  
+  for (const key of keys) {
+    if (!exclude_keys.includes(key)) {
+      new_obj[key] = obj[key];
+    }
+  }
+
+	for (const symbol of get_own_property_symbols(obj)) {
+		var ref_fn = obj[symbol];
+
+		if (symbol.description === REF_PROP) {
+			new_obj[symbol] = ref_fn;
+		}
 	}
-	return obj;
+
+	return new_obj;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, TrackedArray } from 'ripple';
+import { mount, flushSync, TrackedArray, track, createRefKey } from 'ripple';
 
 describe('refs', () => {
 	let container;
@@ -54,5 +54,36 @@ describe('refs', () => {
 		flushSync();
 
 		expect(_node).toBe(document.querySelector('pre'));
-	})
+	});
+
+	it('should handle spreading into composite refs', () => {
+		let logs: string[] = [];
+
+		component App() {
+			let value = track('test');
+
+			function inputRef(node) {
+				logs.push('ref called');
+			}
+
+			const props = {
+				id: "example",
+				@value,
+				[createRefKey()]: inputRef
+			};
+
+			<input type="text" {...props} />
+
+			<Input {...props} />
+		}
+
+		component Input({ id, value, ...rest }) {
+			<input type="text" {id} {value} {...rest} />
+		}
+
+		render(App);
+		flushSync();
+
+		expect(logs).toEqual(['ref called', 'ref called']);
+	});
 });
