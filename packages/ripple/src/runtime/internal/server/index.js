@@ -1,4 +1,4 @@
-/** @import { Derived } from '#client' */
+/** @import { Component, Derived } from '#server' */
 
 import { DERIVED, UNINITIALIZED } from '../client/constants';
 import { is_tracked_object } from '../client/utils';
@@ -8,6 +8,7 @@ import { is_boolean_attribute } from '../../../compiler/utils';
 
 export { escape };
 
+/** @type {Component | null} */
 export let active_component = null;
 
 /**
@@ -26,17 +27,29 @@ const replacements = {
 class Output {
 	head = '';
 	body = '';
+	/** @type {Output | null} */
 	#parent = null;
 
+	/**
+	 * @param {Output | null} parent
+	 */
 	constructor(parent) {
 		this.#parent = parent;
 	}
 
+	/**
+	 * @param {string} str
+	 * @returns {void}
+	 */
 	push(str) {
 		this.body += str;
 	}
 }
 
+/**
+ * @param {((output: Output, props: Record<string, any>) => void | Promise<void>) & { async?: boolean }} component
+ * @returns {Promise<{head: string, body: string}>}
+ */
 export async function render(component) {
 	const output = new Output(null);
 
@@ -52,6 +65,9 @@ export async function render(component) {
 	return { head, body };
 }
 
+/**
+ * @returns {void}
+ */
 export function push_component() {
 	var component = {
 		c: null,
@@ -60,15 +76,26 @@ export function push_component() {
 	active_component = component;
 }
 
+/**
+ * @returns {void}
+ */
 export function pop_component() {
-	var component = active_component;
-	active_component = component.p;
+	var component = /** @type {Component} */ (active_component);
+	active_component = component;
 }
 
+/**
+ * @param {() => any} fn
+ * @returns {Promise<void>}
+ */
 export async function async(fn) {
 	// TODO
 }
 
+/**
+ * @param {Derived} tracked
+ * @returns {any}
+ */
 function get_derived(tracked) {
 	let v = tracked.v;
 
@@ -79,6 +106,10 @@ function get_derived(tracked) {
 	return v;
 }
 
+/**
+ * @param {any} tracked
+ * @returns {any}
+ */
 export function get(tracked) {
 	// reflect back the value if it's not boxed
 	if (!is_tracked_object(tracked)) {
@@ -105,6 +136,11 @@ export function attr(name, value, is_boolean = false) {
 	return ` ${name}${assignment}`;
 }
 
+/**
+ * @param {Record<string, any>} attrs
+ * @param {string | undefined} css_hash
+ * @returns {string}
+ */
 export function spread_attrs(attrs, css_hash) {
 	let attr_str = '';
 	let name;

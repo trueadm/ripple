@@ -1,3 +1,5 @@
+/** @import { Block } from '#client' */
+
 import { IS_CONTROLLED, IS_INDEXED } from '../../../constants.js';
 import { branch, destroy_block, destroy_block_children, render } from './blocks.js';
 import { FOR_BLOCK, TRACKED_ARRAY } from './constants.js';
@@ -5,6 +7,15 @@ import { create_text, next_sibling } from './operations.js';
 import { active_block, set, tracked, untrack } from './runtime.js';
 import { array_from, is_array } from './utils.js';
 
+/**
+ * @template V
+ * @param {Node} anchor
+ * @param {V} value
+ * @param {number} index
+ * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {boolean} is_indexed
+ * @returns {Block}
+ */
 function create_item(anchor, value, index, render_fn, is_indexed) {
   var b = branch(() => {
     var tracked_index;
@@ -31,6 +42,11 @@ function create_item(anchor, value, index, render_fn, is_indexed) {
   return b;
 }
 
+/**
+ * @param {Block} block
+ * @param {Element} anchor
+ * @returns {void}
+ */
 function move(block, anchor) {
   var node = block.s.start;
   var end = block.s.end;
@@ -40,7 +56,7 @@ function move(block, anchor) {
     return;
   }
   while (node !== null) {
-    var next_node = /** @type {TemplateNode} */ (next_sibling(node));
+    var next_node = /** @type {Node} */ (next_sibling(node));
     anchor.before(node);
     node = next_node;
     if (node === end) {
@@ -50,6 +66,11 @@ function move(block, anchor) {
   }
 }
 
+/**
+ * @template V
+ * @param {V[] | Iterable<V>} collection
+ * @returns {V[]}
+ */
 function collection_to_array(collection) {
   var array = is_array(collection) ? collection : collection == null ? [] : array_from(collection);
 
@@ -62,10 +83,18 @@ function collection_to_array(collection) {
   return array;
 }
 
+/**
+ * @template V
+ * @param {Element} node
+ * @param {() => V[] | Iterable<V>} get_collection
+ * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {number} flags
+ * @returns {void}
+ */
 export function for_block(node, get_collection, render_fn, flags) {
   var is_controlled = (flags & IS_CONTROLLED) !== 0;
   var is_indexed = (flags & IS_INDEXED) !== 0;
-  var anchor = node;
+  var anchor = /** @type {Element | Text} */ (node);
 
   if (is_controlled) {
     anchor = node.appendChild(create_text());
@@ -82,9 +111,16 @@ export function for_block(node, get_collection, render_fn, flags) {
   }, FOR_BLOCK);
 }
 
+/**
+ * @template V
+ * @param {Element | Text} anchor
+ * @param {Block} block
+ * @param {V[]} array
+ * @returns {void}
+ */
 function reconcile_fast_clear(anchor, block, array) {
   var state = block.s;
-  var parent_node = anchor.parentNode;
+  var parent_node = /** @type {Element} */ (anchor.parentNode);
   parent_node.textContent = '';
   destroy_block_children(block);
   parent_node.append(anchor);
@@ -92,12 +128,47 @@ function reconcile_fast_clear(anchor, block, array) {
   state.blocks = [];
 }
 
+/**
+ * @param {Block} block
+ * @param {number} index
+ * @returns {void}
+ */
 function update_index(block, index) {
   set(block.s.i, index, block);
 }
 
+/**
+ * @template V
+ * @param {Element | Text} anchor
+ * @param {Block} block
+ * @param {V[]} b
+ * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {boolean} is_controlled
+ * @param {boolean} is_indexed
+ * @returns {void}
+ */
 function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
   var state = block.s;
+
+  // Variables used in conditional branches - declare with initial values
+  /** @type {number} */
+  var a_start = 0;
+  /** @type {number} */
+  var b_start = 0;
+  /** @type {number} */
+  var a_left = 0;
+  /** @type {number} */
+  var b_left = 0;
+  /** @type {Int32Array} */
+  var sources = new Int32Array(0);
+  /** @type {boolean} */
+  var moved = false;
+  /** @type {number} */
+  var pos = 0;
+  /** @type {number} */
+  var patched = 0;
+  /** @type {number} */
+  var i = 0;
 
   if (state === null) {
     state = block.s = {
@@ -187,15 +258,15 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
       destroy_block(a_blocks[j++]);
     }
   } else {
-    var a_start = j;
-    var b_start = j;
-    var a_left = a_end - j + 1;
-    var b_left = b_end - j + 1;
-    var sources = new Int32Array(b_left + 1);
-    var moved = false;
-    var pos = 0;
-    var patched = 0;
-    var i = 0;
+    a_start = j;
+    b_start = j;
+    a_left = a_end - j + 1;
+    b_left = b_end - j + 1;
+    sources = new Int32Array(b_left + 1);
+    moved = false;
+    pos = 0;
+    patched = 0;
+    i = 0;
 
     fast_path_removal = is_controlled && a_left === a_length;
 
@@ -321,10 +392,16 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
   state.blocks = b_blocks;
 }
 
+/** @type {Int32Array} */
 let result;
+/** @type {Int32Array} */
 let p;
 let maxLen = 0;
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
+/**
+ * @param {Int32Array} arr
+ * @returns {Int32Array}
+ */
 function lis_algorithm(arr) {
   let arrI = 0;
   let i = 0;
@@ -386,6 +463,13 @@ function lis_algorithm(arr) {
   return seq;
 }
 
+/**
+ * @template V
+ * @template K
+ * @param {V[] | Iterable<V>} collection
+ * @param {(item: V) => K} key_fn
+ * @returns {V[]}
+ */
 export function keyed(collection, key_fn) {
   var block = active_block;
   if (block === null || (block.f & FOR_BLOCK) === 0) {
@@ -404,7 +488,7 @@ export function keyed(collection, key_fn) {
   var state = block.s;
 
   if (state === null) {
-    return collection;
+    return b_array;
   }
 
   var a_array = state.array;

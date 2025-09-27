@@ -1,12 +1,23 @@
+/** @import { Block } from '#client' */
+
 import { branch, destroy_block, render } from './blocks.js';
 import { UNINITIALIZED } from './constants.js';
 import { handle_root_events } from './events.js';
 import { create_text } from './operations.js';
 
+/**
+ * @param {any} _ 
+ * @param {{ target: Element, children: (anchor: Node) => void }} props
+ * @returns {void}
+ */
 export function Portal(_, props) {
+  /** @type {Element | symbol} */
   let target = UNINITIALIZED;
+  /** @type {((anchor: Node) => void) | symbol} */
   let children = UNINITIALIZED;
+  /** @type {Block | null} */
   var b = null;
+  /** @type {Text | null} */
   var anchor = null;
 
   render(() => {
@@ -18,15 +29,15 @@ export function Portal(_, props) {
     }
 
     anchor = create_text();
-    target.append(anchor);
+    /** @type {Element} */ (target).append(anchor);
 
-    const cleanup_events = handle_root_events(target);
+    const cleanup_events = handle_root_events(/** @type {Element} */ (target));
 
-    b = branch(() => children(anchor));
+    b = branch(() => /** @type {(anchor: Node) => void} */ (children)(/** @type {Text} */ (anchor)));
 
     return () => {
       cleanup_events();
-      anchor.remove();
+      /** @type {Text} */ (anchor).remove();
     };
   });
 }

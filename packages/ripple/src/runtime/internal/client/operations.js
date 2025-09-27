@@ -8,6 +8,7 @@ var next_sibling_getter;
 /** @type {Document} */
 export var document;
 
+/** @type {boolean} */
 export var is_firefox;
 
 export function init_operations() {
@@ -44,13 +45,17 @@ export function init_operations() {
  * @param {N} node
  * @returns {Node | null}
  */
-/*@__NO_SIDE_EFFECTS__*/
 export function first_child(node) {
 	return first_child_getter.call(node);
 }
 
+/**
+ * @template {Node} N
+ * @param {N} node
+ * @returns {Node | null}
+ */
 export function child_frag(node) {
-	var child = first_child(node);
+	var child = /** @type {Text} */ (first_child(node));
 
 	if (child.nodeType === 8 && child.data === '') {
 		return next_sibling(child);

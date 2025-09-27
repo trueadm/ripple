@@ -1,3 +1,5 @@
+/** @import * as ESTree from 'estree' */
+
 import is_reference from 'is-reference';
 import { extract_identifiers, object, unwrap_pattern } from '../utils/ast.js';
 import { walk } from 'zimmerframe';

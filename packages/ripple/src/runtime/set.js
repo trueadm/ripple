@@ -23,7 +23,7 @@ export class TrackedSet extends Set {
   #block;
 
   /**
-   * @param {Iterable<T>} iterable
+   * @param {Iterable<T>} [iterable]
    */
   constructor(iterable) {
     super();
@@ -45,6 +45,9 @@ export class TrackedSet extends Set {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   #init() {
     var proto = TrackedSet.prototype;
     var set_proto = Set.prototype;
@@ -54,11 +57,10 @@ export class TrackedSet extends Set {
         continue;
       }
 
-      /** @param {...any} v */
-      proto[method] = function (...v) {
+      /** @type {any} */ (proto)[method] = function (/** @type {...any} */ ...v) {
         this.size;
 
-        return set_proto[method].apply(this, v);
+        return /** @type {any} */ (set_proto)[method].apply(this, v);
       };
     }
 
@@ -67,14 +69,14 @@ export class TrackedSet extends Set {
         continue;
       }
 
-      proto[method] = function (other, ...v) {
+      /** @type {any} */ (proto)[method] = function (/** @type {any} */ other, /** @type {...any} */ ...v) {
         this.size;
 
         if (other instanceof TrackedSet) {
           other.size;
         }
 
-        return set_proto[method].apply(this, [other, ...v]);
+        return /** @type {any} */ (set_proto)[method].apply(this, [other, ...v]);
       };
     }
 
@@ -83,14 +85,14 @@ export class TrackedSet extends Set {
         continue;
       }
 
-      proto[method] = function (other, ...v) {
+      /** @type {any} */ (proto)[method] = function (/** @type {any} */ other, /** @type {...any} */ ...v) {
         this.size;
 
         if (other instanceof TrackedSet) {
           other.size;
         }
 
-        return new TrackedSet(set_proto[method].apply(this, [other, ...v]));
+        return new TrackedSet(/** @type {any} */ (set_proto)[method].apply(this, [other, ...v]));
       };
     }
   }
@@ -124,7 +126,9 @@ export class TrackedSet extends Set {
 
     var t = this.#tracked_items.get(value);
 
-    increment(t, block);
+    if (t) {
+      increment(t, block);
+    }
     this.#tracked_items.delete(value);
     set(this.#tracked_size, super.size, block);
 
@@ -154,6 +158,9 @@ export class TrackedSet extends Set {
     return has;
   }
 
+  /**
+   * @returns {void}
+   */
   clear() {
     var block = this.#block;
 
@@ -170,10 +177,16 @@ export class TrackedSet extends Set {
     set(this.#tracked_size, 0, block);
   }
 
+  /**
+   * @returns {number}
+   */
   get size() {
     return get(this.#tracked_size);
   }
 
+  /**
+   * @returns {T[]}
+   */
   toJSON() {
     this.size;
 

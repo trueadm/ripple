@@ -58,6 +58,8 @@
   "imports": {
     "#client": "./src/runtime/internal/client/types.d.ts",
     "#client/constants": "./src/internal/client/constants.js",
+    "#server": "./src/runtime/internal/server/types.d.ts",
+    "#compiler": "./src/compiler/types/index.d.ts",
     "#public": "./types/index.d.ts"
   },
   "dependencies": {

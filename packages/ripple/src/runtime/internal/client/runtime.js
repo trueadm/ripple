@@ -40,17 +40,22 @@ export let active_scope = null;
 /** @type {null | Component} */
 export let active_component = null;
 
+/** @type {Map<Tracked, any>} */
 var old_values = new Map();
 
 // Used for controlling the flush of blocks
+/** @type {number} */
 let scheduler_mode = FLUSH_MICROTASK;
 // Used for handling scheduling
+/** @type {boolean} */
 let is_micro_task_queued = false;
+/** @type {number} */
 let clock = 0;
 /** @type {Block[]} */
 let queued_root_blocks = [];
 /** @type {(() => void)[]} */
 let queued_microtasks = [];
+/** @type {number} */
 let flush_count = 0;
 /** @type {null | Dependency} */
 let active_dependency = null;
@@ -58,6 +63,9 @@ let active_dependency = null;
 export let tracking = false;
 export let teardown = false;
 
+/**
+ * @returns {number}
+ */
 function increment_clock() {
 	return ++clock;
 }
@@ -421,16 +429,25 @@ export function is_block_dirty(block) {
 	return is_tracking_dirty(block.d);
 }
 
+/**
+ * @param {() => Promise<any>} fn
+ * @param {Block} block
+ * @returns {Promise<Tracked>}
+ */
 export function async_computed(fn, block) {
+	/** @type {Block | Derived | null} */
 	let parent = active_reaction;
 	var t = tracked(UNINITIALIZED, block);
+	/** @type {Promise<any>} */
 	var promise;
+	/** @type {Map<Tracked, {v: any, c: number}>} */
 	var new_values = new Map();
 
 	render(() => {
 		var [current, deferred] = capture_deferred(() => (promise = fn()));
 
 		var restore = capture();
+		/** @type {(() => void) | undefined} */
 		var unuspend;
 
 		if (deferred === null) {
@@ -443,7 +460,7 @@ export function async_computed(fn, block) {
 		}
 
 		promise.then((v) => {
-			if (is_destroyed(parent)) {
+			if (parent && is_destroyed(/** @type {Block} */ (parent))) {
 				return;
 			}
 			if (promise === current && t.v !== v) {
@@ -457,14 +474,15 @@ export function async_computed(fn, block) {
 			}
 
 			if (deferred === null) {
-				unuspend();
+				unuspend?.();
 			} else if (promise === current) {
 				for (var i = 0; i < deferred.length; i++) {
 					var tracked = deferred[i];
-					var { v, c } = new_values.get(tracked);
-					tracked.v = v;
-					tracked.c = c;
-					schedule_update(tracked.b);
+					var stored = /** @type {{ v: any, c: number }} */ (new_values.get(tracked));
+						var { v, c } = stored;
+						tracked.v = v;
+						tracked.c = c;
+						schedule_update(tracked.b);
 				}
 				new_values.clear();
 			}
@@ -478,48 +496,13 @@ export function async_computed(fn, block) {
 	});
 }
 
-export function deferred(fn) {
-	// var parent = active_block;
-	// var block = active_scope;
-	// var res = [UNINITIALIZED];
-	// // TODO implement DEFERRED flag on tracked
-	// var t = tracked(UNINITIALIZED, block, DEFERRED);
-	// var tracked_properties = [t];
-	// var prev_value = UNINITIALIZED;
-	// define_property(res, TRACKED_OBJECT, {
-	//   value: tracked_properties,
-	//   enumerable: false,
-	// });
-	// render(() => {
-	//   if (prev_value !== UNINITIALIZED) {
-	//     t.v = prev_value;
-	//   } else {
-	//     prev_value = t.v;
-	//   }
-	//   var prev_version = t.c;
-	//   var value = fn();
-	//   res[0] = value;
-	//   old_set_property(res, 0, value, block);
-	//   if (prev_value !== UNINITIALIZED) {
-	//     if ((t.f & DEFERRED) === 0) {
-	//       t.f ^= DEFERRED;
-	//     }
-	//     var is_awaited = flush_deferred_upodates(parent);
-	//     if ((t.f & DEFERRED) !== 0) {
-	//       t.f ^= DEFERRED;
-	//     }
-	//     if (is_awaited) {
-	//       t.c = prev_version;
-	//       t.v = prev_value;
-	//       prev_value = value;
-	//     }
-	//   }
-	// });
-	// return res;
-}
-
+/**
+ * @param {() => any} fn
+ * @returns {[any, Tracked[] | null]}
+ */
 function capture_deferred(fn) {
 	var value = fn();
+	/** @type {Tracked[] | null} */
 	var deferred = null;
 	var depedency = active_dependency;
 
@@ -534,36 +517,6 @@ function capture_deferred(fn) {
 	}
 
 	return [value, deferred];
-}
-
-/**
- * @param {Block} block
- */
-function flush_deferred_upodates(block) {
-	var current = block.first;
-	var is_awaited = false;
-
-	main_loop: while (current !== null) {
-		var flags = current.f;
-
-		if ((flags & ASYNC_BLOCK) !== 0 && is_block_dirty(current)) {
-			is_awaited = true;
-			run_block(current);
-		}
-
-		var parent = current.p;
-		current = current.next;
-
-		while (current === null && parent !== null) {
-			if (parent === block) {
-				break main_loop;
-			}
-			current = parent.next;
-			parent = parent.p;
-		}
-	}
-
-	return is_awaited;
 }
 
 /**
@@ -642,6 +595,9 @@ function flush_queued_root_blocks(root_blocks) {
 	}
 }
 
+/**
+ * @returns {void}
+ */
 function flush_microtasks() {
 	is_micro_task_queued = false;
 
@@ -931,6 +887,13 @@ export function get_property(obj, property, chain = false) {
 	return get(tracked);
 }
 
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {any} value
+ * @param {Block} block
+ * @returns {void}
+ */
 export function set_property(obj, property, value, block) {
 	var tracked = obj[property];
 	set(tracked, value, block);
@@ -980,6 +943,13 @@ export function update_pre(tracked, block, d = 1) {
 	return new_value;
 }
 
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {Block} block
+ * @param {number} [d=1]
+ * @returns {number}
+ */
 export function update_property(obj, property, block, d = 1) {
 	var tracked = obj[property];
 	var value = get(tracked);
@@ -988,6 +958,13 @@ export function update_property(obj, property, block, d = 1) {
 	return new_value;
 }
 
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {Block} block
+ * @param {number} [d=1]
+ * @returns {number}
+ */
 export function update_pre_property(obj, property, block, d = 1) {
 	var tracked = obj[property];
 	var value = get(tracked);
@@ -1031,6 +1008,9 @@ export function safe_scope(err = 'Cannot access outside of a component context')
 	return /** @type {Block} */ (active_scope);
 }
 
+/**
+ * @returns {void}
+ */
 export function push_component() {
 	var component = {
 		c: null,
@@ -1041,6 +1021,9 @@ export function push_component() {
 	active_component = component;
 }
 
+/**
+ * @returns {void}
+ */
 export function pop_component() {
 	var component = /** @type {Component} */ (active_component);
 	component.m = true;
@@ -1065,6 +1048,9 @@ export function pop_component() {
 	active_component = component.p;
 }
 
+/**
+ * @returns {symbol}
+ */
 export function ref_prop() {
 	return Symbol(REF_PROP);
 }
@@ -1095,6 +1081,7 @@ export function exclude_from_object(obj, keys) {
 
 /**
  * @param {any} v
+ * @returns {Promise<() => any>}
  */
 export async function maybe_tracked(v) {
 	var restore = capture();
