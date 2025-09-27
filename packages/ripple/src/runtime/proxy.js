@@ -267,7 +267,6 @@ export function proxy(value, block) {
   });
 }
 
-
 /**
  * @template T
  * @param {{
@@ -306,7 +305,6 @@ export function array_proxy({ elements, block, from_static = false, use_array = 
 export function object_proxy(obj, block) {
   return proxy(obj, block);
 }
-
 
 /** @type {Set<PropertyKey>} */
 const methods_returning_arrays = new Set([
