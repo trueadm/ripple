@@ -187,7 +187,7 @@ effect(() => {
 
 #### track with get / set
 
-The optional get and set parameters of the `track` function let you customize how a tracked value is read or written, similar to property accessors but expressed as pure functions. The get function receives the current stored value and its return value is exposed when the tracked value is accessed / unboxed with `@`. The set function receives the value being assigned and should return the value that will actually be stored.  The get and set functions may be useful for tasks such as logging, validating, or transforming values before they are exposed or stored.
+The optional get and set parameters of the `track` function let you customize how a tracked value is read or written, similar to property accessors but expressed as pure functions. The get function receives the current stored value and its return value is exposed when the tracked value is accessed / unboxed with `@`. The set function should return the value that will actually be stored and receives two parameters: the first is the one being assigned and the second with the previous value.  The get and set functions may be useful for tasks such as logging, validating, or transforming values before they are exposed or stored.
 
 ```jsx
 import { track } from 'ripple';
@@ -198,12 +198,13 @@ export component App() {
       console.log(current);
       return current;
     },
-    (to_be_set) => {
-      if (typeof to_be_set === 'string') {
-        to_be_set = Number(to_be_set);
+    (next, prev) => {
+      console.log(prev);
+      if (typeof next === 'string') {
+        next = Number(next);
       }
 
-      return to_be_set;
+      return next;
     }
   );
 }

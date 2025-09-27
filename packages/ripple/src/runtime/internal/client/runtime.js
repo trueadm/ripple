@@ -288,8 +288,8 @@ export function derived(fn, block, get, set) {
 
 /**
  * @param {any} v
- * @param {Function | undefined} get
- * @param {Function | undefined} set
+ * @param {(value: any) => any | undefined} get
+ * @param {(next: any, prev: any) => any | undefined} set
  * @param {Block} b
  * @returns {Tracked | Derived}
  */
@@ -799,7 +799,7 @@ export function set(tracked, value, block) {
 
 		var set = tracked.a.set;
 		if (set) {
-			value = set(value);
+			value = set(value, old_value);
 		}
 
 		tracked.v = value;
