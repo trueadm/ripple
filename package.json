@@ -12,7 +12,7 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-		"@vitest/coverage-v8": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
     "prettier": "catalog:",
     "vite-plugin-ripple": "workspace:*",
