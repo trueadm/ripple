@@ -29,6 +29,7 @@ import {
 	is_ripple_track_call,
 	normalize_children,
 	build_getter,
+	determine_namespace_for_children,
 } from '../../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
@@ -94,20 +95,52 @@ function visit_function(node, context) {
 	context.next(state);
 }
 
-function determine_namespace_for_children(element_name, current_namespace) {
-	if (element_name === 'foreignObject') {
-		return 'html';
-	}
+function visit_head_element(node, context) {
+	const { state, visit } = context;
 
-	if (element_name === 'svg') {
-		return 'svg';
-	}
+	const init = [];
+	const update = [];
+	const final = [];
+	const template = [];
 
-	if (element_name === 'math') {
-		return 'mathml';
-	}
+	transform_children(node.children, {
+		visit,
+		state: { ...state, init, update, final, template, inside_head: true },
+		root: true,
+	});
 
-	return current_namespace;
+	if (init.length > 0 || update.length > 0 || final.length > 0) {
+		context.state.init.push(
+			b.call('_$_.head', b.arrow([b.id('__anchor')], b.block([...init, ...update, ...final]))),
+		);
+	}
+}
+
+function visit_title_element(node, context) {
+	const normalized = normalize_children(node.children, context);
+	const content = normalized[0];
+
+	const metadata = { tracking: false, await: false };
+	const result = context.visit(content, { ...context.state, metadata }).expression;
+
+	if (metadata.tracking) {
+		context.state.init.push(
+			b.stmt(
+				b.call(
+					'_$_.render',
+					b.thunk(b.block([b.assignment('=', b.id('_$_.document.title'), result)])),
+				),
+			),
+		);
+	} else {
+		debugger;
+	}
+}
+
+function visit_style_element(node, context) {
+	context.state.template.push(
+		b.literal(`<style>${sanitize_template_string(node.css)}</style>`),
+	);
 }
 
 const visitors = {
@@ -177,10 +210,14 @@ const visitors = {
 		}
 
 		if (!context.state.to_ts && is_ripple_track_call(callee, context)) {
-			if (node.arguments.length === 0) {
-				node.arguments.push(b.void0, b.void0);
-			} else if (node.arguments.length === 1) {
-				node.arguments.push(b.void0);
+			if (callee.name === 'track') {
+				if (node.arguments.length === 0) {
+					node.arguments.push(b.void0, b.void0, b.void0);
+				} else if (node.arguments.length === 1) {
+					node.arguments.push(b.void0, b.void0);
+				} else if (node.arguments.length === 2) {
+					node.arguments.push(b.void0);
+				}
 			}
 			return {
 				...node,
@@ -281,6 +318,27 @@ const visitors = {
 				callee: context.visit(callee),
 				arguments: node.arguments.map((arg) => context.visit(arg)),
 			}),
+		);
+	},
+
+	TrackedArrayExpression(node, context) {
+		if (context.state.to_ts) {
+			if (!context.state.imports.has(`import { TrackedArray } from 'ripple'`)) {
+				context.state.imports.add(`import { TrackedArray } from 'ripple'`);
+			}
+
+			return b.new(
+				b.call(
+					b.member(b.id('TrackedArray'), b.id('from')),
+					node.elements.map((el) => context.visit(el)),
+				),
+			);
+		}
+
+		return b.call(
+			'_$_.tracked_array',
+			b.array(node.elements.map((el) => context.visit(el))),
+			b.id('__block'),
 		);
 	},
 
@@ -417,9 +475,11 @@ const visitors = {
 	FunctionDeclaration(node, context) {
 		return visit_function(node, context);
 	},
+
 	ArrowFunctionExpression(node, context) {
 		return visit_function(node, context);
 	},
+
 	FunctionExpression(node, context) {
 		return visit_function(node, context);
 	},
@@ -427,10 +487,14 @@ const visitors = {
 	Element(node, context) {
 		const { state, visit } = context;
 
+		if (context.state.inside_head && node.id.type === 'Identifier' && node.id.name === 'style') {
+			state.template.push(`<style>${sanitize_template_string(node.css)}</style>`);
+			return;
+		}
+
 		const is_dom_element = is_element_dom_element(node);
 		const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
 		const spread_attributes = is_spreading ? [] : null;
-
 		const child_namespace = is_dom_element
 			? determine_namespace_for_children(node.id.name, state.namespace)
 			: state.namespace;
@@ -727,50 +791,6 @@ const visitors = {
 					);
 				} else if (attr.type === 'RefAttribute') {
 					props.push(b.prop('init', b.call('_$_.ref_prop'), visit(attr.argument, state), true));
-				} else if (attr.type === 'AccessorAttribute') {
-					let get_expr;
-
-					if (
-						attr.get.type === 'FunctionExpression' ||
-						attr.get.type === 'ArrowFunctionExpression'
-					) {
-						get_expr = context.state.scope.generate(attr.name.name + '_get');
-
-						state.init.push(b.const(get_expr, visit(attr.get, state)));
-					} else {
-						get_expr = visit(attr.get, state);
-					}
-
-					props.push(
-						b.prop('get', attr.name, b.function(null, [], b.block([b.return(b.call(get_expr))]))),
-					);
-
-					if (attr.set) {
-						let set_expr;
-
-						if (
-							attr.set.type === 'FunctionExpression' ||
-							attr.set.type === 'ArrowFunctionExpression'
-						) {
-							set_expr = context.state.scope.generate(attr.name.name + '_set');
-
-							state.init.push(b.const(set_expr, visit(attr.set, state)));
-						} else {
-							set_expr = visit(attr.set, state);
-						}
-
-						props.push(
-							b.prop(
-								'set',
-								attr.name,
-								b.function(
-									null,
-									[b.id('__value')],
-									b.block([b.return(b.call(set_expr, b.id('__value')))]),
-								),
-							),
-						);
-					}
 				} else {
 					throw new Error('TODO');
 				}
@@ -802,46 +822,38 @@ const visitors = {
 				}
 			}
 
-			if (is_spreading) {
+			const metadata = { tracking: false, await: false };
+			// We visit, but only to gather metadata
+			b.call(visit(node.id, { ...state, metadata }));
+
+			if (metadata.tracking) {
 				state.init.push(
 					b.stmt(
 						b.call(
-							node.id,
+							'_$_.composite',
+							b.thunk(visit(node.id, state)),
 							id,
-							b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block')),
-							b.id('_$_.active_block'),
+							is_spreading
+								? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
+								: b.object(props),
 						),
 					),
 				);
 			} else {
 				state.init.push(
-					b.stmt(b.call(visit(node.id, state), id, b.object(props), b.id('_$_.active_block'))),
+					b.stmt(
+						b.call(
+							visit(node.id, state),
+							id,
+							is_spreading
+								? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
+								: b.object(props),
+							b.id('_$_.active_block'),
+						),
+					),
 				);
 			}
 		}
-	},
-
-	Fragment(node, context) {
-		if (!context.state.to_ts) {
-			add_ripple_internal_import(context);
-		}
-
-		const metadata = { await: false };
-
-		const body_statements = transform_body(node.body, {
-			...context,
-			state: { ...context.state, component: node, metadata },
-		});
-
-		return b.function(
-			node.id,
-			[b.id('__anchor'), ...node.params.map((param) => context.visit(param, context.state))],
-			b.block(
-				metadata.await
-					? [b.stmt(b.call('_$_.async', b.thunk(b.block(body_statements), true)))]
-					: body_statements,
-			),
-		);
 	},
 
 	Component(node, context) {
@@ -1434,7 +1446,10 @@ function transform_ts_child(node, context) {
 
 function transform_children(children, context) {
 	const { visit, state, root } = context;
-	const normalized = normalize_children(children);
+	const normalized = normalize_children(children, context);
+	const head_elements = children.filter(
+		(node) => node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'head',
+	);
 
 	const is_fragment =
 		normalized.some(
@@ -1534,6 +1549,8 @@ function transform_children(children, context) {
 
 			if (node.type === 'Element') {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
+			} else if (node.type === 'HeadElement') {
+				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'Text') {
 				const metadata = { tracking: false, await: false };
 				const expression = visit(node.expression, { ...state, metadata });
@@ -1578,6 +1595,20 @@ function transform_children(children, context) {
 		}
 	}
 
+	for (const head_element of head_elements) {
+		visit_head_element(head_element, context);
+	}
+	if (context.state.inside_head) {
+		const title_element = children.find(
+			(node) =>
+				node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'title',
+		);
+
+		if (title_element) {
+			visit_title_element(title_element, context);
+		}
+	}
+
 	const template_namespace = state.namespace || 'html';
 
 	if (root && initial !== null && template_id !== null) {
@@ -1604,6 +1635,7 @@ function transform_body(body, { visit, state }) {
 		final: [],
 		metadata: state.metadata,
 		namespace: state.namespace || 'html', // Preserve namespace context
+		inside_head: state.inside_head || false,
 	};
 
 	transform_children(body, { visit, state: body_state, root: true });

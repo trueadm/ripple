@@ -287,3 +287,7 @@ const methods_returning_arrays = new Set([
   'toSpliced',
   'with',
 ]);
+
+export function tracked_array(elements, block) {
+  return proxy({ elements, block, from_static: true });
+}

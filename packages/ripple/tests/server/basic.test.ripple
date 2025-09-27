@@ -1,0 +1,15 @@
+import { describe, it, expect } from 'vitest';
+import { render } from 'ripple/server';
+
+describe('basic client', () => {
+	it('render static text', async () => {
+		component Basic() {
+			<div>{'Hello World'}</div>
+		}
+
+		const { head, body } = await render(Basic);
+
+		expect(head).toBe('');
+		expect(body).toBe('<div>Hello World</div>');
+	});
+});

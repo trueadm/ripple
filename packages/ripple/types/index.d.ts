@@ -76,26 +76,21 @@ export type PropsWithExtras<T extends object> = Props & T & Record<string, unkno
 export type PropsWithChildren<T extends object = {}> =
   Expand<Omit<Props, 'children'> & { children: Component } & T>;
 
-type UnwrapTracked<T> = [T] extends [Tracked<infer V>] ? T : Tracked<T>;
-
-// force ts to evaluate and expand a type fully
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
 type PickKeys<T, K extends readonly (keyof T)[]> =
-  { [I in keyof K]: UnwrapTracked<T[K[I] & keyof T]> };
+  { [I in keyof K]: Tracked<T[K[I] & keyof T]> };
 
 type RestKeys<T, K extends readonly (keyof T)[]> = Expand<Omit<T, K[number]>>;
 
 type SplitResult<T extends Props, K extends readonly (keyof T)[]> =
-  [...PickKeys<T, K>, UnwrapTracked<RestKeys<T, K>>];
+  [...PickKeys<T, K>, Tracked<RestKeys<T, K>>];
 
-type TrackOptions = { split?: readonly (string | number | symbol)[] };
+export declare function track<V>(value?: V | (() => V), get?: (v: V) => V, set?: (v: V) => V): Tracked<V>;
 
-export declare function track<V>(value?: V | (() => V)): Tracked<V>;
-
-export declare function track<V extends Props, const K extends readonly (keyof V)[]>(
-  value: V,
-  options: TrackOptions
+export declare function trackSplit<V extends Props, const K extends readonly (keyof V)[]>(
+	value: V,
+	splitKeys: K,
 ): SplitResult<V, K>;
 
 export function on<Type extends keyof WindowEventMap>(

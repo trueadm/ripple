@@ -43,7 +43,16 @@ export default defineConfig({
 	},
 
 	themeConfig: {
+		logo: {
+			light: '/ripple-logo-horizontal.png',
+			dark: '/ripple-logo-horizontal.png',
+			alt: 'Ripple Logo',
+		},
+
 		logoLink: { target: '_self' },
+
+		siteTitle: false,
+
 		notFound: {
 			link: '/docs/introduction',
 			linkLabel: 'Back to docs home',
@@ -91,7 +100,7 @@ export default defineConfig({
 		],
 		[
 			'link',
-			{ href: 'https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap" rel="stylesheet', rel: 'stylesheet' }
+			{ href: 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Ubuntu+Sans:ital,wght@0,100..800;1,100..800&display=swap', rel: 'stylesheet' }
 		],
 	],
 
@@ -134,7 +143,6 @@ function docs_sidebar() {
 				{ text: 'Components', link: 'guide/components' },
 				{ text: 'Control Flow', link: 'guide/control-flow' },
 				{ text: 'Reactivity', link: 'guide/reactivity' },
-				{ text: 'Data Binding', link: 'guide/data-binding' },
 				{ text: 'Events', link: 'guide/events' },
 				{ text: 'DOM References', link: 'guide/dom-refs' },
 				{ text: 'State Management', link: 'guide/state-management' },

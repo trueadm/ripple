@@ -201,24 +201,50 @@ effect(() => {
 
 > Note: you cannot create `Tracked` objects in module/global scope, they have to be created on access from an active component context.
 
-#### Split Option
+#### track with get / set
 
-The `track` function also offers a `split` option to "split" a plain object — such as component props — into specified tracked variables and an extra `rest` property containing the remaining unspecified object properties.
+The optional get and set parameters of the `track` function let you customize how a tracked value is read or written, similar to property accessors but expressed as pure functions. The get function receives the current stored value and its return value is exposed when the tracked value is accessed / unboxed with `@`. The set function receives the value being assigned and should return the value that will actually be stored.  The get and set functions may be useful for tasks such as logging, validating, or transforming values before they are exposed or stored.
 
-```jsx
-const [children, count, rest] = track(props, {split: ['children', 'count']});
+```ripple
+import { track } from 'ripple';
+
+export component App() {
+  let count = track(0,
+    (current) => {
+      console.log(current);
+      return current;
+    },
+    (to_be_set) => {
+      if (typeof to_be_set === 'string') {
+        v = Number(to_be_set);
+      }
+
+      return to_be_set;
+    }
+  );
+}
 ```
 
-When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity. However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, does not preserve reactivity due to various edge cases. To ensure destructured variables remain reactive in this case, use the `track` function with the `split` option.
+> Note: If no value is returned from either `get` or `set`, `undefined` is either exposed (for get) or stored (for set). Also, if only supplying the `set`, the `get` parameter must be set to `undefined`.
+
+#### trackSplit Function
+
+The `trackSplit` "splits" a plain object — such as component props — into specified tracked variables and an extra `rest` property containing the remaining unspecified object properties.
+
+```jsx
+const [children, count, rest] = trackSplit(props, ['children', 'count']);
+```
+
+When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity. However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, does not preserve reactivity due to various edge cases. To ensure destructured variables remain reactive in this case, use the `trackSlit` function.
 
 A full example utilizing various Ripple constructs demonstrates the `split` option usage:
 
 ```jsx
-import { track } from 'ripple';
+import { track, trackSplit } from 'ripple';
 import type { PropsWithChildren, Tracked } from 'ripple';
 
 component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
-  const [children, count, className, rest] = track(props, {split: ['children', 'count', 'class']});
+  const [children, count, className, rest] = trackSplit(props, ['children', 'count', 'class']);
 
   <button class={@className} {...@rest}><@children /></button>
   <pre>{`Count is: ${@count}`}</pre>
@@ -259,87 +285,53 @@ let { children, count, class: className, ...rest } = props;
 
 **Critical Concept**: Ripple doesn't constrain reactivity to components only. `Tracked<V>` objects can simply be passed by reference between boundaries to improve expressivity and co-location.
 
-#### Array Transport Pattern
-
+#### Basic Transport Pattern
 ```ripple
 import { effect, track } from 'ripple';
 
-function createDouble([ count ]) {
+function createDouble(count) {
   const double = track(() => @count * 2);
 
   effect(() => {
     console.log('Count:', @count)
   });
 
-  return [ double ];
+  return double;
 }
 
 export component App() {
   let count = track(0);
 
-  const [ double ] = createDouble([ count ]);
+  const double = createDouble(count);
 
   <div>{'Double: ' + @double}</div>
   <button onClick={() => { @count++; }}>{'Increment'}</button>
 }
 ```
 
-#### Object Transport Pattern
+#### Dynamic Component Transport Pattern
+
+Ripple has built-in support for dynamic components, a way to render different components based on reactive state. Instead of hardcoding which component to show, you can store a component in a `Tracked` via `track()`, and update it at runtime. When the tracked value changes, Ripple automatically unmounts the previous component and mounts the new one. Dynamic components are written with the `<@Component />` tag, where the @ both unwraps the tracked reference and tells the compiler that the component is dynamic. This makes it straightforward to pass components as props or swap them directly within a component, enabling flexible, state-driven UIs with minimal boilerplate.
 
 ```ripple
-import { effect, track } from 'ripple';
-
-function createDouble({ count }) {
-  const double = track(() => @count * 2);
-
-  effect(() => {
-    console.log('Count:', @count)
-  });
-  return { double };
-}
-
 export component App() {
-  let count = track(0);
-  const { double } = createDouble({ count });
+  let swapMe = track(() => Child1);
 
-  <div>{'Double: ' + @double}</div>
-  <button onClick={() => { @count++; }}>{'Increment'}</button>
-}
-```
+  <Child {swapMe} />
 
-#### Component Transport Pattern
-
-```ripple
-import { track } from 'ripple';
-
-export component App() {
-  const tracked_basic = track(() => basic);
-  const obj = {
-    tracked_basic,
-  };
-  const tracked_object = track(obj);
-  const Button = track(() => SomeButton);
-  const AnotherButton = track(() => SomeButton);
-
-  <@tracked_object.@tracked_basic />
-  <Child {Button}>{'Child Button'}</Child>
-  <AnotherChild Button={AnotherButton}>{'Another Child Button'}</AnotherChild>
+  <button onClick={() => @swapMe = @swapMe === Child1 ? Child2 : Child1}>{'Swap Component'}</button>
 }
 
-component Child({ Button, children }) {
-  <@Button><children /></@Button>
+component Child({ swapMe }: {swapMe: Tracked<Component>}) {
+  <@swapMe />
 }
 
-component AnotherChild(props) {
-  <props.@Button><props.children /></props.@Button>
+component Child1(props) {
+  <pre>{'I am child 1'}</pre>
 }
 
-component SomeButton({ children }) {
-  <button><children /></button>
-}
-
-component basic() {
-  <div>{'Basic Component'}</div>
+component Child2(props) {
+  <pre>{'I am child 2'}</pre>
 }
 ```
 
@@ -419,72 +411,6 @@ component Card(props: { children: Component }) {
   <p>{"Card content here"}</p>
 </Card>
 ```
-
-### Accessor Props
-
-**Advanced Feature**: Ripple provides accessor props for debugging and two-way data binding on composite components using `prop:={}` syntax (note the colon before equals).
-
-#### Basic Accessor (Getter Only)
-```ripple
-component Person(props) {
-  <div>{"Hello, "}{props.name}</div>
-}
-
-// Accessor syntax requires a function
-component App() {
-  let name = track('Bob');
-
-  const getName = () => {
-    console.log('name accessed'); // Debugging capability
-    return @name;
-  };
-
-  // Use := instead of = for accessor props
-  <Person name:={getName} />
-
-  // Or inline:
-  <Person name:={() => {
-    console.log('name accessed');
-    return @name;
-  }} />
-}
-```
-
-#### Two-Way Binding (Getter + Setter)
-```ripple
-component Person(props) {
-  const updateName = (newName) => {
-    // Component can directly assign to trigger setter
-    props.name = newName;
-  }
-
-  <div>
-    <span>{"Hello, "}{props.name}</span>
-    <button onClick={() => updateName("Alice")}>{"Change Name"}</button>
-  </div>
-}
-
-component App() {
-  let name = track('Bob');
-
-  const getName = () => @name;
-  const setName = (newName) => @name = newName;
-
-  // Provide both getter and setter functions
-  <Person name:={getName, setName} />
-
-  // Or inline version:
-  <Person name:={() => @name, (newName) => @name = newName} />
-}
-```
-
-**Key Rules:**
-- Accessor props use `prop:={}` syntax (colon before equals)
-- Must pass function(s), not direct values
-- Single function = getter only (read access + debugging)
-- Two functions = getter + setter (separated by comma)
-- Component can assign directly to `props.name` to trigger setter
-- Enables debugging prop access and two-way binding patterns
 
 ### Events
 
@@ -635,7 +561,7 @@ component Parent() {
 
 ### Reactive Collections
 
-#### Reactive Arrays
+#### Simple Reactive Arrays
 
 Just like objects, you can use the `Tracked<V>` objects in any standard JavaScript object, like arrays:
 
@@ -655,10 +581,13 @@ However, if you need the entire array to be fully reactive, including when new e
 
 #### TrackedArray
 
-You'll need to import the `TrackedArray` class from Ripple. It extends the standard JS `Array` class, and supports all of its methods and properties.
+`TrackedArray` class from Ripple extends the standard JS `Array` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the bracketed notation.
 
-```ripple
+```js
 import { TrackedArray } from 'ripple';
+
+// using syntactic sugar `#`
+const arr = #[1, 2, 3];
 
 // using the new constructor
 const arr = new TrackedArray(1, 2, 3);
@@ -670,7 +599,7 @@ const arr = TrackedArray.from([1, 2, 3]);
 const arr = TrackedArray.of(1, 2, 3);
 ```
 
-The `TrackedArray` is a reactive array, and that means you can access properties normally using numeric index. However, accessing the `length` property of a `TrackedArray` will not be reactive, instead you should use `length`.
+The `TrackedArray` is a reactive array, and that means you can access properties normally using numeric index.
 
 ```ripple
 import { TrackedArray } from 'ripple';

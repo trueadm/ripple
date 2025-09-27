@@ -221,9 +221,12 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTryStatement(node, path, options, print);
 			break;
 
-		case 'ArrayExpression': {
+		case 'ArrayExpression':
+		case 'TrackedArrayExpression': {
+			const prefix = node.type === 'TrackedArrayExpression' ? '#' : '';
+
 			if (!node.elements || node.elements.length === 0) {
-				nodeContent = '[]';
+				nodeContent = prefix + '[]';
 				break;
 			}
 
@@ -231,7 +234,7 @@ function printRippleNode(node, path, options, print, args) {
 
 			// Simple single-line for short arrays
 			if (elements.length <= 3) {
-				const parts = ['['];
+				const parts = [prefix + '['];
 				for (let i = 0; i < elements.length; i++) {
 					if (i > 0) parts.push(', ');
 					parts.push(elements[i]);
@@ -242,7 +245,7 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			// Multi-line for longer arrays
-			const parts = ['['];
+			const parts = [prefix + '['];
 			parts.push(line);
 			for (let i = 0; i < elements.length; i++) {
 				if (i > 0) {
@@ -407,6 +410,10 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'ContinueStatement':
 			nodeContent = printContinueStatement(node, path, options, print);
+			break;
+
+		case 'DebuggerStatement':
+			nodeContent = printDebuggerStatement(node, path, options, print);
 			break;
 
 		case 'SequenceExpression':
@@ -1091,6 +1098,13 @@ function printForOfStatement(node, path, options, print) {
 	parts.push(path.call(print, 'left'));
 	parts.push(' of ');
 	parts.push(path.call(print, 'right'));
+	
+	// Handle Ripple-specific index syntax
+	if (node.index) {
+		parts.push('; index ');
+		parts.push(path.call(print, 'index'));
+	}
+	
 	parts.push(') ');
 	parts.push(path.call(print, 'body'));
 
@@ -1588,6 +1602,10 @@ function printContinueStatement(node, path, options, print) {
 	}
 	parts.push(';');
 	return parts;
+}
+
+function printDebuggerStatement(node, path, options, print) {
+	return 'debugger;';
 }
 
 function printSequenceExpression(node, path, options, print) {

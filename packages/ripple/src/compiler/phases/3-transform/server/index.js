@@ -5,6 +5,7 @@ import path from 'node:path';
 import { print } from 'esrap';
 import {
 	build_getter,
+	determine_namespace_for_children,
 	escape_html,
 	is_boolean_attribute,
 	is_element_dom_element,
@@ -26,7 +27,7 @@ function add_ripple_internal_import(context) {
 
 function transform_children(children, context) {
 	const { visit, state, root } = context;
-	const normalized = normalize_children(children);
+	const normalized = normalize_children(children, context);
 
 	for (const node of normalized) {
 		if (
@@ -111,6 +112,9 @@ const visitors = {
 		const is_dom_element = is_element_dom_element(node);
 		const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
 		const spread_attributes = is_spreading ? [] : null;
+		const child_namespace = is_dom_element
+			? determine_namespace_for_children(node.id.name, state.namespace)
+			: state.namespace;
 
 		if (is_dom_element) {
 			const is_void = is_void_element(node.id.name);
@@ -244,12 +248,18 @@ const visitors = {
 			}
 		} else {
 			const props = [];
+			let children_prop = null;
 
 			for (const attr of node.attributes) {
 				if (attr.type === 'Attribute') {
 					if (attr.name.type === 'Identifier') {
 						const metadata = { tracking: false, await: false };
 						let property = visit(attr.value, { ...state, metadata });
+
+						if (attr.name.name === 'children') {
+							children_prop = b.thunk(property);
+							continue;
+						}
 
 						props.push(b.prop('init', attr.name, property));
 					} else if (attr.type === 'SpreadAttribute') {
@@ -262,7 +272,33 @@ const visitors = {
 				}
 			}
 
-			state.init.push(b.stmt(b.call(node.id.name, b.id('__output'), b.object(props))));
+			const children_filtered = [];
+
+			for (const child of node.children) {
+				if (child.type === 'Component') {
+					const id = child.id;
+					props.push(b.prop('init', id, visit(child, { ...state, namespace: child_namespace })));
+				} else {
+					children_filtered.push(child);
+				}
+			}
+
+			if (children_filtered.length > 0) {
+				const component_scope = context.state.scopes.get(node);
+				const children = visit(b.component(b.id('children'), [], children_filtered), {
+					...context.state,
+					scope: component_scope,
+					namespace: child_namespace,
+				});
+
+				if (children_prop) {
+					children_prop.body = b.logical('??', children_prop.body, children);
+				} else {
+					props.push(b.prop('init', b.id('children'), children));
+				}
+			}
+
+			state.init.push(b.stmt(b.call(visit(node.id, state), b.id('__output'), b.object(props))));
 		}
 	},
 
