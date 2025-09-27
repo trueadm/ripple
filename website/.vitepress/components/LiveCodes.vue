@@ -11,7 +11,7 @@ import { PlaygroundProps } from './PlaygroundProps'
 const playgroundUrl = 'https://ripple.livecodes.pages.dev'
 const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple'
 
-type UserSettings = { vim?: boolean; ai?: boolean }
+type UserSettings = { vim?: boolean; ai?: boolean; fontSize?: number }
 
 const localStorageKey = 'ripple-playground-settings'
 
@@ -44,6 +44,7 @@ const playgroundActions = useTemplateRef('playground-actions')
 const tailwind = ref(false)
 const vim = ref(getUserSettings().vim ?? false)
 const ai = ref(getUserSettings().ai !== false)
+const fontSize = ref(getUserSettings().fontSize || 12)
 const hash = props.isMainPlayground ? window.location.hash : undefined
 
 const pkg = await fetch(apiUrl)
@@ -124,6 +125,7 @@ const config: Partial<Config> = {
 	style: getStyle(),
 	theme: isDark.value ? 'dark' : 'light',
 	themeColor,
+	fontSize: props.isMainPlayground ? fontSize.value : undefined,
 	processors: tailwind.value ? ['tailwindcss'] : [],
 	editorMode: vim.value ? 'vim' : undefined,
 	enableAI: ai.value,
@@ -182,6 +184,13 @@ const onReady = (sdk: Playground) => {
 			newConfig = {
 				...newConfig,
 				themeColor,
+			}
+		}
+
+		if (props.isMainPlayground && config.fontSize !== fontSize.value) {
+			newConfig = {
+				...newConfig,
+				fontSize: fontSize.value,
 			}
 		}
 
@@ -294,6 +303,14 @@ watch(ai, async () => {
 	setUserSettings({ ai: ai.value })
 })
 
+watch(fontSize, async () => {
+	if (!playground) return
+	playground.setConfig({
+		fontSize: fontSize.value,
+	})
+	setUserSettings({ fontSize: fontSize.value })
+})
+
 watch(version, async () => {
 	if (!playground) return
 	playground.setConfig({
@@ -332,6 +349,32 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 			</div>
 			<div class="menu-item" @click="vim = !vim">
 				Vim mode <VPSwitch :aria-checked="vim"></VPSwitch>
+			</div>
+			<div class="menu-item font-size-selector">
+				<button
+					title="Font size: small"
+					style="font-size: 0.8rem"
+					:class="[fontSize === 12 ? 'active' : '']"
+					@click="fontSize = 12"
+				>
+					A
+				</button>
+				<button
+					title="Font size: medium"
+					style="font-size: 1rem"
+					:class="[fontSize === 14 ? 'active' : '']"
+					@click="fontSize = 14"
+				>
+					A
+				</button>
+				<button
+					title="Font size: large"
+					style="font-size: 1.2rem"
+					:class="[fontSize === 16 ? 'active' : '']"
+					@click="fontSize = 16"
+				>
+					A
+				</button>
 			</div>
 		</VPFlyout>
 
@@ -389,6 +432,25 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 
 	&:hover,
 	&.active {
+		color: var(--vp-c-brand-1);
+		background-color: var(--vp-c-default-soft);
+	}
+}
+
+.menu-item.font-size-selector {
+	&:hover {
+		color: unset;
+		background-color: unset;
+	}
+
+	button {
+		padding: 6px 12px;
+		color: var(--vp-button-alt-hover-text);
+		border-radius: 6px;
+	}
+
+	button:hover,
+	button.active {
 		color: var(--vp-c-brand-1);
 		background-color: var(--vp-c-default-soft);
 	}
