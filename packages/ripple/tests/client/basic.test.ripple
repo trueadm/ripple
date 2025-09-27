@@ -1498,6 +1498,27 @@ describe('basic client', () => {
 		expect(countDiv.textContent).toBe('3');
 	});
 
+	it('passes in next and prev to track set function', () => {
+		let logs = [];
+
+		component App() {
+			let count = track(0, v => v, (next, prev) => {
+				logs.push(prev, next);
+				return next;
+			});
+
+			<button onClick={() => { @count++ }}>{'Increment'}</button>
+		}
+
+		render(App);
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(logs).toEqual([0, 1]);
+	});
+
 	it('works as a reactive TrackedArray when constructed using # syntactic sugar', () => {
 		component App() {
 			const array = #[1, 2, 3];

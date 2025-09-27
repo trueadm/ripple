@@ -60,7 +60,7 @@ You cannot create `Tracked` objects in module/global scope, they have to be crea
 
 ### track with get / set
 
-The optional get and set parameters of the `track` function let you customize how a tracked value is read or written, similar to property accessors but expressed as pure functions. The get function receives the current stored value and its return value is exposed when the tracked value is accessed / unboxed with `@`. The set function receives the value being assigned and should return the value that will actually be stored.  The get and set functions may be useful for tasks such as logging, validating, or transforming values before they are exposed or stored.
+The optional get and set parameters of the `track` function let you customize how a tracked value is read or written, similar to property accessors but expressed as pure functions. The get function receives the current stored value and its return value is exposed when the tracked value is accessed / unboxed with `@`. The set function should return the value that will actually be stored and receives two parameters: the first is the one being assigned and the second with the previous value.  The get and set functions may be useful for tasks such as logging, validating, or transforming values before they are exposed or stored.
 
 ```ripple
 import { track } from 'ripple';
@@ -71,16 +71,16 @@ export component App() {
       console.log(current);
       return current;
     },
-    (to_be_set) => {
-      if (typeof to_be_set === 'string') {
-        to_be_set = Number(to_be_set);
+    (next, prev) => {
+      console.log(prev);
+      if (typeof next === 'string') {
+        next = Number(next);
       }
 
-      return to_be_set;
+      return next;
     }
   );
 }
-```
 
 ::: info Note
 If no value is returned from either `get` or `set`, `undefined` is either exposed (for get) or stored (for set). Also, if only supplying the `set`, the `get` parameter must be set to `undefined`.
@@ -94,7 +94,7 @@ The `trackSplit` "splits" a plain object — such as component props — into sp
 const [children, count, rest] = trackSplit(props, ['children', 'count']);
 ```
 
-When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity. However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, does not preserve reactivity due to various edge cases. To ensure destructured variables remain reactive in this case, use the `trackSlit` function.
+When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity. However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, does not preserve reactivity due to various edge cases. To ensure destructured variables remain reactive in this case, use the `trackSplit` function.
 
 A full example utilizing various Ripple constructs demonstrates the `split` option usage:
 
