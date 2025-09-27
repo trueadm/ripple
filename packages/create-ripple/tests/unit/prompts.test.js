@@ -186,8 +186,27 @@ describe('Prompts', () => {
 
 	describe('promptGitInit', () => {
 		it('should return Git initialization preference', async () => {
-			prompts.default.mockResolvedValue({ gitInit: false });
+			prompts.default.mockResolvedValue({ gitInit: true });
+			const result = await promptGitInit();
+			expect(result).toBe(true);
+			expect(prompts.default).toHaveBeenCalledWith({
+				type: 'confirm',
+				name: 'gitInit',
+				message: 'Initialize a new Git repository?',
+				initial: true
+			});
+		});
 
+		it('should exit when user cancels', async () => {
+			prompts.default.mockResolvedValue({});
+			await promptGitInit();
+			expect(mockExit).toHaveBeenCalledWith(1);
+		});
+	});
+
+	describe('promptGitInit', () => {
+		it('should return Git initialization preference as false', async () => {
+			prompts.default.mockResolvedValue({ gitInit: false });
 			const result = await promptGitInit();
 			expect(result).toBe(false);
 			expect(prompts.default).toHaveBeenCalledWith({
@@ -200,11 +219,11 @@ describe('Prompts', () => {
 
 		it('should exit when user cancels', async () => {
 			prompts.default.mockResolvedValue({});
-
 			await promptGitInit();
 			expect(mockExit).toHaveBeenCalledWith(1);
 		});
 	});
+
 	describe('promptStylingFramework', () => {
 		it('should return selected styling framework', async () => {
 			prompts.default.mockResolvedValue({ stylingFramework: 'tailwind' });

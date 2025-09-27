@@ -65,11 +65,19 @@ export async function createCommand(projectName, options) {
 	}
 
 	// Step 5: Git initialization preference
-	let gitInit = true;
-	if (!options.git && !options.yes) {
-		gitInit = await promptGitInit();
-	} else if (options.git === false) {
+	let gitInit;
+
+	// This logic assumes that `options.git` might be true by default.
+	// We will prompt unless the user has explicitly opted out or is in non-interactive mode.
+	if (options.git === false) {
+		// --no-git was used
 		gitInit = false;
+	} else if (options.yes) {
+		// --yes was used, default to true
+		gitInit = true;
+	} else {
+		// In all other cases, including the implicit default, ask the user.
+		gitInit = await promptGitInit();
 	}
 
 		let stylingFramework = 'vanilla';
