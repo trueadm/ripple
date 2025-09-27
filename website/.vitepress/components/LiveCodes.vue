@@ -35,6 +35,10 @@ const setUserSettings = (userSettings: UserSettings) => {
 
 const props = defineProps<PlaygroundProps>()
 const { isDark } = useData()
+const themeColor =
+	window
+		.getComputedStyle(document.documentElement)
+		.getPropertyValue('--vp-c-brand-3') || '#2d6dbf'
 let playground: Playground | undefined
 const playgroundActions = useTemplateRef('playground-actions')
 const tailwind = ref(false)
@@ -119,6 +123,7 @@ const config: Partial<Config> = {
 	},
 	style: getStyle(),
 	theme: isDark.value ? 'dark' : 'light',
+	themeColor,
 	processors: tailwind.value ? ['tailwindcss'] : [],
 	editorMode: vim.value ? 'vim' : undefined,
 	enableAI: ai.value,
@@ -173,6 +178,13 @@ const onReady = (sdk: Playground) => {
 			}
 		}
 
+		if (config.themeColor !== themeColor) {
+			newConfig = {
+				...newConfig,
+				themeColor,
+			}
+		}
+
 		const selectedVersion =
 			versionParam || config.customSettings?.ripple?.version
 		if (
@@ -221,14 +233,6 @@ const onReady = (sdk: Playground) => {
 	}
 }
 
-const style = {
-	height:
-		props.height ??
-		(props.isMainPlayground ? 'calc(100dvh - 98px)' : undefined),
-	minHeight: props.isMainPlayground ? '400px' : undefined,
-	marginTop: props.isMainPlayground ? '1.5rem' : undefined,
-}
-
 const copyUrlText = ref('Copy URL')
 const copyUrl = async () => {
 	if (playground) {
@@ -245,6 +249,17 @@ const copyUrl = async () => {
 	}
 }
 
+const getPlaygroundStyle = () => ({
+	height:
+		props.height ??
+		(props.isMainPlayground ? 'calc(100dvh - 98px)' : undefined),
+	minHeight: props.isMainPlayground ? '400px' : undefined,
+	marginTop: props.isMainPlayground ? '1.5rem' : undefined,
+	borderRadius: props.isMainPlayground ? undefined : '8px',
+	border: `1px solid ${isDark.value ? '#333' : '#ddd'}`,
+})
+const playgroundStyle = ref(getPlaygroundStyle())
+
 watch(isDark, () => {
 	if (playground) {
 		playground.setConfig({
@@ -252,6 +267,7 @@ watch(isDark, () => {
 			style: getStyle(),
 		})
 	}
+	playgroundStyle.value = getPlaygroundStyle()
 })
 
 watch(tailwind, async () => {
@@ -330,7 +346,7 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	</div>
 	<LiveCodes
 		v-bind="options"
-		:style="style"
+		:style="playgroundStyle"
 		:data-default-styles="!props.isMainPlayground"
 		@sdk-ready="onReady"
 	/>
@@ -387,6 +403,6 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 }
 
 .VPSwitch[aria-checked='true'] {
-	background-color: var(--vp-c-brand-3);
+	background-color: var(--vp-c-brand-1);
 }
 </style>
