@@ -60,4 +60,6 @@ export { template, append } from './template.js';
 
 export { tracked_array } from '../../array.js';
 
+export { tracked_object } from '../../object.js';
+
 export { head } from './head.js';

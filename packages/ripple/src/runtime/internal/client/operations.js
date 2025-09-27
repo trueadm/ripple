@@ -14,7 +14,6 @@ export var is_firefox;
 export function init_operations() {
 	var node_prototype = Node.prototype;
 	var element_prototype = Element.prototype;
-	var object_prototype = Object.prototype;
 	var event_target_prototype = EventTarget.prototype;
 
 	is_firefox = /Firefox/.test(navigator.userAgent);
