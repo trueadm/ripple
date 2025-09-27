@@ -115,8 +115,6 @@ in plain JavaScript.
 
 ## Concept: Templates as Lexical Scopes
 
-TODO: Rewrite for humans
-
 In Ripple, templates act as lexical scopes, allowing you to declare variables,
 call functions, and execute JavaScript statements directly within JSX elements -
 similar to block statements in regular JavaScript.
@@ -186,7 +184,3 @@ Plain attributes can still be used.
 ```
 
 :::
-
-## Raw HTML
-
-TODO, unimplemented for now.
