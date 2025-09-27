@@ -86,7 +86,7 @@ type RestKeys<T, K extends readonly (keyof T)[]> = Expand<Omit<T, K[number]>>;
 type SplitResult<T extends Props, K extends readonly (keyof T)[]> =
   [...PickKeys<T, K>, Tracked<RestKeys<T, K>>];
 
-export declare function track<V>(value?: V | (() => V), get?: (v: V) => V, set?: (v: V) => V): Tracked<V>;
+export declare function track<V>(value?: V | (() => V), get?: (v: V) => V, set?: (next: V, prev: V) => V): Tracked<V>;
 
 export declare function trackSplit<V extends Props, const K extends readonly (keyof V)[]>(
 	value: V,
