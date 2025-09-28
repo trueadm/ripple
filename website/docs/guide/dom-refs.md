@@ -89,7 +89,10 @@ export component App() {
     id: "example",
     @value,
     [createRefKey()]: (node) => {
-      const removeListener = node.addEventListener('input', (e) => @value = e.target.value);
+      const removeListener = node.addEventListener('input', (e) => {
+        @value = e.target.value;
+        console.log(@value);
+      });
 
       return () => {
         removeListener();
