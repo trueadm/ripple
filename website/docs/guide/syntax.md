@@ -178,9 +178,25 @@ write a JS expression that evaluates to our desired value.
 
 ::: info
 Plain attributes can still be used.
-
 ```ripple
 <input type="textarea" />
 ```
-
 :::
+
+## Raw HTML
+
+By default, all text nodes in Ripple are escaped to prevent unintended script
+injections. If you'd like to render trusted HTML onto your page, you can use the
+HTML directive to opt-out:
+
+````ripple
+export component RawContent() {
+	let source = ```
+# My Markdown Document
+Hi! I like JS and Ripple.
+```
+	let rendered = md_to_html(source)
+
+	{html rendered}
+}
+````
