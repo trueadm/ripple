@@ -58,11 +58,11 @@ export function is_capture_event(name) {
  * @param {string} event_name
  */
 export function get_attribute_event_name(event_name) {
-  event_name = event_name.slice(2);
+  event_name = event_name.slice(2); // strip "on"
   if (is_capture_event(event_name)) {
-    event_name = event_name.slice(0, -7);
+    event_name = event_name.slice(0, -7); // strip "Capture"
   }
-  return event_name[0].toLowerCase() + event_name.slice(1);
+  return event_name.toLowerCase();
 }
 
 const PASSIVE_EVENTS = ['touchstart', 'touchmove'];
