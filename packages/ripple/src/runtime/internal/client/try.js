@@ -1,3 +1,5 @@
+/** @import { Block } from '#client' */
+
 import { branch, create_try_block, destroy_block, is_destroyed, resume_block } from './blocks.js';
 import { TRY_BLOCK } from './constants.js';
 import { next_sibling } from './operations.js';
@@ -13,13 +15,28 @@ import {
   tracking,
 } from './runtime.js';
 
+/**
+ * @param {Node} node
+ * @param {(anchor: Node) => void} fn
+ * @param {((anchor: Node, error: any) => void) | null} catch_fn
+ * @param {((anchor: Node) => void) | null} [pending_fn=null]
+ * @returns {void}
+ */
 export function try_block(node, fn, catch_fn, pending_fn = null) {
   var anchor = node;
+  /** @type {Block | null} */
   var b = null;
+  /** @type {Block | null} */
   var suspended = null;
   var pending_count = 0;
+  /** @type {DocumentFragment | null} */
   var offscreen_fragment = null;
 
+  /**
+   * @param {Block} block
+   * @param {DocumentFragment} fragment
+   * @returns {void}
+   */
   function move_block(block, fragment) {
     var state = block.s;
     var node = state.start;
@@ -42,7 +59,7 @@ export function try_block(node, fn, catch_fn, pending_fn = null) {
           move_block(b, offscreen_fragment);
 
           b = branch(() => {
-            pending_fn(anchor);
+            /** @type {(anchor: Node) => void} */ (pending_fn)(anchor);
           });
         }
       });
@@ -53,22 +70,26 @@ export function try_block(node, fn, catch_fn, pending_fn = null) {
         if (b !== null) {
           destroy_block(b);
         }
-        anchor.before(offscreen_fragment);
+        /** @type {ChildNode} */ (anchor).before(/** @type {DocumentFragment} */ (offscreen_fragment));
         offscreen_fragment = null;
-        resume_block(suspended);
+        resume_block(/** @type {Block} */ (suspended));
         b = suspended;
         suspended = null;
       }
     };
   }
 
+  /**
+   * @param {any} error
+   * @returns {void}
+   */
   function handle_error(error) {
     if (b !== null) {
       destroy_block(b);
     }
 
     b = branch(() => {
-      catch_fn(anchor, error);
+      /** @type {(anchor: Node, error: any) => void} */ (catch_fn)(anchor, error);
     });
   }
 
@@ -84,6 +105,9 @@ export function try_block(node, fn, catch_fn, pending_fn = null) {
   }, state);
 }
 
+/**
+ * @returns {() => void}
+ */
 export function suspend() {
   var current = active_block;
 
@@ -98,6 +122,9 @@ export function suspend() {
   throw new Error('Missing parent `try { ... } pending { ... }` statement');
 }
 
+/**
+ * @returns {void}
+ */
 function exit() {
   set_tracking(false);
   set_active_reaction(null);
@@ -105,6 +132,9 @@ function exit() {
   set_active_component(null);
 }
 
+/**
+ * @returns {() => void}
+ */
 export function capture() {
   var previous_tracking = tracking;
   var previous_block = active_block;
@@ -121,6 +151,9 @@ export function capture() {
   };
 }
 
+/**
+ * @returns {boolean}
+ */
 export function aborted() {
   if (active_block === null) {
     return true;
@@ -128,6 +161,11 @@ export function aborted() {
   return is_destroyed(active_block);
 }
 
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @returns {Promise<() => T>}
+ */
 export async function resume_context(promise) {
   var restore = capture();
   var value = await promise;

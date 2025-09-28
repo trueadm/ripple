@@ -1,3 +1,5 @@
+/** @import { Component } from '#server' */
+
 import { active_component } from './index.js';
 
 /**

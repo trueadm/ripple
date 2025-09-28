@@ -156,6 +156,7 @@ function docs_sidebar() {
 				{ text: 'Best Practices', link: 'best-practices' },
 				{ text: 'Libraries', link: 'libraries' },
 				{ text: 'Troubleshooting', link: 'troubleshooting' },
+				{ text: 'llms.txt', link: '../llms.txt',	target: '_blank' },
 			]
 		},
 	]

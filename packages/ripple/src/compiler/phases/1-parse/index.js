@@ -793,7 +793,36 @@ function RipplePlugin(config) {
 						this.next();
 					}
 				} else {
-					if (open.name.name === 'style') {
+					if (open.name.name === 'script') {
+						let content = '';
+
+						// TODO implement this where we get a string for content of the content of the script tag
+						// This is a temporary workaround to get the content of the script tag
+						const start = open.end;
+						const input = this.input.slice(start);
+						const end = input.indexOf('</script>');
+						content = input.slice(0, end);
+
+						const newLines = content.match(regex_newline_characters)?.length;
+						if (newLines) {
+							this.curLine = open.loc.end.line + newLines;
+							this.lineStart = start + content.lastIndexOf('\n') + 1;
+						}
+						this.pos = start + content.length + 1;
+
+						this.type = tok.jsxTagStart;
+						this.next();
+						if (this.value === '/') {
+							this.next();
+							this.jsx_parseElementName();
+							this.exprAllowed = true;
+							this.#path.pop();
+							this.next();
+						}
+
+						element.content = content;
+						this.finishNode(element, 'Element');
+					} else if (open.name.name === 'style') {
 						// jsx_parseOpeningElementAt treats ID selectors (ie. #myid) or type selectors (ie. div) as identifier and read it
 						// So backtrack to the end of the <style> tag to make sure everything is included
 						const start = open.end;

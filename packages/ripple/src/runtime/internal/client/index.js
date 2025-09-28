@@ -61,3 +61,5 @@ export { template, append } from './template.js';
 export { tracked_array } from '../../array.js';
 
 export { head } from './head.js';
+
+export { script } from './script.js';

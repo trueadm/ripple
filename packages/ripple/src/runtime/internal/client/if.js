@@ -1,35 +1,46 @@
+/** @import { Block } from '#client' */
+
 import { branch, destroy_block, render } from './blocks.js';
 import { IF_BLOCK, UNINITIALIZED } from './constants.js';
 
+/**
+ * @param {Node} node
+ * @param {(set_branch: (fn: (anchor: Node) => void, flag?: boolean) => void) => void} fn
+ * @returns {void}
+ */
 export function if_block(node, fn) {
-  var anchor = node;
-  var has_branch = false;
-  var condition = UNINITIALIZED;
-  var b = null;
+	var anchor = node;
+	var has_branch = false;
+	/** @type {any} */
+	var condition = UNINITIALIZED;
+	/** @type {Block | null} */
+	var b = null;
 
-  var set_branch = (fn, flag = true) => {
-    has_branch = true;
-    update_branch(flag, fn);
-  };
+	/** @type {(fn: (anchor: Node) => void, flag?: boolean) => void} */
+	var set_branch = (fn, flag = true) => {
+		has_branch = true;
+		update_branch(flag, fn);
+	};
 
-  var update_branch = (new_condition, fn) => {
-    if (condition === (condition = new_condition)) return;
+	/** @type {(new_condition: any, fn: ((anchor: Node) => void) | null) => void} */
+	var update_branch = (new_condition, fn) => {
+		if (condition === (condition = new_condition)) return;
 
-    if (b !== null) {
-      destroy_block(b);
-      b = null;
-    }
+		if (b !== null) {
+			destroy_block(b);
+			b = null;
+		}
 
-    if (fn !== null) {
-      b = branch(() => fn(anchor));
-    }
-  };
+		if (fn !== null) {
+			b = branch(() => fn(anchor));
+		}
+	};
 
-  render(() => {
-    has_branch = false;
-    fn(set_branch);
-    if (!has_branch) {
-      update_branch(null, null);
-    }
-  }, IF_BLOCK);
+	render(() => {
+		has_branch = false;
+		fn(set_branch);
+		if (!has_branch) {
+			update_branch(null, null);
+		}
+	}, IF_BLOCK);
 }
