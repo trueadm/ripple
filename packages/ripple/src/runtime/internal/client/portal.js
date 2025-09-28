@@ -1,6 +1,6 @@
 /** @import { Block } from '#client' */
 
-import { branch, destroy_block, render } from './blocks.js';
+import { branch, destroy_block, remove_block_dom, render } from './blocks.js';
 import { UNINITIALIZED } from './constants.js';
 import { handle_root_events } from './events.js';
 import { create_text } from './operations.js';
@@ -19,6 +19,10 @@ export function Portal(_, props) {
   var b = null;
   /** @type {Text | null} */
   var anchor = null;
+  /** @type {Node | null} */
+  var domStart = null;
+  /** @type {Node | null} */
+  var domEnd = null;
 
   render(() => {
     if (target === (target = props.target)) return;
@@ -28,6 +32,8 @@ export function Portal(_, props) {
       destroy_block(b);
     }
 
+    domStart = domEnd = null;
+
     anchor = create_text();
     /** @type {Element} */ (target).append(anchor);
 
@@ -35,9 +41,17 @@ export function Portal(_, props) {
 
     b = branch(() => /** @type {(anchor: Node) => void} */ (children)(/** @type {Text} */ (anchor)));
 
+    if (b && b.s) {
+      domStart = b.s.start;
+      domEnd = b.s.end;
+    }
+
     return () => {
       cleanup_events();
       /** @type {Text} */ (anchor).remove();
+      if(domStart !== null && domEnd !== null) {
+        remove_block_dom(domStart, domEnd);
+      }
     };
   });
 }
