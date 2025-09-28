@@ -21,18 +21,23 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 
 > Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
 
+<Code>
 
 ```ripple
+import { track } from 'ripple';
+
 component EventExample() {
   let message = track("");
 
   <div>
     <button onClick={() => @message = "Clicked!"}>{"Click me"}</button>
     <input onInput={(e) => @message = e.target.value} />
-    <p>{$message}</p>
+    <p>{@message}</p>
   </div>
 }
 ```
+
+</Code>
 
 ### `on()`
 
@@ -40,6 +45,8 @@ Attaches an event handler to an element and returns a function to remove it.
 Unlike using `addEventListener`, `on()` guarantees proper execution order with
 respect to attribute-based handlers such as `onClick`, and is optimized
 with event delegation for events that support it.
+
+<Code console>
 
 ```ripple
 import { effect, on } from 'ripple';
@@ -56,3 +63,5 @@ export component App() {
   });
 }
 ```
+
+</Code>

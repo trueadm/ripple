@@ -9,16 +9,20 @@ the syntax `{ref fn}` where `fn` is a function that captures the DOM element. If
 this is identical to `{@attach fn}` in Svelte 5 and somewhat similar to `ref` in React. The hook function will receive
 the reference to the underlying DOM element.
 
+<Code console>
+
 ```ripple
-export component App() {
-  let node = track();
+import { track } from 'ripple';
+
+export default component App() {
+  let div = track();
 
   const divRef = (node) => {
-    @node = node;
+    @div = node;
     console.log("mounted", node);
 
     return () => {
-      @node = undefined;
+      @div = undefined;
       console.log("unmounted", node);
     };
   };
@@ -27,18 +31,27 @@ export component App() {
 }
 ```
 
+</Code>
+
 You can also create `{ref}` functions inline.
 
+<Code console>
+
 ```ripple
+import { track } from 'ripple';
+
 export component App() {
-  let node = track();
+  let div = track();
 
   <div {ref (node) => {
-    @node = node;
-    return () => @node = undefined;
+    @div = node;
+    console.log("mounted", node);
+    return () => @div = undefined;
   }}>{"Hello world"}</div>
 }
 ```
+
+</Code>
 
 You can also use function factories to define properties, these are functions that return functions that do the same
 thing. However, you can use this pattern to pass reactive properties.
@@ -64,8 +77,10 @@ When passing refs to composite components (rather than HTML elements) as shown a
 Creates a unique object key that will be recognised as a ref when the object is spread onto an element.
 This allows programmatic assignment of refs without relying directly on the `{ref ...}` template syntax.
 
+<Code console>
+
 ```ripple
-import { createRefKey } from 'ripple';
+import { createRefKey, track } from 'ripple';
 
 export component App() {
   let value = track('');
@@ -74,7 +89,10 @@ export component App() {
     id: "example",
     @value,
     [createRefKey()]: (node) => {
-      const removeListener = node.addEventListener('input', (e) => @value = e.target.value);
+      const removeListener = node.addEventListener('input', (e) => {
+        @value = e.target.value;
+        console.log(@value);
+      });
 
       return () => {
         removeListener();
@@ -93,3 +111,5 @@ component Input({ id, value, ...rest }) {
   <input type="text" {id} {value} {...rest} />
 }
 ```
+
+</Code>

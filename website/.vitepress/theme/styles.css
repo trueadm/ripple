@@ -32,13 +32,44 @@
 	--vp-c-brand-3: #2d6dbf;
 	--vp-c-brand-soft: #aed1ff;
 
-	--vp-font-family-base: "Ubuntu Sans";
-	--vp-font-family-mono: "Fira Code";
-
+	--vp-font-family-base: 'Ubuntu Sans';
+	--vp-font-family-mono: 'Fira Code';
 }
 
 .VPNavBarTitle {
 	img.logo {
 		--vp-nav-logo-height: 32px;
 	}
+}
+
+div.VPContent {
+	margin-top: -20px !important;
+}
+
+/* Playground */
+body:has(.main-playground) {
+	overflow: hidden;
+}
+
+body:has(.main-playground) .VPFooter {
+	display: none;
+}
+
+@media (max-height: 500px) {
+	body:has(.main-playground) {
+		overflow: auto; /* avoid hiding the lower part of playground on mobile (landscape) */
+	}
+
+	.VPHome:has(.main-playground) {
+		margin-bottom: 0;
+	}
+}
+
+.VPHome .container:has(.main-playground) {
+	padding: 0;
+	max-width: unset;
+}
+
+.main-playground .VPMenu {
+	max-height: calc(100dvh - 98px);
 }

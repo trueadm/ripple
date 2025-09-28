@@ -114,7 +114,6 @@ function nav() {
 		{
 			text: 'Playground',
 			link: '/playground',
-			target: '_self',
 		},
 		{
 			text: 'Docs',
