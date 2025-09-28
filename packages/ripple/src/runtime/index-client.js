@@ -45,7 +45,7 @@ export { create_context as createContext } from './internal/client/context.js';
 export {
   flush_sync as flushSync,
   track,
-  trackSplit,
+  track_split as trackSplit,
   untrack,
 } from './internal/client/runtime.js';
 
