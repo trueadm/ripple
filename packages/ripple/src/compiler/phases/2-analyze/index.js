@@ -488,7 +488,9 @@ const visitors = {
 					if (attr.name.type === 'Identifier') {
 						attribute_names.add(attr.name);
 					}
-					visit(attr.value, state);
+          if (attr.value !== null) {
+					  visit(attr.value, state);
+          }
 				} else if (attr.type === 'SpreadAttribute') {
 					visit(attr.argument, state);
 				} else if (attr.type === 'RefAttribute') {

@@ -1,3 +1,5 @@
+/** @import { Block } from '#client' */
+
 import { destroy_block, ref } from './blocks.js';
 import { REF_PROP } from './constants.js';
 import {
@@ -14,6 +16,11 @@ import {
 } from '../../../utils/events.js';
 import { get } from './runtime.js';
 
+/**
+ * @param {Text} text
+ * @param {any} value
+ * @returns {void}
+ */
 export function set_text(text, value) {
   // For objects, we apply string coercion
   var str = value == null ? '' : typeof value === 'object' ? value + '' : value;
@@ -25,8 +32,13 @@ export function set_text(text, value) {
   }
 }
 
+/** @type {Map<string, string[]>} */
 var setters_cache = new Map();
 
+/**
+ * @param {Element} element
+ * @returns {string[]}
+ */
 function get_setters(element) {
   var setters = setters_cache.get(element.nodeName);
   if (setters) return setters;
@@ -53,6 +65,12 @@ function get_setters(element) {
   return setters;
 }
 
+/**
+ * @param {Element} element
+ * @param {string} attribute
+ * @param {any} value
+ * @returns {void}
+ */
 export function set_attribute(element, attribute, value) {
   // @ts-expect-error
   var attributes = (element.__attributes ??= {});
@@ -67,12 +85,17 @@ export function set_attribute(element, attribute, value) {
   if (value == null) {
     element.removeAttribute(attribute);
   } else if (typeof value !== 'string' && get_setters(element).includes(attribute)) {
-    element[attribute] = value;
+    /** @type {any} */ (element)[attribute] = value;
   } else {
     element.setAttribute(attribute, value);
   }
 }
 
+/**
+ * @param {Element} element
+ * @param {Record<string, any>} attributes
+ * @returns {void}
+ */
 export function set_attributes(element, attributes) {
   for (const key in attributes) {
     if (key === 'children') continue;
@@ -85,7 +108,7 @@ export function set_attributes(element, attributes) {
 
     if (key === 'class') {
       const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
-      set_class(element, value, undefined, is_html);
+      set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
     } else if (key === '#class') {
       // Special case for static class when spreading props
       element.classList.add(value);
@@ -95,7 +118,7 @@ export function set_attributes(element, attributes) {
 
       if (is_delegated(event_name)) {
         // Use delegation for delegated events
-        element['__' + event_name] = value;
+        /** @type {any} */ (element)['__' + event_name] = value;
         delegate([event_name]);
       } else {
         // Use addEventListener for non-delegated events
@@ -148,6 +171,11 @@ export function set_class(dom, value, hash, is_html = true) {
   }
 }
 
+/**
+ * @param {HTMLInputElement | HTMLProgressElement} element
+ * @param {any} value
+ * @returns {void}
+ */
 export function set_value(element, value) {
   // @ts-expect-error
   var attributes = (element.__attributes ??= {});
@@ -157,17 +185,20 @@ export function set_value(element, value) {
       (attributes.value =
         // treat null and undefined the same for the initial value
         value ?? undefined) ||
-    // @ts-expect-error
     // `progress` elements always need their value set when it's `0`
     (element.value === value && (value !== 0 || element.nodeName !== 'PROGRESS'))
   ) {
     return;
   }
 
-  // @ts-expect-error
   element.value = value ?? '';
 }
 
+/**
+ * @param {HTMLInputElement} element
+ * @param {boolean} checked
+ * @returns {void}
+ */
 export function set_checked(element, checked) {
   // @ts-expect-error
   var attributes = (element.__attributes ??= {});
@@ -181,10 +212,14 @@ export function set_checked(element, checked) {
     return;
   }
 
-  // @ts-expect-error
   element.checked = checked;
 }
 
+/**
+ * @param {HTMLOptionElement} element
+ * @param {boolean} selected
+ * @returns {void}
+ */
 export function set_selected(element, selected) {
   if (selected) {
     // The selected option could've changed via user selection, and
@@ -197,8 +232,15 @@ export function set_selected(element, selected) {
   }
 }
 
+/**
+ * @param {Element} element
+ * @param {() => Record<string | symbol, any>} fn
+ * @returns {() => void}
+ */
 export function apply_element_spread(element, fn) {
+  /** @type {Record<string | symbol, any> | undefined} */
   var prev;
+  /** @type {Record<symbol, Block>} */
   var effects = {};
 
   return () => {

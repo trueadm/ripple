@@ -1,9 +1,18 @@
+/** @import { Block, Component } from '#client' */
+
 import { branch, destroy_block, render } from './blocks.js';
 import { COMPOSITE_BLOCK } from './constants.js';
 import { active_block } from './runtime.js';
 
+/**
+ * @param {() => (anchor: Node, props: Record<string, any>, block: Block | null) => void} get_component
+ * @param {Node} node
+ * @param {Record<string, any>} props
+ * @returns {void}
+ */
 export function composite(get_component, node, props) {
 	var anchor = node;
+	/** @type {Block | null} */
 	var b = null;
 
 	render(() => {

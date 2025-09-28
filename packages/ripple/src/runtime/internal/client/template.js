@@ -1,3 +1,5 @@
+/** @import { Block } from '#client' */
+
 import {
   TEMPLATE_FRAGMENT,
   TEMPLATE_USE_IMPORT_NODE,
@@ -49,13 +51,14 @@ function create_fragment_from_html(html, use_svg_namespace = false, use_mathml_n
  * Creates a template node or fragment from content and flags.
  * @param {string} content - The template content.
  * @param {number} flags - Flags for template type.
- * @returns {Node}
+ * @returns {() => Node}
  */
 export function template(content, flags) {
   var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
   var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
   var use_svg_namespace = (flags & TEMPLATE_SVG_NAMESPACE) !== 0;
   var use_mathml_namespace = (flags & TEMPLATE_MATHML_NAMESPACE) !== 0;
+  /** @type {Node | DocumentFragment | undefined} */
   var node;
   var has_start = !content.startsWith('<!>');
 
@@ -66,17 +69,17 @@ export function template(content, flags) {
         use_svg_namespace,
         use_mathml_namespace,
       );
-      if (!is_fragment) node = first_child(node);
+      if (!is_fragment) node = /** @type {Node} */ (first_child(node));
     }
 
     var clone =
-      use_import_node || is_firefox ? document.importNode(node, true) : node.cloneNode(true);
+      use_import_node || is_firefox ? document.importNode(/** @type {Node} */ (node), true) : /** @type {Node} */ (node).cloneNode(true);
 
     if (is_fragment) {
       var start = first_child(clone);
       var end = clone.lastChild;
 
-      assign_nodes(start, end);
+      assign_nodes(/** @type {Node} */ (start), /** @type {Node} */ (end));
     } else {
       assign_nodes(clone, clone);
     }
@@ -87,7 +90,7 @@ export function template(content, flags) {
 
 /**
  * Appends a DOM node before the anchor node.
- * @param {Node} anchor - The anchor node.
+ * @param {ChildNode} anchor - The anchor node.
  * @param {Node} dom - The DOM node to append.
  */
 export function append(anchor, dom) {

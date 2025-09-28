@@ -69,6 +69,7 @@ TrackedArray.fromAsync = async function (arrayLike, mapFn, thisArg) {
  * @returns {TrackedArray<T>}
  */
 function proxy({ elements, block, from_static = false, use_array = false }) {
+  /** @type {T[]} */
   var arr;
   var first;
 
@@ -77,9 +78,9 @@ function proxy({ elements, block, from_static = false, use_array = false }) {
     (first = get_first_if_length(/** @type {Array<T>} */ (elements))) !== undefined
   ) {
     arr = new Array();
-    arr[0] = first;
+    arr[0] = /** @type {T} */ (/** @type {unknown} */ (first));
   } else if (use_array) {
-    arr = elements;
+    arr = /** @type {T[]} */ (elements);
   } else {
     arr = new Array(...elements);
   }
@@ -94,7 +95,7 @@ function proxy({ elements, block, from_static = false, use_array = false }) {
       var exists = prop in target;
 
       if (t === undefined && (!exists || get_descriptor(target, prop)?.writable)) {
-        t = tracked(exists ? target[prop] : UNINITIALIZED, block);
+        t = tracked(exists ? /** @type {any} */ (target)[prop] : UNINITIALIZED, block);
         tracked_elements.set(prop, t);
       }
 
@@ -106,7 +107,7 @@ function proxy({ elements, block, from_static = false, use_array = false }) {
       var result = Reflect.get(target, prop, receiver);
 
       if (typeof result === 'function') {
-        if (methods_returning_arrays.has(prop)) {
+        if (methods_returning_arrays.has(/** @type {string} */ (prop))) {
           /** @type {(this: any, ...args: any[]) => any} */
           return function (...args) {
             var output = Reflect.apply(result, receiver, args);
@@ -211,7 +212,7 @@ function proxy({ elements, block, from_static = false, use_array = false }) {
 
       if (t !== undefined || !exists || get_descriptor(target, prop)?.writable) {
         if (t === undefined) {
-          t = tracked(exists ? target[prop] : UNINITIALIZED, block);
+          t = tracked(exists ? /** @type {any} */ (target)[prop] : UNINITIALIZED, block);
 
           tracked_elements.set(prop, t);
         }
@@ -288,6 +289,12 @@ const methods_returning_arrays = new Set([
   'with',
 ]);
 
+/**
+ * @template T
+ * @param {Iterable<T>} elements
+ * @param {Block} block
+ * @returns {TrackedArray<T>}
+ */
 export function tracked_array(elements, block) {
   return proxy({ elements, block, from_static: true });
 }
