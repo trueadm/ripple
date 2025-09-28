@@ -21,7 +21,7 @@ export async function createProject({
 	projectPath,
 	template,
 	packageManager = 'npm',
-	gitInit = true,
+	gitInit = false,
 	stylingFramework = 'vanilla'
 }) {
 	console.log(dim(`Creating project: ${projectName}`));
