@@ -12,7 +12,7 @@ events -- a camelCase convention is used instead, shown below:
 - `onclick` -> `onClick`
 - `onpointermove` -> `onPointerMove`
 - `onpointerdown` -> `onPointerDown`
-- `onKeyDown` -> `onKeyDown`
+- `onkeydown` -> `onKeyDown`
 
 For `capture` phase events, just add `Capture` to the end of the prop name:
 
@@ -45,8 +45,9 @@ component EventExample() {
 ### `on()`
 
 Attaches an event handler to an element and returns a function to remove it.
+
 Unlike using `addEventListener`, `on()` guarantees proper execution order with
-respect to attribute-based handlers such as `onClick`, and is optimized
+respect to attribute-based handlers such as `onClick`, and is also optimized
 with event delegation for events that support it.
 
 <Code console>

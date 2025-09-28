@@ -22,7 +22,6 @@ within `effect()` to ensure they only run when intended.
 ## Children
 
 Use `children` prop and then use it in the form of `<children />` for component composition.
-
 When you pass in children to a component, it gets implicitly passed as the `children` prop, in the form of a component.
 
 ```ripple
