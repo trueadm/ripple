@@ -325,7 +325,7 @@ export function track(v, get, set, b) {
  * @param {Block} b
  * @returns {Tracked[]}
  */
-export function trackSplit(v, l, b) {
+export function track_split(v, l, b) {
 	var is_tracked = is_tracked_object(v);
 
 	if (is_tracked || typeof v !== 'object' || v === null || is_array(v)) {
@@ -1089,7 +1089,7 @@ export function exclude_from_object(obj, exclude_keys) {
   var keys = object_keys(obj);
 	/** @type {Record<string | symbol, unknown>} */
 	var new_obj = {};
-  
+
   for (const key of keys) {
     if (!exclude_keys.includes(key)) {
       new_obj[key] = obj[key];
