@@ -77,7 +77,7 @@ When passing refs to composite components (rather than HTML elements) as shown a
 Creates a unique object key that will be recognised as a ref when the object is spread onto an element.
 This allows programmatic assignment of refs without relying directly on the `{ref ...}` template syntax.
 
-<Code>
+<Code console>
 
 ```ripple
 import { createRefKey, track } from 'ripple';
