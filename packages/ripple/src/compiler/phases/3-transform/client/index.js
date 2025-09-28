@@ -133,7 +133,9 @@ function visit_title_element(node, context) {
 			),
 		);
 	} else {
-		debugger;
+		context.state.init.push(
+			b.stmt(b.assignment('=', b.id('_$_.document.title'), result)),
+		);
 	}
 }
 
@@ -439,7 +441,6 @@ const visitors = {
 							);
 						}
 					} else {
-						debugger;
 						// Runtime mode: full transformation
 						if (metadata.tracking && metadata.await) {
 							expression = b.call(
@@ -1471,7 +1472,6 @@ function transform_ts_child(node, context) {
 
 		state.init.push(component);
 	} else {
-		debugger;
 		throw new Error('TODO');
 	}
 }
@@ -1570,8 +1570,6 @@ function transform_children(children, context) {
 					state.setup.push(b.var(id, b.call('_$_.child', state.flush_node())));
 					cached = id;
 					return id;
-				} else {
-					debugger;
 				}
 			};
 
@@ -1630,7 +1628,8 @@ function transform_children(children, context) {
 	for (const head_element of head_elements) {
 		visit_head_element(head_element, context);
 	}
-	if (context.state.inside_head) {
+
+	if (context.state.inside_head) { 
 		const title_element = children.find(
 			(node) =>
 				node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'title',
