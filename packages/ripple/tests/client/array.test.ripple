@@ -877,7 +877,7 @@ describe('TrackedArray', () => {
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('[5,4,3,2,1]');
 	});
 
-	it('handles toSorted method with reactivity', () => {
+	it('handles toSorted method with reactivity', (context) => {
 		if (!('toSorted' in Array.prototype)) {
 			context.skip();
 		}
@@ -907,7 +907,7 @@ describe('TrackedArray', () => {
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('[0,1,2,3,4]');
 	});
 
-	it('handles toSpliced method with reactivity', () => {
+	it('handles toSpliced method with reactivity', (context) => {
 		if (!('toSpliced' in Array.prototype)) {
 			context.skip();
 		}
