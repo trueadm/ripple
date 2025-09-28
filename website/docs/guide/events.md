@@ -4,13 +4,15 @@ title: Event Binding in Ripple
 
 # Event Binding with Props
 
-Like React, Ripple deviates from the standard with event handlers. Here, events
-are camelCased props that start with 'on', unlike standard HTML.
+Ripple deviates slightly from the platform in terms of event binding. Like most
+frameworks except for React, we rely on the native event system of the browser.
+However, Ripple doesn't use the same all-lowercase props/attributes to bind
+events -- a camelCase convention is used instead, shown below:
 
-- `onClick`
-- `onPointerMove`
-- `onPointerDown`
-- `onKeyDown`
+- `onclick` -> `onClick`
+- `onpointermove` -> `onPointerMove`
+- `onpointerdown` -> `onPointerDown`
+- `onKeyDown` -> `onKeyDown`
 
 For `capture` phase events, just add `Capture` to the end of the prop name:
 
@@ -19,9 +21,10 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 - `onPointerDownCapture`
 - `onKeyDownCapture`
 
-> Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
-
-<Code>
+::: info
+Some events are automatically delegated by the compiler where possible
+to improve runtime performance.
+:::
 
 ```ripple
 import { track } from 'ripple';
