@@ -7,6 +7,7 @@ import VPSwitch from 'vitepress/dist/client/theme-default/components/VPSwitch.vu
 import LiveCodes from 'livecodes/vue'
 import type { Config, EmbedOptions, Playground } from 'livecodes'
 import { PlaygroundProps } from './PlaygroundProps'
+import { examples } from './examples'
 
 const playgroundUrl = 'https://ripple.livecodes.pages.dev'
 const apiUrl = 'https://data.jsdelivr.com/v1/packages/npm/ripple'
@@ -319,6 +320,17 @@ watch(version, async () => {
 	await updateUrl()
 })
 
+const loadExample = async (code: string) => {
+	if (!playground) return
+	await playground.setConfig({
+		script: {
+			language: 'ripple',
+			content: code,
+		},
+	})
+	await updateUrl()
+}
+
 const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><title>ionicons-v5-i</title><line x1="368" y1="128" x2="448" y2="128" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="128" x2="304" y2="128" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="368" y1="384" x2="448" y2="384" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="384" x2="304" y2="384" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="208" y1="256" x2="448" y2="256" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><line x1="64" y1="256" x2="144" y2="256" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></line><circle cx="336" cy="128" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle><circle cx="176" cy="256" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle><circle cx="336" cy="384" r="32" style="fill:none;;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></circle></g></svg>`
 </script>
 
@@ -329,6 +341,17 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 		class="playground-actions"
 		style="visibility: hidden"
 	>
+		<VPFlyout button="Examples" class="examples">
+			<div
+				v-for="({ title, code }, i) in examples"
+				class="menu-item"
+				@click="() => loadExample(code)"
+				:key="i"
+			>
+				{{ title }}
+			</div>
+		</VPFlyout>
+
 		<VPFlyout :button="`Version: ${version}`">
 			<div
 				v-for="(v, i) in versions"
@@ -406,9 +429,20 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	padding-right: 24px;
 	height: 30px;
 }
+
 @media (min-width: 768px) {
 	.playground-actions {
 		padding-right: 32px;
+	}
+}
+
+@media (max-width: 480px) {
+	.playground-actions {
+		gap: unset;
+	}
+
+	.examples > * {
+		right: unset;
 	}
 }
 
