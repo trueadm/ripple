@@ -12,7 +12,7 @@ You can try Ripple directly in your browser on [StackBlitz](https://stackblitz.c
 ### Using The <Badge type="warning" text="Experimental" /> `create-ripple` CLI
 
 ```sh
-npm create ripple // [!=npm auto]
+npx create-ripple // [!=npm auto]
 ```
 
 ### Clone the Vite-based Basic Template:
