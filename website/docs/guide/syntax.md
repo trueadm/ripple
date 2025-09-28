@@ -189,14 +189,15 @@ By default, all text nodes in Ripple are escaped to prevent unintended script
 injections. If you'd like to render trusted HTML onto your page, you can use the
 HTML directive to opt-out:
 
-````ripple
-export component RawContent() {
-	let source = ```
-# My Markdown Document
-Hi! I like JS and Ripple.
-```
-	let rendered = md_to_html(source)
+```ripple
+export component App() {
+	let source = `
+<h1>My Blog Post</h1>
+<p>Hi! I like JS and Ripple.</p>
+`
 
-	{html rendered}
+	<article>
+		{html source}
+	</article>
 }
-````
+```
