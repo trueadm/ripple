@@ -455,10 +455,25 @@ function RipplePlugin(config) {
 			jsx_parseExpressionContainer() {
 				let node = this.startNode();
 				this.next();
+        let tracked = false;
+
+        if (this.value === 'html') {
+          node.html = true;
+          this.next();
+          if (this.type.label === '@') {
+            this.next(); // consume @
+            tracked = true;
+          }
+        }
 
 				node.expression =
 					this.type === tt.braceR ? this.jsx_parseEmptyExpression() : this.parseExpression();
 				this.expect(tt.braceR);
+
+        if (tracked && node.expression.type === 'Identifier') {
+          node.expression.tracked = true;
+        }
+
 				return this.finishNode(node, 'JSXExpressionContainer');
 			}
 
@@ -954,7 +969,8 @@ function RipplePlugin(config) {
 
 				if (this.type.label === '{') {
 					const node = this.jsx_parseExpressionContainer();
-					node.type = 'Text';
+					node.type = node.html ? 'Html' : 'Text';
+          delete node.html;
 					body.push(node);
 				} else if (this.type.label === '}') {
 					return;

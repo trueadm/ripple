@@ -1,0 +1,52 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, track } from 'ripple';
+
+describe('html directive', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+  it('renders static html', () => {
+    component App() {
+      let str = '<div>Test</div>';
+
+      {html str}
+    }
+
+    render(App);
+    expect(container).toMatchSnapshot();
+  });
+
+  it('renders dynamic html', () => {
+    component App() {
+      let str = track('<div>Test</div>');
+
+      {html @str}
+
+      <button onClick={() => { @str = '<div>Updated</div>'; }}>{'Update'}</button>
+    }
+
+    render(App);
+    expect(container).toMatchSnapshot();
+
+    const button = container.querySelector('button');
+    button.click();
+    flushSync();
+
+    expect(container).toMatchSnapshot();
+  });
+});

@@ -133,9 +133,7 @@ function visit_title_element(node, context) {
 			),
 		);
 	} else {
-		context.state.init.push(
-			b.stmt(b.assignment('=', b.id('_$_.document.title'), result)),
-		);
+		context.state.init.push(b.stmt(b.assignment('=', b.id('_$_.document.title'), result)));
 	}
 }
 
@@ -346,7 +344,7 @@ const visitors = {
 
 			return b.new(
 				b.id('TrackedObject'),
-				b.object(node.properties.map((prop) => context.visit(prop)))
+				b.object(node.properties.map((prop) => context.visit(prop))),
 			);
 		}
 
@@ -723,9 +721,10 @@ const visitors = {
 					const metadata = { tracking: false, await: false };
 					let expression = visit(class_attribute.value, { ...state, metadata });
 
-					const hash_arg = node.metadata.scoped && state.component.css
-						? b.literal(state.component.css.hash)
-						: undefined;
+					const hash_arg =
+						node.metadata.scoped && state.component.css
+							? b.literal(state.component.css.hash)
+							: undefined;
 					const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg';
 
 					if (metadata.tracking) {
@@ -1491,6 +1490,7 @@ function transform_children(children, context) {
 				node.type === 'IfStatement' ||
 				node.type === 'TryStatement' ||
 				node.type === 'ForOfStatement' ||
+				node.type === 'Html' ||
 				(node.type === 'Element' &&
 					(node.id.type !== 'Identifier' || !is_element_dom_element(node))),
 		) ||
@@ -1585,6 +1585,14 @@ function transform_children(children, context) {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'HeadElement') {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
+			} else if (node.type === 'Html') {
+				const metadata = { tracking: false, await: false };
+				const expression = visit(node.expression, { ...state, metadata });
+
+				context.state.template.push('<!>');
+
+				const id = flush_node();
+				state.update.push(b.stmt(b.call('_$_.html', id, b.thunk(expression))));
 			} else if (node.type === 'Text') {
 				const metadata = { tracking: false, await: false };
 				const expression = visit(node.expression, { ...state, metadata });
@@ -1633,7 +1641,7 @@ function transform_children(children, context) {
 		visit_head_element(head_element, context);
 	}
 
-	if (context.state.inside_head) { 
+	if (context.state.inside_head) {
 		const title_element = children.find(
 			(node) =>
 				node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'title',

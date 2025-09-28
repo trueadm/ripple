@@ -319,6 +319,20 @@ export function is_destroyed(target_block) {
 }
 
 /**
+ * @param {Node | null} node
+ * @param {Node} end
+ */
+export function remove_block_dom(node, end) {
+  while (node !== null) {
+    /** @type {Node | null} */
+    var next = node === end ? null : next_sibling(node);
+
+    /** @type {Element | Text | Comment} */ (node).remove();
+    node = next;
+  }
+}
+
+/**
  * @param {Block} block
  * @param {boolean} [remove_dom]
  */
@@ -330,16 +344,7 @@ export function destroy_block(block, remove_dom = true) {
 
 	if ((remove_dom && (f & (BRANCH_BLOCK | ROOT_BLOCK)) !== 0) || (f & HEAD_BLOCK) !== 0) {
 		var s = block.s;
-		var node = s.start;
-		var end = s.end;
-
-		while (node !== null) {
-			var next = node === end ? null : next_sibling(node);
-
-			node.remove();
-			node = next;
-		}
-
+    remove_block_dom(s.start, s.end);
 		removed = true;
 	}
 

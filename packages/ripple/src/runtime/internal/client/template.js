@@ -35,7 +35,7 @@ export function assign_nodes(start, end) {
  * @param {boolean} use_mathml_namespace - Whether to use MathML namespace.
  * @returns {DocumentFragment}
  */
-function create_fragment_from_html(html, use_svg_namespace = false, use_mathml_namespace = false) {
+export function create_fragment_from_html(html, use_svg_namespace = false, use_mathml_namespace = false) {
   if (use_svg_namespace) {
     return from_namespace(html, 'svg');
   }
