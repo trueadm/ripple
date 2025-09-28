@@ -768,6 +768,24 @@ effect(() => {
 <div onClick={onClick} className={className}>{"Content"}</div>
 ```
 
+### Raw HTML
+
+All text nodes are escaped by default in Ripple. To render trusted raw HTML
+strings, use the `{html}` directive.
+
+```ripple
+export component App() {
+	let source = `
+<h1>My Blog Post</h1>
+<p>Hi! I like JS and Ripple.</p>
+`
+
+	<article>
+		{html source}
+	</article>
+}
+```
+
 ## TypeScript Integration
 
 ### Component Types
