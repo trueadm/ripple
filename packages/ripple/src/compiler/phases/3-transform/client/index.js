@@ -1310,6 +1310,9 @@ function transform_ts_child(node, context) {
 
 	if (node.type === 'Text') {
 		state.init.push(b.stmt(visit(node.expression, { ...state })));
+	} else if (node.type === 'Html') {
+		// Do we need to do something special here?
+		state.init.push(b.stmt(visit(node.expression, { ...state })));
 	} else if (node.type === 'Element') {
 		const type = node.id.name;
 		const children = [];
