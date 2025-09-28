@@ -6,6 +6,8 @@ import { is_tracked_object } from '../client/utils';
 import { escape } from '../../../utils/escaping.js';
 import { is_boolean_attribute } from '../../../compiler/utils';
 
+import { clsx } from 'clsx';
+
 export { escape };
 
 /** @type {Component | null} */
@@ -132,7 +134,8 @@ export function attr(name, value, is_boolean = false) {
 	}
 	if (value == null || (!value && is_boolean)) return '';
 	const normalized = (name in replacements && replacements[name].get(value)) || value;
-	const assignment = is_boolean ? '' : `="${escape(normalized, true)}"`;
+	const value_to_escape = name === 'class' ? clsx(normalized) : normalized;
+	const assignment = is_boolean ? '' : `="${escape(value_to_escape, true)}"`;
 	return ` ${name}${assignment}`;
 }
 
@@ -155,7 +158,7 @@ export function spread_attrs(attrs, css_hash) {
     }
 
     if (name === 'class' && css_hash) {
-      value = (value == null ? '' : value) + ' ' + css_hash;
+      value = value == null ? css_hash : [value, css_hash];
     }
 
 		attr_str += attr(name, value, is_boolean_attribute(name));

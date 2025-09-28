@@ -20,6 +20,10 @@ export var object_keys = Object.keys;
 export var get_own_property_symbols = Object.getOwnPropertySymbols;
 /** @type {typeof structuredClone} */
 export var structured_clone = structuredClone;
+/** @type {typeof Object.prototype} */
+export var object_prototype = Object.prototype;
+/** @type {typeof Array.prototype} */
+export var array_prototype = Array.prototype;
 
 /**
  * Creates a text node that serves as an anchor point in the DOM.

@@ -15,6 +15,7 @@ import {
   is_event_attribute,
 } from '../../../utils/events.js';
 import { get } from './runtime.js';
+import { clsx } from 'clsx';
 
 /**
  * @param {Text} text
@@ -131,18 +132,17 @@ export function set_attributes(element, attributes) {
 }
 
 /**
- * @template V
- * @param {V} value
+ * @param {import('clsx').ClassValue} value
  * @param {string} [hash]
- * @returns {string | V}
+ * @returns {string}
  */
 function to_class(value, hash) {
-  return (value == null ? '' : value) + (hash ? ' ' + hash : '');
+  return value == null ? hash ?? '' : clsx([value, hash]);
 }
 
 /**
  * @param {HTMLElement} dom
- * @param {string} value
+ * @param {import('clsx').ClassValue} value
  * @param {string} [hash]
  * @param {boolean} [is_html]
  * @returns {void}

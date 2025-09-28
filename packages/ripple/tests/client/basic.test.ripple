@@ -142,6 +142,81 @@ describe('basic client', () => {
 		expect(div.classList.contains('inactive')).toBe(true);
 	});
 
+	it('render class attribute with array, nested array, nested object', () => {
+		component Basic() {
+			<div class={[
+				'foo',
+				'bar',
+				true && 'baz',
+				false && 'aaa',
+				null && 'bbb',
+				[
+					'ccc',
+					'ddd',
+					{ eee: true, fff: false }
+				]
+			]}>
+				{'Class Array'}
+			</div>
+
+			<style>
+				.foo {
+				  color: red;
+				}
+			</style>
+		}
+
+		render(Basic);
+
+		const div = container.querySelector('div');
+
+		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(div.classList.contains('foo')).toBe(true);
+		expect(div.classList.contains('bar')).toBe(true);
+		expect(div.classList.contains('baz')).toBe(true);
+		expect(div.classList.contains('aaa')).toBe(false);
+		expect(div.classList.contains('bbb')).toBe(false);
+		expect(div.classList.contains('ccc')).toBe(true);
+		expect(div.classList.contains('ddd')).toBe(true);
+		expect(div.classList.contains('eee')).toBe(true);
+		expect(div.classList.contains('fff')).toBe(false);
+	});
+
+	it('render dynamic class object', () => {
+		component Basic() {
+			let active = track(false);
+
+			<button onClick={() => { @active = !@active }}>{'Toggle'}</button>
+			<div class={{ active: @active, inactive: !@active }}>{'Dynamic Class'}</div>
+
+			<style>
+				.active {
+					color: green;
+				}
+			</style>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(div.classList.contains('inactive')).toBe(true);
+		expect(div.classList.contains('active')).toBe(false);
+
+		button.click();
+		flushSync();
+		expect(div.classList.contains('inactive')).toBe(false);
+		expect(div.classList.contains('active')).toBe(true);
+
+		button.click();
+		flushSync();
+
+		expect(div.classList.contains('inactive')).toBe(true);
+		expect(div.classList.contains('active')).toBe(false);
+	});
+
 	it('render dynamic id attribute', () => {
 		component Basic() {
 			let count = track(0);
@@ -1546,6 +1621,21 @@ describe('basic client', () => {
 
 		expect(pre1.textContent).toBe('4');
 		expect(pre2.textContent).toBe('2');
+	});
+
+	it('handles boolean props correctly', () => {
+		component App() {
+			<div data-disabled />
+
+			<Child isDisabled />
+		}
+
+		component Child({ isDisabled }) {
+			<input disabled={isDisabled} />
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
 	});
 });
 

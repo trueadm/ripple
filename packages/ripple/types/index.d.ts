@@ -151,3 +151,11 @@ export type TrackedObjectDeep<T> =
     : T extends object
       ? { [K in keyof T]: TrackedObjectDeep<T[K]> | Tracked<TrackedObjectDeep<T[K]>> }
     : T | Tracked<T>;
+
+export type TrackedObject<T extends object> = T & {};
+
+export interface TrackedObjectConstructor {
+  new <T extends object>(obj: T): TrackedObject<T>;
+}
+
+export declare const TrackedObject: TrackedObjectConstructor;
