@@ -307,31 +307,7 @@
 		"expression": {
 			"patterns": [
 				{
-					"name": "meta.identifier.tracked.js",
-					"match": "(@)([_$[:alpha:]][_$[:alnum:]]*)",
-					"captures": {
-						"1": {
-							"name": "punctuation.section.embedded.begin.js"
-						},
-						"2": {
-							"name": "variable.other.js"
-						}
-					}
-				},
-				{
-					"include": "#server-member-expression"
-				},
-				{
-					"include": "#jsx-ref-modifier"
-				},
-				{
-					"include": "#expressionWithoutIdentifiers"
-				},
-				{
-					"include": "#identifiers"
-				},
-				{
-					"include": "#expressionPunctuations"
+					"include": "#non-jsx-expression"
 				}
 			]
 		},
@@ -6479,6 +6455,68 @@
 				}
 			]
 		},
+		"jsx-attribute-expression": {
+			"patterns": [
+				{
+					"name": "meta.identifier.tracked.js",
+					"match": "(@)([_$[:alpha:]][_$[:alnum:]]*)",
+					"captures": {
+						"1": {
+							"name": "punctuation.section.embedded.begin.js"
+						},
+						"2": {
+							"name": "variable.other.js"
+						}
+					}
+				},
+				{
+					"include": "#server-member-expression"
+				},
+				{
+					"include": "#jsx-ref-modifier"
+				},
+				{
+					"include": "#expressionWithoutIdentifiers"
+				},
+				{
+					"include": "#identifiers"
+				},
+				{
+					"include": "#expressionPunctuations"
+				}
+			]
+		},
+		"non-jsx-expression": {
+			"patterns": [
+				{
+					"name": "meta.identifier.tracked.js",
+					"match": "(@)([_$[:alpha:]][_$[:alnum:]]*)",
+					"captures": {
+						"1": {
+							"name": "punctuation.section.embedded.begin.js"
+						},
+						"2": {
+							"name": "variable.other.js"
+						}
+					}
+				},
+				{
+					"include": "#server-member-expression"
+				},
+				{
+					"include": "#jsx-html-modifier"
+				},
+				{
+					"include": "#expressionWithoutIdentifiers"
+				},
+				{
+					"include": "#identifiers"
+				},
+				{
+					"include": "#expressionPunctuations"
+				}
+			]
+		},
 		"jsx-evaluated-code": {
 			"contentName": "meta.embedded.expression.js source.js.embedded.ripple",
 			"begin": "\\{",
@@ -6495,7 +6533,7 @@
 			},
 			"patterns": [
 				{
-					"include": "#expression"
+					"include": "#jsx-attribute-expression"
 				}
 			]
 		},
@@ -6642,6 +6680,15 @@
 		"jsx-ref-modifier": {
 			"name": "storage.modifier.js",
 			"match": "\\b(ref)(?=\\s+[_$[:alpha:]])",
+			"captures": {
+				"1": {
+					"name": "storage.modifier.js"
+				}
+			}
+		},
+		"jsx-html-modifier": {
+			"name": "storage.modifier.js",
+			"match": "\\b(html)(?=\\s+[_$[:alpha:]])",
 			"captures": {
 				"1": {
 					"name": "storage.modifier.js"
