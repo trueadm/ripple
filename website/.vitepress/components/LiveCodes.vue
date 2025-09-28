@@ -342,28 +342,28 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 		style="visibility: hidden"
 	>
 		<VPFlyout button="Examples" class="examples">
-			<div
+			<button
 				v-for="({ title, code }, i) in examples"
 				class="menu-item"
 				@click="() => loadExample(code)"
 				:key="i"
 			>
 				{{ title }}
-			</div>
+			</button>
 		</VPFlyout>
 
 		<VPFlyout :button="`Version: ${version}`">
-			<div
+			<button
 				v-for="(v, i) in versions"
 				:class="`menu-item ${version === v ? 'active' : ''}`"
 				@click="version = v"
 				:key="i"
 			>
 				{{ v }}{{ latest === v ? ' (latest)' : '' }}
-			</div>
+			</button>
 		</VPFlyout>
 
-		<VPFlyout :button="settingsIcon">
+		<VPFlyout :button="settingsIcon" title="Settings">
 			<div class="menu-item" @click="ai = !ai">
 				AI assistant<VPSwitch :aria-checked="ai"></VPSwitch>
 			</div>
@@ -465,6 +465,7 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	border-radius: 6px;
 
 	&:hover,
+	&:focus,
 	&.active {
 		color: var(--vp-c-brand-1);
 		background-color: var(--vp-c-default-soft);
@@ -484,6 +485,7 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	}
 
 	button:hover,
+	button:focus,
 	button.active {
 		color: var(--vp-c-brand-1);
 		background-color: var(--vp-c-default-soft);
