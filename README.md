@@ -51,7 +51,9 @@ cd my-app
 npm i # or yarn or pnpm
 npm run dev # or yarn or pnpm
 ```
+
 or use create-ripple interactive CLI tool for creating new Ripple applications with features like Tailwind CSS or Bootstrap setup.
+
 ```
 npx create-ripple  # or yarn create ripple or pnpm create ripple
 
@@ -182,7 +184,7 @@ effect(() => {
 
 #### track with get / set
 
-The optional get and set parameters of the `track` function let you customize how a tracked value is read or written, similar to property accessors but expressed as pure functions. The get function receives the current stored value and its return value is exposed when the tracked value is accessed / unboxed with `@`. The set function should return the value that will actually be stored and receives two parameters: the first is the one being assigned and the second with the previous value.  The get and set functions may be useful for tasks such as logging, validating, or transforming values before they are exposed or stored.
+The optional get and set parameters of the `track` function let you customize how a tracked value is read or written, similar to property accessors but expressed as pure functions. The get function receives the current stored value and its return value is exposed when the tracked value is accessed / unboxed with `@`. The set function should return the value that will actually be stored and receives two parameters: the first is the one being assigned and the second with the previous value. The get and set functions may be useful for tasks such as logging, validating, or transforming values before they are exposed or stored.
 
 ```jsx
 import { track } from 'ripple';
@@ -259,7 +261,7 @@ With the regular destructuring, such as the one below, the `count` and `class` p
 let { children, count, class: className, ...rest } = props;
 ```
 
-> Note: Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values.  Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
+> Note: Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values. Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
 
 #### Transporting Reactivity
 
@@ -332,7 +334,7 @@ Like shown in the above example, you can compose normal arrays with reactivity a
 
 However, if you need the entire array to be fully reactive, including when new elements get added, you should use the reactive array that Ripple provides.
 
-#### TrackedArray
+#### Fully Reactive Array
 
 `TrackedArray` class from Ripple extends the standard JS `Array` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the bracketed notation. All elements existing or new of the `TrackedArray` are reactive and respond to the various array operations such as push, pop, shift, unshift, etc. Even if you reference a non-existent element, once it added, the original reference will react to the change. You do NOT need to use the unboxing `@` with the elements of the array.
 
@@ -368,9 +370,9 @@ export component App() {
 }
 ```
 
-#### TrackedObject
+#### Reactive Object
 
-`TrackedObject` class extends the standard JS `Object` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the curly brace notation.  `TrackedObject` fully supports shallow reactivity and any property on the root level is reactive.  You can even reference non-existent properties and once added the original reference reacts to the change. You do NOT need to use the unboxing `@` with the properties of the `TrackedObject`.
+`TrackedObject` class extends the standard JS `Object` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the curly brace notation. `TrackedObject` fully supports shallow reactivity and any property on the root level is reactive. You can even reference non-existent properties and once added the original reference reacts to the change. You do NOT need to use the unboxing `@` with the properties of the `TrackedObject`.
 
 ```jsx
 import { TrackedObject } from 'ripple';
@@ -430,6 +432,7 @@ export component App() {
 
 The `TrackedMap` extends the standard JS `Map` class, and supports all of its methods and properties.
 
+<!-- prettier-ignore -->
 ```js
 import { TrackedMap, track } from 'ripple';
 
@@ -453,6 +456,38 @@ export component App() {
 
   <button onClick={() => map.delete(2)}>{"Delete item with key 2"}</button>
   <button onClick={() => map.set(2, 2)}>{"Add key 2 with value 2"}</button>
+}
+```
+
+#### Reactive Date
+
+The `TrackedDate` extends the standard JS `Date` class, and supports all of its methods and properties.
+
+```js
+import { TrackedDate } from 'ripple';
+
+const date = new TrackedDate(2026, 0, 1); // January 1, 2026
+```
+
+TrackedDate's reactive methods or properties can be used directly or assigned to reactive variables. All getter methods (`getFullYear()`, `getMonth()`, `getDate()`, etc.) and formatting methods (`toISOString()`, `toDateString()`, etc.) are reactive and will update when the date is modified.
+
+```jsx
+import { TrackedDate, track } from 'ripple';
+
+export component App() {
+  const date = new TrackedDate(2025, 0, 1, 12, 0, 0);
+
+  // direct usage
+  <p>{"Direct usage: Current year is "}{date.getFullYear()}</p>
+  <p>{"ISO String: "}{date.toISOString()}</p>
+
+  // reactive assignment
+  let year = track(() => date.getFullYear());
+  let month = track(() => date.getMonth());
+  <p>{"Assigned usage: Year "}{@year}{", Month "}{@month}</p>
+
+  <button onClick={() => date.setFullYear(2027)}>{"Change to 2026"}</button>
+  <button onClick={() => date.setMonth(11)}>{"Change to December"}</button>
 }
 ```
 
@@ -480,6 +515,7 @@ export component App() {
 The JSX-like syntax might take some time to get used to if you're coming from another framework. For one, templating in Ripple
 can only occur _inside_ a `component` body – you can't create JSX inside functions, or assign it to variables as an expression.
 
+<!-- prettier-ignore -->
 ```jsx
 <div>
   // you can create variables inside the template!
@@ -735,6 +771,7 @@ However, and important distinction is that Ripple does not have a synthetic even
 > Note: Some events are automatically delegated where possible by Ripple to improve runtime performance.
 
 #### on
+
 Adds an event handler to an element and returns a function to remove it. Compared to using addEventListener directly, this method guarantees the proper execution order with respect to attribute-based handlers such as `onClick`, and similarly optimized through event delegation for those events that support it. We strongly advise to use it instead of addEventListener.
 
 ```jsx
@@ -804,6 +841,7 @@ like in other frameworks. This all happens from the `createContext` function tha
 Creating contexts may take place anywhere. Contexts can contain anything including tracked values or objects. However, context cannot be read via `get` or written to via `set` inside an event handler or at the module level as it must happen within the context of a component. A good strategy is to assign the contents of a context to a variable via the `.get()` method during the component initialization and use this variable for reading and writing.
 
 Example with tracked / reactive contents:
+
 ```jsx
 import { track, createContext } from "ripple"
 
@@ -831,9 +869,11 @@ export component App() {
   <pre>{'Context2: '}{@count2}</pre>
 }
 ```
+
 > Note: `@(context2.get())` usage with `@()` wrapping syntax will be enabled in the near future
 
 Passing data between components:
+
 ```jsx
 import { createContext } from 'ripple';
 
@@ -897,13 +937,13 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import { ripple } from 'vite-plugin-ripple';
 
 export default defineConfig({
-	plugins: [ripple()],
+  plugins: [ripple()],
   resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
-	test: {
+  test: {
     include: ['**/*.test.ripple'],
     environment: 'jsdom',
-		...configDefaults.test,
-	},
+    ...configDefaults.test,
+  },
 });
 ```
 
