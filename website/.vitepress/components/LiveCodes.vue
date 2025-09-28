@@ -463,6 +463,7 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	padding: 6px 12px;
 	color: var(--vp-button-alt-hover-text);
 	border-radius: 6px;
+	width: 100%;
 
 	&:hover,
 	&:focus,
