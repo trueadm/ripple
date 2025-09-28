@@ -246,7 +246,7 @@ export component App() {
   <Child
     class={@className}
     onClick={() => { @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'; @className = ''}}
-    count:={() => @count, (v) => {console.log('inside setter'); @count++}}
+    count={@count}
     {ref buttonRef}
   >{@name}</Child>;
 }
