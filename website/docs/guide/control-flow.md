@@ -139,7 +139,7 @@ component SuspenseBoundary() {
 	try {
 		<AsyncComponent />
 	} pending {
-		<p>Loading...</p> // fallback
+		<p>{'Loading...'}</p> // fallback
 	}
 }
 ```

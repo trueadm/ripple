@@ -327,6 +327,7 @@ const loadExample = async (code: string) => {
 			language: 'ripple',
 			content: code,
 		},
+		...(code.includes('console.') ? { tools: { status: 'open' } } : undefined),
 	})
 	await updateUrl()
 }

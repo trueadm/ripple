@@ -229,7 +229,9 @@ export component App() {
 
   <Child {swapMe} />
 
-  <button onClick={() => @swapMe = @swapMe === Child1 ? Child2 : Child1}>{'Swap Component'}</button>
+  <button onClick={() => @swapMe = @swapMe === Child1 ? Child2 : Child1}>
+		{'Swap Component'}
+	</button>
 }
 
 component Child({ swapMe }: {swapMe: Tracked<Component>}) {
