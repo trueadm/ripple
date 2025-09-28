@@ -5,6 +5,8 @@ export default defineConfig({
 		include: ['tests/**/*.test.js'],
 		environment: 'node',
 		globals: true,
+		silent: 'passed-only',
+		reporter: 'verbose',
 		coverage: {
 			provider: 'v8',
 			reporter: ['text', 'json', 'html'],
