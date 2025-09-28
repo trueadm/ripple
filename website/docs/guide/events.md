@@ -26,17 +26,19 @@ Some events are automatically delegated by the compiler where possible
 to improve runtime performance.
 :::
 
+<Code>
+
 ```ripple
 import { track } from 'ripple';
 
 component EventExample() {
-  let message = track("");
+	let message = track("");
 
-  <div>
-    <button onClick={() => @message = "Clicked!"}>{"Click me"}</button>
-    <input onInput={(e) => @message = e.target.value} />
-    <p>{@message}</p>
-  </div>
+	<div>
+		<button onClick={() => @message = "Clicked!"}>{"Click me"}</button>
+		<input onInput={(e) => @message = e.target.value}/>
+		<p>{@message}</p>
+	</div>
 }
 ```
 
