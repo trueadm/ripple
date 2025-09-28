@@ -852,6 +852,19 @@ let count = track(3);
 // becomes: class="foo bar"
 ```
 
+#### Dynamic Inline Styles
+
+Sometimes you might need to dynamically set inline styles. For this, you can use the `style` attribute, passing either a string or an object to it:
+```jsx
+let color = track('red');
+
+<div style={`color: ${@color}; font-weight: bold`}></div>
+<div style={{ color: @color, fontWeight: 'bold' }}></div>
+```
+Both examples above will render a `<div>` with red text and bold font weight.
+
+> Note: When passing an object to the `style` attribute, use camelCase for CSS property names (e.g., `fontWeight` instead of `font-weight`).
+
 ### Context
 
 Ripple has the concept of `context` where a value or reactive object can be shared through the component tree –
