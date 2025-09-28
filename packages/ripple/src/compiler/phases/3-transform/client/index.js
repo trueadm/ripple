@@ -336,6 +336,25 @@ const visitors = {
 		);
 	},
 
+	TrackedObjectExpression(node, context) {
+		if (context.state.to_ts) {
+			if (!context.state.imports.has(`import { TrackedObject } from 'ripple'`)) {
+				context.state.imports.add(`import { TrackedObject } from 'ripple'`);
+			}
+
+			return b.new(
+				b.id('TrackedObject'),
+				b.object(node.properties.map((prop) => context.visit(prop)))
+			);
+		}
+
+		return b.call(
+			'_$_.tracked_object',
+			b.object(node.properties.map((prop) => context.visit(prop))),
+			b.id('__block'),
+		);
+	},
+
 	MemberExpression(node, context) {
 		const parent = context.path.at(-1);
 

@@ -80,13 +80,17 @@ function RipplePlugin(config) {
 					// Look ahead to see if this is followed by [ for tuple syntax
 					if (this.pos + 1 < this.input.length) {
 						const nextChar = this.input.charCodeAt(this.pos + 1);
-						if (nextChar === 91) {
-							// [ character
-							// This is a tuple literal #[
-							// Consume both # and [
+						if (nextChar === 91 || nextChar === 123) {
+							// [ or { character
+							// This is a tuple literal #[ or #{
+							// Consume both # and [ or {
 							++this.pos; // consume #
-							++this.pos; // consume [
-							return this.finishToken(tt.bracketL, '#[');
+							++this.pos; // consume [ or {
+							if (nextChar === 123) {
+								return this.finishToken(tt.braceL, '#{');
+							} else {
+								return this.finishToken(tt.bracketL, '#[');
+							}
 						}
 					}
 				}
@@ -181,6 +185,8 @@ function RipplePlugin(config) {
 				// Check if this is a tuple literal starting with #[
 				if (this.type === tt.bracketL && this.value === '#[') {
 					return this.parseTrackedArrayExpression();
+				} else if (this.type === tt.braceL && this.value === '#{') {
+					return this.parseTrackedObjectExpression();
 				}
 
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
@@ -219,6 +225,38 @@ function RipplePlugin(config) {
 				}
 
 				return this.finishNode(node, 'TrackedArrayExpression');
+			}
+
+			parseTrackedObjectExpression() {
+				const node = this.startNode();
+				this.next(); // consume the '#{'
+
+				node.properties = [];
+
+				// Parse object properties similar to regular object parsing
+				let first = true;
+				while (!this.eat(tt.braceR)) {
+					if (!first) {
+						this.expect(tt.comma);
+						if (this.afterTrailingComma(tt.braceR)) break;
+					} else {
+						first = false;
+					}
+
+					if (this.type === tt.ellipsis) {
+						// Spread property
+						const prop = this.parseSpread();
+						node.properties.push(prop);
+						if (this.type === tt.comma && this.input.charCodeAt(this.pos) === 125) {
+							this.raise(this.pos, 'Trailing comma is not permitted after the rest element');
+						}
+					} else {
+						// Regular property
+						node.properties.push(this.parseProperty(false, {}));
+					}
+				}
+
+				return this.finishNode(node, 'TrackedObjectExpression');
 			}
 
 			parseExportDefaultDeclaration() {

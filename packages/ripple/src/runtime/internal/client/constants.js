@@ -22,6 +22,8 @@ export var CONTROL_FLOW_BLOCK = FOR_BLOCK | IF_BLOCK | TRY_BLOCK | COMPOSITE_BLO
 export var UNINITIALIZED = Symbol();
 /** @type {unique symbol} */
 export const TRACKED_ARRAY = Symbol();
+/** @type {unique symbol} */
+export const TRACKED_OBJECT = Symbol();
 export var COMPUTED_PROPERTY = Symbol();
 export var REF_PROP = 'ref';
 /** @type {unique symbol} */

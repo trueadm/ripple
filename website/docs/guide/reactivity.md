@@ -369,9 +369,9 @@ However, if you need the entire array to be fully reactive, including when new e
 
 #### TrackedArray
 
-`TrackedArray` class from Ripple extends the standard JS `Array` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the bracketed notation.
+`TrackedArray` class from Ripple extends the standard JS `Array` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the bracketed notation. All elements existing or new of the `TrackedArray` are reactive and respond to the various array operations such as push, pop, shift, unshift, etc. Even if you reference a non-existent element, once it added, the original reference will react to the change. You do NOT need to use the unboxing `@` with the elements of the array.
 
-```js
+```ripple
 import { TrackedArray } from 'ripple';
 
 // using syntactic sugar `#`
@@ -387,7 +387,49 @@ const arr = TrackedArray.from([1, 2, 3]);
 const arr = TrackedArray.of(1, 2, 3);
 ```
 
-The `TrackedArray` is a reactive array, and that means you can access properties normally using numeric index.
+Usage Example:
+
+```ripple
+export component App() {
+  const items = #[1, 2, 3];
+
+  <div>
+    <p>{"Length: "}{items.length}</p>  // Reactive length
+    for (const item of items) {
+      <div>{item}</div>
+    }
+    <button onClick={() => items.push(items.length + 1)}>{"Add"}</button>
+  </div>
+}
+```
+
+#### TrackedObject
+
+`TrackedObject` class extends the standard JS `Object` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the curly brace notation.  `TrackedObject` fully supports shallow reactivity and any property on the root level is reactive.  You can even reference non-existent properties and once added the original reference reacts to the change. You do NOT need to use the unboxing `@` with the properties of the `TrackedObject`.
+
+```ripple
+import { TrackedObject } from 'ripple';
+
+// using syntactic sugar `#`
+const arr = #{a: 1, b: 2, c: 3};
+
+// using the new constructor
+const arr = new TrackedObject({a: 1, b: 2, c: 3});
+```
+
+Usage Example:
+
+```ripple
+export component App() {
+  const obj = #{a: 0}
+
+  obj.a = 0;
+
+  <pre>{'obj.a is: '}{obj.a}</pre>
+  <pre>{'obj.b is: '}{obj.b}</pre>
+  <button onClick={() => { obj.a++; obj.b = obj.b ?? 5; obj.b++; }}>{'Increment'}</button>
+}
+```
 
 #### Reactive Set
 

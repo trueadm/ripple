@@ -51,6 +51,8 @@ export {
 
 export { TrackedArray } from './array.js';
 
+export { TrackedObject } from './object.js';
+
 export { TrackedSet } from './set.js';
 
 export { TrackedMap } from './map.js';

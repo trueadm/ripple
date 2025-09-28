@@ -7,7 +7,7 @@ describe('TrackedArray', () => {
 
 	function render(component) {
 		mount(component, {
-		target: container
+			target: container
 		});
 	}
 
