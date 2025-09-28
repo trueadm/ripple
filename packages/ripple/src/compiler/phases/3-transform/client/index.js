@@ -46,8 +46,7 @@ function add_ripple_internal_import(context) {
 
 function visit_function(node, context) {
 	if (context.state.to_ts) {
-		context.next(context.state);
-		return;
+		return context.next(context.state);
 	}
 	const metadata = node.metadata;
 	const state = context.state;
@@ -896,7 +895,11 @@ const visitors = {
 				}),
 			];
 
-			return b.function(node.id, node.params, b.block(body_statements));
+			return b.function(
+				node.id,
+				node.params.map((param) => context.visit(param, { ...context.state, metadata })),
+				b.block(body_statements),
+			);
 		}
 
 		let props = b.id('__props');
@@ -1000,8 +1003,7 @@ const visitors = {
 
 	UpdateExpression(node, context) {
 		if (context.state.to_ts) {
-			context.next();
-			return;
+			return context.next();
 		}
 		const argument = node.argument;
 
@@ -1047,8 +1049,7 @@ const visitors = {
 
 	ForOfStatement(node, context) {
 		if (!is_inside_component(context)) {
-			context.next();
-			return;
+			return context.next();
 		}
 		const is_controlled = node.is_controlled;
 		const index = node.index;
@@ -1090,8 +1091,7 @@ const visitors = {
 
 	IfStatement(node, context) {
 		if (!is_inside_component(context)) {
-			context.next();
-			return;
+			return context.next();
 		}
 		context.state.template.push('<!>');
 
@@ -1174,8 +1174,7 @@ const visitors = {
 
 	TryStatement(node, context) {
 		if (!is_inside_component(context)) {
-			context.next();
-			return;
+			return context.next();
 		}
 		context.state.template.push('<!>');
 
@@ -1332,12 +1331,25 @@ function transform_ts_child(node, context) {
 				if (attr.type === 'Attribute') {
 					const metadata = { await: false };
 					const name = visit(attr.name, { ...state, metadata });
-					const value = visit(attr.value, { ...state, metadata });
-					const jsx_name = b.jsx_id(name.name);
-					if (name.name === 'children') {
+					const value =
+						attr.value === null ? b.literal(true) : visit(attr.value, { ...state, metadata });
+
+					// Handle both regular identifiers and tracked identifiers
+					let prop_name;
+					if (name.type === 'Identifier') {
+						prop_name = name.name;
+					} else if (name.type === 'MemberExpression' && name.object.type === 'Identifier') {
+						// For tracked attributes like {@count}, use the original name
+						prop_name = name.object.name;
+					} else {
+						prop_name = attr.name.name || 'unknown';
+					}
+
+					const jsx_name = b.jsx_id(prop_name);
+					if (prop_name === 'children') {
 						has_children_props = true;
 					}
-					jsx_name.loc = name.loc;
+					jsx_name.loc = attr.name.loc || name.loc;
 
 					return b.jsx_attribute(jsx_name, b.jsx_expression_container(value));
 				} else if (attr.type === 'SpreadAttribute') {
@@ -1471,7 +1483,7 @@ function transform_ts_child(node, context) {
 
 		state.init.push(b.try(try_body, catch_handler, finally_block));
 	} else if (node.type === 'Component') {
-		const component = visit(node, context.state);
+		const component = visit(node, state);
 
 		state.init.push(component);
 	} else {
@@ -1687,7 +1699,12 @@ function transform_body(body, { visit, state }) {
 	transform_children(body, { visit, state: body_state, root: true });
 
 	if (body_state.update.length > 0) {
-		body_state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(body_state.update)))));
+		if (state.to_ts) {
+			// In TypeScript mode, just add the update statements directly
+			body_state.init.push(...body_state.update);
+		} else {
+			body_state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(body_state.update)))));
+		}
 	}
 
 	return [...body_state.setup, ...body_state.init, ...body_state.final];
