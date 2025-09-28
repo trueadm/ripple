@@ -1,0 +1,196 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, track } from 'ripple';
+
+describe('head elements', () => {
+	let container;
+	let originalTitle;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+		// Store original title to restore later
+		originalTitle = document.title;
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+		// Restore original title
+		document.title = originalTitle;
+	});
+
+	it('renders static title element', () => {
+		component App() {
+			<head>
+				<title>{'Static Test Title'}</title>
+			</head>
+			<div>{'Content'}</div>
+		}
+
+		render(App);
+		
+		expect(document.title).toBe('Static Test Title');
+		expect(container.querySelector('div').textContent).toBe('Content');
+	});
+
+	it('renders reactive title element', () => {
+		component App() {
+			let title = track('Initial Title');
+
+			<head>
+				<title>{@title}</title>
+			</head>
+			<div>
+				<button onClick={() => { @title = 'Updated Title'; }}>{'Update Title'}</button>
+				<span>{@title}</span>
+			</div>
+		}
+
+		render(App);
+		
+		expect(document.title).toBe('Initial Title');
+		expect(container.querySelector('span').textContent).toBe('Initial Title');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(document.title).toBe('Updated Title');
+		expect(container.querySelector('span').textContent).toBe('Updated Title');
+	});
+
+	it('renders title with template literal', () => {
+		component App() {
+			let name = track('World');
+
+			<head>
+				<title>{`Hello ${@name}!`}</title>
+			</head>
+			<div>
+				<button onClick={() => { @name = 'Ripple'; }}>{'Change Name'}</button>
+			</div>
+		}
+
+		render(App);
+		
+		expect(document.title).toBe('Hello World!');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(document.title).toBe('Hello Ripple!');
+	});
+
+	it('renders title with computed value', () => {
+		component App() {
+			let count = track(0);
+			let prefix = 'Count: ';
+
+			<head>
+				<title>{prefix + @count}</title>
+			</head>
+			<div>
+				<button onClick={() => { @count++; }}>{'Increment'}</button>
+				<span>{@count}</span>
+			</div>
+		}
+
+		render(App);
+		
+		expect(document.title).toBe('Count: 0');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(document.title).toBe('Count: 1');
+		expect(container.querySelector('span').textContent).toBe('1');
+	});
+
+	it('handles multiple title updates', () => {
+		component App() {
+			let step = track(1);
+
+			<head>
+				<title>{`Step ${@step} of 3`}</title>
+			</head>
+			<div>
+				<button onClick={() => { @step = (@step % 3) + 1 }}>{'Next Step'}</button>
+			</div>
+		}
+
+		render(App);
+		
+		expect(document.title).toBe('Step 1 of 3');
+
+		const button = container.querySelector('button');
+		
+		button.click();
+		flushSync();
+		expect(document.title).toBe('Step 2 of 3');
+
+		button.click();
+		flushSync();
+		expect(document.title).toBe('Step 3 of 3');
+
+		button.click();
+		flushSync();
+		expect(document.title).toBe('Step 1 of 3');
+	});
+
+	it('renders empty title', () => {
+		component App() {
+			<head>
+				<title>{''}</title>
+			</head>
+			<div>{'Empty title test'}</div>
+		}
+
+		render(App);
+		
+		expect(document.title).toBe('');
+	});
+
+	it('renders title with conditional content', () => {
+		component App() {
+			let showPrefix = track(true);
+			let title = track('Main Page');
+
+			<head>
+				<title>{@showPrefix ? 'App - ' + @title : @title}</title>
+			</head>
+			<div>
+				<button onClick={() => { @showPrefix = !@showPrefix }}>{'Toggle Prefix'}</button>
+				<button onClick={() => { @title = @title === 'Main Page' ? 'Settings' : 'Main Page' }}>{'Change Page'}</button>
+			</div>
+		}
+
+		render(App);
+		
+		expect(document.title).toBe('App - Main Page');
+
+		const buttons = container.querySelectorAll('button');
+		
+		// Toggle prefix off
+		buttons[0].click();
+		flushSync();
+		expect(document.title).toBe('Main Page');
+
+		// Change page
+		buttons[1].click();
+		flushSync();
+		expect(document.title).toBe('Settings');
+
+		// Toggle prefix back on
+		buttons[0].click();
+		flushSync();
+		expect(document.title).toBe('App - Settings');
+	});
+});

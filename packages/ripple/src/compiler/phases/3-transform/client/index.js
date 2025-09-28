@@ -441,6 +441,7 @@ const visitors = {
 							);
 						}
 					} else {
+						debugger;
 						// Runtime mode: full transformation
 						if (metadata.tracking && metadata.await) {
 							expression = b.call(
@@ -1472,6 +1473,7 @@ function transform_ts_child(node, context) {
 
 		state.init.push(component);
 	} else {
+		debugger;
 		throw new Error('TODO');
 	}
 }
@@ -1570,6 +1572,8 @@ function transform_children(children, context) {
 					state.setup.push(b.var(id, b.call('_$_.child', state.flush_node())));
 					cached = id;
 					return id;
+				} else {
+					debugger;
 				}
 			};
 
