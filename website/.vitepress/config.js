@@ -146,6 +146,7 @@ function docs_sidebar() {
 				{ text: 'Events', link: 'guide/events' },
 				{ text: 'DOM References', link: 'guide/dom-refs' },
 				{ text: 'State Management', link: 'guide/state-management' },
+				{ text: 'Head Management', link: 'guide/head-management' },
 				{ text: 'Styling', link: 'guide/styling' },
 			]
 		},
