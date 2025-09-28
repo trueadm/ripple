@@ -123,19 +123,24 @@ describe('validateTemplate', () => {
 });
 
 describe('getLocalTemplatePath', () => {
+	// Windows uses backslashes in paths
+	function normalizePath(path) {
+		return path.replaceAll('\\', '/');
+	}
+
 	it('should return correct local template path', () => {
 		const path = getLocalTemplatePath('basic');
-		expect(path).toContain('templates/basic');
+		expect(normalizePath(path)).toContain('templates/basic');
 	});
 
 	it('should return path even for non-existent template', () => {
 		const path = getLocalTemplatePath('non-existent');
-		expect(path).toContain('templates/non-existent');
+		expect(normalizePath(path)).toContain('templates/non-existent');
 	});
 
 	it('should handle special characters in template name', () => {
 		const path = getLocalTemplatePath('my-template.name');
-		expect(path).toContain('templates/my-template.name');
+		expect(normalizePath(path)).toContain('templates/my-template.name');
 	});
 });
 
