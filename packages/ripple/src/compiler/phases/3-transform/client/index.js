@@ -133,7 +133,9 @@ function visit_title_element(node, context) {
 			),
 		);
 	} else {
-		debugger;
+		context.state.init.push(
+			b.stmt(b.assignment('=', b.id('_$_.document.title'), result)),
+		);
 	}
 }
 
@@ -1630,7 +1632,8 @@ function transform_children(children, context) {
 	for (const head_element of head_elements) {
 		visit_head_element(head_element, context);
 	}
-	if (context.state.inside_head) {
+
+	if (context.state.inside_head) { 
 		const title_element = children.find(
 			(node) =>
 				node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'title',
