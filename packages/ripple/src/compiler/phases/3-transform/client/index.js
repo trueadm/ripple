@@ -544,6 +544,7 @@ const visitors = {
 
 		if (is_dom_element) {
 			let class_attribute = null;
+			let style_attribute = null;
 			const local_updates = [];
 			const is_void = is_void_element(node.id.name);
 
@@ -559,13 +560,19 @@ const visitors = {
 							continue;
 						}
 
-						if (attr.value.type === 'Literal' && name !== 'class') {
+						if (attr.value.type === 'Literal' && name !== 'class' && name !== 'style') {
 							handle_static_attr(name, attr.value.value);
 							continue;
 						}
 
 						if (name === 'class') {
 							class_attribute = attr;
+
+							continue;
+						}
+
+						if (name === 'style') {
+							style_attribute = attr;
 
 							continue;
 						}
@@ -740,6 +747,25 @@ const visitors = {
 				const value = state.component.css.hash;
 
 				handle_static_attr(is_spreading ? '#class' : 'class', value);
+			}
+
+			if (style_attribute !== null) {
+				if (style_attribute.value.type === 'Literal') {
+					handle_static_attr(style_attribute.name.name, style_attribute.value.value);
+				} else {
+					const id = state.flush_node();
+					const metadata = { tracking: false, await: false };
+					const expression = visit(style_attribute.value, { ...state, metadata });
+					const name = style_attribute.name.name;
+
+					const statement = b.stmt(b.call('_$_.set_attribute', id, b.literal(name), expression));
+
+					if (metadata.tracking) {
+						local_updates.push(statement);
+					} else {
+						state.init.push(statement);
+					}
+				}
 			}
 
 			state.template.push('>');

@@ -16,6 +16,7 @@ import {
 } from '../../../utils/events.js';
 import { get } from './runtime.js';
 import { clsx } from 'clsx';
+import { normalize_style } from '../../../utils/normalize_style.js';
 
 /**
  * @param {Text} text
@@ -85,7 +86,9 @@ export function set_attribute(element, attribute, value) {
 
   if (value == null) {
     element.removeAttribute(attribute);
-  } else if (typeof value !== 'string' && get_setters(element).includes(attribute)) {
+  } else if (attribute === 'style') {
+		element.setAttribute(attribute, normalize_style(value));
+	} else if (typeof value !== 'string' && get_setters(element).includes(attribute)) {
     /** @type {any} */ (element)[attribute] = value;
   } else {
     element.setAttribute(attribute, value);
