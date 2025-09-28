@@ -28,7 +28,7 @@ TypeScript and JSX, but with a few interesting touches. In my experience, this h
 - **Reactive State Management**: Built-in reactivity with `track` and `@` reactive syntax
 - **Component-Based Architecture**: Clean, reusable components with props and children
 - **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
-- **Performance**: Fine-grain rendering, with industry-leading performance and memory usage
+- **Performance**: Fine-grain rendering, with industry-leading performance, bundle-size and memory usage
 - **TypeScript Support**: Full TypeScript integration with type checking
 - **VSCode Integration**: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
 - **Prettier Support**: Full Prettier formatting support for `.ripple` modules
