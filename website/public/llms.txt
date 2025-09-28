@@ -707,7 +707,7 @@ effect(() => {
 
 ### Raw HTML
 
-All text nodes are escaped by default in Ripple. To render raw HTML strings, use
+All text nodes are escaped by default in Ripple. To render trusted raw HTML strings, use
 the `{html}` directive.
 
 ```ripple
