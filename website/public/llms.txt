@@ -5,7 +5,7 @@
 Ripple is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte into one elegant package. Created by Dominic Gannaway ([@trueadm](https://github.com/trueadm)), Ripple is designed to be JS/TS-first with its own `.ripple` file extension that fully supports TypeScript.
 
 **Key Characteristics:**
-- **Performance**: Fine-grained rendering with industry-leading performance and memory usage
+- **Performance**: Fine-grain rendering, with industry-leading performance, bundle-size and memory usage
 - **TypeScript-first**: Full TypeScript integration with type checking
 - **JSX-like syntax**: Familiar templating with Ripple-specific enhancements
 - **Reactive state**: Built-in reactivity with `track` and `@` reactive syntax
@@ -858,10 +858,9 @@ export default defineConfig({
 
 ## Current Limitations
 
-- **SSR**: Currently SPA-only (Server-Side Rendering not yet implemented)
-- **Types**: Some areas of the codebase have limited TypeScript coverage
+- **SSR**: Currently SPA-only, SSR is almost ready and hydration coming soon
 - **Ecosystem**: Early stage - limited third-party library ecosystem
-- **Production Ready**: Currently in early development/alpha stage
+- **Production Ready**: Currently in early development but has been used in production already
 
 ## Resources
 
