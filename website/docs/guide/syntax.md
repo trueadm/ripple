@@ -201,3 +201,16 @@ export component App() {
 	</article>
 }
 ```
+
+::: info Note
+The raw HTML passed in should be valid, well-formed HTML. The following example
+will not work, since closing tags by themselves are considered malformed HTML.
+```ripple
+{html '<div>'}content{html '</div>'}
+```
+:::
+
+### Styling Raw HTML
+
+As raw HTML is not managed by Ripple, scoped styles do not apply to it. To style
+raw content, refer to [Styling](/docs/guide/styling#Global-Styles).

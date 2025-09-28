@@ -146,6 +146,7 @@ function docs_sidebar() {
 				{ text: 'Events', link: 'guide/events' },
 				{ text: 'DOM References', link: 'guide/dom-refs' },
 				{ text: 'State Management', link: 'guide/state-management' },
+				{ text: 'Styling', link: 'guide/styling' },
 			]
 		},
 		{
@@ -156,7 +157,7 @@ function docs_sidebar() {
 				{ text: 'Best Practices', link: 'best-practices' },
 				{ text: 'Libraries', link: 'libraries' },
 				{ text: 'Troubleshooting', link: 'troubleshooting' },
-				{ text: 'llms.txt', link: '../llms.txt',	target: '_blank' },
+				{ text: 'llms.txt', link: '../llms.txt', target: '_blank' },
 			]
 		},
 	]
