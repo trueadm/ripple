@@ -46,6 +46,7 @@ export {
 	exclude_from_object,
 	derived,
 	maybe_tracked,
+	tick,
 } from './runtime.js';
 
 export { composite } from './composite.js';

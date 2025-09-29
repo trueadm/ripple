@@ -45,3 +45,18 @@ let count = track(3);
 <div class={['foo', {bar: @count > 2}, @count > 3 && 'bat']}></div>
 // becomes: class="foo bar"
 ```
+
+## Dynamic Inline Styles
+
+Sometimes you might need to dynamically set inline styles. For this, you can use the `style` attribute, passing either a string or an object to it:
+```ripple
+let color = track('red');
+
+<div style={`color: ${@color}; font-weight: bold`}></div>
+<div style={{ color: @color, fontWeight: 'bold' }}></div>
+```
+Both examples above will render a `<div>` with red text and bold font weight.
+
+::: info
+Note: When passing an object to the `style` attribute, use camelCase for CSS property names (e.g., `fontWeight` instead of `font-weight`).
+:::

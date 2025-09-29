@@ -47,6 +47,7 @@ export {
 	track,
 	track_split as trackSplit,
 	untrack,
+	tick,
 } from './internal/client/runtime.js';
 
 export { TrackedArray } from './array.js';
