@@ -239,7 +239,7 @@ When working with component props, destructuring is often useful — both for di
 
 However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, for read-only reactive props, does not preserve reactivity (too complicated to implement due to many edge cases). To ensure destructured read-only reactive props remain reactive in this case, use the `trackSplit` function.
 
-> Note: boxed / wrapped Tracked objects are always reactive since the cross boundaries by reference. Props that were not declared with `track()` are never reactive and always render the same value that was initially passed in.
+> Note: boxed / wrapped Tracked objects are always reactive since they cross function boundaries by reference. Props that were not declared with `track()` are never reactive and always render the same value that was initially passed in.
 
 A full example utilizing various Ripple constructs demonstrates the `split` option usage:
 
