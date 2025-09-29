@@ -20,7 +20,7 @@ export function Portal(_, props) {
   /** @type {Text | null} */
   var anchor = null;
   /** @type {Node | null} */
-  var domStart = null;
+  var dom_start = null;
   /** @type {Node | null} */
   var domEnd = null;
 
