@@ -4,32 +4,6 @@ title: Control flow in Ripple
 
 # Control flow
 
-The JSX-like syntax might take some time to get used to if you're coming from
-another framework. For one, templating in Ripple can only occur _inside_ a
-`component` body – you can't create JSX inside functions, or assign it to
-variables as an expression.
-
-```ripple
-<div>
-  // you can create variables inside the template!
-  const str = "hello world";
-
-  console.log(str); // and function calls too!
-
-  debugger; // you can put breakpoints anywhere to help debugging!
-
-  {str}
-</div>
-```
-
-::: info Note
-Strings inside the template need to be inside `{"string"}`, you can't
-do `<div>hello</div>` as Ripple has no idea if `hello` is a string or maybe some
-JavaScript code that needs evaluating, so just ensure you wrap them in curly
-braces. This shouldn't be an issue in the real-world anyway, as you'll likely
-use an i18n library that means using JavaScript expressions regardless.
-:::
-
 ## If statements
 
 If blocks work seamlessly with Ripple's templating language, you can put them
