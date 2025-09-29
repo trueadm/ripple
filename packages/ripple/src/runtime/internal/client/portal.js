@@ -46,7 +46,7 @@ export function Portal(_, props) {
     // @ts-ignore
     b = branch(() =>  children(anchor));
 
-    domStart = b?.s?.start;
+    dom_start = b?.s?.start;
     dom_end = b?.s?.end;
 
     return () => {
