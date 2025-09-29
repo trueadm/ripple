@@ -46,6 +46,8 @@ export let active_reaction = null;
 export let active_scope = null;
 /** @type {null | Component} */
 export let active_component = null;
+/** @type {boolean} */
+export let is_mutating_allowed = true;
 
 /** @type {Map<Tracked, any>} */
 var old_values = new Map();
@@ -170,6 +172,7 @@ function run_derived(computed) {
 	var previous_tracking = tracking;
 	var previous_dependency = active_dependency;
 	var previous_component = active_component;
+  var previous_is_mutating_allowed = is_mutating_allowed;
 
 	try {
 		active_block = computed.b;
@@ -177,6 +180,7 @@ function run_derived(computed) {
 		tracking = true;
 		active_dependency = null;
 		active_component = computed.co;
+    is_mutating_allowed = false;
 
 		destroy_computed_children(computed);
 
@@ -191,6 +195,7 @@ function run_derived(computed) {
 		tracking = previous_tracking;
 		active_dependency = previous_dependency;
 		active_component = previous_component;
+    is_mutating_allowed = previous_is_mutating_allowed;
 	}
 }
 
@@ -504,6 +509,21 @@ export function async_computed(fn, block) {
 }
 
 /**
+ * @template V
+ * @param {Function} fn 
+ * @param {V} v 
+ */
+function trigger_track_get(fn, v) {
+  var previous_is_mutating_allowed = is_mutating_allowed;
+  try {
+    is_mutating_allowed = false;
+    return untrack(() => fn(v));
+  } finally {
+    is_mutating_allowed = previous_is_mutating_allowed;
+  }
+}
+
+/**
  * @param {() => any} fn
  * @returns {[any, Tracked[] | null]}
  */
@@ -709,8 +729,8 @@ export function get_derived(computed) {
 		register_dependency(computed);
 	}
 	var get = computed.a.get;
-	if (get) {
-		computed.v = get(computed.v);
+	if (get !== undefined) {
+		computed.v = trigger_track_get(get, computed.v);
 	}
 
 	return computed.v;
@@ -742,8 +762,8 @@ export function get_tracked(tracked) {
 		value = old_values.get(tracked);
 	}
 	var get = tracked.a.get;
-	if (get) {
-		value = get(value);
+	if (get !== undefined) {
+		value = trigger_track_get(get, value);
 	}
 	return value;
 }
@@ -754,6 +774,10 @@ export function get_tracked(tracked) {
  * @param {Block} block
  */
 export function set(tracked, value, block) {
+  if (!is_mutating_allowed) {
+    throw new Error('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+  }
+
 	var old_value = tracked.v;
 
 	if (value !== old_value) {
@@ -767,9 +791,9 @@ export function set(tracked, value, block) {
 			}
 		}
 
-		var set = tracked.a.set;
-		if (set) {
-			value = set(value, old_value);
+		let set = tracked.a.set;
+		if (set !== undefined) {
+			value = untrack(() => set(value, old_value));
 		}
 
 		tracked.v = value;
