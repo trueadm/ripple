@@ -189,14 +189,10 @@ let { children, count, class: className, ...rest } = props;
 ```
 
 ::: info Note
-<<<<<<< HEAD
-Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values. Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[object Object]` on the dom element.
-=======
 Make sure the resulting `rest`, if it's going to be spread onto a dom element,
 does not contain `Tracked` values. Otherwise, you'd be spreading not the actual
 values but the boxed ones, which are objects that will appear as
 `[Object object]` on the dom element.
->>>>>>> 4ae1575 (make raw files for docs 80ch max width)
 :::
 
 ## Transporting Reactivity

@@ -78,8 +78,10 @@ Both examples above will render the same inline styles, however, it's recommende
 ::: info
 When passing an object to the `style` attribute, you can use either camelCase or kebab-case for CSS property names.
 :::
+
 ## Global Styles
 
-Currently, there is no way to opt out of scoped styles (though the team is
-working on it!) other than placing your styles in a style tag within index.html's
-head, or importing the CSS with Vite.
+At the moment, marking styles as global within components isn’t supported yet
+(though a `:global` selector is in the works). As a temporary  workaround, you
+can either use a `<style>` tag within `<head>` inside `index.html`, or import
+your CSS with Vite.

@@ -4,7 +4,7 @@ title: Event Binding in Ripple
 
 # Event Binding with Props
 
-Ripple deviates slightly from the platform in terms of event binding. Like most
+Ripple deviates slightly from the platform in terms of event names. Like most
 frameworks except for React, we rely on the native event system of the browser.
 However, Ripple doesn't use the same all-lowercase props/attributes to bind
 events -- a camelCase convention is used instead, shown below:
