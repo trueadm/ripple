@@ -752,7 +752,7 @@ export function set(tracked, value, block) {
 	if (value !== old_value) {
 		var tracked_block = tracked.b;
 
-		if (block && (block.f & CONTAINS_TEARDOWN) !== 0) {
+		if (block.f & CONTAINS_TEARDOWN !== 0) {
 			if (teardown) {
 				old_values.set(tracked, value);
 			} else {
