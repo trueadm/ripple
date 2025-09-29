@@ -36,7 +36,7 @@ export function Portal(_, props) {
       anchor.remove();
     }
 
-    domStart = domEnd = null;
+    dom_start = dom_end = null;
 
     anchor = create_text();
     /** @type {Element} */ (target).append(anchor);
