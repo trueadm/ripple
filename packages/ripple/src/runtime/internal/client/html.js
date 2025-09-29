@@ -8,9 +8,6 @@ import { assign_nodes, create_fragment_from_html } from './template.js';
 /**
  * Renders dynamic HTML content into the DOM by inserting it before the anchor node.
  * Manages the lifecycle of HTML blocks, removing old content and inserting new content.
- *
- * TODO handle SVG/MathML
- *
  * @param {ChildNode} node
  * @param {() => string} get_html
  * @returns {void}
