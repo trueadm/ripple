@@ -32,6 +32,10 @@ export function Portal(_, props) {
       destroy_block(b);
     }
 
+    if (anchor !== null) {
+      anchor.remove();
+    }
+
     domStart = domEnd = null;
 
     anchor = create_text();
@@ -39,17 +43,16 @@ export function Portal(_, props) {
 
     const cleanup_events = handle_root_events(/** @type {Element} */ (target));
 
-    b = branch(() => /** @type {(anchor: Node) => void} */ (children)(/** @type {Text} */ (anchor)));
+    // @ts-ignore
+    b = branch(() =>  children(anchor));
 
-    if (b && b.s) {
-      domStart = b.s.start;
-      domEnd = b.s.end;
-    }
+    domStart = b?.s?.start;
+    domEnd = b?.s?.end;
 
     return () => {
       cleanup_events();
       /** @type {Text} */ (anchor).remove();
-      if(domStart !== null && domEnd !== null) {
+      if(domStart && domEnd) {
         remove_block_dom(domStart, domEnd);
       }
     };
