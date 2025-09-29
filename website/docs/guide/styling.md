@@ -4,7 +4,7 @@ title: Styling in Ripple
 
 # Styling
 
-Ripple supports native CSS styling that is scoped (localized) to the given
+Ripple supports native CSS styling that's scoped (localized) to the given
 component using the `<style>` element.
 
 ```ripple
@@ -80,5 +80,6 @@ When passing an object to the `style` attribute, you can use either camelCase or
 :::
 ## Global Styles
 
-Currently, there is no way to opt out of scoped styles other than placing your
-styles in a style tag within index.html's head, or importing the CSS with Vite.
+Currently, there is no way to opt out of scoped styles (though the team is
+working on it!) other than placing your styles in a style tag within index.html's
+head, or importing the CSS with Vite.
