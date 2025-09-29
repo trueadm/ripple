@@ -1,3 +1,6 @@
+/** @type {Map<string, string>} */
+const normalized_properties_cache = new Map();
+
 /**
  * Takes a camelCased string and returns a hyphenated string
  * @param {string} str
@@ -7,5 +10,11 @@
  */
 export function normalize_css_property_name(str) {
 	if (str.startsWith('--')) return str;
-	return str.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+	if (normalized_properties_cache.has(str)) {
+		return /** @type {string} */ (normalized_properties_cache.get(str));
+	}
+	const normalized_result = str.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+	normalized_properties_cache.set(str, normalized_result);
+
+	return normalized_result;
 }
