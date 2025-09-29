@@ -276,7 +276,7 @@ With the regular destructuring, such as the one below, the `count` and `class` p
 let { children, count, class: className, ...rest } = props;
 ```
 
-> Note: Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values. Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
+> Note: Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values. Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[object Object]` on the dom element.
 
 #### Transporting Reactivity
 
