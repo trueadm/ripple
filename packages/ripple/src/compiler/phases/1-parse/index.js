@@ -1,3 +1,9 @@
+/** @import { Program } from 'estree' */
+/** @import {
+ *   CommentWithLocation,
+ *   RipplePluginConfig
+ * } from '#compiler' */
+
 import * as acorn from 'acorn';
 import { tsPlugin } from 'acorn-typescript';
 import { parse_style } from './style.js';
@@ -6,6 +12,11 @@ import { regex_newline_characters } from '../../../utils/patterns.js';
 
 const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
 
+/**
+ * Convert JSX node types to regular JavaScript node types
+ * @param {any} node - The JSX node to convert
+ * @returns {any} The converted node
+ */
 function convert_from_jsx(node) {
 	if (node.type === 'JSXIdentifier') {
 		node.type = 'Identifier';
@@ -17,16 +28,26 @@ function convert_from_jsx(node) {
 	return node;
 }
 
+/**
+ * Acorn parser plugin for Ripple syntax extensions
+ * @param {RipplePluginConfig} [config] - Plugin configuration
+ * @returns {function(any): any} Parser extension function
+ */
 function RipplePlugin(config) {
-	return (Parser) => {
+	return (/** @type {any} */ Parser) => {
 		const original = acorn.Parser.prototype;
 		const tt = Parser.tokTypes || acorn.tokTypes;
 		const tc = Parser.tokContexts || acorn.tokContexts;
 
 		class RippleParser extends Parser {
+			/** @type {any[]} */
 			#path = [];
 
-			// Helper method to get the element name from a JSX identifier or member expression
+			/**
+			 * Helper method to get the element name from a JSX identifier or member expression
+			 * @param {any} node - The node to get the name from
+			 * @returns {string | null} Element name or null
+			 */
 			getElementName(node) {
 				if (!node) return null;
 				if (node.type === 'Identifier' || node.type === 'JSXIdentifier') {
@@ -38,6 +59,11 @@ function RipplePlugin(config) {
 				return null;
 			}
 
+			/**
+			 * Get token from character code - handles Ripple-specific tokens
+			 * @param {number} code - Character code
+			 * @returns {any} Token or calls super method
+			 */
 			getTokenFromCode(code) {
 				if (code === 60) {
 					// < character
@@ -135,7 +161,10 @@ function RipplePlugin(config) {
 				return super.getTokenFromCode(code);
 			}
 
-			// Read an @ prefixed identifier
+			/**
+			 * Read an @ prefixed identifier
+			 * @returns {any} Token with @ identifier
+			 */
 			readAtIdentifier() {
 				const start = this.pos;
 				this.pos++; // skip '@'
@@ -166,7 +195,11 @@ function RipplePlugin(config) {
 				return this.finishToken(tt.name, '@' + word);
 			}
 
-			// Override parseIdent to mark @ identifiers as tracked
+			/**
+			 * Override parseIdent to mark @ identifiers as tracked
+			 * @param {any} [liberal] - Whether to allow liberal parsing
+			 * @returns {any} Parsed identifier node
+			 */
 			parseIdent(liberal) {
 				const node = super.parseIdent(liberal);
 				if (node.name && node.name.startsWith('@')) {
@@ -181,6 +214,13 @@ function RipplePlugin(config) {
 				return node;
 			}
 
+			/**
+			 * Parse expression atom - handles TrackedArray and TrackedObject literals
+			 * @param {any} [refDestructuringErrors]
+			 * @param {any} [forNew]
+			 * @param {any} [forInit]
+			 * @returns {any} Parsed expression atom
+			 */
 			parseExprAtom(refDestructuringErrors, forNew, forInit) {
 				// Check if this is a tuple literal starting with #[
 				if (this.type === tt.bracketL && this.value === '#[') {
@@ -818,6 +858,7 @@ function RipplePlugin(config) {
 				const element = this.startNode();
 				element.start = position.index;
 				element.loc.start = position;
+        element.metadata = {};
 				element.type = 'Element';
 				this.#path.push(element);
 				element.children = [];
@@ -1150,7 +1191,8 @@ function RipplePlugin(config) {
  * in JS code and so that `prettier-plugin-ripple` doesn't remove all comments when formatting.
  * @param {string} source
  * @param {CommentWithLocation[]} comments
- * @param {number} index
+ * @param {number} [index=0] - Starting index
+ * @returns {{ onComment: Function, add_comments: Function }} Comment handler functions
  */
 function get_comment_handlers(source, comments, index = 0) {
 	return {
@@ -1245,7 +1287,13 @@ function get_comment_handlers(source, comments, index = 0) {
 	};
 }
 
+/**
+ * Parse Ripple source code into an AST
+ * @param {string} source
+ * @returns {Program}
+ */
 export function parse(source) {
+	/** @type {CommentWithLocation[]} */
 	const comments = [];
 	const { onComment, add_comments } = get_comment_handlers(source, comments);
 	let ast;
@@ -1255,7 +1303,7 @@ export function parse(source) {
 			sourceType: 'module',
 			ecmaVersion: 13,
 			locations: true,
-			onComment,
+			onComment: /** @type {any} */ (onComment),
 		});
 	} catch (e) {
 		throw e;
@@ -1263,5 +1311,5 @@ export function parse(source) {
 
 	add_comments(ast);
 
-	return ast;
+	return /** @type {Program} */ (ast);
 }
