@@ -57,18 +57,21 @@ let color = track('red');
 <div style={`color: ${@color}; font-weight: bold; background-color: gray`}></div>
 <div style={{ color: @color, fontWeight: 'bold', 'background-color': 'gray' }}></div>
 
- const style = {
+const style = {
   @color,
   fontWeight: 'bold',
-  'background-color': gray,
+  'background-color': 'gray',
 };
 
 // using object spread
-<div {...style}></div>
+<div style={{...style}}></div>
+
+// using object directly
+<div style={style}></div>
 ```
 
 Both examples above will render the same inline styles, however, it's recommended to use the object notation as it's typically more performance optimized.
 
 ::: info
-When passing an object to the `style` attribute, use can either use camelCase or kebab-case for CSS property names.
+When passing an object to the `style` attribute, you can use either camelCase or kebab-case for CSS property names.
 :::
