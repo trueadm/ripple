@@ -1760,5 +1760,46 @@ describe('basic client', () => {
 		await promise; 
 		expect(p.textContent).toBe('1');
 	});
+
+	it('errors on mutating tracked value inside computed track() evaluation', () => {
+		component Basic() {
+			let count = track(0);
+
+			let p = track();
+			function pRef(node) {
+				@p = node;
+
+				return () => {
+					@p = null;
+				};
+			}
+
+			const doubled = track(() => {
+				try {
+					@count *= 2;
+				} catch (e) {
+					if(@p) {
+						@p.textContent = e.message;
+					}
+				}
+			});
+
+			<p class='error' {ref pRef} />
+
+			<p>{@doubled}</p>
+
+			<button onClick={() => { @count++; }}>{@count}</button>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const error = container.querySelector('.error');
+
+		button.click();
+		flushSync();
+
+		expect(error.textContent).toContain('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+	});
 });
 
