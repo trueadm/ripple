@@ -405,7 +405,7 @@ Because Ripple isn't based on Signals, there is no mechanism with which we can
 hijack collection mutations. Thus, you'll need to use the reactive collection
 primitives that Ripple offers for reactivity for an entire collection.
 
-#### Simple Reactive Arrays
+#### Simple Reactive Array
 
 Just like objects, you can use the `Tracked<T>` objects in any standard JavaScript object, like arrays:
 
@@ -433,7 +433,7 @@ Like shown in the above example, you can compose normal arrays with reactivity a
 
 However, if you need the entire array to be fully reactive, including when new elements get added, you should use the reactive array that Ripple provides.
 
-#### TrackedArray
+#### Fully Reactive Array
 
 `TrackedArray` class from Ripple extends the standard JS `Array` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the bracketed notation. All elements existing or new of the `TrackedArray` are reactive and respond to the various array operations such as push, pop, shift, unshift, etc. Even if you reference a non-existent element, once it added, the original reference will react to the change. You do NOT need to use the unboxing `@` with the elements of the array.
 
@@ -469,9 +469,9 @@ export component App() {
 }
 ```
 
-#### TrackedObject
+#### Reactive Object
 
-`TrackedObject` class extends the standard JS `Object` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the curly brace notation.  `TrackedObject` fully supports shallow reactivity and any property on the root level is reactive.  You can even reference non-existent properties and once added the original reference reacts to the change. You do NOT need to use the unboxing `@` with the properties of the `TrackedObject`.
+`TrackedObject` class extends the standard JS `Object` class, and supports all of its methods and properties. Import it from the `'ripple'` namespace or use the provided syntactic sugar for a quick creation via the curly brace notation. `TrackedObject` fully supports shallow reactivity and any property on the root level is reactive. You can even reference non-existent properties and once added the original reference reacts to the change. You do NOT need to use the unboxing `@` with the properties of the `TrackedObject`.
 
 ```ripple
 import { TrackedObject } from 'ripple';
@@ -560,6 +560,42 @@ export component App() {
 
   <button onClick={() => map.delete(2)}>{"Delete item with key 2"}</button>
   <button onClick={() => map.set(2, 2)}>{"Add key 2 with value 2"}</button>
+}
+```
+
+</Code>
+
+#### Reactive Date
+
+The `TrackedDate` extends the standard JS `Date` class, and supports all of its methods and properties.
+
+```ripple
+import { TrackedDate } from 'ripple';
+
+const date = new TrackedDate(2026, 0, 1); // January 1, 2026
+```
+
+TrackedDate's reactive methods or properties can be used directly or assigned to reactive variables. All getter methods (`getFullYear()`, `getMonth()`, `getDate()`, etc.) and formatting methods (`toISOString()`, `toDateString()`, etc.) are reactive and will update when the date is modified.
+
+<Code>
+
+```ripple
+import { TrackedDate, track } from 'ripple';
+
+export component App() {
+  const date = new TrackedDate(2025, 0, 1, 12, 0, 0);
+
+  // direct usage
+  <p>{"Direct usage: Current year is "}{date.getFullYear()}</p>
+  <p>{"ISO String: "}{date.toISOString()}</p>
+
+  // reactive assignment
+  let year = track(() => date.getFullYear());
+  let month = track(() => date.getMonth());
+  <p>{"Assigned usage: Year "}{@year}{", Month "}{@month}</p>
+
+  <button onClick={() => date.setFullYear(2027)}>{"Change to 2026"}</button>
+  <button onClick={() => date.setMonth(11)}>{"Change to December"}</button>
 }
 ```
 

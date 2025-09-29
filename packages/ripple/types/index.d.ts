@@ -12,13 +12,13 @@ export declare function flushSync<T>(fn: () => T): T;
 export declare function effect(fn: (() => void) | (() => () => void)): void;
 
 export interface TrackedArrayConstructor {
-  new <T>(...elements: T[]): TrackedArray<T>;   // must be used with `new`
-  from<T>(arrayLike: ArrayLike<T>): TrackedArray<T>;
-  of<T>(...items: T[]): TrackedArray<T>;
-  fromAsync<T>(iterable: AsyncIterable<T>): Promise<TrackedArray<T>>;
+	new <T>(...elements: T[]): TrackedArray<T>;   // must be used with `new`
+	from<T>(arrayLike: ArrayLike<T>): TrackedArray<T>;
+	of<T>(...items: T[]): TrackedArray<T>;
+	fromAsync<T>(iterable: AsyncIterable<T>): Promise<TrackedArray<T>>;
 }
 
-export interface TrackedArray<T> extends Array<T> {}
+export interface TrackedArray<T> extends Array<T> { }
 
 export declare const TrackedArray: TrackedArrayConstructor;
 
@@ -38,10 +38,12 @@ export declare class TrackedSet<T> extends Set<T> {
 	symmetricDifference(other: TrackedSet<T> | Set<T>): TrackedSet<T>;
 	union(other: TrackedSet<T> | Set<T>): TrackedSet<T>;
 	toJSON(): T[];
+	#private;
 }
 
 export declare class TrackedMap<K, V> extends Map<K, V> {
 	toJSON(): [K, V][];
+	#private;
 }
 
 // Compiler-injected runtime symbols (for Ripple component development)
@@ -74,17 +76,17 @@ export type Tracked<V> = { '#v': V };
 export type Props<K extends PropertyKey = any, V = unknown> = Record<K, V>;
 export type PropsWithExtras<T extends object> = Props & T & Record<string, unknown>;
 export type PropsWithChildren<T extends object = {}> =
-  Expand<Omit<Props, 'children'> & { children: Component } & T>;
+	Expand<Omit<Props, 'children'> & { children: Component } & T>;
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
 type PickKeys<T, K extends readonly (keyof T)[]> =
-  { [I in keyof K]: Tracked<T[K[I] & keyof T]> };
+	{ [I in keyof K]: Tracked<T[K[I] & keyof T]> };
 
 type RestKeys<T, K extends readonly (keyof T)[]> = Expand<Omit<T, K[number]>>;
 
 type SplitResult<T extends Props, K extends readonly (keyof T)[]> =
-  [...PickKeys<T, K>, Tracked<RestKeys<T, K>>];
+	[...PickKeys<T, K>, Tracked<RestKeys<T, K>>];
 
 export declare function track<V>(value?: V | (() => V), get?: (v: V) => V, set?: (next: V, prev: V) => V): Tracked<V>;
 
@@ -129,33 +131,38 @@ export function on(
 ): () => void;
 
 export type TrackedObjectShallow<T> = {
-  [K in keyof T]: T[K] | Tracked<T[K]>;
+	[K in keyof T]: T[K] | Tracked<T[K]>;
 };
 
 export type TrackedObjectDeep<T> =
-  T extends string | number | boolean | null | undefined | symbol | bigint
-    ? T | Tracked<T>
-    : T extends TrackedArray<infer U>
-      ? TrackedArray<U> | Tracked<TrackedArray<U>>
-    : T extends TrackedSet<infer U>
-      ? TrackedSet<U> | Tracked<TrackedSet<U>>
-    : T extends TrackedMap<infer K, infer V>
-      ? TrackedMap<K, V> | Tracked<TrackedMap<K, V>>
-    : T extends Array<infer U>
-      ? Array<TrackedObjectDeep<U>> | Tracked<Array<TrackedObjectDeep<U>>>
-    : T extends Set<infer U>
-      ? Set<TrackedObjectDeep<U>> | Tracked<Set<TrackedObjectDeep<U>>>
-    : T extends Map<infer K, infer V>
-      ? Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>> |
-        Tracked<Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>>>
-    : T extends object
-      ? { [K in keyof T]: TrackedObjectDeep<T[K]> | Tracked<TrackedObjectDeep<T[K]>> }
-    : T | Tracked<T>;
+	T extends string | number | boolean | null | undefined | symbol | bigint
+	? T | Tracked<T>
+	: T extends TrackedArray<infer U>
+	? TrackedArray<U> | Tracked<TrackedArray<U>>
+	: T extends TrackedSet<infer U>
+	? TrackedSet<U> | Tracked<TrackedSet<U>>
+	: T extends TrackedMap<infer K, infer V>
+	? TrackedMap<K, V> | Tracked<TrackedMap<K, V>>
+	: T extends Array<infer U>
+	? Array<TrackedObjectDeep<U>> | Tracked<Array<TrackedObjectDeep<U>>>
+	: T extends Set<infer U>
+	? Set<TrackedObjectDeep<U>> | Tracked<Set<TrackedObjectDeep<U>>>
+	: T extends Map<infer K, infer V>
+	? Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>> |
+	Tracked<Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>>>
+	: T extends object
+	? { [K in keyof T]: TrackedObjectDeep<T[K]> | Tracked<TrackedObjectDeep<T[K]>> }
+	: T | Tracked<T>;
 
 export type TrackedObject<T extends object> = T & {};
 
 export interface TrackedObjectConstructor {
-  new <T extends object>(obj: T): TrackedObject<T>;
+	new <T extends object>(obj: T): TrackedObject<T>;
 }
 
 export declare const TrackedObject: TrackedObjectConstructor;
+
+export class SvelteDate extends Date {
+	constructor(...params: any[]);
+	#private;
+}

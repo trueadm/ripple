@@ -1,22 +1,29 @@
 {
-	"useTabs": true,
-	"singleQuote": true,
-	"printWidth": 100,
-	"plugins": ["prettier-plugin-ripple"],
-	"overrides": [
-		{
-			"files": ["*.ripple"],
-			"options": {
-				"bracketSameLine": false,
-				"parser": "ripple"
-			}
-		},
-		{
-			"files": ["README.md", "packages/*/README.md", "**/package.json" , "**/*.js"],
-			"options": {
-				"useTabs": true,
-				"tabWidth": 2
-			}
-		}
-	]
+  "useTabs": true,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "printWidth": 100,
+  "plugins": [
+    "prettier-plugin-ripple"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "*.ripple"
+      ],
+      "options": {
+        "bracketSameLine": false,
+        "parser": "ripple"
+      }
+    },
+    {
+      "files": [
+        "**/*.md",
+        "**/*.json"
+      ],
+      "options": {
+        "useTabs": false
+      }
+    }
+  ]
 }

@@ -1,0 +1,392 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, TrackedDate, track } from 'ripple';
+
+describe('TrackedDate', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container,
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+	it('handles getTime() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1);
+			let time = track(() => date.getTime());
+
+			<button onClick={() => date.setFullYear(2026)}>{'Change Year'}</button>
+			<pre>{@time}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+		const initialTime = container.querySelector('pre').textContent;
+
+		button.click();
+		flushSync();
+
+		const newTime = container.querySelector('pre').textContent;
+		expect(newTime).not.toBe(initialTime);
+		expect(parseInt(newTime)).toBeGreaterThan(parseInt(initialTime));
+	});
+
+	it('handles getFullYear() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 5, 15);
+			let year = track(() => date.getFullYear());
+
+			<button onClick={() => date.setFullYear(2030)}>{'Change Year'}</button>
+			<pre>{@year}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+
+		expect(container.querySelector('pre').textContent).toBe('2025');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('2030');
+	});
+
+	it('handles getMonth() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 15);
+			let month = track(() => date.getMonth());
+
+			<button onClick={() => date.setMonth(11)}>{'Change to December'}</button>
+			<pre>{@month}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+
+		expect(container.querySelector('pre').textContent).toBe('0');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('11');
+	});
+
+	it('handles getDate() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1);
+			let day = track(() => date.getDate());
+
+			<button onClick={() => date.setDate(15)}>{'Change Day'}</button>
+			<pre>{@day}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+
+		expect(container.querySelector('pre').textContent).toBe('1');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('15');
+	});
+
+	it('handles getDay() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1);
+			let dayOfWeek = track(() => date.getDay());
+
+			<button onClick={() => date.setDate(2)}>{'Next Day'}</button>
+			<pre>{@dayOfWeek}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+
+		expect(container.querySelector('pre').textContent).toBe('3');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('4');
+	});
+
+	it('handles getHours() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1, 10, 30, 0);
+			let hours = track(() => date.getHours());
+
+			<button onClick={() => date.setHours(15)}>{'Change to 3 PM'}</button>
+			<pre>{@hours}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+
+		expect(container.querySelector('pre').textContent).toBe('10');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('15');
+	});
+
+	it('handles getMinutes() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1, 10, 15, 0);
+			let minutes = track(() => date.getMinutes());
+
+			<button onClick={() => date.setMinutes(45)}>{'Change Minutes'}</button>
+			<pre>{@minutes}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+
+		expect(container.querySelector('pre').textContent).toBe('15');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('45');
+	});
+
+	it('handles getSeconds() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1, 10, 15, 30);
+			let seconds = track(() => date.getSeconds());
+
+			<button onClick={() => date.setSeconds(45)}>{'Change Seconds'}</button>
+			<pre>{@seconds}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+
+		expect(container.querySelector('pre').textContent).toBe('30');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('45');
+	});
+
+	it('handles toISOString() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1, 12, 0, 0);
+			let isoString = track(() => date.toISOString());
+
+			<button onClick={() => date.setFullYear(2026)}>{'Change Year'}</button>
+			<pre>{@isoString}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+		const initialISO = container.querySelector('pre').textContent;
+
+		expect(initialISO).toContain('2025');
+
+		button.click();
+		flushSync();
+
+		const newISO = container.querySelector('pre').textContent;
+
+		// Just verify that the ISO string changed after the year was updated
+		expect(newISO).not.toBe(initialISO);
+		expect(newISO.length).toBeGreaterThan(0);
+	});
+
+	it('handles toDateString() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1);
+			let dateString = track(() => date.toDateString());
+
+			<button onClick={() => date.setMonth(11)}>{'Change to December'}</button>
+			<pre>{@dateString}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+		const initialDateString = container.querySelector('pre').textContent;
+
+		expect(initialDateString).toContain('Jan');
+
+		button.click();
+		flushSync();
+
+		const newDateString = container.querySelector('pre').textContent;
+		expect(newDateString).toContain('Dec');
+		expect(newDateString).not.toBe(initialDateString);
+	});
+
+	it('handles valueOf() with reactive updates', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1);
+			let valueOf = track(() => date.valueOf());
+
+			<button onClick={() => date.setDate(2)}>{'Next Day'}</button>
+			<pre>{@valueOf}</pre>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+		const initialValue = parseInt(container.querySelector('pre').textContent);
+
+		button.click();
+		flushSync();
+
+		const newValue = parseInt(container.querySelector('pre').textContent);
+		expect(newValue).toBeGreaterThan(initialValue);
+		expect(newValue - initialValue).toBe(24 * 60 * 60 * 1000);
+	});
+
+	it('handles multiple get methods reacting to same setTime change', () => {
+		component DateTest() {
+			let date = new TrackedDate(2025, 0, 1, 10, 30, 15);
+			let year = track(() => date.getFullYear());
+			let month = track(() => date.getMonth());
+			let day = track(() => date.getDate());
+			let hours = track(() => date.getHours());
+
+			<button onClick={() => date.setTime(new Date(2026, 5, 15, 14, 45, 30).getTime())}>{'Change All'}</button>
+			<div>
+				{'Year: '}
+				{@year}
+			</div>
+			<div>
+				{'Month: '}
+				{@month}
+			</div>
+			<div>
+				{'Day: '}
+				{@day}
+			</div>
+			<div>
+				{'Hours: '}
+				{@hours}
+			</div>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+		const divs = container.querySelectorAll('div');
+
+		expect(divs[0].textContent).toBe('Year: 2025');
+		expect(divs[1].textContent).toBe('Month: 0');
+		expect(divs[2].textContent).toBe('Day: 1');
+		expect(divs[3].textContent).toBe('Hours: 10');
+
+		button.click();
+		flushSync();
+
+		expect(divs[0].textContent).toBe('Year: 2026');
+		expect(divs[1].textContent).toBe('Month: 5');
+		expect(divs[2].textContent).toBe('Day: 15');
+		expect(divs[3].textContent).toBe('Hours: 14');
+	});
+
+	it('handles constructor with different parameter combinations', () => {
+		component DateTest() {
+			let dateNow = new TrackedDate();
+			let dateFromString = new TrackedDate('2025-01-01');
+			let dateFromNumbers = new TrackedDate(2025, 0, 1);
+			let dateFromTimestamp = new TrackedDate(1735689600000);
+
+			let nowYear = track(() => dateNow.getFullYear());
+			let stringYear = track(() => dateFromString.getFullYear());
+			let numbersYear = track(() => dateFromNumbers.getFullYear());
+			let timestampYear = track(() => dateFromTimestamp.getFullYear());
+
+			<div>
+				{'Now: '}
+				{@nowYear}
+			</div>
+			<div>
+				{'String: '}
+				{@stringYear}
+			</div>
+			<div>
+				{'Numbers: '}
+				{@numbersYear}
+			</div>
+			<div>
+				{'Timestamp: '}
+				{@timestampYear}
+			</div>
+		}
+
+		render(DateTest);
+
+		const divs = container.querySelectorAll('div');
+		const currentYear = new Date().getFullYear();
+
+		expect(parseInt(divs[0].textContent.split(': ')[1])).toBe(currentYear);
+
+		// String date parsing may vary by timezone, just check it's a reasonable year
+		const stringYear = parseInt(divs[1].textContent.split(': ')[1]);
+		expect(stringYear).toBeGreaterThanOrEqual(2024);
+		expect(stringYear).toBeLessThanOrEqual(2025);
+		expect(divs[2].textContent).toBe('Numbers: 2025');
+
+		// Timestamp parsing may also vary by timezone
+		const timestampYear = parseInt(divs[3].textContent.split(': ')[1]);
+		expect(timestampYear).toBeGreaterThanOrEqual(2024);
+		expect(timestampYear).toBeLessThanOrEqual(2025);
+	});
+
+	it('handles get methods with arguments non-memoized', () => {
+		component DateTest() {
+			let date = new TrackedDate();
+			let localeDateString = track(() => date.toLocaleDateString('en-US'));
+			let localeTimeString = track(() => date.toLocaleTimeString('en-US'));
+
+			<button onClick={() => date.setFullYear(date.getFullYear() + 1)}>{'Next Year'}</button>
+			<div>
+				{'Date: '}
+				{@localeDateString}
+			</div>
+			<div>
+				{'Time: '}
+				{@localeTimeString}
+			</div>
+		}
+
+		render(DateTest);
+
+		const button = container.querySelector('button');
+		const divs = container.querySelectorAll('div');
+		const initialDate = divs[0].textContent;
+		const initialTime = divs[1].textContent;
+
+		button.click();
+		flushSync();
+
+		const newDate = divs[0].textContent;
+		const newTime = divs[1].textContent;
+
+		expect(newDate).not.toBe(initialDate);
+		expect(newTime).toBe(initialTime);
+	});
+});

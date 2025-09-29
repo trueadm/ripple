@@ -65,3 +65,5 @@ export { tracked_object } from '../../object.js';
 export { head } from './head.js';
 
 export { script } from './script.js';
+
+export { html } from './html.js';
