@@ -1,6 +1,6 @@
-/** @import { Identifier, Pattern, FunctionExpression, FunctionDeclaration, ArrowFunctionExpression, MemberExpression, AssignmentExpression, Expression, Node } from 'estree' */
-/** @import { Component, Element, Attribute, SpreadAttribute } from '#compiler' */
-import { build_assignment_value } from '../utils/ast.js';
+/** @import { Identifier, Pattern, Super, FunctionExpression, FunctionDeclaration, ArrowFunctionExpression, MemberExpression, AssignmentExpression, Expression, Node, AssignmentOperator } from 'estree' */
+/** @import { Component, Element, Attribute, SpreadAttribute, ScopeInterface, Binding, RippleNode, CompilerState, TransformContext, DelegatedEventResult, TextNode } from '#compiler' */
+import { build_assignment_value, extract_paths } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
 import { get_attribute_event_name, is_delegated, is_event_attribute } from '../utils/events.js';
 
@@ -174,9 +174,9 @@ const unhoisted = { hoisted: false };
 /**
  * Determines if an event handler can be hoisted for delegation
  * @param {string} event_name
- * @param {import('estree').Expression} handler
- * @param {object} state
- * @returns {object|null}
+ * @param {Expression} handler
+ * @param {CompilerState} state
+ * @returns {DelegatedEventResult | null}
  */
 export function get_delegated_event(event_name, handler, state) {
 	// Handle delegated event handlers. Bail out if not a delegated event.
@@ -210,7 +210,7 @@ export function get_delegated_event(event_name, handler, state) {
 				/** @type {string | null} */
 				let event_name = null;
 				if (
-					parent.type === 'ExpressionTag' &&
+					parent.type === 'Expression' &&
 					grandparent?.type === 'Attribute' &&
 					is_event_attribute(grandparent)
 				) {
@@ -234,7 +234,11 @@ export function get_delegated_event(event_name, handler, state) {
 		}
 
 		// If the binding is exported, bail out
-		if (state.analysis.exports.find((node) => node.name === handler.name)) {
+		if (
+			state.analysis?.exports?.find(
+				(/** @type {{name: string}} */ node) => node.name === handler.name,
+			)
+		) {
 			return unhoisted;
 		}
 
@@ -287,7 +291,7 @@ export function get_delegated_event(event_name, handler, state) {
 
 /**
  * @param {Node} node
- * @param {{ state: { scope: import('#compiler').ScopeInterface }, path?: Node[], visit?: Function }} context
+ * @param {TransformContext} context
  * @returns {Identifier[]}
  */
 function get_hoisted_params(node, context) {
@@ -328,14 +332,8 @@ function get_hoisted_params(node, context) {
 
 /**
  * Builds the parameter list for a hoisted function
- * @param {import('estree').FunctionDeclaration|import('estree').FunctionExpression|import('estree').ArrowFunctionExpression} node
- * @param {object} context
- * @returns {import('estree').Pattern[]}
- */
-/**
- * Builds the parameter list for a hoisted function
  * @param {FunctionDeclaration|FunctionExpression|ArrowFunctionExpression} node
- * @param {{ state: { scope: import('#compiler').ScopeInterface }, visit: Function }} context
+ * @param {TransformContext} context
  * @returns {Pattern[]}
  */
 export function build_hoisted_params(node, context) {
@@ -362,7 +360,7 @@ export function build_hoisted_params(node, context) {
 
 /**
  * Returns true if context is inside a top-level await
- * @param {object} context
+ * @param {TransformContext} context
  * @returns {boolean}
  */
 export function is_top_level_await(context) {
@@ -374,7 +372,7 @@ export function is_top_level_await(context) {
 		const context_node = context.path[i];
 		const type = context_node.type;
 
-		if (type === 'Component') {
+		if (/** @type {Component} */ (context_node).type === 'Component') {
 			return true;
 		}
 
@@ -391,7 +389,7 @@ export function is_top_level_await(context) {
 
 /**
  * Returns true if context is inside a Component node
- * @param {object} context
+ * @param {TransformContext} context
  * @param {boolean} [includes_functions=false]
  * @returns {boolean}
  */
@@ -408,7 +406,7 @@ export function is_inside_component(context, includes_functions = false) {
 		) {
 			return false;
 		}
-		if (type === 'Component') {
+		if (/** @type {Component} */ (context_node).type === 'Component') {
 			return true;
 		}
 	}
@@ -417,7 +415,7 @@ export function is_inside_component(context, includes_functions = false) {
 
 /**
  * Returns true if context is inside a component-level function
- * @param {object} context
+ * @param {TransformContext} context
  * @returns {boolean}
  */
 export function is_component_level_function(context) {
@@ -442,25 +440,28 @@ export function is_component_level_function(context) {
 
 /**
  * Returns true if callee is a Ripple track call
- * @param {import('estree').Expression} callee
- * @param {object} context
+ * @param {Expression | Super} callee
+ * @param {TransformContext} context
  * @returns {boolean}
  */
 export function is_ripple_track_call(callee, context) {
-  return (
-    (callee.type === 'Identifier' && (callee.name === 'track' || callee.name === 'trackSplit')) ||
-    (callee.type === 'MemberExpression' &&
-      callee.object.type === 'Identifier' &&
-      callee.property.type === 'Identifier' &&
-      (callee.property.name === 'track' || callee.property.name === 'trackSplit') &&
-      !callee.computed &&
-      is_ripple_import(callee, context))
-  );
+	// Super expressions cannot be Ripple track calls
+	if (callee.type === 'Super') return false;
+
+	return (
+		(callee.type === 'Identifier' && (callee.name === 'track' || callee.name === 'trackSplit')) ||
+		(callee.type === 'MemberExpression' &&
+			callee.object.type === 'Identifier' &&
+			callee.property.type === 'Identifier' &&
+			(callee.property.name === 'track' || callee.property.name === 'trackSplit') &&
+			!callee.computed &&
+			is_ripple_import(callee, context))
+	);
 }
 
 /**
  * Returns true if context is inside a call expression
- * @param {object} context
+ * @param {TransformContext} context
  * @returns {boolean}
  */
 export function is_inside_call_expression(context) {
@@ -488,7 +489,7 @@ export function is_inside_call_expression(context) {
 
 /**
  * Returns true if node is a static value (Literal, ArrayExpression, etc)
- * @param {import('estree').Node} node
+ * @param {Node} node
  * @returns {boolean}
  */
 export function is_value_static(node) {
@@ -510,8 +511,8 @@ export function is_value_static(node) {
 
 /**
  * Returns true if callee is a Ripple import
- * @param {import('estree').Expression} callee
- * @param {object} context
+ * @param {Expression} callee
+ * @param {TransformContext} context
  * @returns {boolean}
  */
 export function is_ripple_import(callee, context) {
@@ -520,6 +521,8 @@ export function is_ripple_import(callee, context) {
 
 		return (
 			binding?.declaration_kind === 'import' &&
+			binding.initial !== null &&
+			binding.initial.type === 'ImportDeclaration' &&
 			binding.initial.source.type === 'Literal' &&
 			binding.initial.source.value === 'ripple'
 		);
@@ -532,6 +535,8 @@ export function is_ripple_import(callee, context) {
 
 		return (
 			binding?.declaration_kind === 'import' &&
+			binding.initial !== null &&
+			binding.initial.type === 'ImportDeclaration' &&
 			binding.initial.source.type === 'Literal' &&
 			binding.initial.source.value === 'ripple'
 		);
@@ -543,11 +548,11 @@ export function is_ripple_import(callee, context) {
 /**
  * Returns true if node is a function declared within a component
  * @param {import('estree').Identifier} node
- * @param {object} context
+ * @param {TransformContext} context
  * @returns {boolean}
  */
 export function is_declared_function_within_component(node, context) {
-	const component = context.path.find((n) => n.type === 'Component');
+	const component = context.path?.find(/** @param {RippleNode} n */ (n) => n.type === 'Component');
 
 	if (node.type === 'Identifier' && component) {
 		const binding = context.state.scope.get(node.name);
@@ -575,17 +580,12 @@ export function is_declared_function_within_component(node, context) {
 
 	return false;
 }
-
-function is_non_coercive_operator(operator) {
-	return ['=', '||=', '&&=', '??='].includes(operator);
-}
-
 /**
  * Visits and transforms an assignment expression
- * @param {import('estree').AssignmentExpression} node
- * @param {object} context
+ * @param {AssignmentExpression} node
+ * @param {TransformContext} context
  * @param {Function} build_assignment
- * @returns {import('estree').Expression|import('estree').AssignmentExpression|null}
+ * @returns {Expression | AssignmentExpression | null}
  */
 export function visit_assignment_expression(node, context, build_assignment) {
 	if (
@@ -620,7 +620,7 @@ export function visit_assignment_expression(node, context, build_assignment) {
 			return null;
 		}
 
-		const is_standalone = /** @type {Node} */ (context.path.at(-1)).type.endsWith('Statement');
+		const is_standalone = context.path.at(-1).type.endsWith('Statement');
 		const sequence = b.sequence(assignments);
 
 		if (!is_standalone) {
@@ -632,11 +632,7 @@ export function visit_assignment_expression(node, context, build_assignment) {
 			// the right hand side is a complex expression, wrap in an IIFE to cache it
 			const iife = b.arrow([rhs], sequence);
 
-			const iife_is_async =
-				is_expression_async(value) ||
-				assignments.some((assignment) => is_expression_async(assignment));
-
-			return iife_is_async ? b.await(b.call(b.async(iife), value)) : b.call(iife, value);
+			return b.call(iife, value);
 		}
 
 		return sequence;
@@ -657,11 +653,11 @@ export function visit_assignment_expression(node, context, build_assignment) {
 
 /**
  * Builds an assignment node, possibly transforming for reactivity
- * @param {string} operator
- * @param {import('estree').Pattern|import('estree').MemberExpression|import('estree').Identifier} left
- * @param {import('estree').Expression} right
- * @param {object} context
- * @returns {import('estree').Expression|null}
+ * @param {AssignmentOperator} operator
+ * @param {Pattern | MemberExpression | Identifier} left
+ * @param {Expression} right
+ * @param {TransformContext} context
+ * @returns {Expression|null}
  */
 export function build_assignment(operator, left, right, context) {
 	let object = left;
@@ -771,11 +767,12 @@ export function is_element_dom_element(node) {
 
 /**
  * Normalizes children nodes (merges adjacent text, removes empty)
- * @param {Array} children
- * @param {object} context
- * @returns {Array}
+ * @param {RippleNode[]} children
+ * @param {TransformContext} context
+ * @returns {RippleNode[]}
  */
 export function normalize_children(children, context) {
+	/** @type {RippleNode[]} */
 	const normalized = [];
 
 	for (const node of children) {
@@ -805,6 +802,11 @@ export function normalize_children(children, context) {
 	return normalized;
 }
 
+/**
+ * @param {RippleNode} node
+ * @param {RippleNode[]} normalized
+ * @param {TransformContext} context
+ */
 function normalize_child(node, normalized, context) {
 	if (node.type === 'EmptyStatement') {
 		return;
@@ -823,12 +825,14 @@ function normalize_child(node, normalized, context) {
 
 /**
  * Builds a getter for a tracked identifier
- * @param {import('estree').Identifier} node
- * @param {object} context
- * @returns {import('estree').Expression|import('estree').Identifier}
+ * @param {Identifier} node
+ * @param {TransformContext} context
+ * @returns {Expression | Identifier}
  */
 export function build_getter(node, context) {
 	const state = context.state;
+
+	if (!context.path) return node;
 
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const binding = state.scope.get(node.name);

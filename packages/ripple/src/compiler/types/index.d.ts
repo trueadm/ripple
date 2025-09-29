@@ -9,6 +9,9 @@ declare module 'estree' {
 	interface ArrowFunctionExpression {
 		metadata?: any;
 	}
+	interface Identifier {
+		tracked?: boolean;
+	}
 }
 import type { Comment, Position } from 'acorn';
 import type {
@@ -17,6 +20,8 @@ import type {
 	Identifier,
 	VariableDeclarator,
 	FunctionDeclaration,
+	FunctionExpression,
+	ArrowFunctionExpression,
 	ClassDeclaration,
 	ImportDeclaration,
 	ArrayExpression,
@@ -81,7 +86,7 @@ export interface Component extends Omit<Node, 'type'> {
 	params: Pattern[];
 	body: Node[];
 	css: any;
-  start?: number;
+	start?: number;
 	end?: number;
 	loc?: any;
 }
@@ -113,11 +118,11 @@ export interface Attribute {
  * Ripple spread attribute node
  */
 export interface SpreadAttribute {
-  type: 'SpreadAttribute';
-  argument: Expression;
-  start?: number;
-  end?: number;
-  loc?: any;
+	type: 'SpreadAttribute';
+	argument: Expression;
+	start?: number;
+	end?: number;
+	loc?: any;
 }
 
 /**
@@ -130,14 +135,14 @@ export interface RipplePluginConfig {
 /**
  * Types of declarations in scope
  */
-export type DeclarationKind = 
-	| 'var' 
-	| 'let' 
-	| 'const' 
-	| 'function' 
-	| 'param' 
-	| 'rest_param' 
-	| 'component' 
+export type DeclarationKind =
+	| 'var'
+	| 'let'
+	| 'const'
+	| 'function'
+	| 'param'
+	| 'rest_param'
+	| 'component'
 	| 'import'
 	| 'using'
 	| 'await using';
@@ -145,7 +150,7 @@ export type DeclarationKind =
 /**
  * Binding kinds
  */
-export type BindingKind = 'normal' | 'each' | 'rest_prop';
+export type BindingKind = 'normal' | 'each' | 'rest_prop' | 'prop' | 'prop_fallback';
 
 /**
  * A variable binding in a scope
@@ -169,6 +174,10 @@ export interface Binding {
 	metadata?: any;
 	/** Kind of binding */
 	kind: BindingKind;
+	/** Declaration kind */
+	declaration_kind?: DeclarationKind;
+	/** The scope that contains this binding */
+	scope?: any;
 }
 
 /**
@@ -199,11 +208,16 @@ export interface ScopeInterface {
 	function_depth: number;
 	/** Whether reactive tracing is enabled */
 	tracing: null | Expression;
-	
+
 	/** Create child scope */
 	child(porous?: boolean): ScopeInterface;
 	/** Declare a binding */
-	declare(node: Identifier, kind: BindingKind, declaration_kind: DeclarationKind, initial?: null | Expression | FunctionDeclaration | ClassDeclaration | ImportDeclaration): Binding;
+	declare(
+		node: Identifier,
+		kind: BindingKind,
+		declaration_kind: DeclarationKind,
+		initial?: null | Expression | FunctionDeclaration | ClassDeclaration | ImportDeclaration,
+	): Binding;
 	/** Get binding by name */
 	get(name: string): Binding | null;
 	/** Get bindings for a declarator */
@@ -212,9 +226,76 @@ export interface ScopeInterface {
 	owner(name: string): ScopeInterface | null;
 	/** Add a reference */
 	reference(node: Identifier, path: Node[]): void;
+	/** Generate unique identifier name */
+	generate(preferred_name: string): string;
+}
+
+/**
+ * Text node interface
+ */
+export interface TextNode {
+	type: 'Text';
+	expression: Expression;
+	start?: number;
+	end?: number;
+	loc?: any;
 }
 
 /**
  * Union type for all Ripple AST nodes
  */
-export type RippleNode = Node | Component | Element;
+export type RippleNode = Node | Component | Element | TextNode;
+
+/**
+ * Compiler state object
+ */
+export interface CompilerState {
+	/** Current scope */
+	scope: ScopeInterface;
+	/** Analysis data */
+	analysis?: {
+		/** Module analysis */
+		module?: {
+			/** Module scope */
+			scope?: {
+				/** Module references */
+				references?: Set<string>;
+			};
+		};
+		/** Exported identifiers */
+		exports?: Array<{ name: string }>;
+	};
+	/** Scopes map */
+	scopes?: Map<RippleNode, ScopeInterface>;
+	/** Whether inside head element */
+	inside_head?: boolean;
+	/** Transform metadata */
+	metadata?: {
+		spread?: boolean;
+		[key: string]: any;
+	};
+}
+
+/**
+ * Transform context object
+ */
+export interface TransformContext {
+	/** Compiler state */
+	state: CompilerState;
+	/** AST path */
+	path?: RippleNode[];
+	/** Visit function */
+	visit?: (node: any, state?: any) => any;
+	/** Transform metadata */
+	metadata?: any;
+}
+
+/**
+ * Delegated event result
+ */
+export interface DelegatedEventResult {
+	/** Whether event was hoisted */
+	hoisted: boolean;
+	/** The hoisted function */
+	function?: FunctionExpression | FunctionDeclaration | ArrowFunctionExpression;
+}
