@@ -52,7 +52,7 @@ export function Portal(_, props) {
     return () => {
       cleanup_events();
       /** @type {Text} */ (anchor).remove();
-      if(domStart && domEnd) {
+      if(dom_start && dom_end) {
         remove_block_dom(domStart, domEnd);
       }
     };
