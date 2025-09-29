@@ -263,7 +263,7 @@ export component App() {
   <Child
     class={@className}
     onClick={() => { @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'; @className = ''}}
-    count={count}
+    {count}
     {ref buttonRef}
   >{@name}</Child>;
 }
