@@ -799,13 +799,17 @@ const visitors = {
 							}
 
 							props.push(
-								b.prop('get', attr.name, b.function(null, [], b.block([b.return(property)]))),
+								b.prop(
+									'get',
+									b.key(attr.name.name),
+									b.function(null, [], b.block([b.return(property)])),
+								),
 							);
 						} else {
-							props.push(b.prop('init', attr.name, property));
+							props.push(b.prop('init', b.key(attr.name.name), property));
 						}
 					} else {
-						props.push(b.prop('init', attr.name, visit(attr.value, state)));
+						props.push(b.prop('init', b.key(attr.name.name), visit(attr.value, state)));
 					}
 				} else if (attr.type === 'SpreadAttribute') {
 					props.push(

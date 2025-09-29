@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, TrackedArray, track } from 'ripple';
-import { parse } from 'ripple/compiler'
+import { parse, compile } from 'ripple/compiler'
 
 describe('compiler success tests', () => {
   let container;
@@ -279,5 +279,99 @@ describe('compiler success tests', () => {
 		}
 
 		render(App);
+	});
+
+	describe('attribute name handling', () => {
+		it('generates valid JavaScript for component props with hyphenated attributes', () => {
+			const source = `
+			component Child(props) {
+				<div />
+			}
+			
+			export default component App() {
+				<Child data-scope="test" aria-label="accessible" class="valid" />
+			}`;
+
+			const result = compile(source, 'test.ripple', { mode: 'client' });
+			
+			// Should contain properly quoted hyphenated properties and unquoted valid identifiers
+			expect(result.js.code).toMatch(/'data-scope': "test"/);
+			expect(result.js.code).toMatch(/'aria-label': "accessible"/);
+			expect(result.js.code).toMatch(/class: "valid"/);
+		});
+
+		it('generates valid JavaScript for all types of hyphenated attributes', () => {
+			const testCases = [
+				{ attr: 'data-testid="value"', expected: /'data-testid': "value"/ },
+				{ attr: 'aria-label="label"', expected: /'aria-label': "label"/ },
+				{ attr: 'data-custom-attr="custom"', expected: /'data-custom-attr': "custom"/ },
+				{ attr: 'ng-if="condition"', expected: /'ng-if': "condition"/ },
+			];
+
+			testCases.forEach(({ attr, expected }) => {
+				const source = `
+				component Child(props) { <div /> }
+				export default component App() { <Child ${attr} /> }`;
+
+				const result = compile(source, 'test.ripple', { mode: 'client' });
+				expect(result.js.code).toMatch(expected);
+			});
+		});
+
+		it('handles mixed valid and invalid attribute identifiers correctly', () => {
+			const source = `
+			component Child(props) {
+				<div />
+			}
+			
+			export default component App() {
+				<Child 
+					validProp="valid"
+					class="valid"
+					id="valid"
+					data-invalid="invalid"
+					aria-invalid="invalid"
+					custom-prop="invalid"
+				/>
+			}`;
+
+			const result = compile(source, 'test.ripple', { mode: 'client' });
+			
+			// Valid identifiers should not be quoted
+			expect(result.js.code).toMatch(/validProp: "valid"/);
+			expect(result.js.code).toMatch(/class: "valid"/);
+			expect(result.js.code).toMatch(/id: "valid"/);
+			
+			// Invalid identifiers (with hyphens) should be quoted
+			expect(result.js.code).toMatch(/'data-invalid': "invalid"/);
+			expect(result.js.code).toMatch(/'aria-invalid': "invalid"/);
+			expect(result.js.code).toMatch(/'custom-prop': "invalid"/);
+		});
+
+		it('ensures generated code is syntactically valid JavaScript', () => {
+			const source = `
+			component Child(props) {
+				<div />
+			}
+			
+			export default component App() {
+				<Child data-scope="test" />
+			}`;
+
+			const result = compile(source, 'test.ripple', { mode: 'client' });
+			
+			// Extract the props object from the generated code and test it's valid JavaScript
+			const match = result.js.code.match(/Child\([^,]+,\s*(\{[^}]+\})/);
+			expect(match).toBeTruthy();
+			
+			const propsObject = match[1];
+			expect(() => {
+				// Test that the object literal is syntactically valid
+				new Function(`return ${propsObject}`);
+			}).not.toThrow();
+			
+			// Also verify it contains the expected quoted property
+			expect(propsObject).toMatch(/'data-scope': "test"/);
+		});
 	});
 });
