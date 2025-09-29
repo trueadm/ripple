@@ -16,6 +16,7 @@ import {
 } from '../../../utils/events.js';
 import { get } from './runtime.js';
 import { clsx } from 'clsx';
+import { normalize_css_property_name } from '../../../utils/normalize_css_property_name.js';
 
 /**
  * @param {Text} text
@@ -85,11 +86,40 @@ export function set_attribute(element, attribute, value) {
 
   if (value == null) {
     element.removeAttribute(attribute);
-  } else if (typeof value !== 'string' && get_setters(element).includes(attribute)) {
+  } else if (attribute === 'style' && typeof value !== 'string') {
+		apply_styles(/** @type {HTMLElement} */ (element), value);
+	} else if (typeof value !== 'string' && get_setters(element).includes(attribute)) {
     /** @type {any} */ (element)[attribute] = value;
   } else {
     element.setAttribute(attribute, value);
   }
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {HTMLElement['style']} newStyles
+ */
+export function apply_styles(element, newStyles) {
+	const style = element.style;
+	const new_properties = new Set();
+
+	for(const [property, value] of Object.entries(newStyles)) {
+		const normalized_property = normalize_css_property_name(property);
+		const normalized_value = String(value);
+
+		if (style.getPropertyValue(normalized_property) !== normalized_value) {
+			style.setProperty(normalized_property, normalized_value);
+		}
+
+		new_properties.add(normalized_property);
+	}
+
+	for (let i = style.length - 1; i >= 0; i--) {
+		const property = style[i];
+		if (!new_properties.has(property)) {
+			style.removeProperty(property);
+		}
+	}
 }
 
 /**

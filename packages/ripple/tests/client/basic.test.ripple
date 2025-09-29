@@ -266,6 +266,107 @@ describe('basic client', () => {
 		expect(div.style.fontWeight).toBe('bold');
 	});
 
+	it('render style attribute as dynamic object', () => {
+		component Basic() {
+			let color = track('red');
+
+			<button onClick={() => { @color = @color === 'red' ? 'blue' : 'red' }}>{'Change Color'}</button>
+			<div style={{
+				color: @color,
+				fontWeight: 'bold',
+			}}>{'Dynamic Style'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		button.click();
+		flushSync();
+
+		expect(div.style.color).toBe('blue');
+		expect(div.style.fontWeight).toBe('bold');
+	});
+
+	it('render tracked variable as style attribute', () => {
+		component Basic() {
+			let style = track({ color: 'red', fontWeight: 'bold' });
+
+			function toggleColor() {
+				@style = { ...@style, color: @style.color === 'red' ? 'blue' : 'red' };
+			}
+
+			<button onClick={toggleColor}>{'Change Color'}</button>
+			<div style={@style}>{'Dynamic Style'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		button.click();
+		flushSync();
+
+		expect(div.style.color).toBe('blue');
+		expect(div.style.fontWeight).toBe('bold');
+	});
+
+	it('render tracked object as style attribute', () => {
+		component Basic() {
+			let style = #{ color: 'red', fontWeight: 'bold' };
+
+			function toggleColor() {
+				@style.color = @style.color === 'red' ? 'blue' : 'red';
+			}
+
+			<button onClick={toggleColor}>{'Change Color'}</button>
+			<div style={{ ...@style }}>{'Dynamic Style'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		button.click();
+		flushSync();
+
+		expect(div.style.color).toBe('blue');
+		expect(div.style.fontWeight).toBe('bold');
+	});
+
+	it('render spread attributes with style and class', () => {
+		component Basic() {
+			const attributes = {
+				style: { color: 'red', fontWeight: 'bold' },
+				class: ['foo', false && 'bar'],
+			};
+
+			<div {...attributes}>{'Attributes with style and class'}</div>
+		}
+
+		render(Basic);
+
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		expect(div.classList.contains('foo')).toBe(true);
+		expect(div.classList.contains('bar')).toBe(false);
+	});
+
 	it('render spread props without duplication', () => {
 		component App() {
 			const checkBoxProp = {name:'car'}
