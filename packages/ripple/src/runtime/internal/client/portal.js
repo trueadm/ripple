@@ -53,7 +53,7 @@ export function Portal(_, props) {
       cleanup_events();
       /** @type {Text} */ (anchor).remove();
       if(dom_start && dom_end) {
-        remove_block_dom(domStart, domEnd);
+        remove_block_dom(dom_start, dom_end);
       }
     };
   });
