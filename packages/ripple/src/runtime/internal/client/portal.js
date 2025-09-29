@@ -47,7 +47,7 @@ export function Portal(_, props) {
     b = branch(() =>  children(anchor));
 
     domStart = b?.s?.start;
-    domEnd = b?.s?.end;
+    dom_end = b?.s?.end;
 
     return () => {
       cleanup_events();
