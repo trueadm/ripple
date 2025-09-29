@@ -23,8 +23,9 @@ component MyComponent() {
   </style>
 }
 ```
+
 ::: info
-Note: the `<style>` element must be top-level within a `component`.
+The `<style>` element must be top-level within a `component`.
 :::
 
 ## Dynamic Classes
@@ -49,14 +50,25 @@ let count = track(3);
 ## Dynamic Inline Styles
 
 Sometimes you might need to dynamically set inline styles. For this, you can use the `style` attribute, passing either a string or an object to it:
+
 ```ripple
 let color = track('red');
 
-<div style={`color: ${@color}; font-weight: bold`}></div>
-<div style={{ color: @color, fontWeight: 'bold' }}></div>
+<div style={`color: ${@color}; font-weight: bold; background-color: gray`}></div>
+<div style={{ color: @color, fontWeight: 'bold', 'background-color': 'gray' }}></div>
+
+ const style = {
+  @color,
+  fontWeight: 'bold',
+  'background-color': gray,
+};
+
+// using object spread
+<div {...style}></div>
 ```
-Both examples above will render a `<div>` with red text and bold font weight.
+
+Both examples above will render the same inline styles, however, it's recommended to use the object notation as it's typically more performance optimized.
 
 ::: info
-Note: When passing an object to the `style` attribute, use camelCase for CSS property names (e.g., `fontWeight` instead of `font-weight`).
+When passing an object to the `style` attribute, use can either use camelCase or kebab-case for CSS property names.
 :::
