@@ -32,7 +32,7 @@ import {
 	get_own_property_symbols,
 	is_array,
 	is_tracked_object,
-  object_keys,
+	object_keys,
 } from './utils.js';
 
 const FLUSH_MICROTASK = 0;
@@ -407,7 +407,7 @@ function is_tracking_dirty(tracking) {
 		var tracked = tracking.t;
 
 		if ((tracked.f & DERIVED) !== 0) {
-			update_derived(/** @type {Derived} **/ (tracked));
+			update_derived(/** @type {Derived} **/(tracked));
 		}
 
 		if (tracked.c > tracking.c) {
@@ -467,7 +467,7 @@ export function async_computed(fn, block) {
 		}
 
 		promise.then((v) => {
-			if (parent && is_destroyed(/** @type {Block} */ (parent))) {
+			if (parent && is_destroyed(/** @type {Block} */(parent))) {
 				return;
 			}
 			if (promise === current && t.v !== v) {
@@ -602,12 +602,11 @@ function flush_queued_root_blocks(root_blocks) {
 	}
 }
 
-// https://github.com/sveltejs/svelte/blob/ded13b825d7efcdf064fd65a5aa9e7e61293a48b/packages/svelte/src/internal/client/runtime.js#L501
 /**
  * @returns {Promise<void>}
  */
 export async function tick() {
-  return new Promise((f) => requestAnimationFrame(() => f()));
+	return new Promise((f) => requestAnimationFrame(() => f()));
 }
 
 /**
@@ -727,7 +726,7 @@ export function get(tracked) {
 	}
 
 	return (tracked.f & DERIVED) !== 0
-		? get_derived(/** @type {Derived} */ (tracked))
+		? get_derived(/** @type {Derived} */(tracked))
 		: get_tracked(tracked);
 }
 
@@ -846,10 +845,10 @@ export function spread_props(fn, block) {
 				const obj = get_derived(computed);
 				return obj[property];
 			},
-      has(target, property) {
-        const obj = get_derived(computed);
-        return property in obj;
-      },
+			has(target, property) {
+				const obj = get_derived(computed);
+				return property in obj;
+			},
 			ownKeys() {
 				const obj = get_derived(computed);
 				return Reflect.ownKeys(obj);
@@ -1094,15 +1093,15 @@ export function fallback(value, fallback) {
  * @returns {Record<string | symbol, unknown>}
  */
 export function exclude_from_object(obj, exclude_keys) {
-  var keys = object_keys(obj);
+	var keys = object_keys(obj);
 	/** @type {Record<string | symbol, unknown>} */
 	var new_obj = {};
 
-  for (const key of keys) {
-    if (!exclude_keys.includes(key)) {
-      new_obj[key] = obj[key];
-    }
-  }
+	for (const key of keys) {
+		if (!exclude_keys.includes(key)) {
+			new_obj[key] = obj[key];
+		}
+	}
 
 	for (const symbol of get_own_property_symbols(obj)) {
 		var ref_fn = obj[symbol];
@@ -1129,7 +1128,7 @@ export async function maybe_tracked(v) {
 		} else {
 			value = await async_computed(async () => {
 				return await get_tracked(v);
-			}, /** @type {Block} */ (active_block));
+			}, /** @type {Block} */(active_block));
 		}
 	} else {
 		value = await v;
