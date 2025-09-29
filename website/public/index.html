@@ -142,49 +142,28 @@
 			}
 
 			.logo {
-				width: 120px;
-				height: 120px;
-				margin: 0 auto 2rem;
-				background: rgba(255, 255, 255, 0.1);
-				border-radius: 24px;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				backdrop-filter: blur(10px);
-				border: 1px solid rgba(255, 255, 255, 0.2);
-			}
-
-			.logo svg {
-				width: 60px;
-				height: 60px;
-				fill: white;
-			}
-
-			h1 {
-				font-size: 3.5rem;
-				font-weight: 700;
-				margin-bottom: 1rem;
-				font-variation-settings:
-					'CASL' 1,
-					'slnt' -15;
-				letter-spacing: -0.02em;
-				color: white;
-				text-shadow:
-					0 0 30px rgba(120, 219, 226, 0.8),
-					0 0 60px rgba(255, 119, 198, 0.6),
-					0 0 90px rgba(120, 119, 198, 0.4);
-				animation: glowFadeOut 3s ease-in-out forwards;
+				width: 100%;
+				max-width: 400px;
+				padding-block: 20px;
+				filter:
+					drop-shadow(0 0 30px rgba(120, 219, 226, 0.6))
+					drop-shadow(0 0 60px rgba(255, 119, 198, 0.6))
+					drop-shadow(0 0 90px rgba(120, 119, 198, 0.4));
+    		animation: glowFadeOut 3s ease-in-out forwards;
 			}
 
 			@keyframes glowFadeOut {
 				0% {
-					text-shadow:
-						0 0 30px rgba(120, 219, 226, 0.8),
-						0 0 60px rgba(255, 119, 198, 0.6),
-						0 0 90px rgba(120, 119, 198, 0.4);
+					filter:
+						drop-shadow(0 0 30px rgba(120, 219, 226, 0.6))
+            drop-shadow(0 0 60px rgba(255, 119, 198, 0.6))
+            drop-shadow(0 0 90px rgba(120, 119, 198, 0.4));
 				}
 				100% {
-					text-shadow: none;
+					filter:
+						drop-shadow(0 0 30px rgba(120, 219, 226, 0.0))
+						drop-shadow(0 0 60px rgba(255, 119, 198, 0.0))
+						drop-shadow(0 0 90px rgba(120, 119, 198, 0.0));
 				}
 			}
 
@@ -712,6 +691,18 @@
 					pulse 2s ease-in-out infinite 1.5s;
 			}
 
+			.sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border-width: 0;
+			}
+
 			@keyframes drift {
 				0% {
 					transform: translateX(0) translateY(0) rotate(0deg);
@@ -755,16 +746,6 @@
 					padding: 1rem;
 					max-width: 100%;
 					overflow-x: hidden;
-				}
-
-				.logo {
-					width: 100px;
-					height: 100px;
-				}
-
-				.logo svg {
-					width: 50px;
-					height: 50px;
 				}
 
 				.editor-mockup {
@@ -883,7 +864,8 @@
 		<div class="particle particle-5"></div>
 
 		<div class="container">
-			<h1>Ripple</h1>
+			<h1 class="sr-only">Ripple</h1>
+			<img src="/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
 			<p class="subtitle">the elegant TypeScript UI framework</p>
 
 			<div class="social-links">
@@ -915,12 +897,12 @@
 					Discord
 				</a>
 
-				<a href="/docs/introduction" class="github-link" target="_blank" rel="noopener noreferrer">
+				<a href="/docs/introduction" class="github-link">
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-text-icon lucide-book-text"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M8 11h8"/><path d="M8 7h6"/></svg>
 					Docs
 				</a>
 
-				<a href="/playground" class="discord-link" target="_blank" rel="noopener noreferrer">
+				<a href="/playground" class="discord-link">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						width="24"
@@ -977,8 +959,7 @@
 						<strong>JSX-like Syntax</strong> - Familiar templating with Ripple-specific enhancements
 					</li>
 					<li>
-						<strong>Performance</strong> - Fine-grain rendering, with industry leading performance
-						and memory usage
+						<strong>Performance</strong> - Fine-grain rendering, with industry-leading performance, bundle-size and memory usage
 					</li>
 					<li>
 						<strong>TypeScript Support</strong> - Full TypeScript integration with type checking

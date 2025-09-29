@@ -454,4 +454,136 @@ message.push(\`User: \${JSON.stringify({
       expect(result).toBe(expected);
     });
   });
+
+  it('should correctly handle inline jsx like comments', async () => {
+    const input = `let message: string[] = []; // comments should be preserved
+
+message.push(/* Some test comment */ greet(\`Ripple\`));
+`;
+
+    const expected = `let message: string[] = []; // comments should be preserved
+
+message.push(/* Some test comment */ greet(\`Ripple\`));`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should correctly handle inline document like comments', async () => {
+    const input = `let message: string[] = []; // comments should be preserved
+
+message.push(/* Some test comment */ greet( /* Some text */ \`Ripple\`));
+`;
+
+    const expected = `let message: string[] = []; // comments should be preserved
+
+message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should correctly handle for loops with variable declarations', async () => {
+    const input = `for (let i = 0, len = array.length; i < len; i++) {
+  console.log(i);
+}`;
+    const expected = `for (let i = 0, len = array.length; i < len; i++) {
+  console.log(i);
+}`;
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should correctly render attributes in template', async () => {
+    const input = `export component App() {
+  <div>
+   <Expand name='' startingLength={20} />
+  </div>
+}`;
+
+    const expected = `export component App() {
+  <div><Expand name="" startingLength={20} /></div>
+}`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should handle different attribute value types correctly', async () => {
+    const input = `export component Test() {
+  <div 
+    stringProp="hello"
+    numberProp={42}
+    booleanProp={true}
+    falseProp={false}
+    nullProp={null}
+    expression={x + 1}
+  />
+}`;
+
+    const expected = `export component Test() {
+  <div stringProp="hello" numberProp={42} booleanProp={true} falseProp={false} nullProp={null} expression={x + 1} />
+}`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should handle default arguments correctly', async () => {
+    const input = `component Expand({ name, startingLength = 10 }: { name: string; startingLength?: number }) {
+  <div></div>
+}`;
+
+    const expected = `component Expand({ name, startingLength = 10 }: {
+  name: string;
+  startingLength?: number
+}) {
+  <div />
+}`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should handle array and object patterns correctly', async () => {
+    const input = `for (const [i = 0, item] of items.entries()) {}
+for (const {i = 0, item} of items.entries()) {}`;
+
+    const expected = `for (const [ i = 0, item ] of items.entries()) {}
+for (const { i = 0, item } of items.entries()) {}`;
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should handle various other TS things', async () => {
+    const input = `const globalContext = createContext<{ theme: string, array: number[] }>({ theme: 'light', array: [] });
+const items = [] as unknown[];`
+
+    const expected = `const globalContext = createContext<{ theme: string; array: number[] }>({
+  theme: "light",
+  array: [],
+});
+const items = [] as unknown[];`
+
+    const result = await format(input);
+    expect(result).toBe(expected);
+  });
+
+  it('should correctly handle for loop with index syntax, plus comments', async () => {
+    const input = `const test = () => {
+  // some comments
+  for (const item of []; index i) {
+    // comment
+  }
+  debugger;
+
+  // some comments
+  const test = ""; // some comments 2
+};`;
+
+    const result = await format(input);
+    expect(result).toBe(input);
+
+  });
 });

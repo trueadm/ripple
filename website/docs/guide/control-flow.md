@@ -7,7 +7,7 @@ title: Control flow in Ripple
 The JSX-like syntax might take some time to get used to if you're coming from another framework. For one, templating in Ripple
 can only occur _inside_ a `component` body – you can't create JSX inside functions, or assign it to variables as an expression.
 
-```jsx
+```ripple
 <div>
   // you can create variables inside the template!
   const str = "hello world";
@@ -30,6 +30,8 @@ using JavaScript expressions regardless.
 If blocks work seamlessly with Ripple's templating language, you can put them inside the JSX-like
 statements, making control-flow far easier to read and reason with.
 
+<Code>
+
 ```ripple
 component Truthy({ x }) {
   <div>
@@ -42,10 +44,13 @@ component Truthy({ x }) {
 }
 ```
 
+</Code>
+
 ## For statements
 
-You can render collections using a `for...of` block, and you don't need to specify a `key` prop unlike
-other frameworks.
+You can render collections using a `for...of` loop.
+
+<Code>
 
 ```ripple
 component ListView({ title, items }) {
@@ -56,26 +61,55 @@ component ListView({ title, items }) {
     }
   </ul>
 }
+
+// usage
+export default component App() {
+	<ListView
+		title="My List"
+		items={[
+			{ text: "Item 1" },
+			{ text: "Item 2" },
+			{ text: "Item 3" },
+		]}
+	/>
+}
+```
+
+</Code>
+
+The `for...of` loop has also a built-in support for accessing the loops numerical index. The `label` index declares a variable that will used to assign the loop's index.
+
+```ripple
+  for (const item of items; index i) {
+    <div>{item}{' at index '}{i}</div>
+  }
 ```
 
 You can use Ripple's reactive arrays to easily compose contents of an array.
 
+<Code>
+
 ```ripple
-import { RippleArray } from 'ripple';
+import { TrackedArray } from 'ripple';
 
 component Numbers() {
-  const items = new RippleArray(1, 2, 3);
+  const array = new TrackedArray(1, 2, 3);
 
-  for (const item of items) {
-    <div>{item}</div>
+  for (const item of array; index i) {
+    <div>{item}{' at index '}{i}</div>
   }
 
-  <button onClick={() => items.push(`Item ${items.$length + 1}`)}>{"Add Item"}</button>
+  <button onClick={() => array.push(array.length + 1)}>{"Add Item"}</button>
 }
 ```
 
-Clicking the `<button>` will create a new item, note that `items` is not `$` prefixed, because it's not
-reactive, but rather its properties are instead.
+</Code>
+
+Clicking the `<button>` will create a new item.
+
+::: info Note
+`for...of` loops inside components must contain either dom elements or components. Otherwise, the loop can be run inside an `effect` or function.
+:::
 
 ## Try statements
 
@@ -105,7 +139,7 @@ component SuspenseBoundary() {
 	try {
 		<AsyncComponent />
 	} pending {
-		<p>Loading...</p> // fallback
+		<p>{'Loading...'}</p> // fallback
 	}
 }
 ```

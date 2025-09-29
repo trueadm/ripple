@@ -1,0 +1,1 @@
+export { render } from '../runtime/internal/server/index.js';

@@ -1,0 +1,183 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, TrackedObject, track } from 'ripple';
+import { TRACKED_OBJECT } from '../../src/runtime/internal/client/constants.js';
+
+describe('TrackedObject', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+		  target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+  it('makes new properties reactive', () => {
+    component ObjectTest() {
+      const obj = new TrackedObject({});
+
+      obj.a = 0;
+
+      <pre>{obj.a}</pre>
+      <button onClick={() => { obj.a++; }}>{'Increment A'}</button>
+    }
+
+    render(ObjectTest);
+
+    const pre1 = container.querySelectorAll('pre')[0];
+    const button = container.querySelectorAll('button')[0 ];
+
+    expect(pre1.textContent).toBe('0');
+
+    button.click();
+    flushSync();
+
+    expect(pre1.textContent).toBe('1');
+  });
+
+  it('makes existing object properties reactive', () => {
+    component ObjectTest() {
+      const obj = new TrackedObject({ a: 0 });
+
+      <pre>{obj.a}</pre>
+      <button onClick={() => { obj.a++; }}>{'Increment A'}</button>
+    }
+
+    render(ObjectTest);
+
+    const pre1 = container.querySelectorAll('pre')[0];
+    const button = container.querySelectorAll('button')[0 ];
+
+    expect(pre1.textContent).toBe('0');
+
+    button.click();
+    flushSync();
+
+    expect(pre1.textContent).toBe('1');
+  });
+
+  it('checks if property exists via the has trap', () => {
+    component ObjectTest() {
+      const obj = new TrackedObject({b: 1});
+
+      obj.a = 0;
+
+      <pre>{'a' in obj && 'b' in obj}</pre>
+    }
+
+    render(ObjectTest);
+
+    const pre1 = container.querySelectorAll('pre')[0];
+
+    expect(pre1.textContent).toBe('true');
+  });
+
+  it('deletes properties via the delete trap', () => {
+    component ObjectTest() {
+      const obj = new TrackedObject({a: 0, b: 1});
+
+      <pre>{String(obj.a)}</pre>
+      <button onClick={() => { delete obj.a; }}>{'Delete A'}</button>
+    }
+
+    render(ObjectTest);
+
+    const pre1 = container.querySelectorAll('pre')[0];
+    const button = container.querySelectorAll('button')[0 ];
+
+    expect(pre1.textContent).toBe('0');
+
+    button.click();
+    flushSync();
+
+    expect(pre1.textContent).toBe('undefined');
+  });
+
+  it('checks if non-existent property is reactive when added later', () => {
+    component ObjectTest() {
+      const obj = new TrackedObject({});
+
+      <pre>{String(obj.a)}  </pre>
+      <button onClick={() => { obj.a = 1; }}>{'Add A'}</button>
+    }
+
+    render(ObjectTest);
+
+    const pre1 = container.querySelectorAll('pre')[0];
+    const button = container.querySelectorAll('button')[0 ];
+
+    expect(pre1.textContent).toBe('undefined');
+
+    button.click();
+    flushSync();
+
+    expect(pre1.textContent).toBe('1');
+  });
+
+  it('checks that deeply nested objects are not proxied or reactive', () => {
+    component ObjectTest() {
+      const obj = new TrackedObject({ a: { b: 1 } });
+
+      <pre>{String(obj.a.b)}</pre>
+      <button onClick={() => { obj.a.b++; }}>{'Increment B'}</button>
+    }
+
+    render(ObjectTest);
+
+    const pre1 = container.querySelectorAll('pre')[0];
+    const button = container.querySelectorAll('button')[0 ];
+
+    expect(pre1.textContent).toBe('1');
+
+    button.click();
+    flushSync();
+
+    // remains unchanged
+    expect(pre1.textContent).toBe('1');
+  });
+
+  it('checks if TRACKED_OBJECT symbol is present on TrackedObject instances', () => {
+    component ObjectTest() {
+      const obj = new TrackedObject({ a: 0 });
+
+      expect(obj[TRACKED_OBJECT]).toBe(true);
+    }
+  });
+
+  it('uses the hash syntax for creating TrackedObject', () => {
+    component ObjectTest() {
+      const obj = #{ a: 0, b: 1, c: { d: {e: 8} } };
+
+      <pre>{obj.a}</pre>
+      <pre>{TRACKED_OBJECT in obj}</pre>
+      <pre>{JSON.stringify(obj)}</pre>
+      <button onClick={() => { obj.a++; }}>{'Increment A'}</button>
+    }
+
+    render(ObjectTest);
+
+    const pre1 = container.querySelectorAll('pre')[0];
+    const pre2 = container.querySelectorAll('pre')[1];
+    const pre3 = container.querySelectorAll('pre')[2];
+    const button = container.querySelectorAll('button')[0 ];
+
+    expect(pre1.textContent).toBe('0');
+    expect(pre2.textContent).toBe('true');
+    expect(pre3.textContent).toBe('{"a":0,"b":1,"c":{"d":{"e":8}}}');
+
+    button.click();
+    flushSync();
+
+    expect(pre1.textContent).toBe('1');
+    expect(pre3.textContent).toBe('{"a":1,"b":1,"c":{"d":{"e":8}}}');
+  })
+});

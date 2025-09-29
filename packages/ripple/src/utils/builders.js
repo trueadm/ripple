@@ -1,4 +1,5 @@
 /** @import * as ESTree from 'estree' */
+
 import { regex_is_valid_identifier } from './patterns.js';
 import { sanitize_template_string } from './sanitize_template_string.js';
 
@@ -790,4 +791,5 @@ export {
   null_instane as null,
   debugger_builder as debugger,
   try_builder as try,
+  new_builder as new,
 };

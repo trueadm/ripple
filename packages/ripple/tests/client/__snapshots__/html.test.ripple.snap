@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`html directive > renders dynamic html 1`] = `
+<div>
+  <!---->
+  <div>
+    Test
+  </div>
+  <!---->
+  <button>
+    Update
+  </button>
+  
+</div>
+`;
+
+exports[`html directive > renders dynamic html 2`] = `
+<div>
+  <!---->
+  <div>
+    Updated
+  </div>
+  <!---->
+  <button>
+    Update
+  </button>
+  
+</div>
+`;
+
+exports[`html directive > renders static html 1`] = `
+<div>
+  <!---->
+  <div>
+    Test
+  </div>
+  <!---->
+  
+</div>
+`;

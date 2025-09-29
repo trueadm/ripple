@@ -93,6 +93,7 @@ writing text in the middle of your code.
 // ❌ Wrong - Compilation error
 <span>Hello World!</span>
 ```
+
 ```js
 // Think of it like this:
 let greet_text = 'Hello World!';
@@ -113,8 +114,6 @@ in plain JavaScript.
 ```
 
 ## Concept: Templates as Lexical Scopes
-
-TODO: Rewrite for humans
 
 In Ripple, templates act as lexical scopes, allowing you to declare variables,
 call functions, and execute JavaScript statements directly within JSX elements -
@@ -153,12 +152,14 @@ component TemplateScope() {
 ```
 
 **Key Benefits:**
+
 - **Inline Logic**: Execute JavaScript directly where you need it in the template
 - **Local Variables**: Declare variables scoped to specific parts of your template
 - **Debugging**: Place `console.log()` or `debugger` statements anywhere in templates
 - **Dynamic Computation**: Calculate values inline without helper functions
 
 **Scope Rules:**
+
 - Variables declared in templates are scoped to that template block
 - Nested elements create nested scopes
 - Variables from outer scopes are accessible in inner scopes
@@ -184,4 +185,19 @@ Plain attributes can still be used.
 
 ## Raw HTML
 
-TODO, unimplemented for now.
+By default, all text nodes in Ripple are escaped to prevent unintended script
+injections. If you'd like to render trusted HTML onto your page, you can use the
+HTML directive to opt-out:
+
+```ripple
+export component App() {
+	let source = `
+<h1>My Blog Post</h1>
+<p>Hi! I like JS and Ripple.</p>
+`
+
+	<article>
+		{html source}
+	</article>
+}
+```

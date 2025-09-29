@@ -41,20 +41,27 @@ export class TrackedMap extends Map {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   #init() {
     var proto = TrackedMap.prototype;
     var map_proto = Map.prototype;
 
     for (const method of introspect_methods) {
-      proto[method] = function (...v) {
+      /** @type {any} */ (proto)[method] = function (/** @type {...any} */ ...v) {
         this.size;
         this.#read_all();
 
-        return map_proto[method].apply(this, v);
+        return /** @type {any} */ (map_proto)[method].apply(this, v);
       };
     }
   }
 
+  /**
+   * @param {K} key
+   * @returns {V | undefined}
+   */
   get(key) {
     var tracked_items = this.#tracked_items;
     var t = tracked_items.get(key);
@@ -69,6 +76,10 @@ export class TrackedMap extends Map {
     return super.get(key);
   }
 
+  /**
+   * @param {K} key
+   * @returns {boolean}
+   */
   has(key) {
     var has = super.has(key);
     var tracked_items = this.#tracked_items;
@@ -87,6 +98,11 @@ export class TrackedMap extends Map {
     return has;
   }
 
+  /**
+   * @param {K} key
+   * @param {V} value
+   * @returns {this}
+   */
   set(key, value) {
     var block = this.#block;
     var tracked_items = this.#tracked_items;
@@ -105,6 +121,10 @@ export class TrackedMap extends Map {
     return this;
   }
 
+  /**
+   * @param {K} key
+   * @returns {boolean}
+   */
   delete(key) {
     var block = this.#block;
     var tracked_items = this.#tracked_items;
@@ -120,6 +140,9 @@ export class TrackedMap extends Map {
     return result;
   }
 
+  /**
+   * @returns {void}
+   */
   clear() {
     var block = this.#block;
 
@@ -136,21 +159,33 @@ export class TrackedMap extends Map {
     set(this.#tracked_size, 0, block);
   }
 
+  /**
+   * @returns {MapIterator<K>}
+   */
   keys() {
     this.size;
     return super.keys();
   }
 
+  /**
+   * @returns {void}
+   */
   #read_all() {
     for (const [, t] of this.#tracked_items) {
       get(t);
     }
   }
 
+  /**
+   * @returns {number}
+   */
   get size() {
     return get(this.#tracked_size);
   }
 
+  /**
+   * @returns {Array<[K, V]>}
+   */
   toJSON() {
     this.size;
     this.#read_all();

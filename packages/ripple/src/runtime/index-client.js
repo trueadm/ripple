@@ -15,46 +15,50 @@ export { jsx, jsxs, Fragment } from '../jsx-runtime.js';
  * @returns {() => void}
  */
 export function mount(component, options) {
-  init_operations();
+	init_operations();
 
-  const props = options.props || {};
-  const target = options.target;
-  const anchor = create_anchor();
-  target.append(anchor);
+	const props = options.props || {};
+	const target = options.target;
+	const anchor = create_anchor();
 
-  const cleanup_events = handle_root_events(target);
+	// Clear target content in case of SSR
+	if (target.firstChild) {
+		target.textContent = '';
+	}
 
-  const _root = root(() => {
-    component(anchor, props, active_block);
-  });
+	target.append(anchor);
 
-  return () => {
-    cleanup_events();
-    destroy_block(_root);
-  };
+	const cleanup_events = handle_root_events(target);
+
+	const _root = root(() => {
+		component(anchor, props, active_block);
+	});
+
+	return () => {
+		cleanup_events();
+		destroy_block(_root);
+	};
 }
 
 export { create_context as createContext } from './internal/client/context.js';
 
-export { flush_sync as flushSync, untrack, deferred, tick } from './internal/client/runtime.js';
-
-/**
- * @param {any} v
- * @param {Block} b
- * @returns {Tracked | Derived}
- */
-export function track(v, b) {
-  if (typeof v === 'function') {
-    return derived(v, b);
-  }
-  return tracked(v, b);
-}
+export {
+	flush_sync as flushSync,
+	track,
+	track_split as trackSplit,
+	untrack,
+	tick,
+} from './internal/client/runtime.js';
 
 export { TrackedArray } from './array.js';
+
+export { TrackedObject } from './object.js';
 
 export { TrackedSet } from './set.js';
 
 export { TrackedMap } from './map.js';
+
+export { TrackedDate } from './date.js';
 
 export { keyed } from './internal/client/for.js';
 
