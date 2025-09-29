@@ -1,3 +1,5 @@
+/** @import { Identifier, Pattern, FunctionExpression, FunctionDeclaration, ArrowFunctionExpression, MemberExpression, AssignmentExpression, Expression, Node } from 'estree' */
+/** @import { Component, Element, Attribute, SpreadAttribute } from '#compiler' */
 import { build_assignment_value } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
 import { get_attribute_event_name, is_delegated, is_event_attribute } from '../utils/events.js';
@@ -26,6 +28,11 @@ const VOID_ELEMENT_NAMES = [
 /**
  * Returns `true` if `name` is of a void element
  * @param {string} name
+ */
+/**
+ * Returns true if name is a void element
+ * @param {string} name
+ * @returns {boolean}
  */
 export function is_void_element(name) {
 	return VOID_ELEMENT_NAMES.includes(name) || name.toLowerCase() === '!doctype';
@@ -82,6 +89,11 @@ const RESERVED_WORDS = [
 	'yield',
 ];
 
+/**
+ * Returns true if word is a reserved JS keyword
+ * @param {string} word
+ * @returns {boolean}
+ */
 export function is_reserved(word) {
 	return RESERVED_WORDS.includes(word);
 }
@@ -121,6 +133,11 @@ const DOM_BOOLEAN_ATTRIBUTES = [
 	'disableremoteplayback',
 ];
 
+/**
+ * Returns true if name is a boolean DOM attribute
+ * @param {string} name
+ * @returns {boolean}
+ */
 export function is_boolean_attribute(name) {
 	return DOM_BOOLEAN_ATTRIBUTES.includes(name);
 }
@@ -143,12 +160,24 @@ const DOM_PROPERTIES = [
 	'disableRemotePlayback',
 ];
 
+/**
+ * Returns true if name is a DOM property
+ * @param {string} name
+ * @returns {boolean}
+ */
 export function is_dom_property(name) {
 	return DOM_PROPERTIES.includes(name);
 }
 
 const unhoisted = { hoisted: false };
 
+/**
+ * Determines if an event handler can be hoisted for delegation
+ * @param {string} event_name
+ * @param {import('estree').Expression} handler
+ * @param {object} state
+ * @returns {object|null}
+ */
 export function get_delegated_event(event_name, handler, state) {
 	// Handle delegated event handlers. Bail out if not a delegated event.
 	if (!handler || !is_delegated(event_name)) {
@@ -176,7 +205,7 @@ export function get_delegated_event(event_name, handler, state) {
 
 				const grandparent = path.at(-2);
 
-				/** @type {AST.RegularElement | null} */
+				/** @type {Element | null} */
 				let element = null;
 				/** @type {string | null} */
 				let event_name = null;
@@ -185,9 +214,9 @@ export function get_delegated_event(event_name, handler, state) {
 					grandparent?.type === 'Attribute' &&
 					is_event_attribute(grandparent)
 				) {
-					element = /** @type {AST.RegularElement} */ (path.at(-3));
-					const attribute = /** @type {AST.Attribute} */ (grandparent);
-					event_name = get_attribute_event_name(attribute.name);
+					element = /** @type {Element} */ (path.at(-3));
+					const attribute = /** @type {Attribute} */ (grandparent);
+					event_name = get_attribute_event_name(attribute.name.name);
 				}
 
 				if (element && event_name) {
@@ -256,6 +285,11 @@ export function get_delegated_event(event_name, handler, state) {
 	return { hoisted: true, function: target_function };
 }
 
+/**
+ * @param {Node} node
+ * @param {{ state: { scope: import('#compiler').ScopeInterface }, path?: Node[], visit?: Function }} context
+ * @returns {Identifier[]}
+ */
 function get_hoisted_params(node, context) {
 	const scope = context.state.scope;
 
@@ -292,6 +326,18 @@ function get_hoisted_params(node, context) {
 	return params;
 }
 
+/**
+ * Builds the parameter list for a hoisted function
+ * @param {import('estree').FunctionDeclaration|import('estree').FunctionExpression|import('estree').ArrowFunctionExpression} node
+ * @param {object} context
+ * @returns {import('estree').Pattern[]}
+ */
+/**
+ * Builds the parameter list for a hoisted function
+ * @param {FunctionDeclaration|FunctionExpression|ArrowFunctionExpression} node
+ * @param {{ state: { scope: import('#compiler').ScopeInterface }, visit: Function }} context
+ * @returns {Pattern[]}
+ */
 export function build_hoisted_params(node, context) {
 	const hoisted_params = get_hoisted_params(node, context);
 	node.metadata.hoisted_params = hoisted_params;
@@ -314,6 +360,11 @@ export function build_hoisted_params(node, context) {
 	return params;
 }
 
+/**
+ * Returns true if context is inside a top-level await
+ * @param {object} context
+ * @returns {boolean}
+ */
 export function is_top_level_await(context) {
 	if (!is_inside_component(context)) {
 		return false;
@@ -338,6 +389,12 @@ export function is_top_level_await(context) {
 	return true;
 }
 
+/**
+ * Returns true if context is inside a Component node
+ * @param {object} context
+ * @param {boolean} [includes_functions=false]
+ * @returns {boolean}
+ */
 export function is_inside_component(context, includes_functions = false) {
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const context_node = context.path[i];
@@ -358,6 +415,11 @@ export function is_inside_component(context, includes_functions = false) {
 	return false;
 }
 
+/**
+ * Returns true if context is inside a component-level function
+ * @param {object} context
+ * @returns {boolean}
+ */
 export function is_component_level_function(context) {
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const context_node = context.path[i];
@@ -378,6 +440,12 @@ export function is_component_level_function(context) {
 	return true;
 }
 
+/**
+ * Returns true if callee is a Ripple track call
+ * @param {import('estree').Expression} callee
+ * @param {object} context
+ * @returns {boolean}
+ */
 export function is_ripple_track_call(callee, context) {
   return (
     (callee.type === 'Identifier' && (callee.name === 'track' || callee.name === 'trackSplit')) ||
@@ -390,6 +458,11 @@ export function is_ripple_track_call(callee, context) {
   );
 }
 
+/**
+ * Returns true if context is inside a call expression
+ * @param {object} context
+ * @returns {boolean}
+ */
 export function is_inside_call_expression(context) {
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const context_node = context.path[i];
@@ -413,6 +486,11 @@ export function is_inside_call_expression(context) {
 	return false;
 }
 
+/**
+ * Returns true if node is a static value (Literal, ArrayExpression, etc)
+ * @param {import('estree').Node} node
+ * @returns {boolean}
+ */
 export function is_value_static(node) {
 	if (node.type === 'Literal') {
 		return true;
@@ -430,6 +508,12 @@ export function is_value_static(node) {
 	return false;
 }
 
+/**
+ * Returns true if callee is a Ripple import
+ * @param {import('estree').Expression} callee
+ * @param {object} context
+ * @returns {boolean}
+ */
 export function is_ripple_import(callee, context) {
 	if (callee.type === 'Identifier') {
 		const binding = context.state.scope.get(callee.name);
@@ -456,6 +540,12 @@ export function is_ripple_import(callee, context) {
 	return false;
 }
 
+/**
+ * Returns true if node is a function declared within a component
+ * @param {import('estree').Identifier} node
+ * @param {object} context
+ * @returns {boolean}
+ */
 export function is_declared_function_within_component(node, context) {
 	const component = context.path.find((n) => n.type === 'Component');
 
@@ -490,6 +580,13 @@ function is_non_coercive_operator(operator) {
 	return ['=', '||=', '&&=', '??='].includes(operator);
 }
 
+/**
+ * Visits and transforms an assignment expression
+ * @param {import('estree').AssignmentExpression} node
+ * @param {object} context
+ * @param {Function} build_assignment
+ * @returns {import('estree').Expression|import('estree').AssignmentExpression|null}
+ */
 export function visit_assignment_expression(node, context, build_assignment) {
 	if (
 		node.left.type === 'ArrayPattern' ||
@@ -558,6 +655,14 @@ export function visit_assignment_expression(node, context, build_assignment) {
 	return transformed;
 }
 
+/**
+ * Builds an assignment node, possibly transforming for reactivity
+ * @param {string} operator
+ * @param {import('estree').Pattern|import('estree').MemberExpression|import('estree').Identifier} left
+ * @param {import('estree').Expression} right
+ * @param {object} context
+ * @returns {import('estree').Expression|null}
+ */
 export function build_assignment(operator, left, right, context) {
 	let object = left;
 
@@ -611,6 +716,12 @@ export function build_assignment(operator, left, right, context) {
 const ATTR_REGEX = /[&"<]/g;
 const CONTENT_REGEX = /[&<]/g;
 
+/**
+ * Escapes HTML special characters in a string
+ * @param {string} value
+ * @param {boolean} [is_attr=false]
+ * @returns {string}
+ */
 export function escape_html(value, is_attr = false) {
 	const str = String(value ?? '');
 
@@ -630,6 +741,11 @@ export function escape_html(value, is_attr = false) {
 	return escaped + str.substring(last);
 }
 
+/**
+ * Hashes a string to a base36 value
+ * @param {string} str
+ * @returns {string}
+ */
 export function hash(str) {
 	str = str.replace(regex_return_characters, '');
 	let hash = 5381;
@@ -639,6 +755,11 @@ export function hash(str) {
 	return (hash >>> 0).toString(36);
 }
 
+/**
+ * Returns true if node is a DOM element (not a component)
+ * @param {Element} node
+ * @returns {boolean}
+ */
 export function is_element_dom_element(node) {
 	return (
 		node.id.type === 'Identifier' &&
@@ -648,6 +769,12 @@ export function is_element_dom_element(node) {
 	);
 }
 
+/**
+ * Normalizes children nodes (merges adjacent text, removes empty)
+ * @param {Array} children
+ * @param {object} context
+ * @returns {Array}
+ */
 export function normalize_children(children, context) {
 	const normalized = [];
 
@@ -694,6 +821,12 @@ function normalize_child(node, normalized, context) {
 	}
 }
 
+/**
+ * Builds a getter for a tracked identifier
+ * @param {import('estree').Identifier} node
+ * @param {object} context
+ * @returns {import('estree').Expression|import('estree').Identifier}
+ */
 export function build_getter(node, context) {
 	const state = context.state;
 
@@ -714,6 +847,12 @@ export function build_getter(node, context) {
 	return node;
 }
 
+/**
+ * Determines the namespace for child elements
+ * @param {string} element_name
+ * @param {string} current_namespace
+ * @returns {string}
+ */
 export function determine_namespace_for_children(element_name, current_namespace) {
 	if (element_name === 'foreignObject') {
 		return 'html';
