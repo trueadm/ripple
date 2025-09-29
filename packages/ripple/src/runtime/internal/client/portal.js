@@ -22,7 +22,7 @@ export function Portal(_, props) {
   /** @type {Node | null} */
   var dom_start = null;
   /** @type {Node | null} */
-  var domEnd = null;
+  var dom_end = null;
 
   render(() => {
     if (target === (target = props.target)) return;
