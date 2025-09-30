@@ -15,6 +15,6 @@ export component App() {
 		<title>{`Step ${@curr_step}`}</title>
 	</head>
 
-	<button onClick={() => { @curr_step++ }}>Next Step</button>
+	<button onClick={() => { @curr_step++ }}>{'Next Step'}</button>
 }
 ```
