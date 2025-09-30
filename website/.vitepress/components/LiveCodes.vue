@@ -429,8 +429,19 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	gap: 1rem;
 	margin-top: 1rem;
 	margin-bottom: -1rem;
+	margin-inline: auto;
 	padding-right: 24px;
 	height: 30px;
+	max-width: 1440px;
+
+	.examples {
+		margin-left: 20px;
+		margin-right: auto;
+
+		& > * {
+			right: unset;
+		}
+	}
 }
 
 @media (min-width: 768px) {
@@ -439,13 +450,15 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	}
 }
 
+@media (max-width: 768px) {
+	.examples {
+		margin-left: 12px !important;
+	}
+}
+
 @media (max-width: 480px) {
 	.playground-actions {
 		gap: unset;
-	}
-
-	.examples > * {
-		right: unset;
 	}
 }
 
