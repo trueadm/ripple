@@ -140,6 +140,12 @@ const visitors = {
 	},
 
 	CallExpression(node, context) {
+		// bug in our acorn pasrer: it uses typeParameters instead of typeArguments
+		if (node.typeParameters) {
+			node.typeArguments = node.typeParameters;
+			delete node.typeParameters;
+		}
+
 		const callee = node.callee;
 
 		if (context.state.function_depth === 0 && is_ripple_track_call(callee, context)) {
@@ -497,9 +503,9 @@ const visitors = {
 					if (attr.name.type === 'Identifier') {
 						attribute_names.add(attr.name);
 					}
-          if (attr.value !== null) {
-					  visit(attr.value, state);
-          }
+					if (attr.value !== null) {
+						visit(attr.value, state);
+					}
 				} else if (attr.type === 'SpreadAttribute') {
 					visit(attr.argument, state);
 				} else if (attr.type === 'RefAttribute') {
