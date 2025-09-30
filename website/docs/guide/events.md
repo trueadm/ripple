@@ -7,7 +7,7 @@ title: Event Binding in Ripple
 Ripple deviates slightly from standard JS in terms of event names. Like most
 frameworks except for React, we rely on the native event system of the browser.
 However, Ripple doesn't use the same all-lowercase props/attributes to bind
-events -- a camelCase convention is used instead, shown below:
+events — a camelCase convention is used instead, shown below:
 
 - `onclick` -> `onClick`
 - `onpointermove` -> `onPointerMove`
