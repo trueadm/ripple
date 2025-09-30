@@ -299,14 +299,14 @@ function printRippleNode(node, path, options, print, args) {
 		case 'CallExpression': {
 			const parts = [];
 			parts.push(path.call(print, 'callee'));
-			
+
 			// Add TypeScript generics if present
 			if (node.typeArguments) {
 				parts.push(path.call(print, 'typeArguments'));
 			} else if (node.typeParameters) {
 				parts.push(path.call(print, 'typeParameters'));
 			}
-			
+
 			if (node.arguments && node.arguments.length > 0) {
 				parts.push('(');
 
@@ -322,7 +322,7 @@ function printRippleNode(node, path, options, print, args) {
 			} else {
 				parts.push('()');
 			}
-			
+
 			nodeContent = concat(parts);
 			break;
 		}
@@ -678,7 +678,7 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSFunctionType': {
 			const parts = [];
-			
+
 			// Handle parameters
 			parts.push('(');
 			if (node.params && node.params.length > 0) {
@@ -689,7 +689,7 @@ function printRippleNode(node, path, options, print, args) {
 				}
 			}
 			parts.push(')');
-			
+
 			// Handle return type
 			parts.push(' => ');
 			if (node.returnType) {
@@ -697,7 +697,7 @@ function printRippleNode(node, path, options, print, args) {
 			} else if (node.typeAnnotation) {
 				parts.push(path.call(print, 'typeAnnotation'));
 			}
-			
+
 			nodeContent = concat(parts);
 			break;
 		}
@@ -1175,13 +1175,13 @@ function printForOfStatement(node, path, options, print) {
 	parts.push(path.call(print, 'left'));
 	parts.push(' of ');
 	parts.push(path.call(print, 'right'));
-	
+
 	// Handle Ripple-specific index syntax
 	if (node.index) {
 		parts.push('; index ');
 		parts.push(path.call(print, 'index'));
 	}
-	
+
 	parts.push(') ');
 	parts.push(path.call(print, 'body'));
 
@@ -1475,6 +1475,13 @@ function printNewExpression(node, path, options, print) {
 	const parts = [];
 	parts.push('new ');
 	parts.push(path.call(print, 'callee'));
+
+	// Handle TypeScript type parameters/arguments
+	if (node.typeArguments) {
+		parts.push(path.call(print, 'typeArguments'));
+	} else if (node.typeParameters) {
+		parts.push(path.call(print, 'typeParameters'));
+	}
 
 	if (node.arguments && node.arguments.length > 0) {
 		parts.push('(');
