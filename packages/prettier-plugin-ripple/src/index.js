@@ -301,8 +301,8 @@ function printRippleNode(node, path, options, print, args) {
 			parts.push(path.call(print, 'callee'));
 			
 			// Add TypeScript generics if present
-			if (node.typeParameters) {
-				parts.push(path.call(print, 'typeParameters'));
+			if (node.typeArguments) {
+				parts.push(path.call(print, 'typeArguments'));
 			}
 			
 			if (node.arguments && node.arguments.length > 0) {
@@ -1232,9 +1232,9 @@ function printTryStatement(node, path, options, print) {
 		parts.push(path.call(print, 'finalizer'));
 	}
 
-	if (node.async) {
-		parts.push(' async ');
-		parts.push(path.call(print, 'async'));
+	if (node.pending) {
+		parts.push(' pending ');
+		parts.push(path.call(print, 'pending'));
 	}
 
 	return parts;
