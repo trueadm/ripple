@@ -4,7 +4,8 @@ title: Styling in Ripple
 
 # Styling
 
-Ripple supports native CSS styling that is localized to the given component using the `<style>` element.
+Ripple supports native CSS styling that's scoped (localized) to the given
+component using the `<style>` element.
 
 ```ripple
 component MyComponent() {
@@ -30,7 +31,9 @@ The `<style>` element must be top-level within a `component`.
 
 ## Dynamic Classes
 
-In Ripple, the `class` attribute can accept more than just a string — it also supports objects and arrays. Truthy values are included as class names, while falsy values are omitted. This behavior is powered by the `clsx` library.
+In Ripple, the `class` attribute can accept more than just a string — it also
+supports objects and arrays. Truthy values are included as class names, while
+falsy values are omitted. This behavior is powered by the `clsx` library.
 
 Examples:
 
@@ -75,3 +78,10 @@ Both examples above will render the same inline styles, however, it's recommende
 ::: info
 When passing an object to the `style` attribute, you can use either camelCase or kebab-case for CSS property names.
 :::
+
+## Global Styles
+
+At the moment, marking styles as global within components isn’t supported yet
+(though a `:global` selector is in the works). As a temporary  workaround, you
+can either use a `<style>` tag within `<head>` inside `index.html`, or import
+your CSS with Vite.

@@ -6,10 +6,14 @@ title: State management in Ripple
 
 ## Context
 
-Ripple has the concept of `context` where a value or reactive object can be shared through the component tree –
-like in other frameworks. This all happens from the `createContext` function that is imported from `ripple`.
+Ripple has the concept of `context` where a value or reactive object can be
+shared through the component tree – like in other frameworks. This all happens
+from the `createContext` function that is imported from `ripple`.
 
-When you create a context, you can `get` and `set` the values, but this must happen within the context of a component (they can physically live anywhwere, they just need to be called from a component context). Using them outside will result in an error being thrown.
+When you create a context, you can `get` and `set` the values, but this must
+happen within the context of a component (they can physically live anywhwere,
+they just need to be called from a component context). Using them outside will
+result in an error being thrown.
 
 <Code console>
 
