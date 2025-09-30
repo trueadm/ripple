@@ -1458,12 +1458,14 @@ function transform_ts_child(node, context) {
 		state.init.push(b.if(visit(node.test), consequent, alternate));
 	} else if (node.type === 'ForOfStatement') {
 		const body_scope = context.state.scopes.get(node.body);
-		const body = b.block(
-			transform_body(node.body.body, {
-				...context,
-				state: { ...context.state, scope: body_scope },
-			}),
-		);
+		const block_body = transform_body(node.body.body, {
+			...context,
+			state: { ...context.state, scope: body_scope },
+		});
+		if (node.index) {
+			block_body.unshift(b.let(visit(node.index), b.literal(0)));
+		}
+		const body = b.block(block_body);
 
 		state.init.push(b.for_of(visit(node.left), visit(node.right), body, node.await));
 	} else if (node.type === 'TryStatement') {

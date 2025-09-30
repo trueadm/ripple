@@ -689,6 +689,12 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'Html': {
+			const parts = ['{html ', path.call(print, 'expression'), '}'];
+			nodeContent = concat(parts);
+			break;
+		}
+
 		default:
 			// Fallback for unknown node types
 			console.warn('Unknown node type:', node.type);
