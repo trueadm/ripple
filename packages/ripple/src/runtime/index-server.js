@@ -4,7 +4,7 @@ import { DERIVED, TRACKED, UNINITIALIZED } from './internal/client/constants.js'
 import { is_tracked_object } from './internal/client/utils.js';
 import { active_component } from './internal/server/index.js';
 
-export { create_context as createContext } from './internal/server/context.js';
+export { Context } from './internal/server/context.js';
 
 export function effect() {
 	// NO-OP
@@ -44,4 +44,3 @@ export function track(v, get, set) {
 		v,
 	};
 }
-
