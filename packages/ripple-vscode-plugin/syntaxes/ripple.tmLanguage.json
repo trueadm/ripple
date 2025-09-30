@@ -6679,7 +6679,7 @@
 		},
 		"jsx-ref-modifier": {
 			"name": "storage.modifier.js",
-			"match": "\\b(ref)(?=\\s+[_$[:alpha:]])",
+			"match": "\\b(ref)(?=\\s+(?:[_$[:alpha:]]|\\())",
 			"captures": {
 				"1": {
 					"name": "storage.modifier.js"

@@ -523,9 +523,10 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${is_boolean_attribute(name) && value === true
-					? ''
-					: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${
+					is_boolean_attribute(name) && value === true
+						? ''
+						: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -998,10 +999,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Pattern} */(context.visit(left)),
-							/** @type {Expression} */(context.visit(right)),
-					),
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Pattern} */ (context.visit(left)),
+							/** @type {Expression} */ (context.visit(right)),
+						),
 				b.id('__block'),
 			);
 		}
@@ -1017,12 +1018,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Pattern} */(
-							context.visit(left, { ...context.state, metadata: { tracking: false } })
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Pattern} */ (
+								context.visit(left, { ...context.state, metadata: { tracking: false } })
+							),
+							/** @type {Expression} */ (context.visit(right)),
 						),
-							/** @type {Expression} */(context.visit(right)),
-					),
 				b.id('__block'),
 			);
 		}
@@ -1169,12 +1170,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-										b.call(
-											b.id('__render'),
-											b.id(alternate_id),
-											node.alternate ? b.literal(false) : undefined,
-										),
-									)
+											b.call(
+												b.id('__render'),
+												b.id(alternate_id),
+												node.alternate ? b.literal(false) : undefined,
+											),
+										)
 									: undefined,
 							),
 						]),
@@ -1227,9 +1228,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-							b.block(transform_body(node.handler.body.body, context)),
-						),
+								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+								b.block(transform_body(node.handler.body.body, context)),
+							),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1325,7 +1326,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
 	}
 
 	quasi.tail = true;
@@ -1346,54 +1347,46 @@ function transform_ts_child(node, context) {
 		const children = [];
 		let has_children_props = false;
 
-		// Filter out RefAttributes and handle them separately
 		const ref_attributes = [];
-		const attributes = node.attributes
-			.filter((attr) => {
-				if (attr.type === 'RefAttribute') {
-					ref_attributes.push(attr);
-					return false;
+		const attributes = node.attributes.map((attr) => {
+			if (attr.type === 'Attribute') {
+				const metadata = { await: false };
+				const name = visit(attr.name, { ...state, metadata });
+				const value =
+					attr.value === null ? b.literal(true) : visit(attr.value, { ...state, metadata });
+
+				// Handle both regular identifiers and tracked identifiers
+				let prop_name;
+				if (name.type === 'Identifier') {
+					prop_name = name.name;
+				} else if (name.type === 'MemberExpression' && name.object.type === 'Identifier') {
+					// For tracked attributes like {@count}, use the original name
+					prop_name = name.object.name;
+				} else {
+					prop_name = attr.name.name || 'unknown';
 				}
-				return true;
-			})
-			.map((attr) => {
-				if (attr.type === 'Attribute') {
-					const metadata = { await: false };
-					const name = visit(attr.name, { ...state, metadata });
-					const value =
-						attr.value === null ? b.literal(true) : visit(attr.value, { ...state, metadata });
 
-					// Handle both regular identifiers and tracked identifiers
-					let prop_name;
-					if (name.type === 'Identifier') {
-						prop_name = name.name;
-					} else if (name.type === 'MemberExpression' && name.object.type === 'Identifier') {
-						// For tracked attributes like {@count}, use the original name
-						prop_name = name.object.name;
-					} else {
-						prop_name = attr.name.name || 'unknown';
-					}
-
-					const jsx_name = b.jsx_id(prop_name);
-					if (prop_name === 'children') {
-						has_children_props = true;
-					}
-					jsx_name.loc = attr.name.loc || name.loc;
-
-					return b.jsx_attribute(jsx_name, b.jsx_expression_container(value));
-				} else if (attr.type === 'SpreadAttribute') {
-					const metadata = { await: false };
-					const argument = visit(attr.argument, { ...state, metadata });
-					return b.jsx_spread_attribute(argument);
+				const jsx_name = b.jsx_id(prop_name);
+				if (prop_name === 'children') {
+					has_children_props = true;
 				}
-			});
+				jsx_name.loc = attr.name.loc || name.loc;
 
-		// Add RefAttribute references separately for sourcemap purposes
-		for (const ref_attr of ref_attributes) {
-			const metadata = { await: false };
-			const argument = visit(ref_attr.argument, { ...state, metadata });
-			state.init.push(b.stmt(argument));
-		}
+				return b.jsx_attribute(jsx_name, b.jsx_expression_container(value));
+			} else if (attr.type === 'SpreadAttribute') {
+				const metadata = { await: false };
+				const argument = visit(attr.argument, { ...state, metadata });
+				return b.jsx_spread_attribute(argument);
+			} else if (attr.type === 'RefAttribute') {
+				if (!context.state.imports.has(`import { createRefKey } from 'ripple'`)) {
+					context.state.imports.add(`import { createRefKey } from 'ripple'`);
+				}
+				const metadata = { await: false };
+				const argument = visit(attr.argument, { ...state, metadata });
+				const wrapper = b.object([b.prop('init', b.call('createRefKey'), argument, true)]);
+				return b.jsx_spread_attribute(wrapper);
+			}
+		});
 
 		if (!node.selfClosing && !has_children_props && node.children.length > 0) {
 			const is_dom_element = is_element_dom_element(node);
@@ -1636,13 +1629,17 @@ function transform_children(children, context) {
 				context.state.template.push('<!>');
 
 				const id = flush_node();
-				state.update.push(b.stmt(b.call(
-					'_$_.html',
-					id,
-					b.thunk(expression),
-					state.namespace === 'svg' && b.true,
-					state.namespace === 'mathml' && b.true
-				)));
+				state.update.push(
+					b.stmt(
+						b.call(
+							'_$_.html',
+							id,
+							b.thunk(expression),
+							state.namespace === 'svg' && b.true,
+							state.namespace === 'mathml' && b.true,
+						),
+					),
+				);
 			} else if (node.type === 'Text') {
 				const metadata = { tracking: false, await: false };
 				const expression = visit(node.expression, { ...state, metadata });

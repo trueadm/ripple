@@ -76,6 +76,19 @@ function isValidMapping(sourceContent, generatedContent) {
 	if (cleanGenerated.includes(cleanSource)) return true;
 	if (cleanSource.includes(cleanGenerated) && cleanGenerated.length > 2) return true;
 	
+	// Special handling for ref callback parameters and types in createRefKey context
+	if (sourceContent.match(/\w+:\s*\w+/) && generatedContent.match(/\w+:\s*\w+/)) {
+		// This looks like a parameter with type annotation, allow mapping
+		return true;
+	}
+	
+	// Allow mapping of identifiers that appear in both source and generated
+	if (sourceContent.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*$/) && 
+		generatedContent.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*$/) &&
+		sourceContent === generatedContent) {
+		return true;
+	}
+	
 	return false;
 }
 
@@ -175,6 +188,20 @@ export function convert_source_map_to_mappings(source_map, source, generated_cod
 				}
 			}
 			
+			// Special handling for type annotations in ref callbacks
+			if (!best_match) {
+				// Look for type annotations like "HTMLButtonElement" 
+				const sourceTypeMatch = source.substring(source_offset).match(/^[A-Z][a-zA-Z0-9]*(?:Element|Type|Interface)?/);
+				const generatedTypeMatch = generated_code.substring(current_generated_offset).match(/^[A-Z][a-zA-Z0-9]*(?:Element|Type|Interface)?/);
+				
+				if (sourceTypeMatch && generatedTypeMatch && sourceTypeMatch[0] === generatedTypeMatch[0]) {
+					best_match = {
+						source: sourceTypeMatch[0],
+						generated: generatedTypeMatch[0]
+					};
+				}
+			}
+			
 		// Handle special cases for Ripple keywords that might not have generated equivalents
 		if (!best_match || best_match.source.length === 0) {
 			continue;
@@ -198,10 +225,37 @@ export function convert_source_map_to_mappings(source_map, source, generated_cod
 			continue;
 		}
 		
+		// Handle special ref syntax mapping for createRefKey() pattern
+		const sourceAtRefOffset = source.substring(Math.max(0, source_offset - 20), source_offset + 20);
+		const generatedAtRefOffset = generated_code.substring(Math.max(0, current_generated_offset - 20), current_generated_offset + 20);
+		
+		// Check if we're dealing with ref callback syntax in source and createRefKey in generated
+		if (sourceAtRefOffset.includes('{ref ') && generatedAtRefOffset.includes('createRefKey')) {
+			// Look for the ref callback pattern in source: {ref (param: Type) => { ... }}
+			const refMatch = source.substring(source_offset - 50, source_offset + 50).match(/\{ref\s*\(([^)]+)\)\s*=>/);
+			if (refMatch) {
+				const paramMatch = refMatch[1].match(/(\w+):\s*(\w+)/);
+				if (paramMatch) {
+					const paramName = paramMatch[1];
+					const typeName = paramMatch[2];
+					
+					// Map the parameter name to the generated callback parameter
+					if (best_match.source === paramName || best_match.source.includes(paramName)) {
+						// This is a ref callback parameter, allow the mapping
+					}
+					// Map the type annotation
+					else if (best_match.source === typeName || best_match.source.includes(typeName)) {
+						// This is a type annotation in ref callback, allow the mapping
+					}
+				}
+			}
+		}
+		
 		// Skip mappings for complex RefAttribute syntax to avoid overlapping sourcemaps,
-		// but allow simple 'ref' keyword mappings for IntelliSense
-		if (best_match.source.includes('{ref ') && best_match.source.length > 10) {
-			// Skip complex ref expressions like '{ref (node) => { ... }}'
+		// but allow mappings that are part of the createRefKey pattern
+		if (best_match.source.includes('{ref ') && best_match.source.length > 10 && 
+		    !generatedAtRefOffset.includes('createRefKey')) {
+			// Skip complex ref expressions like '{ref (node) => { ... }}' only if not using createRefKey
 			continue;
 		}
 		

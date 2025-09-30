@@ -40,7 +40,7 @@ jobs:
 
     build:
         needs: version-check
-        if: needs.version-check.outputs.changed == "true"
+        if: needs.version-check.outputs.changed == 'true'
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
