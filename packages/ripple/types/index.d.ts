@@ -168,3 +168,5 @@ export class SvelteDate extends Date {
 	constructor(...params: any[]);
 	#private;
 }
+
+export function Portal<V = HTMLElement>({ target }: { target: V }): void;
