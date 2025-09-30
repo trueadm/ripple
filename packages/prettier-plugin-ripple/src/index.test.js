@@ -586,4 +586,46 @@ const items = [] as unknown[];`
     expect(result).toBe(input);
 
   });
+
+  it('should format {html string} syntax correctly', async () => {
+    const input = `export component App() {
+  let source = \`
+<h1>My Blog Post</h1>
+<p>Hi! I like JS and Ripple.</p>
+\`
+
+  <article>
+    {html source}
+  </article>
+}`;
+
+    const expected = `export component App() {
+  let source = \`
+<h1>My Blog Post</h1>
+<p>Hi! I like JS and Ripple.</p>
+\`;
+
+  <article>{html source}</article>
+}`;
+
+    const result = await format(input, { singleQuote: true });
+    expect(result).toBe(expected);
+  });
+
+  it('should format {html expression} with different expressions', async () => {
+    const input = `export component App(){
+<div>{html myHtml}</div>
+<div>{html "hello"}</div>
+<div>{html \`<b>test</b>\`}</div>
+}`;
+
+    const expected = `export component App() {
+  <div>{html myHtml}</div>
+  <div>{html 'hello'}</div>
+  <div>{html \`<b>test</b>\`}</div>
+}`;
+
+    const result = await format(input, { singleQuote: true });
+    expect(result).toBe(expected);
+  });
 });

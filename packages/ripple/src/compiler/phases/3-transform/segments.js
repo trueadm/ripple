@@ -23,6 +23,15 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	let generatedIndex = 0;
 
 	/**
+	 * Check if character is a word boundary (not alphanumeric or underscore)
+	 * @param {string} char
+	 * @returns {boolean}
+	 */
+	const isWordBoundary = (char) => {
+		return char === undefined || !/[a-zA-Z0-9_$]/.test(char);
+	};
+
+	/**
 	 * Find text in source string, searching character by character from sourceIndex
 	 * @param {string} text - Text to find
 	 * @returns {number|null} - Source position or null
@@ -37,6 +46,16 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				}
 			}
 			if (match) {
+				// Check word boundaries for identifier-like tokens
+				const isIdentifierLike = /^[a-zA-Z_$]/.test(text);
+				if (isIdentifierLike) {
+					const charBefore = source[i - 1];
+					const charAfter = source[i + text.length];
+					if (!isWordBoundary(charBefore) || !isWordBoundary(charAfter)) {
+						continue; // Not a whole word match, keep searching
+					}
+				}
+				
 				sourceIndex = i + text.length;
 				return i;
 			}
@@ -59,6 +78,16 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				}
 			}
 			if (match) {
+				// Check word boundaries for identifier-like tokens
+				const isIdentifierLike = /^[a-zA-Z_$]/.test(text);
+				if (isIdentifierLike) {
+					const charBefore = generated_code[i - 1];
+					const charAfter = generated_code[i + text.length];
+					if (!isWordBoundary(charBefore) || !isWordBoundary(charAfter)) {
+						continue; // Not a whole word match, keep searching
+					}
+				}
+				
 				generatedIndex = i + text.length;
 				return i;
 			}
@@ -204,12 +233,16 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				}
 				return;
 			} else if (node.type === 'ForOfStatement' || node.type === 'ForInStatement') {
-				// Visit in source order: left, right, body
+				// Visit in source order: left, right, index (Ripple-specific), body
 				if (node.left) {
 					visit(node.left);
 				}
 				if (node.right) {
 					visit(node.right);
+				}
+				// Ripple-specific: index variable
+				if (node.index) {
+					visit(node.index);
 				}
 				if (node.body) {
 					visit(node.body);
