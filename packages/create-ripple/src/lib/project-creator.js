@@ -22,7 +22,8 @@ export async function createProject({
 	template,
 	packageManager = 'npm',
 	gitInit = false,
-	stylingFramework = 'vanilla'
+	stylingFramework = 'vanilla',
+	installRouter = false
 }) {
 	console.log(dim(`Creating project: ${projectName}`));
 	console.log(dim(`Template: ${template}`));
@@ -128,6 +129,20 @@ export async function createProject({
 			spinner6.succeed('Git repository initialized');
 		} catch (error) {
 			spinner6.warn('Git initialization failed (optional)');
+		}
+	}
+	// Step 7: Install Ripple Router if requested
+	if (installRouter) {
+		const spinner7 = ora('Adding ripple-router...').start();
+		try {
+			configureRippleRouter(projectPath);
+			spinner7.succeed('ripple-router added');
+		} catch (error) {
+			spinner7.fail('Failed to add ripple-router');
+			if (isTemporary) {
+				rmSync(templatePath, { recursive: true, force: true });
+			}
+			throw error;
 		}
 	}
 
@@ -243,6 +258,18 @@ export default defineConfig({
 		const newMainTs = "import 'bootstrap/dist/css/bootstrap.min.css';\n" + mainTs;
 		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
     }
+}
+
+function configureRippleRouter(projectPath) {
+	const packageJsonPath = join(projectPath, 'package.json');
+	const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+
+	packageJson.dependencies = {
+		...packageJson.dependencies,
+		'ripple-router': '^0.4.7'
+	};
+
+	writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
 }
 
 /**

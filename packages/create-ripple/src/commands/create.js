@@ -9,7 +9,8 @@ import {
 	promptOverwrite,
 	promptPackageManager,
 	promptGitInit,
-	promptStylingFramework
+	promptStylingFramework,
+	promptRippleRouter
 } from '../lib/prompts.js';
 import { createProject } from '../lib/project-creator.js';
 
@@ -65,27 +66,26 @@ export async function createCommand(projectName, options) {
 	}
 
 	// Step 5: Git initialization preference
-	let gitInit;
-
-	// This logic assumes that `options.git` might be true by default.
-	// We will prompt unless the user has explicitly opted out or is in non-interactive mode.
-	if (options.git === false) {
-		// --no-git was used
-		gitInit = false;
-	} else if (options.yes) {
-		// --yes was used, default to true
-		gitInit = true;
-	} else {
-		// In all other cases, including the implicit default, ask the user.
+	// Only prompt the user when the git option is not provided at all
+	// (so that --no-git is respected and won't trigger the prompt).
+	let gitInit = true;
+	if (typeof options.git === 'undefined' && !options.yes) {
 		gitInit = await promptGitInit();
+	} else if (options.git === false) {
+		gitInit = false;
 	}
 
-		let stylingFramework = 'vanilla';
+	let stylingFramework = 'vanilla';
 	if (!options.yes) {
 		stylingFramework = await promptStylingFramework();
 	}
 
-	// Step 6: Create the project
+	let installRouter = false
+	if (!options.yes) {
+		installRouter = await promptRippleRouter()
+	}
+
+	// Step 7: Create the project
 	console.log();
 	console.log(`Creating Ripple app in ${green(projectPath)}...`);
 	console.log();
@@ -98,7 +98,8 @@ export async function createCommand(projectName, options) {
 			packageManager,
 			typescript: true,
 			gitInit,
-			stylingFramework
+			stylingFramework,
+			installRouter
 		});
 
 		showNextSteps(projectName, packageManager);
