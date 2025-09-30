@@ -1,6 +1,4 @@
-/** @import { RawSourceMap } from 'source-map' */
 /** @import { Program } from 'estree' */
-/** @import { ParseError } from './phases/1-parse/index.js' */
 
 import { parse as parse_module } from './phases/1-parse/index.js';
 import { analyze } from './phases/2-analyze/index.js';
@@ -9,18 +7,20 @@ import { transform_server } from './phases/3-transform/server/index.js';
 import { convert_source_map_to_mappings } from './phases/3-transform/segments.js';
 
 /**
- * @param {string} source 
- * @returns {{ ast: Program, errors: ParseError[] }}
+ * Parse Ripple source code to ESTree AST
+ * @param {string} source
+ * @returns {Program}
  */
 export function parse(source) {
   return parse_module(source);
 }
 
 /**
- * @param {string} source 
- * @param {string} filename 
- * @param {{ mode?: 'client' | 'server' }} options 
- * @returns {{ js: { code: string, map: RawSourceMap }, css: { code: string, map: RawSourceMap } | null }}
+ * Compile Ripple source code to JS/CSS output
+ * @param {string} source
+ * @param {string} filename
+ * @param {{ mode?: 'client' | 'server' }} [options]
+ * @returns {object}
  */
 export function compile(source, filename, options = {}) {
   const ast = parse_module(source);
@@ -32,6 +32,12 @@ export function compile(source, filename, options = {}) {
   return result;
 }
 
+/**
+ * Compile Ripple source to Volar mappings for editor integration
+ * @param {string} source
+ * @param {string} filename
+ * @returns {object} Volar mappings object
+ */
 export function compile_to_volar_mappings(source, filename) {
   // Parse and transform to get the esrap sourcemap
   const ast = parse_module(source);

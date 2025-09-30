@@ -95,7 +95,13 @@ The `trackSplit` "splits" a plain object — such as component props — into sp
 const [children, count, rest] = trackSplit(props, ['children', 'count']);
 ```
 
-When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity. However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, does not preserve reactivity due to various edge cases. To ensure destructured variables remain reactive in this case, use the `trackSplit` function.
+When working with component props, destructuring is often useful — both for direct use as variables and for collecting remaining properties into a `rest` object (which can be named arbitrarily). If destructuring happens in the component argument, e.g. `component Child({ children, value, ...rest })`, Ripple automatically links variable access to the original props — for example, `value` is compiled to `props.value`, preserving reactivity.
+
+However, destructuring inside the component body, e.g. `const { children, value, ...rest } = props`, for read-only reactive props, does not preserve reactivity (too complicated to implement due to many edge cases). To ensure destructured read-only reactive props remain reactive in this case, use the `trackSplit` function.
+
+::: info Note
+boxed / wrapped `Tracked` objects are always reactive since they cross function boundaries by reference. Props that were not declared with `track()` are never reactive and always render the same value that was initially passed in.
+:::
 
 A full example utilizing various Ripple constructs demonstrates the `split` option usage:
 
@@ -105,7 +111,9 @@ A full example utilizing various Ripple constructs demonstrates the `split` opti
 import { track, trackSplit } from 'ripple';
 import type { PropsWithChildren, Tracked } from 'ripple';
 
-component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
+component Child(props: PropsWithChildren<{ count: Tracked<number>, className: string }>) {
+  // children, count are always reactive
+  // but className is passed in as a read-only reactive value
   const [children, count, className, rest] = trackSplit(props, ['children', 'count', 'class']);
 
   <button class={@className} {...@rest}><@children /></button>
@@ -137,7 +145,7 @@ export component App() {
   <Child
     class={@className}
     onClick={() => { @name === 'Click Me' ? @name = 'Clicked' : @name = 'Click Me'; @className = ''}}
-    count={count}
+    {count}
     {ref buttonRef}
   >{@name}</Child>;
 }
@@ -153,7 +161,7 @@ let { children, count, class: className, ...rest } = props;
 ```
 
 ::: info Note
-Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values. Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[Object object]` on the dom element.
+Make sure the resulting `rest`, if it's going to be spread onto a dom element, does not contain `Tracked` values. Otherwise, you'd be spreading not the actual values but the boxed ones, which are objects that will appear as `[object Object]` on the dom element.
 :::
 
 ## Transporting Reactivity
@@ -370,6 +378,37 @@ export component App() {
 
   effect(() => {
     console.log(@count);
+  });
+
+  <button onClick={() => @count++}>{'Increment'}</button>
+}
+```
+
+</Code>
+
+## After Update tick()
+
+The `tick()` function returns a Promise that resolves after all pending reactive updates have been applied to the DOM. This is useful when you need to ensure that DOM changes are complete before executing subsequent code, similar to Vue's `nextTick()` or Svelte's `tick()`.
+
+<Code console>
+
+```ripple
+import { effect, track, tick } from 'ripple';
+
+export component App() {
+  let count = track(0);
+
+  effect(() => {
+    @count;
+
+    if (@count === 0) {
+      console.log('initial run, skipping');
+      return;
+    }
+
+    tick().then(() => {
+      console.log('after the update');
+    });
   });
 
   <button onClick={() => @count++}>{'Increment'}</button>

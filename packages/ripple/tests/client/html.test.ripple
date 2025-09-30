@@ -49,4 +49,32 @@ describe('html directive', () => {
 
     expect(container).toMatchSnapshot();
   });
+
+	it('renders the correct namespace for child svg element when html is surrounded by <svg>', () => {
+		component App() {
+			let str = '<circle r="45" cx="50" cy="50" fill="red" />';
+
+			<svg height="100" width="100">{html str}</svg>
+		}
+
+		render(App);
+
+		const circle = container.querySelector('circle');
+		expect(circle.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
+	it('renders the correct namespace for child math element when html is surrounded by <math>', () => {
+		component App() {
+			let str = '<mi>x</mi><mo>+</mo><mi>y</mi>';
+
+			<math>{html str}</math>;
+		}
+
+		render(App);
+
+		const mi = container.querySelector('mi');
+		const mo = container.querySelector('mo');
+		expect(mi.namespaceURI).toBe('http://www.w3.org/1998/Math/MathML');
+		expect(mo.namespaceURI).toBe('http://www.w3.org/1998/Math/MathML');
+	});
 });

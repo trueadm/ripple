@@ -1,0 +1,167 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, Portal, track, flushSync } from 'ripple';
+
+describe('Portal', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container,
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		// Remove container
+		document.body.removeChild(container);
+
+		// Clean up any leftover portal content from document.body
+		const portals = document.body.querySelectorAll('.test-portal');
+		portals.forEach(el => el.remove());
+	});
+
+	it('renders portal content to target element', () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+
+		component TestPortal() {
+			<Portal target={target}><div class='test-portal'>{'Portal works!'}</div></Portal>
+		}
+
+		render(TestPortal);
+
+		// Portal content should be in the target, not in container
+		expect(container.querySelector('.test-portal')).toBeNull();
+		expect(target.querySelector('.test-portal')).toBeTruthy();
+		expect(target.querySelector('.test-portal').textContent).toBe('Portal works!');
+
+		document.body.removeChild(target);
+	});
+
+	it('renders portal content to document.body', () => {
+		component TestPortal() {
+			<Portal target={document.body}><div class='test-portal'>{'In document.body!'}</div></Portal>
+		}
+
+		render(TestPortal);
+
+		// Should not be in container
+		expect(container.querySelector('.test-portal')).toBeNull();
+
+		// Should be in document.body
+		expect(document.body.querySelector('.test-portal')).toBeTruthy();
+		expect(document.body.querySelector('.test-portal').textContent).toBe('In document.body!');
+	});
+
+	it('cleans up portal content when destroyed via conditional rendering', () => {
+		component TestPortal() {
+			let open = track(true);
+
+			if (@open) {
+				<Portal target={document.body}><div class='test-portal'>{'Conditional content'}</div></Portal>
+			}
+
+			<button onClick={() => @open = false}>{'Close'}</button>
+		}
+
+		render(TestPortal);
+
+		// Initially portal content should be present
+		expect(document.body.querySelector('.test-portal')).toBeTruthy();
+
+		// Click close button to destroy portal
+		container.querySelector('button').click();
+		flushSync();
+
+		// Portal content should be cleaned up
+		expect(document.body.querySelector('.test-portal')).toBeNull();
+	});
+
+	it('opens and closes portal via conditional rendering', () => {
+		component TestPortal() {
+			let open = track(false);
+
+			if (@open) {
+				<Portal target={document.body}><div class='test-portal'>
+					{'Content'}
+					<button onClick={() => @open = false}>{'Close'}</button>
+				</div></Portal>
+			}
+
+			if (!@open) {
+				<button onClick={() => @open = true}>{'Open'}</button>
+			}
+		}
+
+		render(TestPortal);
+
+		// Open the portal
+		container.querySelector('button').click();
+		flushSync();
+		expect(document.body.querySelector('.test-portal')).toBeTruthy();
+
+		// Close the portal - this should work without errors
+		expect(() => {
+			document.body.querySelector('button').click();
+			flushSync();
+		}).not.toThrow();
+
+		// Portal content should be cleaned up
+		expect(document.body.querySelector('.test-portal')).toBeNull();
+	});
+
+	it('handles multiple portals simultaneously', () => {
+		const target1 = document.createElement('div');
+		const target2 = document.createElement('div');
+		target1.id = 'multi-target1';
+		target2.id = 'multi-target2';
+		document.body.appendChild(target1);
+		document.body.appendChild(target2);
+
+		component TestMultiPortal() {
+			<Portal target={target1}><div class='test-portal'>{'Portal 1 content'}</div></Portal>
+
+			<Portal target={target2}><div class='test-portal'>{'Portal 2 content'}</div></Portal>
+		}
+
+		render(TestMultiPortal);
+
+		// Both portals should render in their respective targets
+		expect(target1.querySelector('.test-portal')).toBeTruthy();
+		expect(target1.querySelector('.test-portal').textContent).toBe('Portal 1 content');
+
+		expect(target2.querySelector('.test-portal')).toBeTruthy();
+		expect(target2.querySelector('.test-portal').textContent).toBe('Portal 2 content');
+
+		document.body.removeChild(target1);
+		document.body.removeChild(target2);
+	});
+
+	it('handles portal with reactive content', () => {
+		component TestReactivePortal() {
+			let count = track(0);
+
+			<Portal target={document.body}><div class='test-portal'>
+				{'Count: '}
+				{String(@count)}
+				<button onClick={() => @count++}>{'Increment'}</button>
+			</div></Portal>
+		}
+
+		render(TestReactivePortal);
+
+		const portalElement = document.body.querySelector('.test-portal');
+		expect(portalElement).toBeTruthy();
+		expect(portalElement.textContent).toContain('Count: 0');
+
+		// Click increment button
+		portalElement.querySelector('button').click();
+		flushSync();
+
+		expect(portalElement.textContent).toContain('Count: 1');
+	});
+});

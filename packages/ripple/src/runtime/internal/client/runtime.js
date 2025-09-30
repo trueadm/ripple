@@ -32,7 +32,7 @@ import {
 	get_own_property_symbols,
 	is_array,
 	is_tracked_object,
-  object_keys,
+	object_keys,
 } from './utils.js';
 
 const FLUSH_MICROTASK = 0;
@@ -46,6 +46,8 @@ export let active_reaction = null;
 export let active_scope = null;
 /** @type {null | Component} */
 export let active_component = null;
+/** @type {boolean} */
+export let is_mutating_allowed = true;
 
 /** @type {Map<Tracked, any>} */
 var old_values = new Map();
@@ -170,6 +172,7 @@ function run_derived(computed) {
 	var previous_tracking = tracking;
 	var previous_dependency = active_dependency;
 	var previous_component = active_component;
+  var previous_is_mutating_allowed = is_mutating_allowed;
 
 	try {
 		active_block = computed.b;
@@ -177,6 +180,7 @@ function run_derived(computed) {
 		tracking = true;
 		active_dependency = null;
 		active_component = computed.co;
+    is_mutating_allowed = false;
 
 		destroy_computed_children(computed);
 
@@ -191,6 +195,7 @@ function run_derived(computed) {
 		tracking = previous_tracking;
 		active_dependency = previous_dependency;
 		active_component = previous_component;
+    is_mutating_allowed = previous_is_mutating_allowed;
 	}
 }
 
@@ -407,7 +412,7 @@ function is_tracking_dirty(tracking) {
 		var tracked = tracking.t;
 
 		if ((tracked.f & DERIVED) !== 0) {
-			update_derived(/** @type {Derived} **/ (tracked));
+			update_derived(/** @type {Derived} **/(tracked));
 		}
 
 		if (tracked.c > tracking.c) {
@@ -467,7 +472,7 @@ export function async_computed(fn, block) {
 		}
 
 		promise.then((v) => {
-			if (parent && is_destroyed(/** @type {Block} */ (parent))) {
+			if (parent && is_destroyed(/** @type {Block} */(parent))) {
 				return;
 			}
 			if (promise === current && t.v !== v) {
@@ -501,6 +506,21 @@ export function async_computed(fn, block) {
 		while (p !== (p = promise)) await p;
 		return resolve(t);
 	});
+}
+
+/**
+ * @template V
+ * @param {Function} fn 
+ * @param {V} v 
+ */
+function trigger_track_get(fn, v) {
+  var previous_is_mutating_allowed = is_mutating_allowed;
+  try {
+    is_mutating_allowed = false;
+    return untrack(() => fn(v));
+  } finally {
+    is_mutating_allowed = previous_is_mutating_allowed;
+  }
 }
 
 /**
@@ -602,12 +622,11 @@ function flush_queued_root_blocks(root_blocks) {
 	}
 }
 
-// https://github.com/sveltejs/svelte/blob/ded13b825d7efcdf064fd65a5aa9e7e61293a48b/packages/svelte/src/internal/client/runtime.js#L501
 /**
  * @returns {Promise<void>}
  */
 export async function tick() {
-  return new Promise((f) => requestAnimationFrame(() => f()));
+	return new Promise((f) => requestAnimationFrame(() => f()));
 }
 
 /**
@@ -710,8 +729,8 @@ export function get_derived(computed) {
 		register_dependency(computed);
 	}
 	var get = computed.a.get;
-	if (get) {
-		computed.v = get(computed.v);
+	if (get !== undefined) {
+		computed.v = trigger_track_get(get, computed.v);
 	}
 
 	return computed.v;
@@ -727,7 +746,7 @@ export function get(tracked) {
 	}
 
 	return (tracked.f & DERIVED) !== 0
-		? get_derived(/** @type {Derived} */ (tracked))
+		? get_derived(/** @type {Derived} */(tracked))
 		: get_tracked(tracked);
 }
 
@@ -743,8 +762,8 @@ export function get_tracked(tracked) {
 		value = old_values.get(tracked);
 	}
 	var get = tracked.a.get;
-	if (get) {
-		value = get(value);
+	if (get !== undefined) {
+		value = trigger_track_get(get, value);
 	}
 	return value;
 }
@@ -755,6 +774,10 @@ export function get_tracked(tracked) {
  * @param {Block} block
  */
 export function set(tracked, value, block) {
+  if (!is_mutating_allowed) {
+    throw new Error('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+  }
+
 	var old_value = tracked.v;
 
 	if (value !== old_value) {
@@ -768,9 +791,9 @@ export function set(tracked, value, block) {
 			}
 		}
 
-		var set = tracked.a.set;
-		if (set) {
-			value = set(value, old_value);
+		let set = tracked.a.set;
+		if (set !== undefined) {
+			value = untrack(() => set(value, old_value));
 		}
 
 		tracked.v = value;
@@ -846,10 +869,10 @@ export function spread_props(fn, block) {
 				const obj = get_derived(computed);
 				return obj[property];
 			},
-      has(target, property) {
-        const obj = get_derived(computed);
-        return property in obj;
-      },
+			has(target, property) {
+				const obj = get_derived(computed);
+				return property in obj;
+			},
 			ownKeys() {
 				const obj = get_derived(computed);
 				return Reflect.ownKeys(obj);
@@ -1094,15 +1117,15 @@ export function fallback(value, fallback) {
  * @returns {Record<string | symbol, unknown>}
  */
 export function exclude_from_object(obj, exclude_keys) {
-  var keys = object_keys(obj);
+	var keys = object_keys(obj);
 	/** @type {Record<string | symbol, unknown>} */
 	var new_obj = {};
 
-  for (const key of keys) {
-    if (!exclude_keys.includes(key)) {
-      new_obj[key] = obj[key];
-    }
-  }
+	for (const key of keys) {
+		if (!exclude_keys.includes(key)) {
+			new_obj[key] = obj[key];
+		}
+	}
 
 	for (const symbol of get_own_property_symbols(obj)) {
 		var ref_fn = obj[symbol];
@@ -1129,7 +1152,7 @@ export async function maybe_tracked(v) {
 		} else {
 			value = await async_computed(async () => {
 				return await get_tracked(v);
-			}, /** @type {Block} */ (active_block));
+			}, /** @type {Block} */(active_block));
 		}
 	} else {
 		value = await v;

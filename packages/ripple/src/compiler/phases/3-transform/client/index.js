@@ -523,10 +523,9 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${
-					is_boolean_attribute(name) && value === true
-						? ''
-						: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${is_boolean_attribute(name) && value === true
+					? ''
+					: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -999,10 +998,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Pattern} */ (context.visit(left)),
-							/** @type {Expression} */ (context.visit(right)),
-						),
+						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Pattern} */(context.visit(left)),
+							/** @type {Expression} */(context.visit(right)),
+					),
 				b.id('__block'),
 			);
 		}
@@ -1018,12 +1017,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Pattern} */ (
-								context.visit(left, { ...context.state, metadata: { tracking: false } })
-							),
-							/** @type {Expression} */ (context.visit(right)),
+						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Pattern} */(
+							context.visit(left, { ...context.state, metadata: { tracking: false } })
 						),
+							/** @type {Expression} */(context.visit(right)),
+					),
 				b.id('__block'),
 			);
 		}
@@ -1170,12 +1169,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-											b.call(
-												b.id('__render'),
-												b.id(alternate_id),
-												node.alternate ? b.literal(false) : undefined,
-											),
-										)
+										b.call(
+											b.id('__render'),
+											b.id(alternate_id),
+											node.alternate ? b.literal(false) : undefined,
+										),
+									)
 									: undefined,
 							),
 						]),
@@ -1228,9 +1227,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-								b.block(transform_body(node.handler.body.body, context)),
-							),
+							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+							b.block(transform_body(node.handler.body.body, context)),
+						),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1326,7 +1325,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
 	}
 
 	quasi.tail = true;
@@ -1637,7 +1636,13 @@ function transform_children(children, context) {
 				context.state.template.push('<!>');
 
 				const id = flush_node();
-				state.update.push(b.stmt(b.call('_$_.html', id, b.thunk(expression))));
+				state.update.push(b.stmt(b.call(
+					'_$_.html',
+					id,
+					b.thunk(expression),
+					state.namespace === 'svg' && b.true,
+					state.namespace === 'mathml' && b.true
+				)));
 			} else if (node.type === 'Text') {
 				const metadata = { tracking: false, await: false };
 				const expression = visit(node.expression, { ...state, metadata });

@@ -10,10 +10,13 @@ const normalized_properties_cache = new Map();
  */
 export function normalize_css_property_name(str) {
 	if (str.startsWith('--')) return str;
-	if (normalized_properties_cache.has(str)) {
-		return /** @type {string} */ (normalized_properties_cache.get(str));
+
+	let normalized_result = normalized_properties_cache.get(str);
+	if (normalized_result != null) {
+		return normalized_result;
 	}
-	const normalized_result = str.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+
+	normalized_result = str.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
 	normalized_properties_cache.set(str, normalized_result);
 
 	return normalized_result;
