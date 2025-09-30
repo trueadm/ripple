@@ -74,7 +74,6 @@ component Card(props: { message: string, className?: string, onClick?: () => voi
 	</div>
 	<style>
 		.card {
-      background: white;
       padding: 20px;
       margin: 20px;
       border-radius: 5px;
@@ -84,6 +83,7 @@ component Card(props: { message: string, className?: string, onClick?: () => voi
     .clickable:hover {
       cursor: pointer;
       background: #f5f5f5;
+      color: #000;
     }
 	</style>
 }
@@ -190,6 +190,20 @@ export default component SuspenseBoundary() {
 `,
 	},
 	{
+		title: 'Raw HTML',
+		code: `export default component App() {
+	let source = \`
+<h1>My Blog Post</h1>
+<p>Hi! I like JS and Ripple.</p>
+\`
+
+	<article>
+		{html source}
+	</article>
+}
+`,
+	},
+	{
 		title: 'Reactive Variables',
 		code: `import { track } from 'ripple';
 
@@ -237,7 +251,7 @@ export default component App() {
 `,
 	},
 	{
-		title: 'Reactive Arrays',
+		title: 'Simple Reactive Array',
 		code: `import { effect, track } from 'ripple';
 
 export default component App() {
@@ -254,7 +268,7 @@ export default component App() {
 `,
 	},
 	{
-		title: 'TrackedArray',
+		title: 'Fully Reactive Array',
 		code: `import { TrackedArray, track } from 'ripple';
 
 export default component App() {
@@ -295,7 +309,20 @@ export default component App() {
 `,
 	},
 	{
-		title: 'TrackedSet',
+		title: 'Reactive Object',
+		code: `export default component App() {
+  const obj = #{a: 0}
+
+  obj.a = 0;
+
+  <pre>{'obj.a is: '}{obj.a}</pre>
+  <pre>{'obj.b is: '}{obj.b}</pre>
+  <button onClick={() => { obj.a++; obj.b = obj.b ?? 5; obj.b++; }}>{'Increment'}</button>
+}
+`,
+	},
+	{
+		title: 'Reactive Set',
 		code: `import { TrackedSet, track } from 'ripple';
 
 export default component App() {
@@ -314,7 +341,7 @@ export default component App() {
 `,
 	},
 	{
-		title: 'TrackedMap',
+		title: 'Reactive Map',
 		code: `import { TrackedMap, track } from 'ripple';
 
 export default component App() {
@@ -329,6 +356,27 @@ export default component App() {
 
   <button onClick={() => map.delete(2)}>{"Delete item with key 2"}</button>
   <button onClick={() => map.set(2, 2)}>{"Add key 2 with value 2"}</button>
+}
+`,
+	},
+	{
+		title: 'Reactive Date',
+		code: `import { TrackedDate, track } from 'ripple';
+
+export default component App() {
+  const date = new TrackedDate(2025, 0, 1, 12, 0, 0);
+
+  // direct usage
+  <p>{"Direct usage: Current year is "}{date.getFullYear()}</p>
+  <p>{"ISO String: "}{date.toISOString()}</p>
+
+  // reactive assignment
+  let year = track(() => date.getFullYear());
+  let month = track(() => date.getMonth());
+  <p>{"Assigned usage: Year "}{@year}{", Month "}{@month}</p>
+
+  <button onClick={() => date.setFullYear(2026)}>{"Change to 2026"}</button>
+  <button onClick={() => date.setMonth(11)}>{"Change to December"}</button>
 }
 `,
 	},
