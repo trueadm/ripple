@@ -1404,12 +1404,7 @@ function transform_ts_child(node, context) {
 			if (is_dom_element) {
 				children.push(b.jsx_expression_container(b.call(thunk)));
 			} else {
-				const children_name = context.state.scope.generate('component');
-				const children_id = b.id(children_name);
-				const jsx_id = b.jsx_id('children');
-				jsx_id.loc = node.id.loc;
-				state.init.push(b.const(children_id, thunk));
-				attributes.push(b.jsx_attribute(jsx_id, b.jsx_expression_container(children_id)));
+				attributes.push(b.jsx_attribute(b.jsx_id('children'), b.jsx_expression_container(thunk)));
 			}
 		}
 
