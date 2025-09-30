@@ -169,4 +169,4 @@ export class SvelteDate extends Date {
 	#private;
 }
 
-export function Portal<V = HTMLElement>({ target }: { target: V }): void;
+export function Portal<V = HTMLElement>({ target, children: Component }: { target: V }): void;
