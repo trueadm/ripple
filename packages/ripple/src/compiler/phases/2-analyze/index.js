@@ -301,6 +301,15 @@ const visitors = {
 		}
 	},
 
+	TSTypeReference(node, context) {
+		// bug in our acorn pasrer: it uses typeParameters instead of typeArguments
+		if (node.typeParameters) {
+			node.typeArguments = node.typeParameters;
+			delete node.typeParameters;
+		}
+		context.next();
+	},
+
 	IfStatement(node, context) {
 		if (!is_inside_component(context)) {
 			return context.next();

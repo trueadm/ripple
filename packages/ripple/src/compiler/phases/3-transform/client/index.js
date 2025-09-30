@@ -419,59 +419,7 @@ const visitors = {
 					delete declarator.id.typeAnnotation;
 				}
 
-				if (binding !== null && binding.kind === 'tracked') {
-					let expression;
-
-					if (context.state.to_ts) {
-						// TypeScript mode: lighter transformation
-						if (metadata.tracking && !metadata.await) {
-							expression = b.call(
-								'_$_.derived',
-								b.thunk(context.visit(declarator.init)),
-								b.id('__block'),
-							);
-						} else {
-							expression = b.call(
-								'_$_.tracked',
-								declarator.init === null ? undefined : context.visit(declarator.init),
-								b.id('__block'),
-							);
-						}
-					} else {
-						debugger;
-						// Runtime mode: full transformation
-						if (metadata.tracking && metadata.await) {
-							expression = b.call(
-								b.await(
-									b.call(
-										'_$_.resume_context',
-										b.call(
-											'_$_.async_computed',
-											b.thunk(context.visit(declarator.init), true),
-											b.id('__block'),
-										),
-									),
-								),
-							);
-						} else if (metadata.tracking && !metadata.await) {
-							expression = b.call(
-								'_$_.derived',
-								b.thunk(context.visit(declarator.init)),
-								b.id('__block'),
-							);
-						} else {
-							expression = b.call(
-								'_$_.tracked',
-								declarator.init === null ? undefined : context.visit(declarator.init),
-								b.id('__block'),
-							);
-						}
-					}
-
-					declarations.push(b.declarator(declarator.id, expression));
-				} else {
-					declarations.push(context.visit(declarator));
-				}
+				declarations.push(context.visit(declarator));
 			} else {
 				if (!context.state.to_ts) {
 					delete declarator.id.typeAnnotation;

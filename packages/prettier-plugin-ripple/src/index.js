@@ -1830,9 +1830,9 @@ function printTSPropertySignature(node, path, options, print) {
 function printTSTypeReference(node, path, options, print) {
 	const parts = [path.call(print, 'typeName')];
 
-	if (node.typeParameters) {
+	if (node.typeArguments) {
 		parts.push('<');
-		const typeArgs = path.map(print, 'typeParameters', 'params');
+		const typeArgs = path.map(print, 'typeArguments', 'params');
 		for (let i = 0; i < typeArgs.length; i++) {
 			if (i > 0) parts.push(', ');
 			parts.push(typeArgs[i]);

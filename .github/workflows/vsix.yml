@@ -11,7 +11,7 @@ jobs:
         name: "Verify version change"
         runs-on: ubuntu-latest
         outputs:
-            version-changed: ${{ steps.compare_versions.outputs.result }}
+            version-changed: ${{ steps.compare_versions.outputs.changed }}
 
         steps:
             - name: Checkout Code
@@ -40,7 +40,7 @@ jobs:
 
     build:
         needs: version-check
-        if: needs.version-check.outputs.changed == 'true'
+        if: needs.version-check.outputs.version-changed == 'true'
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
