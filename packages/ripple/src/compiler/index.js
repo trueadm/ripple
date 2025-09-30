@@ -39,10 +39,11 @@ export function compile(source, filename, options = {}) {
  * @returns {object} Volar mappings object
  */
 export function compile_to_volar_mappings(source, filename) {
-  // Parse and transform to get the esrap sourcemap
+  // Parse and transform
   const ast = parse_module(source);
   const analysis = analyze(ast, filename);
   const transformed = transform_client(filename, source, analysis, true);
 
-  return convert_source_map_to_mappings(transformed.js.map, source, transformed.js.code);
+  // Create volar mappings directly from the AST instead of relying on esrap's sourcemap
+  return convert_source_map_to_mappings(transformed.ast, source, transformed.js.code);
 }

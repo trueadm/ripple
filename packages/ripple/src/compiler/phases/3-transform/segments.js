@@ -1,4 +1,4 @@
-import { decode } from '@jridgewell/sourcemap-codec';
+	import { walk } from 'zimmerframe';
 
 export const mapping_data = {
 	verification: true,
@@ -8,302 +8,446 @@ export const mapping_data = {
 };
 
 /**
- * Helper to find a meaningful token boundary by looking for word boundaries, 
- * punctuation, or whitespace
- * @param {string} text
- * @param {number} start
- * @param {number} direction
- */
-function findTokenBoundary(text, start, direction = 1) {
-	if (start < 0 || start >= text.length) return start;
-	
-	let pos = start;
-	/** @param {string} c */
-	const isAlphaNum = (c) => /[a-zA-Z0-9_$]/.test(c);
-	
-	// If we're at whitespace or punctuation, find the next meaningful character
-	while (pos >= 0 && pos < text.length && /\s/.test(text[pos])) {
-		pos += direction;
-	}
-	
-	if (pos < 0 || pos >= text.length) return start;
-	
-	// If we're in the middle of a word/identifier, find the boundary
-	if (isAlphaNum(text[pos])) {
-		if (direction > 0) {
-			while (pos < text.length && isAlphaNum(text[pos])) pos++;
-		} else {
-			while (pos >= 0 && isAlphaNum(text[pos])) pos--;
-			pos++; // Adjust back to start of token
-		}
-	} else {
-		// For punctuation, just move one character in the given direction
-		pos += direction;
-	}
-	
-	return Math.max(0, Math.min(text.length, pos));
-}
-
-/**
- * Check if source and generated content are meaningfully similar
- * @param {string} sourceContent
- * @param {string} generatedContent
- */
-function isValidMapping(sourceContent, generatedContent) {
-	// Remove whitespace for comparison
-	const cleanSource = sourceContent.replace(/\s+/g, '');
-	const cleanGenerated = generatedContent.replace(/\s+/g, '');
-	
-	// If either is empty, skip
-	if (!cleanSource || !cleanGenerated) return false;
-	
-	// Skip obvious template transformations that don't make sense to map
-	const templateTransforms = [
-		/^\{.*\}$/, // Curly brace expressions
-		/^<.*>$/, // HTML tags
-		/^\(\(\)\s*=>\s*\{$/, // Generated function wrappers
-		/^\}\)\(\)\}$/, // Generated function closures
-	];
-	
-	for (const transform of templateTransforms) {
-		if (transform.test(cleanSource) || transform.test(cleanGenerated)) {
-			return false;
-		}
-	}
-	
-	// Check if content is similar (exact match, or generated contains source)
-	if (cleanSource === cleanGenerated) return true;
-	if (cleanGenerated.includes(cleanSource)) return true;
-	if (cleanSource.includes(cleanGenerated) && cleanGenerated.length > 2) return true;
-	
-	// Special handling for ref callback parameters and types in createRefKey context
-	if (sourceContent.match(/\w+:\s*\w+/) && generatedContent.match(/\w+:\s*\w+/)) {
-		// This looks like a parameter with type annotation, allow mapping
-		return true;
-	}
-	
-	// Allow mapping of identifiers that appear in both source and generated
-	if (sourceContent.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*$/) && 
-		generatedContent.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*$/) &&
-		sourceContent === generatedContent) {
-		return true;
-	}
-	
-	return false;
-}
-
-/**
- * Convert esrap SourceMap to Volar mappings
- * @param {{ mappings: string }} source_map
- * @param {string} source
- * @param {string} generated_code
+ * Create Volar mappings by walking the transformed AST
+ * @param {any} ast - The transformed AST
+ * @param {string} source - Original source code
+ * @param {string} generated_code - Generated code from esrap
  * @returns {object}
  */
-export function convert_source_map_to_mappings(source_map, source, generated_code) {
+export function convert_source_map_to_mappings(ast, source, generated_code) {
 	/** @type {Array<{sourceOffsets: number[], generatedOffsets: number[], lengths: number[], data: any}>} */
 	const mappings = [];
 
-	// Decode the VLQ mappings from esrap
-	const decoded_mappings = decode(source_map.mappings);
+	// Maintain indices that walk through source and generated code
+	let sourceIndex = 0;
+	let generatedIndex = 0;
 
-	let generated_offset = 0;
-	const generated_lines = generated_code.split('\n');
-	const source_lines = source.split('\n');
-
-	// Process each line of generated code
-	for (let generated_line = 0; generated_line < generated_lines.length; generated_line++) {
-		const line = generated_lines[generated_line];
-		const line_mappings = decoded_mappings[generated_line] || [];
-
-		// Process mappings for this line
-		for (const mapping of line_mappings) {
-			const [generated_column, source_file_index, source_line, source_column] = mapping;
-
-			// Skip mappings without source information
-			if (source_file_index == null || source_line == null || source_column == null) {
-				continue;
-			}
-
-			// Calculate source offset
-			let source_offset = 0;
-			for (let i = 0; i < Math.min(source_line, source_lines.length - 1); i++) {
-				source_offset += source_lines[i].length + 1; // +1 for newline
-			}
-			source_offset += source_column;
-
-			// Calculate generated offset
-			const current_generated_offset = generated_offset + generated_column;
-
-			// Find meaningful token boundaries for source content
-			const source_token_end = findTokenBoundary(source, source_offset, 1);
-			const source_token_start = findTokenBoundary(source, source_offset, -1);
-			
-			// Find meaningful token boundaries for generated content  
-			const generated_token_end = findTokenBoundary(generated_code, current_generated_offset, 1);
-			const generated_token_start = findTokenBoundary(generated_code, current_generated_offset, -1);
-			
-			// Extract potential source content (prefer forward boundary but try both directions)
-			let best_source_content = source.substring(source_offset, source_token_end);
-			let best_generated_content = generated_code.substring(current_generated_offset, generated_token_end);
-			
-			// Try different segment boundaries to find the best match
-			const candidates = [
-				// Forward boundaries
-				{
-					source: source.substring(source_offset, source_token_end),
-					generated: generated_code.substring(current_generated_offset, generated_token_end)
-				},
-				// Backward boundaries
-				{
-					source: source.substring(source_token_start, source_offset + 1),
-					generated: generated_code.substring(generated_token_start, current_generated_offset + 1)
-				},
-				// Single character
-				{
-					source: source.charAt(source_offset),
-					generated: generated_code.charAt(current_generated_offset)
-				},
-				// Try to find exact matches in nearby content
-			];
-			
-			// Look for the best candidate match
-			let best_match = null;
-			for (const candidate of candidates) {
-				if (isValidMapping(candidate.source, candidate.generated)) {
-					best_match = candidate;
+	/**
+	 * Find text in source string, searching character by character from sourceIndex
+	 * @param {string} text - Text to find
+	 * @returns {number|null} - Source position or null
+	 */
+	const findInSource = (text) => {
+		for (let i = sourceIndex; i <= source.length - text.length; i++) {
+			let match = true;
+			for (let j = 0; j < text.length; j++) {
+				if (source[i + j] !== text[j]) {
+					match = false;
 					break;
 				}
 			}
-			
-			// If no good match found, try extracting identifiers/keywords
-			if (!best_match) {
-				const sourceIdMatch = source.substring(source_offset).match(/^[a-zA-Z_$][a-zA-Z0-9_$]*/);
-				const generatedIdMatch = generated_code.substring(current_generated_offset).match(/^[a-zA-Z_$][a-zA-Z0-9_$]*/);
-				
-				if (sourceIdMatch && generatedIdMatch && sourceIdMatch[0] === generatedIdMatch[0]) {
-					best_match = {
-						source: sourceIdMatch[0],
-						generated: generatedIdMatch[0]
-					};
-				}
-			}
-			
-			// Special handling for type annotations in ref callbacks
-			if (!best_match) {
-				// Look for type annotations like "HTMLButtonElement" 
-				const sourceTypeMatch = source.substring(source_offset).match(/^[A-Z][a-zA-Z0-9]*(?:Element|Type|Interface)?/);
-				const generatedTypeMatch = generated_code.substring(current_generated_offset).match(/^[A-Z][a-zA-Z0-9]*(?:Element|Type|Interface)?/);
-				
-				if (sourceTypeMatch && generatedTypeMatch && sourceTypeMatch[0] === generatedTypeMatch[0]) {
-					best_match = {
-						source: sourceTypeMatch[0],
-						generated: generatedTypeMatch[0]
-					};
-				}
-			}
-			
-		// Handle special cases for Ripple keywords that might not have generated equivalents
-		if (!best_match || best_match.source.length === 0) {
-			continue;
-		}
-		
-		// Special handling for Ripple-specific syntax that may be omitted in generated code
-		const sourceAtOffset = source.substring(source_offset, source_offset + 10);
-		if (sourceAtOffset.includes('index ')) {
-			// For the 'index' keyword, create a mapping even if there's no generated equivalent
-			const indexMatch = sourceAtOffset.match(/index\s+/);
-			if (indexMatch) {
-				best_match = {
-					source: indexMatch[0].trim(),
-					generated: '' // Empty generated content for keywords that are transformed away
-				};
+			if (match) {
+				sourceIndex = i + text.length;
+				return i;
 			}
 		}
-		
-		// Skip if we still don't have a valid source match
-		if (!best_match || best_match.source.length === 0) {
-			continue;
-		}
-		
-		// Handle special ref syntax mapping for createRefKey() pattern
-		const sourceAtRefOffset = source.substring(Math.max(0, source_offset - 20), source_offset + 20);
-		const generatedAtRefOffset = generated_code.substring(Math.max(0, current_generated_offset - 20), current_generated_offset + 20);
-		
-		// Check if we're dealing with ref callback syntax in source and createRefKey in generated
-		if (sourceAtRefOffset.includes('{ref ') && generatedAtRefOffset.includes('createRefKey')) {
-			// Look for the ref callback pattern in source: {ref (param: Type) => { ... }}
-			const refMatch = source.substring(source_offset - 50, source_offset + 50).match(/\{ref\s*\(([^)]+)\)\s*=>/);
-			if (refMatch) {
-				const paramMatch = refMatch[1].match(/(\w+):\s*(\w+)/);
-				if (paramMatch) {
-					const paramName = paramMatch[1];
-					const typeName = paramMatch[2];
-					
-					// Map the parameter name to the generated callback parameter
-					if (best_match.source === paramName || best_match.source.includes(paramName)) {
-						// This is a ref callback parameter, allow the mapping
-					}
-					// Map the type annotation
-					else if (best_match.source === typeName || best_match.source.includes(typeName)) {
-						// This is a type annotation in ref callback, allow the mapping
-					}
-				}
-			}
-		}
-		
-		// Skip mappings for complex RefAttribute syntax to avoid overlapping sourcemaps,
-		// but allow mappings that are part of the createRefKey pattern
-		if (best_match.source.includes('{ref ') && best_match.source.length > 10 && 
-		    !generatedAtRefOffset.includes('createRefKey')) {
-			// Skip complex ref expressions like '{ref (node) => { ... }}' only if not using createRefKey
-			continue;
-		}
-		
-		// Allow simple 'ref' keyword mappings for IntelliSense
-		if (best_match.source.trim() === 'ref' && best_match.generated.length === 0) {
-			// This is just the ref keyword, allow it for syntax support
-			// but map it to current position since there's no generated equivalent
-		}
-			
-		// Calculate actual offsets and lengths for the best match
-		let actual_source_offset, actual_generated_offset;
-		
-		if (best_match.generated.length > 0) {
-			actual_source_offset = source.indexOf(best_match.source, source_offset - best_match.source.length);
-			actual_generated_offset = generated_code.indexOf(best_match.generated, current_generated_offset - best_match.generated.length);
-		} else {
-			// For keywords with no generated equivalent, use the exact source position
-			actual_source_offset = source_offset;
-			actual_generated_offset = current_generated_offset; // Map to current position in generated code
-		}
-		
-		// Use the match we found, but fall back to original positions if indexOf fails
-		const final_source_offset = actual_source_offset !== -1 ? actual_source_offset : source_offset;
-		const final_generated_offset = actual_generated_offset !== -1 ? actual_generated_offset : current_generated_offset;			// Avoid duplicate mappings by checking if we already have this exact mapping
-			const isDuplicate = mappings.some(existing => 
-				existing.sourceOffsets[0] === final_source_offset &&
-				existing.generatedOffsets[0] === final_generated_offset &&
-				existing.lengths[0] === best_match.source.length
-			);
-			
-			if (!isDuplicate) {
-				mappings.push({
-					sourceOffsets: [final_source_offset],
-					generatedOffsets: [final_generated_offset],
-					lengths: [best_match.source.length],
-					data: mapping_data,
-				});
-			}
-		}
+		return null;
+	};
 
-		// Add line length + 1 for newline (except for last line)
-		generated_offset += line.length;
-		if (generated_line < generated_lines.length - 1) {
-			generated_offset += 1; // newline character
+	/**
+	 * Find text in generated code, searching character by character from generatedIndex
+	 * @param {string} text - Text to find
+	 * @returns {number|null} - Generated position or null
+	 */
+	const findInGenerated = (text) => {
+		for (let i = generatedIndex; i <= generated_code.length - text.length; i++) {
+			let match = true;
+			for (let j = 0; j < text.length; j++) {
+				if (generated_code[i + j] !== text[j]) {
+					match = false;
+					break;
+				}
+			}
+			if (match) {
+				generatedIndex = i + text.length;
+				return i;
+			}
+		}
+		return null;
+	};
+
+	// Collect text tokens from AST nodes
+	/** @type {string[]} */
+	const tokens = [];
+	
+	walk(ast, null, {
+		_(node, { next, visit }) {
+			// Collect key node types: Identifiers, Literals, and JSX Elements
+			if (node.type === 'Identifier' && node.name) {
+				tokens.push(node.name);
+			} else if (node.type === 'JSXIdentifier' && node.name) {
+				tokens.push(node.name);
+			} else if (node.type === 'Literal' && node.raw) {
+				tokens.push(node.raw);
+			} else if (node.type === 'ImportDeclaration') {
+				// Visit specifiers in source order
+				if (node.specifiers) {
+					for (const specifier of node.specifiers) {
+						visit(specifier);
+					}
+				}
+				// Skip source (just a string literal)
+				return;
+			} else if (node.type === 'ImportSpecifier') {
+				// If local and imported are the same, only visit local to avoid duplicates
+				// Otherwise visit both in order
+				if (node.imported && node.local && node.imported.name !== node.local.name) {
+					visit(node.imported);
+					visit(node.local);
+				} else if (node.local) {
+					visit(node.local);
+				}
+				return;
+			} else if (node.type === 'ImportDefaultSpecifier' || node.type === 'ImportNamespaceSpecifier') {
+				// Just visit local
+				if (node.local) {
+					visit(node.local);
+				}
+				return;
+			} else if (node.type === 'ExportNamedDeclaration') {
+				// Visit in source order: declaration, specifiers
+				if (node.declaration) {
+					visit(node.declaration);
+				}
+				if (node.specifiers) {
+					for (const specifier of node.specifiers) {
+						visit(specifier);
+					}
+				}
+				return;
+			} else if (node.type === 'ExportDefaultDeclaration') {
+				// Visit the declaration
+				if (node.declaration) {
+					visit(node.declaration);
+				}
+				return;
+			} else if (node.type === 'ExportAllDeclaration') {
+				// Nothing to visit (just source string)
+				return;
+			} else if (node.type === 'JSXElement') {
+				// Manually visit in source order: opening element, children, closing element
+				
+				// 1. Visit opening element (name and attributes)
+				if (node.openingElement) {
+					visit(node.openingElement);
+				}
+				
+				// 2. Visit children in order
+				if (node.children) {
+					for (const child of node.children) {
+						visit(child);
+					}
+				}
+				
+				// 3. Push closing tag name (not visited by AST walker)
+				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
+					tokens.push(node.closingElement.name.name);
+				}
+				
+				return;
+			} else if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+				// Visit in source order: id, params, body
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.params) {
+					for (const param of node.params) {
+						visit(param);
+					}
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'VariableDeclaration') {
+				// Visit declarators in order
+				if (node.declarations) {
+					for (const declarator of node.declarations) {
+						visit(declarator);
+					}
+				}
+				return;
+			} else if (node.type === 'VariableDeclarator') {
+				// Visit in source order: id, init
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.init) {
+					visit(node.init);
+				}
+				return;
+			} else if (node.type === 'IfStatement') {
+				// Visit in source order: test, consequent, alternate
+				if (node.test) {
+					visit(node.test);
+				}
+				if (node.consequent) {
+					visit(node.consequent);
+				}
+				if (node.alternate) {
+					visit(node.alternate);
+				}
+				return;
+			} else if (node.type === 'ForStatement') {
+				// Visit in source order: init, test, update, body
+				if (node.init) {
+					visit(node.init);
+				}
+				if (node.test) {
+					visit(node.test);
+				}
+				if (node.update) {
+					visit(node.update);
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'ForOfStatement' || node.type === 'ForInStatement') {
+				// Visit in source order: left, right, body
+				if (node.left) {
+					visit(node.left);
+				}
+				if (node.right) {
+					visit(node.right);
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'WhileStatement' || node.type === 'DoWhileStatement') {
+				// Visit in source order: test, body (while) or body, test (do-while)
+				if (node.type === 'WhileStatement') {
+					if (node.test) {
+						visit(node.test);
+					}
+					if (node.body) {
+						visit(node.body);
+					}
+				} else {
+					if (node.body) {
+						visit(node.body);
+					}
+					if (node.test) {
+						visit(node.test);
+					}
+				}
+				return;
+			} else if (node.type === 'TryStatement') {
+				// Visit in source order: block, handler, finalizer
+				if (node.block) {
+					visit(node.block);
+				}
+				if (node.handler) {
+					visit(node.handler);
+				}
+				if (node.finalizer) {
+					visit(node.finalizer);
+				}
+				return;
+			} else if (node.type === 'CatchClause') {
+				// Visit in source order: param, body
+				if (node.param) {
+					visit(node.param);
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'CallExpression' || node.type === 'NewExpression') {
+				// Visit in source order: callee, arguments
+				if (node.callee) {
+					visit(node.callee);
+				}
+				if (node.arguments) {
+					for (const arg of node.arguments) {
+						visit(arg);
+					}
+				}
+				return;
+			} else if (node.type === 'LogicalExpression' || node.type === 'BinaryExpression') {
+				// Visit in source order: left, right
+				if (node.left) {
+					visit(node.left);
+				}
+				if (node.right) {
+					visit(node.right);
+				}
+				return;
+			} else if (node.type === 'MemberExpression') {
+				// Visit in source order: object, property
+				if (node.object) {
+					visit(node.object);
+				}
+				if (!node.computed && node.property) {
+					visit(node.property);
+				}
+				return;
+			} else if (node.type === 'AssignmentExpression' || node.type === 'AssignmentPattern') {
+				// Visit in source order: left, right
+				if (node.left) {
+					visit(node.left);
+				}
+				if (node.right) {
+					visit(node.right);
+				}
+				return;
+			} else if (node.type === 'ObjectExpression' || node.type === 'ObjectPattern') {
+				// Visit properties in order
+				if (node.properties) {
+					for (const prop of node.properties) {
+						visit(prop);
+					}
+				}
+				return;
+			} else if (node.type === 'Property') {
+				// Visit in source order: key, value
+				if (node.key) {
+					visit(node.key);
+				}
+				if (node.value) {
+					visit(node.value);
+				}
+				return;
+			} else if (node.type === 'ArrayExpression' || node.type === 'ArrayPattern') {
+				// Visit elements in order
+				if (node.elements) {
+					for (const element of node.elements) {
+						if (element) visit(element);
+					}
+				}
+				return;
+			} else if (node.type === 'ConditionalExpression') {
+				// Visit in source order: test, consequent, alternate
+				if (node.test) {
+					visit(node.test);
+				}
+				if (node.consequent) {
+					visit(node.consequent);
+				}
+				if (node.alternate) {
+					visit(node.alternate);
+				}
+				return;
+			} else if (node.type === 'UnaryExpression' || node.type === 'UpdateExpression') {
+				// Visit argument
+				if (node.argument) {
+					visit(node.argument);
+				}
+				return;
+			} else if (node.type === 'TemplateLiteral') {
+				// Visit quasis and expressions in order
+				for (let i = 0; i < node.quasis.length; i++) {
+					if (node.quasis[i]) {
+						visit(node.quasis[i]);
+					}
+					if (i < node.expressions.length && node.expressions[i]) {
+						visit(node.expressions[i]);
+					}
+				}
+				return;
+			} else if (node.type === 'TaggedTemplateExpression') {
+				// Visit in source order: tag, quasi
+				if (node.tag) {
+					visit(node.tag);
+				}
+				if (node.quasi) {
+					visit(node.quasi);
+				}
+				return;
+			} else if (node.type === 'ReturnStatement' || node.type === 'ThrowStatement') {
+				// Visit argument
+				if (node.argument) {
+					visit(node.argument);
+				}
+				return;
+			} else if (node.type === 'ExpressionStatement') {
+				// Visit expression
+				if (node.expression) {
+					visit(node.expression);
+				}
+				return;
+			} else if (node.type === 'BlockStatement' || node.type === 'Program') {
+				// Visit body statements in order
+				if (node.body) {
+					for (const statement of node.body) {
+						visit(statement);
+					}
+				}
+				return;
+			} else if (node.type === 'SwitchStatement') {
+				// Visit in source order: discriminant, cases
+				if (node.discriminant) {
+					visit(node.discriminant);
+				}
+				if (node.cases) {
+					for (const caseNode of node.cases) {
+						visit(caseNode);
+					}
+				}
+				return;
+			} else if (node.type === 'SwitchCase') {
+				// Visit in source order: test, consequent
+				if (node.test) {
+					visit(node.test);
+				}
+				if (node.consequent) {
+					for (const statement of node.consequent) {
+						visit(statement);
+					}
+				}
+				return;
+			} else if (node.type === 'ClassDeclaration' || node.type === 'ClassExpression') {
+				// Visit in source order: id, superClass, body
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.superClass) {
+					visit(node.superClass);
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'ClassBody') {
+				// Visit body in order
+				if (node.body) {
+					for (const member of node.body) {
+						visit(member);
+					}
+				}
+				return;
+			} else if (node.type === 'MethodDefinition') {
+				// Visit in source order: key, value
+				if (node.key) {
+					visit(node.key);
+				}
+				if (node.value) {
+					visit(node.value);
+				}
+				return;
+			}
+
+			next();
+		}
+	});
+
+	// Process each token in order
+	for (const text of tokens) {
+		const sourcePos = findInSource(text);
+		const genPos = findInGenerated(text);
+		
+		if (sourcePos !== null && genPos !== null) {
+			mappings.push({
+				sourceOffsets: [sourcePos],
+				generatedOffsets: [genPos],
+				lengths: [text.length],
+				data: mapping_data,
+			});
 		}
 	}
 
-	// Sort mappings by source offset for better organization
+	// Sort mappings by source offset
 	mappings.sort((a, b) => a.sourceOffsets[0] - b.sourceOffsets[0]);
 
 	return {
