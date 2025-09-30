@@ -303,6 +303,8 @@ function printRippleNode(node, path, options, print, args) {
 			// Add TypeScript generics if present
 			if (node.typeArguments) {
 				parts.push(path.call(print, 'typeArguments'));
+			} else if (node.typeParameters) {
+				parts.push(path.call(print, 'typeParameters'));
 			}
 			
 			if (node.arguments && node.arguments.length > 0) {
@@ -390,6 +392,30 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSBooleanKeyword':
 			nodeContent = 'boolean';
+			break;
+
+		case 'TSUndefinedKeyword':
+			nodeContent = 'undefined';
+			break;
+
+		case 'TSSymbolKeyword':
+			nodeContent = 'symbol';
+			break;
+
+		case 'TSBigIntKeyword':
+			nodeContent = 'bigint';
+			break;
+
+		case 'TSAnyKeyword':
+			nodeContent = 'any';
+			break;
+
+		case 'TSNeverKeyword':
+			nodeContent = 'never';
+			break;
+
+		case 'TSVoidKeyword':
+			nodeContent = 'void';
 			break;
 
 		case 'TSInterfaceBody':
@@ -627,9 +653,54 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'TSIntersectionType': {
+			const types = path.map(print, 'types');
+			nodeContent = join(' & ', types);
+			break;
+		}
+
 		case 'TSTypeReference':
 			nodeContent = printTSTypeReference(node, path, options, print);
 			break;
+
+		case 'TSTypeOperator': {
+			const operator = node.operator;
+			const type = path.call(print, 'typeAnnotation');
+			nodeContent = `${operator} ${type}`;
+			break;
+		}
+
+		case 'TSTypeQuery': {
+			const expr = path.call(print, 'exprName');
+			nodeContent = `typeof ${expr}`;
+			break;
+		}
+
+		case 'TSFunctionType': {
+			const parts = [];
+			
+			// Handle parameters
+			parts.push('(');
+			if (node.params && node.params.length > 0) {
+				const params = path.map(print, 'params');
+				for (let i = 0; i < params.length; i++) {
+					if (i > 0) parts.push(', ');
+					parts.push(params[i]);
+				}
+			}
+			parts.push(')');
+			
+			// Handle return type
+			parts.push(' => ');
+			if (node.returnType) {
+				parts.push(path.call(print, 'returnType'));
+			} else if (node.typeAnnotation) {
+				parts.push(path.call(print, 'typeAnnotation'));
+			}
+			
+			nodeContent = concat(parts);
+			break;
+		}
 
 		case 'Element':
 			nodeContent = printElement(node, path, options, print);
@@ -1830,12 +1901,21 @@ function printTSPropertySignature(node, path, options, print) {
 function printTSTypeReference(node, path, options, print) {
 	const parts = [path.call(print, 'typeName')];
 
+	// Handle both typeArguments and typeParameters (different AST variations)
 	if (node.typeArguments) {
 		parts.push('<');
 		const typeArgs = path.map(print, 'typeArguments', 'params');
 		for (let i = 0; i < typeArgs.length; i++) {
 			if (i > 0) parts.push(', ');
 			parts.push(typeArgs[i]);
+		}
+		parts.push('>');
+	} else if (node.typeParameters) {
+		parts.push('<');
+		const typeParams = path.map(print, 'typeParameters', 'params');
+		for (let i = 0; i < typeParams.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(typeParams[i]);
 		}
 		parts.push('>');
 	}

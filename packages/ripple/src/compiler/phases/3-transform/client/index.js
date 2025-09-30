@@ -1,3 +1,5 @@
+/** @import {Expression, FunctionExpression} from 'estree' */
+
 import { walk } from 'zimmerframe';
 import path from 'node:path';
 import { print } from 'esrap';
@@ -195,6 +197,9 @@ const visitors = {
 	},
 
 	CallExpression(node, context) {
+		if (!context.state.to_ts) {
+			delete node.typeArguments;
+		}
 		const callee = node.callee;
 		const parent = context.path.at(-1);
 
@@ -407,29 +412,13 @@ const visitors = {
 	},
 
 	VariableDeclaration(node, context) {
-		const declarations = [];
-
 		for (const declarator of node.declarations) {
-			const metadata = declarator.metadata;
-
-			if (declarator.id.type === 'Identifier') {
-				const binding = context.state.scope.get(declarator.id.name);
-
-				if (!context.state.to_ts) {
-					delete declarator.id.typeAnnotation;
-				}
-
-				declarations.push(context.visit(declarator));
-			} else {
-				if (!context.state.to_ts) {
-					delete declarator.id.typeAnnotation;
-				}
-
-				declarations.push(context.visit(declarator));
+			if (!context.state.to_ts) {
+				delete declarator.id.typeAnnotation;
 			}
 		}
 
-		return { ...node, declarations };
+		return context.next();
 	},
 
 	FunctionDeclaration(node, context) {
