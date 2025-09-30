@@ -573,13 +573,15 @@ the original reference reacts to the change. You do NOT need to use the unboxing
 import { TrackedObject } from 'ripple';
 
 // using syntactic sugar `#`
-const arr = #{a: 1, b: 2, c: 3};
+const obj = #{a: 1, b: 2, c: 3};
 
 // using the new constructor
-const arr = new TrackedObject({a: 1, b: 2, c: 3});
+const obj = new TrackedObject({a: 1, b: 2, c: 3});
 ```
 
 Usage Example:
+
+<Code>
 
 ```ripple
 export component App() {
@@ -592,6 +594,8 @@ export component App() {
   <button onClick={() => { obj.a++; obj.b = obj.b ?? 5; obj.b++; }}>{'Increment'}</button>
 }
 ```
+
+</Code>
 
 #### Reactive Set
 
@@ -698,7 +702,7 @@ export component App() {
   let month = track(() => date.getMonth());
   <p>{"Assigned usage: Year "}{@year}{", Month "}{@month}</p>
 
-  <button onClick={() => date.setFullYear(2027)}>{"Change to 2026"}</button>
+  <button onClick={() => date.setFullYear(2026)}>{"Change to 2026"}</button>
   <button onClick={() => date.setMonth(11)}>{"Change to December"}</button>
 }
 ```
