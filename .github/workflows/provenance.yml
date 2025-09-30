@@ -9,6 +9,8 @@ on:
 permissions:
     contents: read
 
+name: Check for NPM Provenance Downgrade
+
 jobs:
     check-provenance:
         runs-on: ubuntu-latest

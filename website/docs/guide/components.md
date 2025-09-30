@@ -21,26 +21,10 @@ within `effect()` to ensure they only run when intended.
 
 ## Children
 
-Use `children` prop and then use it in the form of `<children />` for component composition.
-
-When you pass in children to a component, it gets implicitly passed as the `children` prop, in the form of a component.
-
-```ripple
-import type { Component } from 'ripple';
-
-component Card(props: { children: Component }) {
-  <div class="card">
-    <props.children />
-  </div>
-}
-
-// Usage
-<Card>
-	<p>{"Card content here"}</p>
-</Card>
-```
-
-You could also explicitly write the same code as shown:
+To pass elements to be nested within a component, simply nest it as you would
+writing HTML. Ripple will make the content available as the `children` prop,
+which you can then render using `<props.children />` (or simply `<children />`
+if you destructured your props.)
 
 ```ripple
 import type { Component } from 'ripple';
@@ -51,12 +35,19 @@ component Card(props: { children: Component }) {
   </div>
 }
 
-// Usage with explicit component
-<Card>
-	component children() {
+export component App() {
+	// Usage
+	<Card>
 		<p>{"Card content here"}</p>
-	}
-</Card>
+	</Card>
+
+	// Usage with explicit component
+	<Card>
+		component children() {
+			<p>{"Card content here"}</p>
+		}
+	</Card>
+}
 ```
 
 ## Reactive Props

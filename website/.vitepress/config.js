@@ -112,6 +112,11 @@ export default defineConfig({
 function nav() {
 	return [
 		{
+			text: 'llms.txt',
+			link: '/llms.txt',
+			target: '_self',
+		},
+		{
 			text: 'Playground',
 			link: '/playground',
 		},
@@ -146,6 +151,8 @@ function docs_sidebar() {
 				{ text: 'Events', link: 'guide/events' },
 				{ text: 'DOM References', link: 'guide/dom-refs' },
 				{ text: 'State Management', link: 'guide/state-management' },
+				{ text: 'Head Management', link: 'guide/head-management' },
+				{ text: 'Styling', link: 'guide/styling' },
 			]
 		},
 		{
@@ -156,8 +163,14 @@ function docs_sidebar() {
 				{ text: 'Best Practices', link: 'best-practices' },
 				{ text: 'Libraries', link: 'libraries' },
 				{ text: 'Troubleshooting', link: 'troubleshooting' },
-				{ text: 'llms.txt', link: '../llms.txt',	target: '_blank' },
 			]
+		},
+		{
+			text: 'Miscellaneous',
+			collapsed: false,
+			items: [
+				{ text: 'llms.txt', link: '../llms.txt', target: '_blank' },
+			],
 		},
 	]
 }

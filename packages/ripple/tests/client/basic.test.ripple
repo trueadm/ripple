@@ -5,6 +5,7 @@ import { TRACKED_ARRAY } from '../../src/runtime/internal/client/constants.js';
 
 describe('basic client', () => {
 	let container;
+	let error;
 
 	function render(component) {
 		mount(component, {
@@ -15,11 +16,13 @@ describe('basic client', () => {
 	beforeEach(() => {
 		container = document.createElement('div');
 		document.body.appendChild(container);
+		error = undefined;
 	});
 
 	afterEach(() => {
 		document.body.removeChild(container);
 		container = null;
+		error = undefined;
 	});
 
 	it('render static text', () => {
@@ -1422,7 +1425,7 @@ describe('basic client', () => {
 		flushSync();
 		expect(countSpan.textContent).toBe('1');
 	});
-  
+
 	it('handles boolean attributes with no prop value provides', () => {
 		component App() {
 			<div class="container">
@@ -1757,8 +1760,88 @@ describe('basic client', () => {
 
 		const p = container.querySelector('p');
 		expect(p.textContent).toBe('0');
-		await promise; 
+		await promise;
 		expect(p.textContent).toBe('1');
+	});
+
+	it('errors on mutating tracked value inside computed track() evaluation', () => {
+		component Basic() {
+			let count = track(0);
+
+			const doubled = track(() => {
+				try {
+					@count *= 2;
+				} catch (e) {
+					error = e.message;
+				}
+			});
+
+			<p>{@doubled}</p>
+		}
+
+		render(Basic);
+
+		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+	});
+
+	it('errors on mutating tracked value inside untrack() in computed track() evaluation', () => {
+		component Basic() {
+			let count = track(0);
+
+			const doubled = track(() => {
+				try {
+					untrack(() => {
+						@count *= 2;
+					});
+				} catch (e) {
+					error = e.message;
+				}
+			});
+
+			<p>{@doubled}</p>
+		}
+
+		render(Basic);
+
+		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+	});
+
+	it("errors on mutating a tracked variable in track() getter", () => {
+		component Basic() {
+			let count = track(0);
+
+			const doubled = track(0, (value) => {
+				try {
+					@count += 1;
+				} catch (e) {
+					error = e.message;
+				}
+				return value;
+			});
+
+			<p>{@doubled}</p>
+		}
+
+		render(Basic);
+
+		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+	});
+
+	it("doesn't error on mutating a tracked variable in track() setter", () => {
+		component Basic() {
+			let count = track(0);
+
+			const doubled = track(0, undefined, (value) => {
+				@count += value;
+				return value;
+			});
+
+			<p>{@doubled}</p>
+		}
+
+		render(Basic);
+
+		expect(error).toBe(undefined);
 	});
 });
 
