@@ -1,8 +1,7 @@
 const {
 	createConnection,
 	createServer,
-	createTypeScriptProject,
-	loadTsdkByPath,
+	createSimpleProject,
 } = require('@volar/language-server/node');
 const { createTypeScriptPlugins } = require('./ts.js');
 const { getRippleLanguagePlugin, createRippleDiagnosticPlugin } = require('./language.js');
@@ -72,16 +71,7 @@ connection.onInitialize(async (params) => {
 		log('Initializing Ripple language server...');
 		log('Initialization options:', JSON.stringify(params.initializationOptions, null, 2));
 
-		const tsdk = params.initializationOptions?.typescript?.tsdk;
 		const ripple_path = params.initializationOptions?.ripplePath;
-
-		if (!tsdk) {
-			const errorMsg = 'The `typescript.tsdk` init option is required. It should point to a directory containing a `typescript.js` or `tsserverlibrary.js` file, such as `node_modules/typescript/lib`.';
-			logError(errorMsg);
-			throw new Error(errorMsg);
-		}
-
-		log('TypeScript SDK path:', tsdk);
 
 		// Validate the ripple path before importing for security
 		const validatedPath = validateRipplePath(ripple_path);
@@ -99,24 +89,11 @@ connection.onInitialize(async (params) => {
 			logError('Failed to import ripple compiler:', importError);
 			throw new Error(`Failed to import ripple compiler: ${importError.message}`);
 		}
-		
-		log('Loading TypeScript SDK...');
-		const { typescript, diagnosticMessages } = loadTsdkByPath(tsdk, params.locale);
-		log('TypeScript SDK loaded successfully');
 
 		const initResult = server.initialize(
 			params,
-			createTypeScriptProject(typescript, diagnosticMessages, ({ env }) => {
-				log('Creating TypeScript project...')
-				return {
-					languagePlugins: [getRippleLanguagePlugin(ripple)],
-					setup({ project }) {
-						log('TypeScript project setup complete')
-						const { languageServiceHost, configFileName } = project.typescript;
-					},
-				};
-			}),
-			[...createTypeScriptPlugins(typescript), createRippleDiagnosticPlugin()],
+			createSimpleProject([getRippleLanguagePlugin(ripple)]),
+			[createRippleDiagnosticPlugin()],
 		);
 
 		log('Server initialization complete');

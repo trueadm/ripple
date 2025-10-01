@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const protocol = require('@volar/language-server/protocol');
 const lsp = require('vscode-languageclient/node');
-const { createLabsInfo, getTsdk } = require('@volar/vscode');
+const { createLabsInfo } = require('@volar/vscode');
 
 const neededRestart = !patchTypeScriptExtension();
 let client;
@@ -119,20 +119,7 @@ async function activate(context) {
 		},
 	};
 
-	let tsdk;
-	try {
-		tsdk = (await getTsdk(context)).tsdk;
-		console.log("TypeScript SDK found at:", tsdk);
-	} catch (error) {
-		console.error("Failed to get TypeScript SDK: ", error);
-		vscode.window.showErrorMessage(`Failed to get TypeScript SDK: ${error.message}`);
-		return;
-	}
-
 	const initializationOptions = {
-		typescript: {
-			tsdk,
-		},
 		ripplePath: ripple_path,
 		contentIntellisense: true,
 	};
