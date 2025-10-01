@@ -69,14 +69,15 @@ function move(block, anchor) {
 /**
  * @template V
  * @param {V[] | Iterable<V>} collection
+ * @param {boolean} clone
  * @returns {V[]}
  */
-function collection_to_array(collection) {
+function collection_to_array(collection, clone) {
 	var array = is_array(collection) ? collection : collection == null ? [] : array_from(collection);
 
 	// If we are working with a tracked array, then we need to get a copy of
 	// the elements, as the array itself is proxied, and not useful in diffing
-	if (TRACKED_ARRAY in array) {
+	if (clone || TRACKED_ARRAY in array) {
 		array = array_from(array);
 	}
 
@@ -106,7 +107,7 @@ export function for_block(node, get_collection, render_fn, flags, get_key) {
 	render(() => {
 		var block = /** @type {Block} */ (active_block);
 		var collection = get_collection();
-		var array = collection_to_array(collection);
+		var array = collection_to_array(collection, is_keyed);
 		if (is_keyed) {
 			array = keyed(block, array, /** @type {(item: V) => K} */ (get_key));
 		}
@@ -473,12 +474,11 @@ function lis_algorithm(arr) {
  * @template V
  * @template K
  * @param {Block} block
- * @param {V[] | Iterable<V>} collection
+ * @param {V[]} b_array
  * @param {(item: V) => K} key_fn
  * @returns {V[]}
  */
-function keyed(block, collection, key_fn) {
-	var b_array = collection_to_array(collection);
+function keyed(block, b_array, key_fn) {
 	var b_keys = b_array.map(key_fn);
 
 	// We only need to do this in DEV
@@ -491,11 +491,10 @@ function keyed(block, collection, key_fn) {
 
 	if (state === null) {
 		// Make a clone of it so we don't mutate the original thereafter
-		return b_array.slice();
+		return b_array;
 	}
 
 	var a_array = state.array;
-	var a_blocks = state.blocks;
 	var a_keys = a_array.map(key_fn);
 	var a = new Map();
 
