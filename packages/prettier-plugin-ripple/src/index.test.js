@@ -59,7 +59,7 @@ describe('prettier-plugin-ripple', () => {
         <div>{"Hello"}</div>
         <div>
           let two=2
-          
+
           {"Hello"}
         </div>
     }`;
@@ -92,7 +92,7 @@ describe('prettier-plugin-ripple', () => {
             }
 
             if (y) {
-            
+
               return null;
 
             }
@@ -104,7 +104,7 @@ describe('prettier-plugin-ripple', () => {
         <div>{"Hello"}</div>
         <div>
           let two=2
-          
+
           {"Hello"}
         </div>
     }`;
@@ -511,7 +511,7 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 
   it('should handle different attribute value types correctly', async () => {
     const input = `export component Test() {
-  <div 
+  <div
     stringProp="hello"
     numberProp={42}
     booleanProp={true}
@@ -557,10 +557,10 @@ for (const { i = 0, item } of items.entries()) {}`;
   });
 
   it('should handle various other TS things', async () => {
-    const input = `const globalContext = createContext<{ theme: string, array: number[] }>({ theme: 'light', array: [] });
+    const input = `const globalContext = new Context<{ theme: string, array: number[] }>({ theme: 'light', array: [] });
 const items = [] as unknown[];`
 
-    const expected = `const globalContext = createContext<{ theme: string; array: number[] }>({
+    const expected = `const globalContext = new Context<{ theme: string; array: number[] }>({
   theme: "light",
   array: [],
 });

@@ -40,7 +40,7 @@ export function mount(component, options) {
 	};
 }
 
-export { create_context as createContext } from './internal/client/context.js';
+export { Context } from './internal/client/context.js';
 
 export {
 	flush_sync as flushSync,
