@@ -184,7 +184,7 @@ With the regular destructuring, such as the one below, the `class`
 property would lose their reactivity:
 
 ```ripple
-// ❌ WRONG `class` property's reactivity would be lost
+// ❌ WRONG Reactivity of `class` property would be lost
 let { children, count, class: className, ...rest } = props;
 ```
 
