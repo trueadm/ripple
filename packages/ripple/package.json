@@ -34,8 +34,8 @@
       "default": "./src/server/index.js"
     },
     "./compiler": {
-      "types": "./types/index.d.ts",
-      "require": "./compiler/index.js",
+      "types": "./src/compiler/index.d.ts",
+      "require": "./src/compiler/index.js",
       "default": "./src/compiler/index.js"
     },
     "./validator": {
