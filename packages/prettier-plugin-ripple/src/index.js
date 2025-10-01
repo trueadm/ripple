@@ -476,7 +476,7 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'Identifier': {
 			// Simple case - just return the name directly like Prettier core
-			const trackedPrefix  = node.tracked ? "@" : "";
+			const trackedPrefix = node.tracked ? "@" : "";
 			if (node.typeAnnotation) {
 				nodeContent = concat([trackedPrefix + node.name, ': ', path.call(print, 'typeAnnotation')]);
 			} else {
@@ -1081,8 +1081,8 @@ function printArrowFunction(node, path, options, print) {
 	// Return array of parts
 	const parts = [];
 
-	// Handle single parameter without parentheses (only for simple identifiers without types)
 	if (
+		options.arrowParens !== 'always' &&
 		node.params.length === 1 &&
 		node.params[0].type === 'Identifier' &&
 		!node.params[0].typeAnnotation
