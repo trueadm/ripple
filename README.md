@@ -269,7 +269,7 @@ export component App() {
 }
 ```
 
-With the regular destructuring, such as the one below, the `class` properties would lose it's reactivity, `count` will still be reactive as `count` is a boxed/tracked value:
+With the regular destructuring, such as the one below, the `class` property would lose its reactivity.
 
 ```jsx
 // ❌ WRONG Reactivity of "class" would be lost
