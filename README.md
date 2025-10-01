@@ -272,7 +272,7 @@ export component App() {
 With the regular destructuring, such as the one below, the `class` property would lose its reactivity.
 
 ```jsx
-// ❌ WRONG Reactivity of "class" would be lost
+// ❌ WRONG class / className reactivity would be lost
 let { children, count, class: className, ...rest } = props;
 ```
 
