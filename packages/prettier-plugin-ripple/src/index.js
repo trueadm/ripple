@@ -21,7 +21,10 @@ export const parsers = {
 	ripple: {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
-			return parse(text);
+			const ast = parse(text);
+			// Attach source text to AST for line counting when comments lack loc info
+			ast.__source = text;
+			return ast;
 		},
 
 		locStart(node) {
@@ -94,16 +97,53 @@ function printRippleNode(node, path, options, print, args) {
 
 	const isInlineContext = args && args.isInlineContext;
 
+	// Get source text from root node for line counting
+	const sourceText = path.stack && path.stack[0] && path.stack[0].__source;
+
 	// Handle leading comments
 	if (node.leadingComments) {
-		for (const comment of node.leadingComments) {
+		for (let i = 0; i < node.leadingComments.length; i++) {
+			const comment = node.leadingComments[i];
+			const nextComment = node.leadingComments[i + 1];
+			const isLastComment = i === node.leadingComments.length - 1;
+
 			if (comment.type === 'Line') {
 				parts.push('//' + comment.value);
 				parts.push(hardline);
+
+				// Check if there should be blank lines between this comment and the next
+				if (nextComment) {
+					const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment, sourceText);
+					if (blankLinesBetween > 0) {
+						parts.push(hardline);
+					}
+				} else if (isLastComment) {
+					// Check if there should be a blank line between the last comment and the node
+					// Only add if there are 2+ blank lines (indicating intentional separation)
+					const blankLinesBetween = getWhitespaceLinesBetween(comment, node, sourceText);
+					if (blankLinesBetween > 1) {
+						parts.push(hardline);
+					}
+				}
 			} else if (comment.type === 'Block') {
 				parts.push('/*' + comment.value + '*/');
 				if (!isInlineContext) {
 					parts.push(hardline);
+
+					// Check if there should be blank lines between this comment and the next
+					if (nextComment) {
+						const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment, sourceText);
+						if (blankLinesBetween > 0) {
+							parts.push(hardline);
+						}
+					} else if (isLastComment) {
+						// Check if there should be a blank line between the last comment and the node
+						// Only add if there are 2+ blank lines (indicating intentional separation)
+						const blankLinesBetween = getWhitespaceLinesBetween(comment, node, sourceText);
+						if (blankLinesBetween > 1) {
+							parts.push(hardline);
+						}
+					}
 				} else {
 					parts.push(' ');
 				}
@@ -162,14 +202,21 @@ function printRippleNode(node, path, options, print, args) {
 					}
 
 					// Only add spacing when explicitly needed
-					if (shouldAddBlankLine(currentStmt, nextStmt)) {
+					if (shouldAddBlankLine(currentStmt, nextStmt, sourceText)) {
 						statements.push(concat([line, line])); // blank line
 					} else {
 						statements.push(line); // single line break
 					}
 				}
 			}
-			nodeContent = concat(statements);
+
+			// Prettier always adds a trailing newline to files
+			// Add it unless the code is completely empty
+			if (statements.length > 0) {
+				nodeContent = concat([...statements, hardline]);
+			} else {
+				nodeContent = concat(statements);
+			}
 			break;
 		}
 
@@ -476,7 +523,7 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'Identifier': {
 			// Simple case - just return the name directly like Prettier core
-			const trackedPrefix  = node.tracked ? "@" : "";
+			const trackedPrefix = node.tracked ? "@" : "";
 			if (node.typeAnnotation) {
 				nodeContent = concat([trackedPrefix + node.name, ': ', path.call(print, 'typeAnnotation')]);
 			} else {
@@ -514,6 +561,9 @@ function printRippleNode(node, path, options, print, args) {
 				break;
 			}
 
+			// Get source text for whitespace detection - use the same source as the rest of the file
+			const blockSourceText = (path.stack && path.stack[0] && path.stack[0].__source) || options.originalText || options.source;
+
 			// Process statements and handle spacing using shouldAddBlankLine
 			const statements = [];
 			for (let i = 0; i < node.body.length; i++) {
@@ -525,13 +575,8 @@ function printRippleNode(node, path, options, print, args) {
 					const currentStmt = node.body[i];
 					const nextStmt = node.body[i + 1];
 
-					// Use shouldAddBlankLine to determine spacing
-					// The nextStmt is at index i+1. It's the first statement if i+1 === 0 (impossible)
-					// So in this context, nextStmt is never the first statement
-					// But the rule might apply at a different level
-					const isNextStatementFirst = i + 1 === 0; // This will always be false
-					if (shouldAddBlankLine(currentStmt, nextStmt, isNextStatementFirst)) {
-						statements.push(concat([hardline, hardline])); // Blank line = two hardlines
+					if (shouldAddBlankLine(currentStmt, nextStmt, blockSourceText)) {
+						statements.push(hardline, hardline); // Blank line = two hardlines
 					} else {
 						statements.push(hardline); // Normal line break
 					}
@@ -703,7 +748,7 @@ function printRippleNode(node, path, options, print, args) {
 		}
 
 		case 'Element':
-			nodeContent = printElement(node, path, options, print);
+			nodeContent = printElement(node, path, options, print, sourceText);
 			break;
 
 		case 'StyleSheet':
@@ -776,11 +821,74 @@ function printRippleNode(node, path, options, print, args) {
 	// Handle trailing comments
 	if (node.trailingComments) {
 		const trailingParts = [];
-		for (const comment of node.trailingComments) {
+		for (let i = 0; i < node.trailingComments.length; i++) {
+			const comment = node.trailingComments[i];
+			const nextComment = node.trailingComments[i + 1];
+
+			// Check if this is an inline comment (on the same line as the node)
+			// We need to check if there's a newline between the node end and comment start
+			let isInlineComment = false;
+			if (sourceText && node.end != null && comment.start != null) {
+				const textBetween = sourceText.substring(node.end, comment.start);
+				// Inline if there's no newline between node and comment
+				isInlineComment = !textBetween.includes('\n');
+			} else if (node.loc && comment.loc) {
+				// Fallback to loc-based detection
+				isInlineComment = node.loc.end.line === comment.loc.start.line;
+			}
+
 			if (comment.type === 'Line') {
-				trailingParts.push(' //' + comment.value);
+				if (isInlineComment) {
+					// Inline comment - keep on same line with space
+					trailingParts.push(' //' + comment.value);
+				} else {
+					// Block comment - put on new line
+					trailingParts.push(hardline);
+
+					// Check if there should be a blank line between the node and the first comment
+					if (i === 0) {
+						const blankLinesBetween = getWhitespaceLinesBetween(node, comment, sourceText);
+						if (blankLinesBetween > 0) {
+							trailingParts.push(hardline);
+						}
+					}
+
+					trailingParts.push('//' + comment.value);
+
+					// Check if there should be blank lines between this comment and the next
+					if (nextComment) {
+						const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment, sourceText);
+						if (blankLinesBetween > 0) {
+							trailingParts.push(hardline);
+						}
+					}
+				}
 			} else if (comment.type === 'Block') {
-				trailingParts.push(' /*' + comment.value + '*/');
+				if (isInlineComment) {
+					// Inline comment - keep on same line with space
+					trailingParts.push(' /*' + comment.value + '*/');
+				} else {
+					// Block comment - put on new line
+					trailingParts.push(hardline);
+
+					// Check if there should be a blank line between the node and the first comment
+					if (i === 0) {
+						const blankLinesBetween = getWhitespaceLinesBetween(node, comment, sourceText);
+						if (blankLinesBetween > 0) {
+							trailingParts.push(hardline);
+						}
+					}
+
+					trailingParts.push('/*' + comment.value + '*/');
+
+					// Check if there should be blank lines between this comment and the next
+					if (nextComment) {
+						const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment, sourceText);
+						if (blankLinesBetween > 0) {
+							trailingParts.push(hardline);
+						}
+					}
+				}
 			}
 		}
 		if (trailingParts.length > 0) {
@@ -788,10 +896,10 @@ function printRippleNode(node, path, options, print, args) {
 			parts.push(...trailingParts);
 			return concat(parts);
 		}
-	}
-
-	// Return with or without leading comments
+	}	// Return with or without leading comments
 	if (parts.length > 0) {
+		// Don't add blank line between leading comments and node
+		// because they're meant to be attached together
 		parts.push(nodeContent);
 		return concat(parts);
 	}
@@ -915,6 +1023,9 @@ function printComponent(node, path, options, print) {
 
 	// Build body content using the same pattern as BlockStatement
 	const statements = [];
+	// Get source text for whitespace detection
+	const componentSourceText = (path.stack && path.stack[0] && path.stack[0].__source) || options.originalText || options.source;
+
 	for (let i = 0; i < node.body.length; i++) {
 		const statement = path.call(print, 'body', i);
 		statements.push(statement);
@@ -925,8 +1036,8 @@ function printComponent(node, path, options, print) {
 			const nextStmt = node.body[i + 1];
 
 			// Use shouldAddBlankLine to determine spacing
-			if (shouldAddBlankLine(currentStmt, nextStmt, false)) {
-				statements.push(concat([hardline, hardline])); // Blank line = two hardlines
+			if (shouldAddBlankLine(currentStmt, nextStmt, componentSourceText)) {
+				statements.push(hardline, hardline); // Blank line = two hardlines
 			} else {
 				statements.push(hardline); // Normal line break
 			}
@@ -1081,8 +1192,8 @@ function printArrowFunction(node, path, options, print) {
 	// Return array of parts
 	const parts = [];
 
-	// Handle single parameter without parentheses (only for simple identifiers without types)
 	if (
+		options.arrowParens !== 'always' &&
 		node.params.length === 1 &&
 		node.params[0].type === 'Identifier' &&
 		!node.params[0].typeAnnotation
@@ -1709,7 +1820,7 @@ function printSequenceExpression(node, path, options, print) {
 	return parts;
 }
 
-function getWhitespaceLinesBetween(currentNode, nextNode) {
+function getWhitespaceLinesBetween(currentNode, nextNode, sourceText) {
 	// Return the number of blank lines between two nodes based on their location
 	if (
 		currentNode.loc &&
@@ -1725,26 +1836,45 @@ function getWhitespaceLinesBetween(currentNode, nextNode) {
 		return blankLines;
 	}
 
+	// Fallback: if loc is not available but start/end are, count newlines in source
+	if (
+		sourceText &&
+		typeof currentNode.end === 'number' &&
+		typeof nextNode?.start === 'number' &&
+		currentNode.end <= nextNode.start
+	) {
+		const textBetween = sourceText.substring(currentNode.end, nextNode.start);
+		const lines = textBetween.split('\n');
+		// lines.length - 1 gives us the number of newlines
+		// Subtract 1 more to get blank lines
+		const blankLines = Math.max(0, lines.length - 2);
+		return blankLines;
+	}
+
 	// If no location info, assume no whitespace
 	return 0;
 }
 
-function shouldAddBlankLine(currentNode, nextNode, isFirstStatement = false) {
-	// First check if there was original whitespace between the nodes
-	const originalBlankLines = getWhitespaceLinesBetween(currentNode, nextNode);
-
-	// If there were any blank lines in the original, preserve one blank line
-	if (originalBlankLines > 0) {
-		return true;
+function shouldAddBlankLine(currentNode, nextNode, sourceText) {
+	// If nextNode has leading comments, check whitespace between current node and first comment
+	// Otherwise check whitespace between current node and next node
+	let targetNode = nextNode;
+	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
+		targetNode = nextNode.leadingComments[0];
 	}
 
-	// If there were no blank lines originally (originalBlankLines === 0),
-	// then apply our formatting rules to decide whether to add one
+	// Check if there was original whitespace between the nodes
+	const originalBlankLines = getWhitespaceLinesBetween(currentNode, targetNode, sourceText);
 
-	// Always add blank line before return statements (unless it's the first statement in a block)
-	if (nextNode.type === 'ReturnStatement' && !isFirstStatement) {
-		return true;
+	// If nextNode has leading comments, only add blank line if there was one originally
+	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
+		if (originalBlankLines > 0) {
+			return true;
+		}
+		return false;
 	}
+
+	// Ripple-specific formatting rules for when to add blank lines
 
 	// Add blank line before style elements
 	if (nextNode.type === 'Element') {
@@ -1761,7 +1891,8 @@ function shouldAddBlankLine(currentNode, nextNode, isFirstStatement = false) {
 			nextNode.type === 'TryStatement' ||
 			nextNode.type === 'ForStatement' ||
 			nextNode.type === 'ForOfStatement' ||
-			nextNode.type === 'WhileStatement'
+			nextNode.type === 'WhileStatement' ||
+			nextNode.type === 'DoWhileStatement'
 		) {
 			return true;
 		}
@@ -1772,19 +1903,27 @@ function shouldAddBlankLine(currentNode, nextNode, isFirstStatement = false) {
 		currentNode.type === 'TSInterfaceDeclaration' ||
 		currentNode.type === 'TSTypeAliasDeclaration'
 	) {
-		// Add blank line before elements, control flow, variable declarations, and expression statements
 		if (
+			nextNode.type === 'VariableDeclaration' ||
 			nextNode.type === 'Element' ||
 			nextNode.type === 'IfStatement' ||
-			nextNode.type === 'TryStatement' ||
 			nextNode.type === 'ForStatement' ||
 			nextNode.type === 'ForOfStatement' ||
+			nextNode.type === 'TryStatement' ||
 			nextNode.type === 'WhileStatement' ||
-			nextNode.type === 'VariableDeclaration' ||
-			nextNode.type === 'ExpressionStatement'
+			nextNode.type === 'DoWhileStatement' ||
+			nextNode.type === 'ExpressionStatement' ||
+			nextNode.type === 'ExportDefaultDeclaration' ||
+			nextNode.type === 'ExportNamedDeclaration' ||
+			nextNode.type === 'Component'
 		) {
 			return true;
 		}
+	}
+
+	// Add blank line after import declarations when followed by code (not just other imports)
+	if (currentNode.type === 'ImportDeclaration' && nextNode.type !== 'ImportDeclaration') {
+		return true;
 	}
 
 	// Add blank line after if/for/try statements if next is an element
@@ -1803,16 +1942,91 @@ function shouldAddBlankLine(currentNode, nextNode, isFirstStatement = false) {
 	// Add blank line before elements when preceded by non-element statements
 	if (nextNode.type === 'Element') {
 		if (
-			currentNode.type === 'VariableDeclaration' ||
-			currentNode.type === 'ExpressionStatement' ||
-			currentNode.type === 'TSInterfaceDeclaration' ||
-			currentNode.type === 'TSTypeAliasDeclaration'
+			currentNode.type !== 'Element' &&
+			currentNode.type !== 'VariableDeclaration' &&
+			currentNode.type !== 'TSInterfaceDeclaration' &&
+			currentNode.type !== 'TSTypeAliasDeclaration'
 		) {
 			return true;
 		}
 	}
 
-	// Fallback: don't add blank lines by default
+	// Standard Prettier behavior: preserve blank lines between different statement types
+	// This helps maintain logical groupings in the code
+	// Also add blank lines in certain contexts even if they didn't exist originally
+	if (sourceText) {
+		// Common patterns where blank lines are meaningful:
+		// - Before/after control flow (if/for/while/try)
+		// - Before return statements
+		// - Between variable declarations and other code
+		// - Before/after function declarations
+
+		const hadOriginalBlankLines = originalBlankLines > 0;
+
+		// Add blank line before control flow statements (only if originally present)
+		if (
+			hadOriginalBlankLines &&
+			(nextNode.type === 'IfStatement' ||
+				nextNode.type === 'ForStatement' ||
+				nextNode.type === 'ForOfStatement' ||
+				nextNode.type === 'WhileStatement' ||
+				nextNode.type === 'DoWhileStatement' ||
+				nextNode.type === 'TryStatement' ||
+				nextNode.type === 'SwitchStatement')
+		) {
+			return true;
+		}
+
+		// Always add blank line before return statements (unless it's the only/first statement)
+		if (nextNode.type === 'ReturnStatement' && currentNode.type !== 'VariableDeclaration') {
+			return true;
+		}
+
+		// Add blank line after control flow statements (only if originally present)
+		if (
+			hadOriginalBlankLines &&
+			(currentNode.type === 'IfStatement' ||
+				currentNode.type === 'ForStatement' ||
+				currentNode.type === 'ForOfStatement' ||
+				currentNode.type === 'WhileStatement' ||
+				currentNode.type === 'DoWhileStatement' ||
+				currentNode.type === 'TryStatement' ||
+				currentNode.type === 'SwitchStatement')
+		) {
+			return true;
+		}
+
+		// Add blank line after return/throw/break/continue (only if originally present)
+		if (
+			hadOriginalBlankLines &&
+			(currentNode.type === 'ReturnStatement' ||
+				currentNode.type === 'ThrowStatement' ||
+				currentNode.type === 'BreakStatement' ||
+				currentNode.type === 'ContinueStatement')
+		) {
+			return true;
+		}
+
+		// Add blank line between variable declarations and other code (only if originally present)
+		if (hadOriginalBlankLines && currentNode.type === 'VariableDeclaration' && nextNode.type !== 'VariableDeclaration') {
+			return true;
+		}
+
+		// Add blank line before variable declarations (only if originally present, except after other variable declarations)
+		if (hadOriginalBlankLines && nextNode.type === 'VariableDeclaration' && currentNode.type !== 'VariableDeclaration') {
+			return true;
+		}
+
+		// Also add blank line between variable declarations if they were originally separated
+		if (hadOriginalBlankLines && currentNode.type === 'VariableDeclaration' && nextNode.type === 'VariableDeclaration') {
+			return true;
+		}
+
+		// Add blank line before/after function declarations (only if originally present)
+		if (hadOriginalBlankLines && (currentNode.type === 'FunctionDeclaration' || nextNode.type === 'FunctionDeclaration')) {
+			return true;
+		}
+	}	// Fallback: don't add blank lines by default
 	return false;
 }
 
@@ -2077,7 +2291,7 @@ function printCSSBlock(node, path, options, print) {
 	return '';
 }
 
-function printElement(node, path, options, print) {
+function printElement(node, path, options, print, sourceText) {
 	const tagName = node.id.name;
 
 	if (!node.attributes || node.attributes.length === 0) {
@@ -2100,10 +2314,11 @@ function printElement(node, path, options, print) {
 
 			// Only add spacing if this is not the last child
 			if (nextChild) {
-				const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
+				const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild, sourceText);
 
-				// Add blank line if there was original whitespace (> 0 lines) or if formatting rules require it
-				if (whitespaceLinesCount > 0 || shouldAddBlankLine(currentChild, nextChild, false)) {
+				// For element children, ONLY preserve original whitespace
+				// Don't apply any formatting rules
+				if (whitespaceLinesCount > 0) {
 					// Double hardline for blank line
 					finalChildren.push(hardline); // Line break
 					finalChildren.push(hardline); // Blank line
@@ -2171,10 +2386,19 @@ function printElement(node, path, options, print) {
 
 		// Only add spacing if this is not the last child
 		if (nextChild) {
-			const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
+			const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild, sourceText);
 
-			// Add blank line if there was original whitespace (> 0 lines) or if formatting rules require it
-			if (whitespaceLinesCount > 0 || shouldAddBlankLine(currentChild, nextChild, false)) {
+			// For element children (Text nodes and Html nodes), don't add automatic blank lines
+			// Only preserve them if they existed in the original
+			const isTextOrHtmlChild = currentChild.type === 'Text' || currentChild.type === 'Html' || nextChild.type === 'Text' || nextChild.type === 'Html';
+
+			// Add blank line if there was original whitespace (> 0 lines)
+			if (whitespaceLinesCount > 0) {
+				// Double hardline for blank line
+				finalChildren.push(hardline); // Line break
+				finalChildren.push(hardline); // Blank line
+			} else if (!isTextOrHtmlChild && shouldAddBlankLine(currentChild, nextChild, sourceText)) {
+				// Only apply formatting rules for non-text/html children
 				// Double hardline for blank line
 				finalChildren.push(hardline); // Line break
 				finalChildren.push(hardline); // Blank line

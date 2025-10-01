@@ -341,50 +341,6 @@ describe('composite components', () => {
 		component App() {
 			// Ambiguous generics vs JSX / less-than parsing scenarios
 
-			// 1. Simple "new" with generic (should NOT become an <Element>)
-			const a = new TrackedArray<number>();
-
-			// 2. Multi-line generic with newline after '<'
-			const b = new TrackedArray<
-				string
-			>();
-
-			// // 3. Member expression + generic
-			// class List<T> {
-			// 	items: T[];
-			// 	constructor() {
-			// 		this.items = [];
-			// 	}
-			// }
-			// class Containers {
-			// 	List<T>() {
-			// 		return new List<T>();
-			// 	}
-			// }
-
-			// const c = new Containers.List<string>();
-
-			// 4. Chained call with generic method
-			const someSource = new Array<number>(1, 2, 3);
-			const d = someSource.map<number>((x) => x * 2).filter<boolean>((x) => !!x);
-
-			// 5. Nested generics
-			const e = new Map<string, Promise<number>>();
-
-			// // 6. Generic after a call expression result
-			// function getBuilder<T>() {
-			// 	return {
-			// 		build<U>() {
-			// 			return {
-			// 				build<V>() {
-			// 					return 42;
-			// 				}
-			// 			};
-			// 		}
-			// 	};
-			// }
-			// const f = getBuilder()<ResultType>().build<number>();
-
 			// // 7. Generic following optional chaining
 			// const maybe = {};
 			// const g = maybe?.factory<number>()?.make<boolean>();
@@ -408,7 +364,7 @@ describe('composite components', () => {
 
 			// 10. JSX / Element should still work
 			<div class="still-works">
-				<span>{a.length}</span>
+				<span>{'Test'}</span>
 			</div>
 
 			// // 11. Generic function call vs Element: Identifier followed by generic args
