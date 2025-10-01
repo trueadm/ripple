@@ -106,6 +106,45 @@ const visitors = {
 		);
 	},
 
+	CallExpression(node, context) {
+		if (!context.state.to_ts) {
+			delete node.typeArguments;
+		}
+		return context.next();
+	},
+
+	PropertyDefinition(node, context) {
+		if (!context.state.to_ts) {
+			delete node.typeAnnotation;
+		}
+		return context.next();
+	},
+
+	TSAsExpression(node, context) {
+		if (!context.state.to_ts) {
+			return context.visit(node.expression);
+		}
+		return context.next();
+	},
+
+	ExportNamedDeclaration(node, context) {
+		if (!context.state.to_ts && node.exportKind === 'type') {
+			return b.empty;
+		}
+
+		return context.next();
+	},
+
+	VariableDeclaration(node, context) {
+		for (const declarator of node.declarations) {
+			if (!context.state.to_ts) {
+				delete declarator.id.typeAnnotation;
+			}
+		}
+
+		return context.next();
+	},
+
 	Element(node, context) {
 		const { state, visit } = context;
 

@@ -628,4 +628,124 @@ const items = [] as unknown[];`
     const result = await format(input, { singleQuote: true });
     expect(result).toBe(expected);
   });
+
+  describe('TypeScript types', () => {
+    it('should format all basic TypeScript primitive types', async () => {
+      const input = `component TypeTest() {
+        type t0 = undefined;
+        type t1 = number;
+        type t2 = string;
+        type t3 = boolean;
+        type t4 = null;
+        type t5 = symbol;
+        type t6 = bigint;
+        type t7 = any;
+        type t8 = unknown;
+        type t9 = never;
+        type t10 = void;
+        <div>{"test"}</div>
+      }`;
+
+      const expected = `component TypeTest() {
+  type t0 = undefined;
+  type t1 = number;
+  type t2 = string;
+  type t3 = boolean;
+  type t4 = null;
+  type t5 = symbol;
+  type t6 = bigint;
+  type t7 = any;
+  type t8 = unknown;
+  type t9 = never;
+  type t10 = void;
+
+  <div>{'test'}</div>
+}`;
+
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
+
+    it('should format TypeScript utility types', async () => {
+      const input = `component UtilityTypeTest() {
+        type t11 = { a: number; b: string };
+        type t12 = keyof t11;
+        const T0: t17 = { x: 1 };
+        type t13 = typeof T0;
+        type t14 = Partial<t11>;
+        type t15 = Required<t14>;
+        type t16 = Readonly<t15>;
+        type t17 = Record<string, number>;
+        type t18 = Pick<t11, 'a'>;
+        type t19 = Omit<t11, 'b'>;
+        type t20 = ReturnType<() => string>;
+        type t21 = Parameters<(x: number, y: string) => void>;
+        <div>{"test"}</div>
+      }`;
+
+      const expected = `component UtilityTypeTest() {
+  type t11 = { a: number; b: string };
+  type t12 = keyof t11;
+
+  const T0: t17 = {
+    x: 1,
+  };
+  type t13 = typeof T0;
+  type t14 = Partial<t11>;
+  type t15 = Required<t14>;
+  type t16 = Readonly<t15>;
+  type t17 = Record<string, number>;
+  type t18 = Pick<t11, 'a'>;
+  type t19 = Omit<t11, 'b'>;
+  type t20 = ReturnType<() => string>;
+  type t21 = Parameters<() => void>;
+
+  <div>{'test'}</div>
+}`;
+
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
+
+    it('should format TypeScript generics in variable declarations', async () => {
+      const input = `component GenericTest() {
+        let open: Tracked<boolean> = track(false);
+        let items: Array<string> = [];
+        let map: Map<string, number> = new Map();
+        <div>{"test"}</div>
+      }`;
+
+      const expected = `component GenericTest() {
+  let open: Tracked<boolean> = track(false);
+  let items: Array<string> = [];
+  let map: Map<string, number> = new Map();
+
+  <div>{'test'}</div>
+}`;
+
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
+
+    it('should format TypeScript union and intersection types', async () => {
+      const input = `component UnionTest() {
+        type StringOrNumber = string | number;
+        type Props = { a: string } & { b: number };
+        let value: string | null = null;
+        <div>{"test"}</div>
+      }`;
+
+      const expected = `component UnionTest() {
+  type StringOrNumber = string | number;
+  type Props = { a: string } & { b: number };
+
+  let value: string | null = null;
+
+  <div>{'test'}</div>
+}`;
+
+      const result = await format(input, { singleQuote: true });
+      expect(result).toBe(expected);
+    });
+  });
 });
