@@ -105,6 +105,7 @@ function printRippleNode(node, path, options, print, args) {
 		for (let i = 0; i < node.leadingComments.length; i++) {
 			const comment = node.leadingComments[i];
 			const nextComment = node.leadingComments[i + 1];
+			const isLastComment = i === node.leadingComments.length - 1;
 
 			if (comment.type === 'Line') {
 				parts.push('//' + comment.value);
@@ -114,6 +115,13 @@ function printRippleNode(node, path, options, print, args) {
 				if (nextComment) {
 					const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment, sourceText);
 					if (blankLinesBetween > 0) {
+						parts.push(hardline);
+					}
+				} else if (isLastComment) {
+					// Check if there should be a blank line between the last comment and the node
+					// Only add if there are 2+ blank lines (indicating intentional separation)
+					const blankLinesBetween = getWhitespaceLinesBetween(comment, node, sourceText);
+					if (blankLinesBetween > 1) {
 						parts.push(hardline);
 					}
 				}
@@ -126,6 +134,13 @@ function printRippleNode(node, path, options, print, args) {
 					if (nextComment) {
 						const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment, sourceText);
 						if (blankLinesBetween > 0) {
+							parts.push(hardline);
+						}
+					} else if (isLastComment) {
+						// Check if there should be a blank line between the last comment and the node
+						// Only add if there are 2+ blank lines (indicating intentional separation)
+						const blankLinesBetween = getWhitespaceLinesBetween(comment, node, sourceText);
+						if (blankLinesBetween > 1) {
 							parts.push(hardline);
 						}
 					}
@@ -195,24 +210,10 @@ function printRippleNode(node, path, options, print, args) {
 				}
 			}
 
-			// Preserve a single trailing newline if the source has trailing comment(s) followed by newline(s)
-			// This matches Prettier's standard behavior of preserving trailing newlines after comments
-			const sourceText = options.originalText || options.source;
-			if (sourceText && node.body.length > 0) {
-				const lastNode = node.body[node.body.length - 1];
-				// Check if last node has trailing comments
-				const hasTrailingComment = lastNode.trailingComments && lastNode.trailingComments.length > 0;
-
-				if (hasTrailingComment) {
-					// If there are trailing comments, check if source ends with newline
-					if (sourceText.endsWith('\n')) {
-						nodeContent = concat([...statements, hardline]);
-					} else {
-						nodeContent = concat(statements);
-					}
-				} else {
-					nodeContent = concat(statements);
-				}
+			// Prettier always adds a trailing newline to files
+			// Add it unless the code is completely empty
+			if (statements.length > 0) {
+				nodeContent = concat([...statements, hardline]);
 			} else {
 				nodeContent = concat(statements);
 			}
@@ -1850,10 +1851,17 @@ function getWhitespaceLinesBetween(currentNode, nextNode, sourceText) {
 }
 
 function shouldAddBlankLine(currentNode, nextNode, sourceText) {
-	// Check if there was original whitespace between the nodes
-	const originalBlankLines = getWhitespaceLinesBetween(currentNode, nextNode, sourceText);
+	// If nextNode has leading comments, check whitespace between current node and first comment
+	// Otherwise check whitespace between current node and next node
+	let targetNode = nextNode;
+	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
+		targetNode = nextNode.leadingComments[0];
+	}
 
-	// If nextNode has leading comments and there were original blank lines, preserve one
+	// Check if there was original whitespace between the nodes
+	const originalBlankLines = getWhitespaceLinesBetween(currentNode, targetNode, sourceText);
+
+	// If nextNode has leading comments, only add blank line if there was one originally
 	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
 		if (originalBlankLines > 0) {
 			return true;

@@ -6,7 +6,35 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+expect.extend({
+	toBeWithNewline(received, expected) {
+		const expectedWithNewline = expected.endsWith('\n')
+			? expected
+			: expected + '\n';
+
+		const pass = received === expectedWithNewline;
+
+		return {
+			pass,
+			message: () => {
+				const { printExpected, printReceived, matcherHint } = this.utils;
+				return (
+					matcherHint('toBeWithNewline') +
+					'\n\nExpected:\n' +
+					`  ${printExpected(expectedWithNewline)}\n` +
+					'Received:\n' +
+					`  ${printReceived(received)}`
+				);
+			},
+		};
+	},
+});
+
 describe('prettier-plugin-ripple', () => {
+	/**
+	 * @param {string} code
+	 * @param {import('prettier').Options} [options]
+	 */
 	const format = async (code, options = {}) => {
 		return await prettier.format(code, {
 			parser: 'ripple',
@@ -15,12 +43,16 @@ describe('prettier-plugin-ripple', () => {
 		});
 	};
 
+	/**
+	 * @param {string} code
+	 * @param {Partial<import('prettier').CursorOptions>} options
+	 */
 	const formatWithCursorHelper = async (code, options = {}) => {
-		return await prettier.formatWithCursor(code, {
+		return await prettier.formatWithCursor(code, /** @type {import('prettier').CursorOptions} */({
 			parser: 'ripple',
 			plugins: [join(__dirname, 'index.js')],
 			...options,
-		});
+		}));
 	};
 
 	describe('basic formatting', () => {
@@ -32,7 +64,7 @@ describe('prettier-plugin-ripple', () => {
   <div>{'Hello'}</div>
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should format a simple component with cursorOffset', async () => {
@@ -46,7 +78,7 @@ describe('prettier-plugin-ripple', () => {
 				singleQuote: true,
 				cursorOffset: 50,
 			});
-			expect(result.formatted).toBe(expected);
+			expect(result.formatted).toBeWithNewline(expected);
 			expect(typeof result.cursorOffset).toBe('number');
 		});
 
@@ -75,7 +107,7 @@ describe('prettier-plugin-ripple', () => {
   </div>
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should format whitespace correctly #2', async () => {
@@ -135,7 +167,7 @@ describe('prettier-plugin-ripple', () => {
   </div>
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('formatting already formatted code should not change it', async () => {
@@ -198,7 +230,7 @@ export default component Basic() {
 }`;
 			const formatted = await format(already_formatted, { singleQuote: true });
 
-			expect(formatted).toBe(already_formatted);
+			expect(formatted).toBeWithNewline(already_formatted);
 		});
 
 		it('formatting already formatted code should not change it #2', async () => {
@@ -225,7 +257,7 @@ export default component App() {
 }`;
 			const formatted = await format(already_formatted, { singleQuote: true });
 
-			expect(formatted).toBe(already_formatted);
+			expect(formatted).toBeWithNewline(already_formatted);
 		});
 
 		it('should handle arrow functions with block bodies', async () => {
@@ -235,7 +267,7 @@ export default component App() {
   handler;
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle style tags inside component body', async () => {
@@ -250,7 +282,7 @@ export default component App() {
   </style>
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle TypeScript types and interfaces', async () => {
@@ -268,7 +300,7 @@ export default component App() {
   user;
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle async/await in component body', async () => {
@@ -278,7 +310,7 @@ export default component App() {
   data;
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle for...of loops in component body', async () => {
@@ -291,7 +323,7 @@ export default component App() {
   }
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle TypeScript function return type', async () => {
@@ -302,7 +334,7 @@ export default component App() {
   }
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle TypeScript method return type', async () => {
@@ -313,7 +345,7 @@ export default component App() {
   }
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle @ prefix', async () => {
@@ -340,7 +372,7 @@ export default component App() {
   </div>
 }`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle type annotations in object params', async () => {
@@ -358,14 +390,14 @@ export component Test({ a, b }: Props) {}`;
 
 export component Test({ a, b }: Props) {}`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle inline type annotations in object params', async () => {
 			const input = `export component Test({ a, b}: { a: number; b: string }) {}`;
 			const expected = `export component Test({ a, b }: { a: number; b: string }) {}`;
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 	});
 
@@ -373,7 +405,7 @@ export component Test({ a, b }: Props) {}`;
 		it('should handle empty component', async () => {
 			const input = 'export component Empty() {}';
 			const result = await format(input);
-			expect(result).toBe('export component Empty() {}');
+			expect(result).toBeWithNewline('export component Empty() {}');
 		});
 
 		it('should handle component with only style', async () => {
@@ -386,13 +418,13 @@ export component Test({ a, b }: Props) {}`;
   </style>
 }`;
 			const result = await format(input);
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should handle empty component using cursor', async () => {
 			const input = 'export component Empty() {}';
 			const result = await format(input);
-			expect(result).toBe('export component Empty() {}');
+			expect(result).toBeWithNewline('export component Empty() {}');
 		});
 
 		it('should handle component with only style', async () => {
@@ -405,7 +437,7 @@ export component Test({ a, b }: Props) {}`;
   </style>
 }`;
 			const result = await formatWithCursorHelper(input, { cursorOffset: 50 });
-			expect(result.formatted).toBe(expected);
+			expect(result.formatted).toBeWithNewline(expected);
 		});
 
 		it('should correctly handle call expressions', async () => {
@@ -427,7 +459,7 @@ export component Test({ a, b }: Props) {}`;
 }`;
 
 			const result = await format(input);
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should correctly handle TS syntax', async () => {
@@ -451,7 +483,7 @@ message.push(\`User: \${JSON.stringify({
 } as User)}\`);`;
 
 			const result = await format(input);
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 	});
 
@@ -466,7 +498,7 @@ message.push(/* Some test comment */ greet(\`Ripple\`));
 message.push(/* Some test comment */ greet(\`Ripple\`));`;
 
 		const result = await format(input);
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should correctly handle inline document like comments', async () => {
@@ -480,7 +512,7 @@ message.push(/* Some test comment */ greet( /* Some text */ \`Ripple\`));
 message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 
 		const result = await format(input);
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should correctly handle for loops with variable declarations', async () => {
@@ -491,7 +523,7 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
   console.log(i);
 }`;
 		const result = await format(input);
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should correctly render attributes in template', async () => {
@@ -506,7 +538,7 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 }`;
 
 		const result = await format(input);
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should handle different attribute value types correctly', async () => {
@@ -526,7 +558,7 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 }`;
 
 		const result = await format(input);
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should handle default arguments correctly', async () => {
@@ -542,7 +574,7 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 }`;
 
 		const result = await format(input);
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should handle array and object patterns correctly', async () => {
@@ -553,7 +585,7 @@ for (const {i = 0, item} of items.entries()) {}`;
 for (const { i = 0, item } of items.entries()) {}`;
 
 		const result = await format(input);
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should handle various other TS things', async () => {
@@ -567,7 +599,7 @@ const items = [] as unknown[];`
 const items = [] as unknown[];`
 
 		const result = await format(input);
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should correctly handle for loop with index syntax, plus comments', async () => {
@@ -583,7 +615,7 @@ const items = [] as unknown[];`
 };`;
 
 		const result = await format(input);
-		expect(result).toBe(input);
+		expect(result).toBeWithNewline(input);
 
 	});
 
@@ -609,7 +641,7 @@ const items = [] as unknown[];`
 }`;
 
 		const result = await format(input, { singleQuote: true });
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should format {html expression} with different expressions', async () => {
@@ -626,7 +658,7 @@ const items = [] as unknown[];`
 }`;
 
 		const result = await format(input, { singleQuote: true });
-		expect(result).toBe(expected);
+		expect(result).toBeWithNewline(expected);
 	});
 
 	describe('TypeScript types', () => {
@@ -663,7 +695,7 @@ const items = [] as unknown[];`
 }`;
 
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should format TypeScript utility types', async () => {
@@ -704,7 +736,7 @@ const items = [] as unknown[];`
 }`;
 
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should format TypeScript generics in variable declarations', async () => {
@@ -724,7 +756,7 @@ const items = [] as unknown[];`
 }`;
 
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should format TypeScript union and intersection types', async () => {
@@ -745,7 +777,7 @@ const items = [] as unknown[];`
 }`;
 
 			const result = await format(input, { singleQuote: true });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('respects arrowParens option', async () => {
@@ -767,7 +799,7 @@ const items = [] as unknown[];`
 }`;
 
 			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('keeps one new line between comment blocks and code if 1 or more exist', async () => {
@@ -797,8 +829,7 @@ function inputRef(node) {
 
 
 
-//yet more
-`;
+//yet more`;
 
 			const expected = `// comments
 //comments
@@ -821,11 +852,45 @@ function inputRef(node) {
 //now more comments
 // and some more
 
-//yet more
-`;
+//yet more`;
 
 			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
-			expect(result).toBe(expected);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('keeps one new line comments and functions when 1 or more exist', async () => {
+			const input = `export function App() {
+  // try {
+    doSomething()
+  // } catch {
+  //   somethingElse()
+  // }
+
+
+
+try {
+	doSomething();
+  } catch {
+	somethingElse();
+  }
+}`;
+
+			const expected = `export function App() {
+  // try {
+  doSomething();
+  // } catch {
+  //   somethingElse()
+  // }
+
+  try {
+    doSomething();
+  } catch {
+    somethingElse();
+  }
+}`;
+
+			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
+			expect(result).toBeWithNewline(expected);
 		});
 	});
 });
