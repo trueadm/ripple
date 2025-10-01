@@ -490,7 +490,8 @@ function keyed(block, collection, key_fn) {
 	var state = block.s;
 
 	if (state === null) {
-		return b_array;
+		// Make a clone of it so we don't mutate the original thereafter
+		return b_array.slice();
 	}
 
 	var a_array = state.array;
