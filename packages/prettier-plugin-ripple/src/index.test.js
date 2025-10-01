@@ -769,5 +769,63 @@ const items = [] as unknown[];`
 			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
 			expect(result).toBe(expected);
 		});
+
+		it('keeps one new line between comment blocks and code if 1 or more exist', async () => {
+			const input = `// comments
+//comments
+
+
+//comments
+function inputRef(node) {
+  console.log('ref called');
+  const removeListener = on(node, 'input', (e) => { value = e.target.value; console.log(value) });
+  return () => {
+    removeListener();
+  }
+}
+
+// some comment
+// more comments here
+
+//now more comments
+// and some more
+
+
+
+
+
+
+
+
+//yet more
+`;
+
+			const expected = `// comments
+//comments
+
+//comments
+function inputRef(node) {
+  console.log('ref called');
+  const removeListener = on(node, 'input', (e) => {
+    value = e.target.value;
+    console.log(value);
+  });
+  return () => {
+    removeListener();
+  };
+}
+
+// some comment
+// more comments here
+
+//now more comments
+// and some more
+
+//yet more
+`;
+
+			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
+			expect(result).toBe(expected);
+		});
 	});
 });
