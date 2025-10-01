@@ -924,18 +924,20 @@ Both examples above will render the same inline styles, however, it's recommende
 ### Context
 
 Ripple has the concept of `context` where a value or reactive object can be shared through the component tree –
-like in other frameworks. This all happens from the `createContext` function that is imported from `ripple`.
+like in other frameworks. This all happens from the `Context` class that is imported from `ripple`.
 
 Creating contexts may take place anywhere. Contexts can contain anything including tracked values or objects. However, context cannot be read via `get` or written to via `set` inside an event handler or at the module level as it must happen within the context of a component. A good strategy is to assign the contents of a context to a variable via the `.get()` method during the component initialization and use this variable for reading and writing.
+
+When Child components overwrite a context's value via `.set()`, this new value will only be seen by its descendants. Components higher up in the tree will continue to see the original value.
 
 Example with tracked / reactive contents:
 
 ```jsx
-import { track, createContext } from "ripple"
+import { track, Context } from "ripple"
 
 // create context with an empty object
-const context  = createContext({});
-const context2 = createContext();
+const context  = new Context({});
+const context2 = new Context();
 
 export component App() {
   // get reference to the object
@@ -963,9 +965,9 @@ export component App() {
 Passing data between components:
 
 ```jsx
-import { createContext } from 'ripple';
+import { Context } from 'ripple';
 
-const MyContext = createContext(null);
+const MyContext = new Context(null);
 
 component Child() {
   // Context is read in the Child component
@@ -993,9 +995,9 @@ component Parent() {
 You can also pass a reactive `Tracked<V>` object through context and read it at the other side.
 
 ```jsx
-import { createContext, effect } from 'ripple';
+import { Context, effect } from 'ripple';
 
-const MyContext = createContext(null);
+const MyContext = new Context(null);
 
 component Child() {
   const count = MyContext.get();

@@ -649,9 +649,9 @@ export default component App() {
 	},
 	{
 		title: 'Context',
-		code: `import { createContext } from 'ripple';
+		code: `import { Context } from 'ripple';
 
-const MyContext = createContext(null);
+const MyContext = new Context(null);
 
 export default component Parent() {
 	const value = MyContext.get();

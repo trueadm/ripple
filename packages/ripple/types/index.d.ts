@@ -24,12 +24,12 @@ export interface TrackedArray<T> extends Array<T> { }
 
 export declare const TrackedArray: TrackedArrayConstructor;
 
-export type Context<T> = {
-	get(): T;
-	set(value: T): void;
-};
-
-export declare function createContext<T>(initialValue: T): Context<T>;
+export declare class Context<T> {
+	constructor(initial_value: T);
+  get(): T;
+  set(value: T): void;
+	#private;
+}
 
 export declare class TrackedSet<T> extends Set<T> {
 	isDisjointFrom(other: TrackedSet<T> | Set<T>): boolean;
