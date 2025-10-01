@@ -262,7 +262,7 @@ const copyUrl = async () => {
 const getPlaygroundStyle = () => ({
 	height:
 		props.height ??
-		(props.isMainPlayground ? 'calc(100dvh - 98px)' : undefined),
+		(props.isMainPlayground ? 'calc(100dvh - 113px)' : undefined),
 	minHeight: props.isMainPlayground ? '400px' : undefined,
 	marginTop: props.isMainPlayground ? '1.5rem' : undefined,
 	borderRadius: props.isMainPlayground ? undefined : '8px',
