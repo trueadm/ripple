@@ -43,7 +43,7 @@
 }
 
 div.VPContent {
-	margin-top: -5px !important;
+	margin-top: -7px !important;
 }
 
 /* Playground */
@@ -75,5 +75,5 @@ body:has(.main-playground) .VPFooter {
 }
 
 .main-playground .VPMenu {
-	max-height: calc(100dvh - 113px);
+	max-height: calc(100dvh - 110px);
 }
