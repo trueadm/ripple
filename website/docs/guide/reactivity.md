@@ -181,7 +181,7 @@ export component App() {
 </Code>
 
 With the regular destructuring, such as the one below, the `class`
-property would lose their reactivity:
+property would lose its reactivity:
 
 ```ripple
 // ❌ WRONG Reactivity of `class` property would be lost
