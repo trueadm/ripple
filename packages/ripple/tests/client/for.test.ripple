@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, TrackedArray } from 'ripple';
+import { mount, flushSync, TrackedArray, track } from 'ripple';
 
 describe('for statements', () => {
 	let container;
@@ -85,7 +85,7 @@ describe('for statements', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	it('correctly handle the index in a for...of loop', () => {
+	it('correctly handles the index in a for...of loop', () => {
 		component App() {
 			const items = new TrackedArray('a', 'b', 'c');
 
@@ -111,6 +111,35 @@ describe('for statements', () => {
 		expect(container).toMatchSnapshot();
 
 		button2.click();
+		flushSync();
+
+		expect(container).toMatchSnapshot();
+	});
+
+	it('correctly handles keyed for...of loops', () => {
+		component App() {
+			let items = track([
+				{ id: 1, text: 'Item 1' },
+				{ id: 2, text: 'Item 2' },
+				{ id: 3, text: 'Item 3' },
+			]);
+
+			for (let item of @items; index i; key item.id) {
+				<div>{i + ':' + item.text}</div>
+			}
+
+			<button onClick={() => {
+				@items = @items.toReversed();
+			}}>{'Reverse'}</button>
+		}
+
+		render(App);
+
+		expect(container).toMatchSnapshot();
+
+		const button = container.querySelector('button');
+
+		button.click();
 		flushSync();
 
 		expect(container).toMatchSnapshot();

@@ -60,8 +60,6 @@ export { TrackedMap } from './map.js';
 
 export { TrackedDate } from './date.js';
 
-export { keyed } from './internal/client/for.js';
-
 export { user_effect as effect } from './internal/client/blocks.js';
 
 export { Portal } from './internal/client/portal.js';

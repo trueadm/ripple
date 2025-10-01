@@ -461,14 +461,20 @@ function RipplePlugin(config) {
 
 					if (this.isContextual('index')) {
 						this.next(); // consume 'index'
-
-						if (this.type === tt.name) {
-							node.index = this.parseIdent();
-						} else {
+						node.index = this.parseExpression();
+						if (node.index.type !== 'Identifier') {
 							this.raise(this.start, 'Expected identifier after "index" keyword');
 						}
-					} else {
-						this.raise(this.start, 'Expected "index" keyword after semicolon in for-of loop');
+						this.eat(tt.semi);
+					}
+
+					if (this.isContextual('key')) {
+						this.next(); // consume 'key'
+						node.key = this.parseExpression();
+					}
+
+					if (this.isContextual('index')) {
+						this.raise(this.start, '"index" must come before "key" in for-of loop');
 					}
 				} else if (!isForIn) {
 					// Set index to null for standard for-of loops
@@ -858,7 +864,7 @@ function RipplePlugin(config) {
 				const element = this.startNode();
 				element.start = position.index;
 				element.loc.start = position;
-        element.metadata = {};
+				element.metadata = {};
 				element.type = 'Element';
 				this.#path.push(element);
 				element.children = [];

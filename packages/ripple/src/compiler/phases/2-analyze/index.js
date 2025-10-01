@@ -466,6 +466,14 @@ const visitors = {
 					if (attr.name.type === 'Identifier') {
 						attribute_names.add(attr.name);
 
+						if (attr.name.name === 'key') {
+							error(
+								'The `key` attribute is not a thing in Ripple, and cannot be used on DOM elements. If you are using a for loop, then use the `for (let item of items; key item.id)` syntax.',
+								state.analysis.module.filename,
+								attr,
+							);
+						}
+
 						if (is_event_attribute(attr.name.name)) {
 							const event_name = attr.name.name.slice(2).toLowerCase();
 							const handler = visit(attr.value, state);

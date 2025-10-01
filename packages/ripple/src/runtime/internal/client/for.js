@@ -1,6 +1,6 @@
-/** @import { Block } from '#client' */
+/** @import { Block, Tracked } from '#client' */
 
-import { IS_CONTROLLED, IS_INDEXED } from '../../../constants.js';
+import { IS_CONTROLLED, IS_INDEXED, IS_KEYED } from '../../../constants.js';
 import { branch, destroy_block, destroy_block_children, render } from './blocks.js';
 import { FOR_BLOCK, TRACKED_ARRAY } from './constants.js';
 import { create_text, next_sibling } from './operations.js';
@@ -85,15 +85,18 @@ function collection_to_array(collection) {
 
 /**
  * @template V
+ * @template K
  * @param {Element} node
  * @param {() => V[] | Iterable<V>} get_collection
  * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
  * @param {number} flags
+ * @param {(item: V) => K} [get_key]
  * @returns {void}
  */
-export function for_block(node, get_collection, render_fn, flags) {
+export function for_block(node, get_collection, render_fn, flags, get_key) {
 	var is_controlled = (flags & IS_CONTROLLED) !== 0;
 	var is_indexed = (flags & IS_INDEXED) !== 0;
+	var is_keyed = (flags & IS_KEYED) !== 0;
 	var anchor = /** @type {Element | Text} */ (node);
 
 	if (is_controlled) {
@@ -104,6 +107,9 @@ export function for_block(node, get_collection, render_fn, flags) {
 		var block = /** @type {Block} */ (active_block);
 		var collection = get_collection();
 		var array = collection_to_array(collection);
+		if (is_keyed) {
+			array = keyed(block, array, /** @type {(item: V) => K} */ (get_key));
+		}
 
 		untrack(() => {
 			reconcile(anchor, block, array, render_fn, is_controlled, is_indexed);
@@ -321,9 +327,9 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
 					if (j !== undefined) {
 						if (fast_path_removal) {
 							fast_path_removal = false;
-							// while (i > a_start) {
-							//     destroy_block(a[a_start++]);
-							// }
+							while (i > a_start) {
+								destroy_block(a[a_start++]);
+							}
 						}
 						sources[j - b_start] = i + 1;
 						if (pos > j) {
@@ -396,7 +402,7 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
 let result;
 /** @type {Int32Array} */
 let p;
-let maxLen = 0;
+let max_len = 0;
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
 /**
  * @param {Int32Array} arr
@@ -412,8 +418,8 @@ function lis_algorithm(arr) {
 	let c = 0;
 	var len = arr.length;
 
-	if (len > maxLen) {
-		maxLen = len;
+	if (len > max_len) {
+		max_len = len;
 		result = new Int32Array(len);
 		p = new Int32Array(len);
 	}
@@ -466,16 +472,12 @@ function lis_algorithm(arr) {
 /**
  * @template V
  * @template K
+ * @param {Block} block
  * @param {V[] | Iterable<V>} collection
  * @param {(item: V) => K} key_fn
  * @returns {V[]}
  */
-export function keyed(collection, key_fn) {
-	var block = active_block;
-	if (block === null || (block.f & FOR_BLOCK) === 0) {
-		throw new Error('keyed() must be used inside a for block');
-	}
-
+function keyed(block, collection, key_fn) {
 	var b_array = collection_to_array(collection);
 	var b_keys = b_array.map(key_fn);
 
@@ -492,10 +494,11 @@ export function keyed(collection, key_fn) {
 	}
 
 	var a_array = state.array;
+	var a_blocks = state.blocks;
 	var a_keys = a_array.map(key_fn);
 	var a = new Map();
 
-	for (let i = 0; i < a_keys.length; i++) {
+	for (var i = 0; i < a_keys.length; i++) {
 		a.set(a_keys[i], i);
 	}
 
@@ -503,8 +506,12 @@ export function keyed(collection, key_fn) {
 		throw new Error('Duplicate keys are not allowed');
 	}
 
-	for (let i = 0; i < b_keys.length; i++) {
+	for (var i = 0; i < b_keys.length; i++) {
 		var b_val = b_keys[i];
+		// if the index is the key, skip
+		if (b_val === i) {
+			continue;
+		}
 		var index = a.get(b_val);
 
 		if (index !== undefined) {

@@ -15,7 +15,7 @@
 
 Ripple is a TypeScript UI framework that takes the best parts of React, Solid and Svelte and combines them into one package.
 
-I wrote Ripple as a love letter for frontend web – and this is largely a project that I built in less than a week, so it's very raw.
+I wrote Ripple as a love letter for frontend web.
 
 Personally, I ([@trueadm](https://github.com/trueadm)) have been involved in some truly amazing frontend frameworks along their journeys – from [Inferno](https://github.com/infernojs/inferno), where it all began, to [React](https://github.com/facebook/react) and the journey of React Hooks, to creating [Lexical](https://github.com/facebook/lexical), to [Svelte 5](https://github.com/sveltejs/svelte) and its new compiler and signal-based reactivity runtime. Along that journey, I collected ideas, and intriguing thoughts that may or may not pay off. Given my time between roles, I decided it was the best opportunity to try them out, and for open source to see what I was cooking.
 
@@ -25,7 +25,8 @@ TypeScript and JSX, but with a few interesting touches. In my experience, this h
 
 ## Features
 
-- **Reactive State Management**: Built-in reactivity with `track` and `@` reactive syntax
+- **Reactive Primitives**: Built-in reactivity with `track` and `@` reactive syntax on primitives
+- **Reactive Objects**: You can create fully reactive arrays/objects using shorthand syntax `#[]` `#{}`
 - **Component-Based Architecture**: Clean, reusable components with props and children
 - **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
 - **Performance**: Fine-grain rendering, with industry-leading performance, bundle-size and memory usage

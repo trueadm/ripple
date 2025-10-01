@@ -1182,6 +1182,11 @@ function printForOfStatement(node, path, options, print) {
 		parts.push(path.call(print, 'index'));
 	}
 
+	if (node.key) {
+		parts.push('; key ');
+		parts.push(path.call(print, 'key'));
+	}
+
 	parts.push(') ');
 	parts.push(path.call(print, 'body'));
 
