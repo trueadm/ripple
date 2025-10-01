@@ -1,0 +1,22 @@
+{
+  "name": "typescript-plugin-ripple",
+  "description": "TypeScript plugin for Ripple",
+  "license": "MIT",
+  "author": "Dominic Gannaway",
+  "version": "0.0.0",
+  "main": "src/index.js",
+  "homepage": "https://ripplejs.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/typescript-plugin-ripple"
+  },
+  "bugs": {
+    "url": "https://github.com/trueadm/ripple/issues"
+  },
+  "dependencies": {
+    "@jridgewell/sourcemap-codec": "^1.5.5",
+    "@volar/language-core": "~2.4.23",
+    "@volar/typescript": "~2.4.23"
+  }
+}

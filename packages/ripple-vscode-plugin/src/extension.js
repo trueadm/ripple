@@ -5,6 +5,7 @@ const protocol = require('@volar/language-server/protocol');
 const lsp = require('vscode-languageclient/node');
 const { createLabsInfo, getTsdk } = require('@volar/vscode');
 
+const neededRestart = !patchTypeScriptExtension();
 let client;
 
 async function activate(context) {
@@ -86,7 +87,7 @@ async function activate(context) {
 		vscode.window.showErrorMessage(message)
 		return
 	}
-	
+
 	const runOptions = {
 		execArgv: [],
 		env: {
@@ -161,7 +162,7 @@ async function activate(context) {
 			serverOptions,
 			clientOptions,
 		);
-		
+
 		console.log("Starting language client...")
 		await client.start();
 		console.log("Language client started successfully")
@@ -250,6 +251,44 @@ async function deactivate() {
 	}
 }
 
+function patchTypeScriptExtension() {
+	const tsExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
+	if (tsExtension.isActive) {
+		return false;
+	}
+
+	const fs = require('node:fs');
+	const readFileSync = fs.readFileSync;
+	const extensionJsPath = require.resolve('./dist/extension.js', { paths: [tsExtension.extensionPath] });
+
+	fs.readFileSync = (...args) => {
+		if (args[0] === extensionJsPath) {
+			let text = readFileSync(...args);
+			// patch jsTsLanguageModes
+			text = text.replace(
+				't.jsTsLanguageModes=[t.javascript,t.javascriptreact,t.typescript,t.typescriptreact]',
+				s => s + '.concat("ripple")',
+			);
+			// patch isSupportedLanguageMode
+			text = text.replace(
+				'.languages.match([t.typescript,t.typescriptreact,t.javascript,t.javascriptreact]',
+				s => s + '.concat("ripple")',
+			);
+			return text;
+		}
+		return readFileSync(...args);
+	};
+
+	const loadedModule = require.cache[extensionJsPath];
+	if (loadedModule) {
+		delete require.cache[extensionJsPath];
+		const patchedModule = require(extensionJsPath);
+		Object.assign(loadedModule.exports, patchedModule);
+	}
+	return true;
+}
+
 module.exports = {
 	activate,
+	deactivate,
 };

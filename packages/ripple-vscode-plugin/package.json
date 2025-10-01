@@ -26,11 +26,15 @@
     "@volar/language-server": "~2.4.23",
     "@volar/typescript": "~2.4.23",
     "@volar/vscode": "~2.4.23",
+    "typescript-plugin-ripple": "workspace:*",
     "volar-service-typescript": "0.0.65",
     "vscode-languageclient": "^9.0.1",
     "vscode-uri": "^3.1.0"
   },
   "contributes": {
+    "activationEvents": [
+      "onLanguage"
+    ],
     "languages": [
       {
         "id": "ripple",
@@ -70,6 +74,56 @@
           "source.css": "css"
         }
       }
-    ]
+    ],
+    "typescriptServerPlugins": [
+      {
+        "name": "typescript-plugin-ripple",
+        "enableForWorkspaceTypeScriptVersions": true,
+        "configNamespace": "typescript",
+        "languages": [
+          "ripple"
+        ]
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "typescript.goToSourceDefinition",
+          "when": "tsSupportsSourceDefinition && resourceLangId == ripple",
+          "group": "navigation@9"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "typescript.findAllFileReferences",
+          "when": "tsSupportsFileReferences && resourceLangId == ripple",
+          "group": "4_search"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "typescript.findAllFileReferences",
+          "when": "tsSupportsFileReferences && resourceLangId == ripple"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "typescript.reloadProjects",
+          "when": "editorLangId == ripple && typescript.isManagedFile"
+        },
+        {
+          "command": "typescript.goToProjectConfig",
+          "when": "editorLangId == ripple && typescript.isManagedFile"
+        },
+        {
+          "command": "typescript.sortImports",
+          "when": "supportedCodeAction =~ /(\\s|^)source\\.sortImports\\b/ && editorLangId =~ /^ripple$/"
+        },
+        {
+          "command": "typescript.removeUnusedImports",
+          "when": "supportedCodeAction =~ /(\\s|^)source\\.removeUnusedImports\\b/ && editorLangId =~ /^ripple$/"
+        }
+      ]
+    }
   }
 }
