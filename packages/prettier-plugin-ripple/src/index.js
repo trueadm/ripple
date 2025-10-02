@@ -105,6 +105,7 @@ function printRippleNode(node, path, options, print, args) {
 		for (let i = 0; i < node.leadingComments.length; i++) {
 			const comment = node.leadingComments[i];
 			const nextComment = node.leadingComments[i + 1];
+			const isLastComment = i === node.leadingComments.length - 1;
 
 			if (comment.type === 'Line') {
 				parts.push('//' + comment.value);
@@ -114,6 +115,13 @@ function printRippleNode(node, path, options, print, args) {
 				if (nextComment) {
 					const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment, sourceText);
 					if (blankLinesBetween > 0) {
+						parts.push(hardline);
+					}
+				} else if (isLastComment) {
+					// Check if there should be a blank line between the last comment and the node
+					// Only add if there are 2+ blank lines (indicating intentional separation)
+					const blankLinesBetween = getWhitespaceLinesBetween(comment, node, sourceText);
+					if (blankLinesBetween > 1) {
 						parts.push(hardline);
 					}
 				}
@@ -126,6 +134,13 @@ function printRippleNode(node, path, options, print, args) {
 					if (nextComment) {
 						const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment, sourceText);
 						if (blankLinesBetween > 0) {
+							parts.push(hardline);
+						}
+					} else if (isLastComment) {
+						// Check if there should be a blank line between the last comment and the node
+						// Only add if there are 2+ blank lines (indicating intentional separation)
+						const blankLinesBetween = getWhitespaceLinesBetween(comment, node, sourceText);
+						if (blankLinesBetween > 1) {
 							parts.push(hardline);
 						}
 					}
@@ -195,24 +210,10 @@ function printRippleNode(node, path, options, print, args) {
 				}
 			}
 
-			// Preserve a single trailing newline if the source has trailing comment(s) followed by newline(s)
-			// This matches Prettier's standard behavior of preserving trailing newlines after comments
-			const sourceText = options.originalText || options.source;
-			if (sourceText && node.body.length > 0) {
-				const lastNode = node.body[node.body.length - 1];
-				// Check if last node has trailing comments
-				const hasTrailingComment = lastNode.trailingComments && lastNode.trailingComments.length > 0;
-
-				if (hasTrailingComment) {
-					// If there are trailing comments, check if source ends with newline
-					if (sourceText.endsWith('\n')) {
-						nodeContent = concat([...statements, hardline]);
-					} else {
-						nodeContent = concat(statements);
-					}
-				} else {
-					nodeContent = concat(statements);
-				}
+			// Prettier always adds a trailing newline to files
+			// Add it unless the code is completely empty
+			if (statements.length > 0) {
+				nodeContent = concat([...statements, hardline]);
 			} else {
 				nodeContent = concat(statements);
 			}
@@ -278,8 +279,11 @@ function printRippleNode(node, path, options, print, args) {
 
 			const elements = path.map(print, 'elements');
 
-			// Simple single-line for short arrays
-			if (elements.length <= 3) {
+			// Check if any element is an object expression (multi-line formatting)
+			const hasObjectElements = node.elements.some(el => el && el.type === 'ObjectExpression');
+
+			// Simple single-line for short arrays without object elements
+			if (elements.length <= 3 && !hasObjectElements) {
 				const parts = [prefix + '['];
 				for (let i = 0; i < elements.length; i++) {
 					if (i > 0) parts.push(', ');
@@ -290,19 +294,27 @@ function printRippleNode(node, path, options, print, args) {
 				break;
 			}
 
-			// Multi-line for longer arrays
+			// Multi-line for longer arrays or arrays with objects
+			const shouldUseTrailingComma = options.trailingComma !== 'none';
 			const parts = [prefix + '['];
-			parts.push(line);
+			const contentParts = [];
+
 			for (let i = 0; i < elements.length; i++) {
 				if (i > 0) {
-					parts.push(',');
-					parts.push(line);
+					contentParts.push(',');
+					contentParts.push(hardline);
 				}
-				parts.push(indent(elements[i]));
+				contentParts.push(elements[i]);
 			}
-			parts.push(line);
+
+			if (shouldUseTrailingComma) {
+				contentParts.push(',');
+			}
+
+			parts.push(indent([hardline, concat(contentParts)]));
+			parts.push(hardline);
 			parts.push(']');
-			nodeContent = parts;
+			nodeContent = group(parts);
 			break;
 		}
 
@@ -1292,6 +1304,11 @@ function printForOfStatement(node, path, options, print) {
 		parts.push(path.call(print, 'index'));
 	}
 
+	if (node.key) {
+		parts.push('; key ');
+		parts.push(path.call(print, 'key'));
+	}
+
 	parts.push(') ');
 	parts.push(path.call(print, 'body'));
 
@@ -1850,10 +1867,17 @@ function getWhitespaceLinesBetween(currentNode, nextNode, sourceText) {
 }
 
 function shouldAddBlankLine(currentNode, nextNode, sourceText) {
-	// Check if there was original whitespace between the nodes
-	const originalBlankLines = getWhitespaceLinesBetween(currentNode, nextNode, sourceText);
+	// If nextNode has leading comments, check whitespace between current node and first comment
+	// Otherwise check whitespace between current node and next node
+	let targetNode = nextNode;
+	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
+		targetNode = nextNode.leadingComments[0];
+	}
 
-	// If nextNode has leading comments and there were original blank lines, preserve one
+	// Check if there was original whitespace between the nodes
+	const originalBlankLines = getWhitespaceLinesBetween(currentNode, targetNode, sourceText);
+
+	// If nextNode has leading comments, only add blank line if there was one originally
 	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
 		if (originalBlankLines > 0) {
 			return true;
@@ -2064,7 +2088,26 @@ function printProperty(node, path, options, print) {
 	}
 
 	const parts = [];
-	parts.push(path.call(print, 'key'));
+
+	// Handle property key - if it's a Literal (quoted string in source),
+	// check if it needs quotes or can be unquoted
+	if (node.key.type === 'Literal' && typeof node.key.value === 'string') {
+		// Check if the key is a valid identifier that doesn't need quotes
+		const key = node.key.value;
+		const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
+
+		if (isValidIdentifier) {
+			// Don't quote valid identifiers
+			parts.push(key);
+		} else {
+			// Quote keys that need it (e.g., contain special characters)
+			parts.push(formatStringLiteral(key, options));
+		}
+	} else {
+		// For computed properties or non-literal keys, print normally
+		parts.push(path.call(print, 'key'));
+	}
+
 	parts.push(': ');
 	parts.push(path.call(print, 'value'));
 	return concat(parts);

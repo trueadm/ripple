@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext"],
+    "noEmitOnError": true,
+    "noErrorTruncation": true,
+    "strict": true,
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "types": ["vitest/globals"]
+  },
+  "include": ["./*.js", "./src/", "vitest-extensions.d.ts"]
+}

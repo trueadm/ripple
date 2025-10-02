@@ -32,10 +32,6 @@ import type {
 	Pattern,
 } from 'estree';
 
-export interface CompileResult {
-	// TODO
-}
-
 /**
  * Parse error information
  */

@@ -43,12 +43,16 @@
 }
 
 div.VPContent {
-	margin-top: -20px !important;
+	margin-top: -7px !important;
 }
 
 /* Playground */
 body:has(.main-playground) {
 	overflow: hidden;
+}
+
+body:has(.main-playground) .VPNavBar .divider-line {
+	background-color: var(--vp-c-gutter);
 }
 
 body:has(.main-playground) .VPFooter {
@@ -71,5 +75,5 @@ body:has(.main-playground) .VPFooter {
 }
 
 .main-playground .VPMenu {
-	max-height: calc(100dvh - 98px);
+	max-height: calc(100dvh - 110px);
 }

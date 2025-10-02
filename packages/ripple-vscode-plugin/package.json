@@ -41,6 +41,10 @@
         "extensions": [
           ".ripple"
         ],
+        "icon": {
+          "light": "icons/logo.png",
+          "dark": "icons/logo.png"
+        },
         "configuration": "./language-configuration.json"
       }
     ],
