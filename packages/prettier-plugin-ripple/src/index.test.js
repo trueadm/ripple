@@ -943,5 +943,59 @@ try {
 			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('properly formats components markup and new lines and leaves one new line between components and <style> if one or more exits', async () => {
+			const input = `export component App() {
+  <div>
+    <RowList rows={#[{id: 'a'}, {id: 'b'}, {id: 'c'}]}>
+      component Row({id, index, isHighlighted = (index) => (index % 2) === 0}) {
+        <div class={{highlighted: isHighlighted(index)}}>{index}{' - '}{id}</div>
+
+        <style>
+          .highlighted {
+            background-color: lightgray;
+            color: black;
+          }
+        </style>
+      }
+    </RowList>
+  </div>
+}
+
+component RowList({ rows, Row }) {
+  for (const { id } of rows; index i;) {
+    <Row index={i} {id} />
+  }
+}`;
+
+			const expected = `export component App() {
+  <div>
+    <RowList rows={#[{id: 'a'}, {id: 'b'}, {id: 'c'}]}>
+      component Row({ id, index, isHighlighted = (index) => index % 2 === 0 }) {
+        <div class={{highlighted: isHighlighted(index)}}>
+          {index}
+          {' - '}
+          {id}
+        </div>
+
+        <style>
+          .highlighted {
+            background-color: lightgray;
+            color: black;
+          }
+        </style>
+      }
+    </RowList>
+  </div>
+}
+
+component RowList({ rows, Row }) {
+  for (const { id } of rows; index i) {
+    <Row index={i} {id} />
+  }
+}`;
+			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 });
