@@ -5,12 +5,12 @@
  * } from '#compiler' */
 
 import * as acorn from 'acorn';
-import { tsPlugin } from 'acorn-typescript';
+import { tsPlugin } from '@sveltejs/acorn-typescript';
 import { parse_style } from './style.js';
 import { walk } from 'zimmerframe';
 import { regex_newline_characters } from '../../../utils/patterns.js';
 
-const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
+const parser = acorn.Parser.extend(tsPlugin({ jsx: true }), RipplePlugin());
 
 /**
  * Convert JSX node types to regular JavaScript node types
