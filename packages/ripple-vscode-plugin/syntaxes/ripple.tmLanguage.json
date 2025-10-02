@@ -2930,8 +2930,8 @@
 					"match": "await"
 				},
 				{
-					"name": "meta.for-of-with-key-only.ripple",
-					"match": "\\(\\s*(let|const|var)\\s+([_$[:alpha:]][_$[:alnum:]]*)\\s+(of)\\s+([^;]+)\\s*;\\s*(key)\\s+([^)]+)\\s*\\)",
+					"name": "meta.for-of-ripple",
+					"match": "\\(\\s*(let|const|var)\\s+([_$[:alpha:]][_$[:alnum:]]*)\\s+(of)\\s+([^;]+?)\\s*;\\s*(?:(index)\\s+([_$[:alpha:]][_$[:alnum:]]*)(?:\\s*;\\s*(key)\\s+([^)]+?))?|(key)\\s+([^)]+?))\\s*\\)",
 					"captures": {
 						"1": {
 							"name": "storage.type.js"
@@ -2940,31 +2940,7 @@
 							"name": "variable.other.readwrite.js"
 						},
 						"3": {
-							"name": "keyword.operator.of.js"
-						},
-						"4": {
-							"name": "variable.other.object.js"
-						},
-						"5": {
-							"name": "keyword.keyword.key.ripple"
-						},
-						"6": {
-							"name": "variable.other.object.js"
-						}
-					}
-				},
-				{
-					"name": "meta.for-of-with-index.ripple",
-					"match": "\\(\\s*(let|const|var)\\s+([_$[:alpha:]][_$[:alnum:]]*)\\s+(of)\\s+([^;]+)\\s*;\\s*(index)\\s+([_$[:alpha:]][_$[:alnum:]]*)(?:\\s*;\\s*(key)\\s+([^)]+))?\\s*\\)",
-					"captures": {
-						"1": {
-							"name": "storage.type.js"
-						},
-						"2": {
-							"name": "variable.other.readwrite.js"
-						},
-						"3": {
-							"name": "keyword.operator.of.js"
+							"name": "keyword.operator.expression.of.js"
 						},
 						"4": {
 							"name": "variable.other.object.js"
@@ -2979,6 +2955,12 @@
 							"name": "keyword.keyword.key.ripple"
 						},
 						"8": {
+							"name": "variable.other.object.js"
+						},
+						"9": {
+							"name": "keyword.keyword.key.ripple"
+						},
+						"10": {
 							"name": "variable.other.object.js"
 						}
 					}

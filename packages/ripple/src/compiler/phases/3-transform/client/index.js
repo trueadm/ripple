@@ -1052,7 +1052,9 @@ const visitors = {
 						),
 					),
 					b.literal(flags),
-					key != null ? b.arrow(index ? [pattern, index] : [pattern], context.visit(key)) : undefined,
+					key != null
+						? b.arrow(index ? [pattern, index] : [pattern], context.visit(key))
+						: undefined,
 				),
 			),
 		);
@@ -1401,6 +1403,9 @@ function transform_ts_child(node, context) {
 			...context,
 			state: { ...context.state, scope: body_scope },
 		});
+		if (node.key) {
+			block_body.unshift(b.stmt(visit(node.key)));
+		}
 		if (node.index) {
 			block_body.unshift(b.let(visit(node.index), b.literal(0)));
 		}
