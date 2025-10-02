@@ -2324,8 +2324,66 @@ function printCSSBlock(node, path, options, print) {
 function printElement(node, path, options, print, sourceText) {
 	const tagName = node.id.name;
 
+	// Check if any children have leading comments that are actually at the element's level
+	// (i.e., comments that appear before the element in the source code)
+	const elementLevelCommentParts = [];
+	let originalLeadingComments = null;
+	
+	if (node.children && node.children.length > 0 && node.children[0].leadingComments) {
+		const firstChild = node.children[0];
+		if (firstChild.leadingComments) {
+			const elementLevelComments = [];
+			for (let i = 0; i < firstChild.leadingComments.length; i++) {
+				const comment = firstChild.leadingComments[i];
+				// For elements, all leading comments on the first child that appear before
+				// the element's opening tag should be treated as element-level comments.
+				// This is because comments truly inside an element would be after the opening tag.
+				let isBeforeElement = true; // Default to true for safety
+				
+				// Only set to false if we can confirm the comment is AFTER the element starts
+				if (typeof comment.start === 'number' && typeof node.start === 'number') {
+					isBeforeElement = comment.start < node.start;
+				} else if (comment.loc && node.loc) {
+					isBeforeElement = comment.loc.start.line <= node.loc.start.line;
+				}
+				
+				if (isBeforeElement) {
+					elementLevelComments.push(comment);
+					
+					// Manually format the comment for printing
+					if (comment.type === 'Line') {
+						elementLevelCommentParts.push('//' + comment.value);
+						elementLevelCommentParts.push(hardline);
+					} else if (comment.type === 'Block') {
+						elementLevelCommentParts.push('/*' + comment.value + '*/');
+						elementLevelCommentParts.push(hardline);
+					}
+				}
+			}
+			
+			// If we found element-level comments, temporarily remove them from the child
+			if (elementLevelComments.length > 0) {
+				originalLeadingComments = firstChild.leadingComments;
+				firstChild.leadingComments = originalLeadingComments.filter(
+					c => !elementLevelComments.includes(c)
+				);
+				if (firstChild.leadingComments.length === 0) {
+					firstChild.leadingComments = undefined;
+				}
+			}
+		}
+	}
+
 	if (!node.attributes || node.attributes.length === 0) {
 		if (node.selfClosing || !node.children || node.children.length === 0) {
+			// Restore original comments before returning
+			if (originalLeadingComments && node.children && node.children[0]) {
+				node.children[0].leadingComments = originalLeadingComments;
+			}
+			// Prepend element-level comments if any
+			if (elementLevelCommentParts.length > 0) {
+				return concat([...elementLevelCommentParts, group(['<', tagName, ' />'])]);
+			}
 			return group(['<', tagName, ' />']);
 		}
 
@@ -2359,29 +2417,53 @@ function printElement(node, path, options, print, sourceText) {
 			}
 		}
 
+		// Restore original comments after printing
+		if (originalLeadingComments && node.children && node.children[0]) {
+			node.children[0].leadingComments = originalLeadingComments;
+		}
+
+		// Build the element output
+		let elementOutput;
+		
 		// For single simple children, try to keep on one line
 		if (finalChildren.length === 1) {
 			const child = finalChildren[0];
 			if (typeof child === 'string' && child.length < 20) {
 				// Single line with short content
-				return group(['<', tagName, '>', child, '</', tagName, '>']);
+				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
+			} else if (child && typeof child === 'object') {
+				// For JSX expressions, always try single line if simple
+				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
+			} else {
+				elementOutput = group([
+					'<',
+					tagName,
+					'>',
+					indent(concat([hardline, ...finalChildren])),
+					hardline,
+					'</',
+					tagName,
+					'>',
+				]);
 			}
-			// For JSX expressions, always try single line if simple
-			if (child && typeof child === 'object') {
-				return group(['<', tagName, '>', child, '</', tagName, '>']);
-			}
+		} else {
+			elementOutput = group([
+				'<',
+				tagName,
+				'>',
+				indent(concat([hardline, ...finalChildren])),
+				hardline,
+				'</',
+				tagName,
+				'>',
+			]);
 		}
-
-		return group([
-			'<',
-			tagName,
-			'>',
-			indent(concat([hardline, ...finalChildren])),
-			hardline,
-			'</',
-			tagName,
-			'>',
-		]);
+		
+		// Prepend element-level comments if any
+		if (elementLevelCommentParts.length > 0) {
+			return concat([...elementLevelCommentParts, elementOutput]);
+		}
+		return elementOutput;
 	}
 
 	const openingTag = group([
@@ -2398,6 +2480,14 @@ function printElement(node, path, options, print, sourceText) {
 	]);
 
 	if (node.selfClosing || !node.children || node.children.length === 0) {
+		// Restore original comments before returning
+		if (originalLeadingComments && node.children && node.children[0]) {
+			node.children[0].leadingComments = originalLeadingComments;
+		}
+		// Prepend element-level comments if any
+		if (elementLevelCommentParts.length > 0) {
+			return concat([...elementLevelCommentParts, openingTag]);
+		}
 		return openingTag;
 	}
 
@@ -2439,23 +2529,39 @@ function printElement(node, path, options, print, sourceText) {
 		}
 	}
 
+	// Restore original comments after printing
+	if (originalLeadingComments && node.children && node.children[0]) {
+		node.children[0].leadingComments = originalLeadingComments;
+	}
+
 	const closingTag = concat(['</', tagName, '>']);
 
+	// Build the element output
+	let elementOutput;
+	
 	// For single simple children, try to keep on one line
 	if (finalChildren.length === 1) {
 		const child = finalChildren[0];
 		if (typeof child === 'string' && child.length < 20) {
 			// Single line
-			return group([openingTag, child, closingTag]);
+			elementOutput = group([openingTag, child, closingTag]);
+		} else if (child && typeof child === 'object') {
+			// For JSX expressions, always try single line
+			elementOutput = group([openingTag, child, closingTag]);
+		} else {
+			// Multi-line
+			elementOutput = group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 		}
-		// For JSX expressions, always try single line
-		if (child && typeof child === 'object') {
-			return group([openingTag, child, closingTag]);
-		}
+	} else {
+		// Multi-line
+		elementOutput = group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 	}
-
-	// Multi-line
-	return group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
+	
+	// Prepend element-level comments if any
+	if (elementLevelCommentParts.length > 0) {
+		return concat([...elementLevelCommentParts, elementOutput]);
+	}
+	return elementOutput;
 }
 
 function printAttribute(node, path, options, print) {
