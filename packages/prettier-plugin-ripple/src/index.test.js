@@ -892,5 +892,56 @@ try {
 			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('correctly formats array of objects and keys as either literals or identifiers', async () => {
+			const input = `const tt = [
+  {
+    "id": "toast:2",
+    "stacked": false,
+  },
+  {
+    "id": "toast:3",
+    "stacked": false,
+  },
+  {
+    "id": "toast:4",
+    "stacked": false,
+  },
+  {
+    "id-literal": "toast:5",
+    "stacked": false,
+  },
+  {
+    "id": "toast:6",
+    "stacked": false,
+  }
+];`;
+
+			const expected = `const tt = [
+  {
+    id: 'toast:2',
+    stacked: false,
+  },
+  {
+    id: 'toast:3',
+    stacked: false,
+  },
+  {
+    id: 'toast:4',
+    stacked: false,
+  },
+  {
+    'id-literal': 'toast:5',
+    stacked: false,
+  },
+  {
+    id: 'toast:6',
+    stacked: false,
+  },
+];`;
+
+			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 });
