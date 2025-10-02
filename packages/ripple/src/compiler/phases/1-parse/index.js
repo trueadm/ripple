@@ -260,46 +260,6 @@ function RipplePlugin(config) {
 			}
 
 			/**
-			 * Override parsePropertyValue to handle generic method shorthand
-			 * @param {any} prop - Property node
-			 * @param {any} isPattern - Whether in pattern context
-			 * @param {any} isGenerator - Whether generator
-			 * @param {any} isAsync - Whether async
-			 * @param {any} startPos - Start position
-			 * @param {any} startLoc - Start location
-			 * @param {any} refDestructuringErrors - Destructuring errors
-			 * @returns {any} Property value
-			 */
-			parsePropertyValue(prop, isPattern, isGenerator, isAsync, startPos, startLoc, refDestructuringErrors) {
-				// Check if this looks like a generic method: identifier followed by <
-				// This handles method shorthand syntax like: { method<T>() { ... } }
-				if (!isPattern && !isGenerator && !isAsync && this.type === tt.relational && this.value === '<') {
-					// We're at the < after a property name, this is likely a generic method
-					// Manually parse the type parameters and then the method
-					const typeParamStart = this.pos;
-
-					// Skip to the matching >
-					let depth = 1;
-					let pos = this.pos + 1;
-					while (pos < this.input.length && depth > 0) {
-						const ch = this.input.charCodeAt(pos);
-						if (ch === 60) depth++; // <
-						else if (ch === 62) depth--; // >
-						pos++;
-					}
-
-					// Move parser position past the type parameters
-					this.pos = pos;
-					this.next(); // Move to next token after >
-
-					// Now parse as a regular method
-					return super.parsePropertyValue(prop, isPattern, isGenerator, isAsync, startPos, startLoc, refDestructuringErrors);
-				}
-
-				return super.parsePropertyValue(prop, isPattern, isGenerator, isAsync, startPos, startLoc, refDestructuringErrors);
-			}
-
-			/**
 			 * Parse expression atom - handles TrackedArray and TrackedObject literals and generic arrow functions
 			 * @param {any} [refDestructuringErrors]
 			 * @param {any} [forNew]
@@ -314,19 +274,8 @@ function RipplePlugin(config) {
 					return this.parseTrackedObjectExpression();
 				}
 
-				// Check for generic arrow function: <T>() =>
-				// This is needed because TypeScript requires <T,>() when JSX is enabled
-				// We manually parse <T>() to support it without the trailing comma
-				const tokTypes = this.acornTypeScript?.tokTypes;
-				if (tokTypes && this.type === tokTypes.jsxTagStart) {
-					const ahead = this.input.slice(this.pos);
-					const genericArrowPattern = /^[A-Z][a-zA-Z0-9_$]*\s*,?\s*>\s*\(/;
-
-					if (genericArrowPattern.test(ahead)) {
-						// This is a generic arrow function - manually parse it
-						return this.parseGenericArrowFunction();
-					}
-				}
+				// Generic arrow functions are now handled by preprocessing (adding trailing comma)
+				// No need for custom parsing that can corrupt parser state
 
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
 			}
@@ -1494,11 +1443,64 @@ function get_comment_handlers(source, comments, index = 0) {
 export function parse(source) {
 	/** @type {CommentWithLocation[]} */
 	const comments = [];
-	const { onComment, add_comments } = get_comment_handlers(source, comments);
+
+	// Preprocess step 1: Add trailing commas to single-parameter generic arrow functions
+	// Transform `<T>() =>` to `<T,>() =>` to work around JSX/TS ambiguity
+	let preprocessedSource = source.replace(
+		/(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(\s*\)\s*=>/g,
+		'$1,>() =>'
+	);
+
+	// Preprocess step 2: Add trailing commas to class method generics
+	// Transform `method<T>(` to `method<T,>(` for class methods
+	// We need to add commas for class methods but NOT convert them to function syntax
+	preprocessedSource = preprocessedSource.replace(
+		/(\w+)(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(/g,
+		(match, methodName, generic, offset) => {
+			// Check if we're inside a class
+			const before = preprocessedSource.substring(Math.max(0, offset - 500), offset);
+			const classMatch = before.match(/\bclass\s+\w+[^{]*\{[^}]*$/);
+
+			if (classMatch) {
+				// Inside a class - just add comma
+				return `${methodName}${generic},>(`;
+			}
+			// Not in class, return unchanged for now (step 3 will handle object literals)
+			return match;
+		}
+	);
+
+	// Preprocess step 3: Convert generic method shorthand in object literals to function property syntax
+	// Transform `method<T>(...): ReturnType { body }` to `method: function<T,>(...): ReturnType { body }`
+	// This only applies to object literal methods, not class methods
+	preprocessedSource = preprocessedSource.replace(
+		/(\w+)(<[A-Z][a-zA-Z0-9_$,\s]*>)\s*\(([^)]*)\)(\s*:\s*[^{]+)?(\s*\{)/g,
+		(match, methodName, generics, params, returnType, brace, offset) => {
+			// Look backward to determine context
+			let checkPos = offset - 1;
+			while (checkPos >= 0 && /\s/.test(preprocessedSource[checkPos])) checkPos--;
+			const prevChar = preprocessedSource[checkPos];
+
+			// Check if we're inside a class
+			const before = preprocessedSource.substring(Math.max(0, offset - 500), offset);
+			const classMatch = before.match(/\bclass\s+\w+[^{]*\{[^}]*$/);
+
+			// Only transform if we're in an object literal context AND not inside a class
+			if ((prevChar === '{' || prevChar === ',') && !classMatch) {
+				// This is object literal method shorthand - convert to function property
+				// Add trailing comma if not already present
+				const fixedGenerics = generics.includes(',') ? generics : generics.replace('>', ',>');
+				return `${methodName}: function${fixedGenerics}(${params})${returnType || ''}${brace}`;
+			}
+			return match;
+		}
+	);
+
+	const { onComment, add_comments } = get_comment_handlers(preprocessedSource, comments);
 	let ast;
 
 	try {
-		ast = parser.parse(source, {
+		ast = parser.parse(preprocessedSource, {
 			sourceType: 'module',
 			ecmaVersion: 13,
 			locations: true,
