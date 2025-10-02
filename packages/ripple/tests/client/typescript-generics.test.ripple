@@ -197,7 +197,7 @@ describe('generic patterns', () => {
 				render(App);
 			})
 
-			it ('tests complex generic arrow function with return type', () => {
+			it ('tests most complex generic arrow function with return type', () => {
 				component App() {
 					function getBuilder() {
 						return <T>() => ({
