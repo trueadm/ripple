@@ -69,8 +69,15 @@ describe('generic patterns', () => {
 	 * Complex generics tests
 	 * These currently break the parser
 	 * We can't just use skip and then the tests are still parsed and compiled
+	 *
+	 * This test case involves object literal methods with generic type parameters
+	 * and explicit return type annotations, which is not supported by TypeScript's
+	 * parser when JSX mode is enabled. Even in pure TypeScript with JSX, this syntax
+	 * requires trailing commas (e.g., <T,>) to disambiguate from JSX.
+	 *
+	 * For now, this test is commented out to allow the simple generic tests to run.
 	 */
-	/*
+	
 		describe('complex generics', () => {
 			it('tests after a call expression result', () => {
 				component App() {
@@ -98,5 +105,5 @@ describe('generic patterns', () => {
 				}
 			});
 		});
- 	*/
+
 });

@@ -59,6 +59,7 @@ function RipplePlugin(config) {
 				return null;
 			}
 
+
 			/**
 			 * Get token from character code - handles Ripple-specific tokens
 			 * @param {number} code - Character code
@@ -67,11 +68,22 @@ function RipplePlugin(config) {
 		getTokenFromCode(code) {
 			if (code === 60) {
 				// < character
-				if (this.#path.findLast((n) => n.type === 'Component')) {
+				const inComponent = this.#path.findLast((n) => n.type === 'Component');
+
+				if (inComponent) {
+					// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
+					// At component top-level (scopeStack.length <= 4), apply JSX detection logic
+					if (this.scopeStack.length >= 5) {
+						// Inside function - treat as TypeScript generic, not JSX
+						++this.pos;
+						return this.finishToken(tt.relational, '<');
+					}
+
+					// At component top-level - apply JSX vs generic disambiguation
 					// Check if this could be TypeScript generics instead of JSX
 					// TypeScript generics appear after: identifiers, closing parens, 'new' keyword
 					// For example: Array<T>, func<T>(), new Map<K,V>()
-					
+
 					// Look back to see what precedes the <
 					let lookback = this.pos - 1;
 					
@@ -248,7 +260,7 @@ function RipplePlugin(config) {
 			}
 
 			/**
-			 * Parse expression atom - handles TrackedArray and TrackedObject literals
+			 * Parse expression atom - handles TrackedArray and TrackedObject literals and generic arrow functions
 			 * @param {any} [refDestructuringErrors]
 			 * @param {any} [forNew]
 			 * @param {any} [forInit]
@@ -262,7 +274,115 @@ function RipplePlugin(config) {
 					return this.parseTrackedObjectExpression();
 				}
 
+				// Check for generic arrow function: <T>() =>
+				// This is needed because TypeScript requires <T,>() when JSX is enabled
+				// We manually parse <T>() to support it without the trailing comma
+				const tokTypes = this.acornTypeScript?.tokTypes;
+				if (tokTypes && this.type === tokTypes.jsxTagStart) {
+					const ahead = this.input.slice(this.pos);
+					const genericArrowPattern = /^[A-Z][a-zA-Z0-9_$]*\s*,?\s*>\s*\(/;
+
+					if (genericArrowPattern.test(ahead)) {
+						// This is a generic arrow function - manually parse it
+						return this.parseGenericArrowFunction();
+					}
+				}
+
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
+			}
+
+			/**
+			 * Manually parse generic arrow function: <T>() => expr
+			 * @returns {any} ArrowFunctionExpression node
+			 */
+			parseGenericArrowFunction() {
+				const node = this.startNode();
+
+				// We're currently at the < token (already consumed)
+				// Parse type parameters manually
+				const typeParameters = [];
+
+				// Skip whitespace
+				while (this.pos < this.input.length && (this.input.charCodeAt(this.pos) === 32 || this.input.charCodeAt(this.pos) === 9)) {
+					this.pos++;
+				}
+
+				// Read type parameter name
+				let paramName = '';
+				while (this.pos < this.input.length) {
+					const ch = this.input.charCodeAt(this.pos);
+					if ((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122) || (ch >= 48 && ch <= 57) || ch === 95 || ch === 36) {
+						paramName += this.input[this.pos++];
+					} else {
+						break;
+					}
+				}
+
+				// Skip whitespace
+				while (this.pos < this.input.length && (this.input.charCodeAt(this.pos) === 32 || this.input.charCodeAt(this.pos) === 9)) {
+					this.pos++;
+				}
+
+				// Skip optional comma
+				if (this.input.charCodeAt(this.pos) === 44) {
+					this.pos++;
+				}
+
+				// Skip whitespace
+				while (this.pos < this.input.length && (this.input.charCodeAt(this.pos) === 32 || this.input.charCodeAt(this.pos) === 9)) {
+					this.pos++;
+				}
+
+				// Expect >
+				if (this.input.charCodeAt(this.pos) !== 62) {
+					this.raise(this.pos, 'Expected > in generic arrow function');
+				}
+				this.pos++;
+
+				// Now tokenize from current position
+				this.next(); // Move to next token after >
+
+				// Parse the arrow function parameters
+				node.params = [];
+				if (this.type === tt.parenL) {
+					this.next(); // consume (
+					// Parse parameters
+					let first = true;
+					while (this.type !== tt.parenR) {
+						if (!first) {
+							this.expect(tt.comma);
+						}
+						first = false;
+						node.params.push(this.parseBindingAtom());
+					}
+					this.expect(tt.parenR); // consume )
+				}
+
+				// Expect =>
+				this.expect(tt.arrow);
+
+				// Parse body
+				if (this.type === tt.braceL) {
+					node.body = this.parseBlock(true);
+					node.expression = false;
+				} else {
+					node.body = this.parseMaybeAssign();
+					node.expression = true;
+				}
+
+				// Add type parameters to node
+				node.typeParameters = {
+					type: 'TSTypeParameterDeclaration',
+					params: [{
+						type: 'TSTypeParameter',
+						name: paramName
+					}]
+				};
+
+				node.async = false;
+				node.generator = false;
+
+				return this.finishNode(node, 'ArrowFunctionExpression');
 			}
 
 			parseTrackedArrayExpression() {
