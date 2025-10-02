@@ -51,7 +51,7 @@ export {
 
 export { composite } from './composite.js';
 
-export { for_block as for } from './for.js';
+export { for_block as for, for_block_keyed as for_keyed } from './for.js';
 
 export { if_block as if } from './if.js';
 
