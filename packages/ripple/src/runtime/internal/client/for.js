@@ -1,6 +1,6 @@
-/** @import { Block, Tracked } from '#client' */
+/** @import { Block } from '#client' */
 
-import { IS_CONTROLLED, IS_INDEXED, IS_KEYED } from '../../../constants.js';
+import { IS_CONTROLLED, IS_INDEXED } from '../../../constants.js';
 import { branch, destroy_block, destroy_block_children, render } from './blocks.js';
 import { FOR_BLOCK, TRACKED_ARRAY } from './constants.js';
 import { create_text, next_sibling } from './operations.js';
@@ -69,19 +69,46 @@ function move(block, anchor) {
 /**
  * @template V
  * @param {V[] | Iterable<V>} collection
- * @param {boolean} clone
  * @returns {V[]}
  */
-function collection_to_array(collection, clone) {
+function collection_to_array(collection) {
 	var array = is_array(collection) ? collection : collection == null ? [] : array_from(collection);
 
 	// If we are working with a tracked array, then we need to get a copy of
 	// the elements, as the array itself is proxied, and not useful in diffing
-	if (clone || TRACKED_ARRAY in array) {
+	if (TRACKED_ARRAY in array) {
 		array = array_from(array);
 	}
 
 	return array;
+}
+
+/**
+ * @template V
+ * @param {Element} node
+ * @param {() => V[] | Iterable<V>} get_collection
+ * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {number} flags
+ * @returns {void}
+ */
+export function for_block(node, get_collection, render_fn, flags) {
+	var is_controlled = (flags & IS_CONTROLLED) !== 0;
+	var is_indexed = (flags & IS_INDEXED) !== 0;
+	var anchor = /** @type {Element | Text} */ (node);
+
+	if (is_controlled) {
+		anchor = node.appendChild(create_text());
+	}
+
+	render(() => {
+		var block = /** @type {Block} */ (active_block);
+		var collection = get_collection();
+		var array = collection_to_array(collection);
+
+		untrack(() => {
+			reconcile_by_ref(anchor, block, array, render_fn, is_controlled, is_indexed);
+		});
+	}, FOR_BLOCK);
 }
 
 /**
@@ -94,10 +121,9 @@ function collection_to_array(collection, clone) {
  * @param {(item: V) => K} [get_key]
  * @returns {void}
  */
-export function for_block(node, get_collection, render_fn, flags, get_key) {
+export function for_block_keyed(node, get_collection, render_fn, flags, get_key) {
 	var is_controlled = (flags & IS_CONTROLLED) !== 0;
 	var is_indexed = (flags & IS_INDEXED) !== 0;
-	var is_keyed = (flags & IS_KEYED) !== 0;
 	var anchor = /** @type {Element | Text} */ (node);
 
 	if (is_controlled) {
@@ -107,13 +133,18 @@ export function for_block(node, get_collection, render_fn, flags, get_key) {
 	render(() => {
 		var block = /** @type {Block} */ (active_block);
 		var collection = get_collection();
-		var array = collection_to_array(collection, is_keyed);
-		if (is_keyed) {
-			array = keyed(block, array, /** @type {(item: V) => K} */ (get_key));
-		}
+		var array = collection_to_array(collection);
 
 		untrack(() => {
-			reconcile(anchor, block, array, render_fn, is_controlled, is_indexed);
+			reconcile_by_key(
+				anchor,
+				block,
+				array,
+				render_fn,
+				is_controlled,
+				is_indexed,
+				/** @type {(item: V) => K} */ (get_key),
+			);
 		});
 	}, FOR_BLOCK);
 }
@@ -146,15 +177,17 @@ function update_index(block, index) {
 
 /**
  * @template V
+ * @template K
  * @param {Element | Text} anchor
  * @param {Block} block
  * @param {V[]} b
  * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
  * @param {boolean} is_controlled
  * @param {boolean} is_indexed
+ * @param {(item: V) => K} get_key
  * @returns {void}
  */
-function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
+function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed, get_key) {
 	var state = block.s;
 
 	// Variables used in conditional branches - declare with initial values
@@ -181,6 +214,275 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
 		state = block.s = {
 			array: [],
 			blocks: [],
+			keys: null,
+		};
+	}
+
+	var a = state.array;
+	var a_length = a.length;
+	var b_length = b.length;
+	var j = 0;
+
+	// Fast-path for clear
+	if (is_controlled && b_length === 0) {
+		if (a_length > 0) {
+			reconcile_fast_clear(anchor, block, b);
+		}
+		return;
+	}
+	var b_blocks = Array(b_length);
+	var b_keys = b.map(get_key);
+
+	// Fast-path for create
+	if (a_length === 0) {
+		for (; j < b_length; j++) {
+			b_blocks[j] = create_item(anchor, b[j], j, render_fn, is_indexed);
+		}
+		state.array = b;
+		state.blocks = b_blocks;
+		state.keys = b_keys;
+		return;
+	}
+
+	var a_blocks = state.blocks;
+	var a_keys = state.keys;
+	var a_val = a[j];
+	var b_val = b[j];
+	var a_key = a_keys[j];
+	var b_key = b_keys[j];
+	var a_end = a_length - 1;
+	var b_end = b_length - 1;
+	var b_block;
+
+	outer: {
+		while (a_key === b_key) {
+			a[j] = b_val;
+			b_block = b_blocks[j] = a_blocks[j];
+			if (is_indexed) {
+				update_index(b_block, j);
+			}
+			++j;
+			if (j > a_end || j > b_end) {
+				break outer;
+			}
+			a_val = a[j];
+			b_val = b[j];
+		}
+
+		a_val = a[a_end];
+		b_val = b[b_end];
+		a_key = a_keys[a_end];
+		b_key = b_keys[b_end];
+
+		while (a_key === b_key) {
+			a[a_end] = b_val;
+			b_block = b_blocks[b_end] = a_blocks[a_end];
+			if (is_indexed) {
+				update_index(b_block, b_end);
+			}
+			a_end--;
+			b_end--;
+			if (j > a_end || j > b_end) {
+				break outer;
+			}
+			a_val = a[a_end];
+			b_val = b[b_end];
+			a_key = a_keys[a_end];
+			b_key = b_keys[b_end];
+		}
+	}
+
+	var fast_path_removal = false;
+
+	if (j > a_end) {
+		if (j <= b_end) {
+			while (j <= b_end) {
+				b_val = b[j];
+				var target = j >= a_length ? anchor : a_blocks[j].s.start;
+				b_blocks[j] = create_item(target, b_val, j, render_fn, is_indexed);
+				j++;
+			}
+		}
+	} else if (j > b_end) {
+		while (j <= a_end) {
+			destroy_block(a_blocks[j++]);
+		}
+	} else {
+		a_start = j;
+		b_start = j;
+		a_left = a_end - j + 1;
+		b_left = b_end - j + 1;
+		sources = new Int32Array(b_left + 1);
+		moved = false;
+		pos = 0;
+		patched = 0;
+		i = 0;
+
+		fast_path_removal = is_controlled && a_left === a_length;
+
+		// When sizes are small, just loop them through
+		if (b_length < 4 || (a_left | b_left) < 32) {
+			for (i = a_start; i <= a_end; ++i) {
+				a_val = a[i];
+				a_key = a_keys[i];
+				if (patched < b_left) {
+					for (j = b_start; j <= b_end; j++) {
+						b_val = b[j];
+						b_key = b_keys[j];
+						if (a_key === b_key) {
+							sources[j - b_start] = i + 1;
+							if (fast_path_removal) {
+								fast_path_removal = false;
+								while (a_start < i) {
+									destroy_block(a_blocks[a_start++]);
+								}
+							}
+							if (pos > j) {
+								moved = true;
+							} else {
+								pos = j;
+							}
+							b_block = b_blocks[j] = a_blocks[i];
+							if (is_indexed) {
+								update_index(b_block, j);
+							}
+							++patched;
+							break;
+						}
+					}
+					if (!fast_path_removal && j > b_end) {
+						destroy_block(a_blocks[i]);
+					}
+				} else if (!fast_path_removal) {
+					destroy_block(a_blocks[i]);
+				}
+			}
+		} else {
+			var map = new Map();
+
+			for (i = b_start; i <= b_end; ++i) {
+				map.set(b_keys[i], i);
+			}
+
+			for (i = a_start; i <= a_end; ++i) {
+				a_val = a[i];
+				a_key = a_keys[i];
+
+				if (patched < b_left) {
+					j = map.get(a_key);
+
+					if (j !== undefined) {
+						if (fast_path_removal) {
+							fast_path_removal = false;
+							while (i > a_start) {
+								destroy_block(a[a_start++]);
+							}
+						}
+						sources[j - b_start] = i + 1;
+						if (pos > j) {
+							moved = true;
+						} else {
+							pos = j;
+						}
+						block = b_blocks[j] = a_blocks[i];
+						if (is_indexed) {
+							update_index(block, j);
+						}
+						++patched;
+					} else if (!fast_path_removal) {
+						destroy_block(a_blocks[i]);
+					}
+				} else if (!fast_path_removal) {
+					destroy_block(a_blocks[i]);
+				}
+			}
+		}
+	}
+
+	if (fast_path_removal) {
+		reconcile_fast_clear(anchor, block, []);
+		reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed, get_key);
+		return;
+	} else if (moved) {
+		var next_pos = 0;
+		var seq = lis_algorithm(sources);
+		j = seq.length - 1;
+
+		for (i = b_left - 1; i >= 0; i--) {
+			if (sources[i] === 0) {
+				pos = i + b_start;
+				b_val = b[pos];
+				next_pos = pos + 1;
+
+				var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
+				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed);
+			} else if (j < 0 || i !== seq[j]) {
+				pos = i + b_start;
+				b_val = b[pos];
+				next_pos = pos + 1;
+
+				var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
+				move(b_blocks[pos], target);
+			} else {
+				j--;
+			}
+		}
+	} else if (patched !== b_left) {
+		for (i = b_left - 1; i >= 0; i--) {
+			if (sources[i] === 0) {
+				pos = i + b_start;
+				b_val = b[pos];
+				next_pos = pos + 1;
+
+				var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
+				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed);
+			}
+		}
+	}
+
+	state.array = b;
+	state.blocks = b_blocks;
+	state.keys = b_keys;
+}
+
+/**
+ * @template V
+ * @param {Element | Text} anchor
+ * @param {Block} block
+ * @param {V[]} b
+ * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {boolean} is_controlled
+ * @param {boolean} is_indexed
+ * @returns {void}
+ */
+function reconcile_by_ref(anchor, block, b, render_fn, is_controlled, is_indexed) {
+	var state = block.s;
+
+	// Variables used in conditional branches - declare with initial values
+	/** @type {number} */
+	var a_start = 0;
+	/** @type {number} */
+	var b_start = 0;
+	/** @type {number} */
+	var a_left = 0;
+	/** @type {number} */
+	var b_left = 0;
+	/** @type {Int32Array} */
+	var sources = new Int32Array(0);
+	/** @type {boolean} */
+	var moved = false;
+	/** @type {number} */
+	var pos = 0;
+	/** @type {number} */
+	var patched = 0;
+	/** @type {number} */
+	var i = 0;
+
+	if (state === null) {
+		state = block.s = {
+			array: [],
+			blocks: [],
+			keys: null,
 		};
 	}
 
@@ -338,7 +640,6 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
 						} else {
 							pos = j;
 						}
-						b_val = b[j];
 						block = b_blocks[j] = a_blocks[i];
 						if (is_indexed) {
 							update_index(block, j);
@@ -356,7 +657,7 @@ function reconcile(anchor, block, b, render_fn, is_controlled, is_indexed) {
 
 	if (fast_path_removal) {
 		reconcile_fast_clear(anchor, block, []);
-		reconcile(anchor, block, b, render_fn, is_controlled, is_indexed);
+		reconcile_by_ref(anchor, block, b, render_fn, is_controlled, is_indexed);
 		return;
 	} else if (moved) {
 		var next_pos = 0;
@@ -468,56 +769,4 @@ function lis_algorithm(arr) {
 	}
 
 	return seq;
-}
-
-/**
- * @template V
- * @template K
- * @param {Block} block
- * @param {V[]} b_array
- * @param {(item: V) => K} key_fn
- * @returns {V[]}
- */
-function keyed(block, b_array, key_fn) {
-	var b_keys = b_array.map(key_fn);
-
-	// We only need to do this in DEV
-	var b = new Set(b_keys);
-	if (b.size !== b_keys.length) {
-		throw new Error('Duplicate keys are not allowed');
-	}
-
-	var state = block.s;
-
-	if (state === null) {
-		// Make a clone of it so we don't mutate the original thereafter
-		return b_array;
-	}
-
-	var a_array = state.array;
-	var a_keys = a_array.map(key_fn);
-	var a = new Map();
-
-	for (var i = 0; i < a_keys.length; i++) {
-		a.set(a_keys[i], i);
-	}
-
-	if (a.size !== a_keys.length) {
-		throw new Error('Duplicate keys are not allowed');
-	}
-
-	for (var i = 0; i < b_keys.length; i++) {
-		var b_val = b_keys[i];
-		// if the index is the key, skip
-		if (b_val === i) {
-			continue;
-		}
-		var index = a.get(b_val);
-
-		if (index !== undefined) {
-			b_array[i] = a_array[index];
-		}
-	}
-
-	return b_array;
 }

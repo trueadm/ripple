@@ -198,6 +198,46 @@ exports[`for statements > correctly handles the index in a for...of loop 3`] = `
 </div>
 `;
 
+exports[`for statements > handles reversing an array manually 1`] = `
+<div>
+  <!---->
+  <div>
+    0:Item 1
+  </div>
+  <div>
+    1:Item 2
+  </div>
+  <div>
+    2:Item 3
+  </div>
+  <!---->
+  <button>
+    Reverse
+  </button>
+  
+</div>
+`;
+
+exports[`for statements > handles reversing an array manually 2`] = `
+<div>
+  <!---->
+  <div>
+    0:Item 3
+  </div>
+  <div>
+    1:Item 2
+  </div>
+  <div>
+    2:Item 1
+  </div>
+  <!---->
+  <button>
+    Reverse
+  </button>
+  
+</div>
+`;
+
 exports[`for statements > render a simple dynamic array 1`] = `
 <div>
   <!---->

@@ -144,4 +144,39 @@ describe('for statements', () => {
 
 		expect(container).toMatchSnapshot();
 	});
+
+	it('handles reversing an array manually', () => {
+		component App() {
+			let items = track([
+				#{ id: 1, text: 'Item 1' },
+				#{ id: 2, text: 'Item 2' },
+				#{ id: 3, text: 'Item 3' },
+			]);
+
+			for (let item of @items; index i; key item.id) {
+				<div>{i + ':' + item.text}</div>
+			}
+
+			<button onClick={() => {
+				@items[0].id = 3;
+				@items[1].id = 2;
+				@items[2].id = 1;
+
+				@items = [
+					@items[0],
+					@items[1],
+					@items[2],
+				];
+			}}>{"Reverse"}</button>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(container).toMatchSnapshot();
+	})
 });

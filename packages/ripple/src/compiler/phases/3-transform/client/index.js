@@ -11,7 +11,6 @@ import {
 	TEMPLATE_FRAGMENT,
 	TEMPLATE_SVG_NAMESPACE,
 	TEMPLATE_MATHML_NAMESPACE,
-	IS_KEYED,
 } from '../../../../constants.js';
 import { sanitize_template_string } from '../../../../utils/sanitize_template_string.js';
 import {
@@ -1027,9 +1026,6 @@ const visitors = {
 		if (index != null) {
 			flags |= IS_INDEXED;
 		}
-		if (key != null) {
-			flags |= IS_KEYED;
-		}
 
 		// do only if not controller
 		if (!is_controlled) {
@@ -1039,12 +1035,11 @@ const visitors = {
 		const id = context.state.flush_node(is_controlled);
 		const pattern = node.left.declarations[0].id;
 		const body_scope = context.state.scopes.get(node.body);
-		const is_keyed = key && (flags & IS_KEYED) !== 0;
 
 		context.state.init.push(
 			b.stmt(
 				b.call(
-					'_$_.for',
+					key != null ? '_$_.for_keyed' : '_$_.for',
 					id,
 					b.thunk(context.visit(node.right)),
 					b.arrow(
@@ -1057,7 +1052,7 @@ const visitors = {
 						),
 					),
 					b.literal(flags),
-					is_keyed ? b.arrow(index ? [pattern, index] : [pattern], context.visit(key)) : undefined,
+					key != null ? b.arrow(index ? [pattern, index] : [pattern], context.visit(key)) : undefined,
 				),
 			),
 		);
