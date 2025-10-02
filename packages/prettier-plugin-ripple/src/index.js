@@ -280,6 +280,9 @@ function printRippleNode(node, path, options, print, args) {
 			// Check if any element is an object expression
 			const hasObjectElements = node.elements.some(el => el && el.type === 'ObjectExpression');
 
+			// Check if this array is inside an attribute
+			const isInAttribute = args && args.isInAttribute;
+
 			// For arrays of simple objects with only a few properties, try to keep compact
 			if (hasObjectElements) {
 				// Check if all objects are simple (2 properties or less)
@@ -290,9 +293,9 @@ function printRippleNode(node, path, options, print, args) {
 
 				// If all are simple objects, try single-line format
 				if (allSimpleObjects && node.elements.length <= 3) {
-					// Print with isInArray context
+					// Print with appropriate context - isInAttribute takes precedence over isInArray
 					const elements = path.map((elPath) => {
-						return print(elPath, { isInArray: true });
+						return print(elPath, isInAttribute ? { isInAttribute: true } : { isInArray: true });
 					}, 'elements');
 
 					const parts = [prefix + '['];
@@ -306,8 +309,16 @@ function printRippleNode(node, path, options, print, args) {
 				}
 			}
 
-			// Default printing without special context
-			const elements = path.map(print, 'elements');			// Simple single-line for short arrays without object elements
+			// Default printing - pass isInArray or isInAttribute context
+			const elements = path.map((elPath) => {
+				if (isInAttribute) {
+					return print(elPath, { isInAttribute: true });
+				} else {
+					return print(elPath, { isInArray: hasObjectElements });
+				}
+			}, 'elements');
+
+			// Simple single-line for short arrays without object elements
 			if (elements.length <= 3 && !hasObjectElements) {
 				const parts = [prefix + '['];
 				for (let i = 0; i < elements.length; i++) {
@@ -1411,20 +1422,33 @@ function printObjectExpression(node, path, options, print, args) {
 	const isInArray = args && args.isInArray;
 	const isInAttribute = args && args.isInAttribute;
 	const isSimple = node.properties.length <= 2;
+	// Only 1-property objects are considered very simple for compact formatting
+	const isVerySimple = node.properties.length === 1;
 
 	// Use AST builders and respect trailing commas
 	const properties = path.map(print, 'properties');
 	const shouldUseTrailingComma = options.trailingComma !== 'none' && properties.length > 0;
 
-	// For simple objects in arrays or attributes, try inline format
-	if ((isInArray || isInAttribute) && isSimple) {
-		const parts = ['{'];
-		for (let i = 0; i < properties.length; i++) {
-			if (i > 0) parts.push(', ');
-			parts.push(properties[i]);
+	// For arrays: very simple (1-prop) objects can be inline, 2-prop objects always multiline
+	// For attributes: force inline for simple objects
+	if (isSimple && (isInArray || isInAttribute)) {
+		if (isInArray) {
+			if (isVerySimple) {
+				// 1-property objects: force inline with spaces
+				return concat(['{', ' ', properties[0], ' ', '}']);
+			}
+			// 2-property objects: let normal formatting handle it (will be multiline)
+			// Fall through to default multiline formatting below
+		} else {
+			// For attributes, force inline without spaces
+			const parts = ['{'];
+			for (let i = 0; i < properties.length; i++) {
+				if (i > 0) parts.push(', ');
+				parts.push(properties[i]);
+			}
+			parts.push('}');
+			return concat(parts);
 		}
-		parts.push('}');
-		return group(parts);
 	}
 
 	let content = [hardline];
