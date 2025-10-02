@@ -65,88 +65,88 @@ function RipplePlugin(config) {
 			 * @param {number} code - Character code
 			 * @returns {any} Token or calls super method
 			 */
-		getTokenFromCode(code) {
-			if (code === 60) {
-				// < character
-				const inComponent = this.#path.findLast((n) => n.type === 'Component');
+			getTokenFromCode(code) {
+				if (code === 60) {
+					// < character
+					const inComponent = this.#path.findLast((n) => n.type === 'Component');
 
-				// Check if this could be TypeScript generics instead of JSX
-				// TypeScript generics appear after: identifiers, closing parens, 'new' keyword
-				// For example: Array<T>, func<T>(), new Map<K,V>(), method<T>()
-				// This check applies everywhere, not just inside components
+					// Check if this could be TypeScript generics instead of JSX
+					// TypeScript generics appear after: identifiers, closing parens, 'new' keyword
+					// For example: Array<T>, func<T>(), new Map<K,V>(), method<T>()
+					// This check applies everywhere, not just inside components
 
-				// Look back to see what precedes the <
-				let lookback = this.pos - 1;
+					// Look back to see what precedes the <
+					let lookback = this.pos - 1;
 
-				// Skip whitespace backwards
-				while (lookback >= 0) {
-					const ch = this.input.charCodeAt(lookback);
-					if (ch !== 32 && ch !== 9) break; // not space or tab
-					lookback--;
-				}
-
-				// Check what character/token precedes the <
-				if (lookback >= 0) {
-					const prevChar = this.input.charCodeAt(lookback);
-
-					// If preceded by identifier character (letter, digit, _, $) or closing paren,
-					// this is likely TypeScript generics, not JSX
-					const isIdentifierChar =
-						(prevChar >= 65 && prevChar <= 90) ||  // A-Z
-						(prevChar >= 97 && prevChar <= 122) || // a-z
-						(prevChar >= 48 && prevChar <= 57) ||  // 0-9
-						prevChar === 95 ||  // _
-						prevChar === 36 ||  // $
-						prevChar === 41;    // )
-
-					if (isIdentifierChar) {
-						return super.getTokenFromCode(code);
-					}
-				}
-
-				if (inComponent) {
-					// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
-					// At component top-level (scopeStack.length <= 4), apply JSX detection logic
-					if (this.scopeStack.length >= 5) {
-						// Inside function - treat as TypeScript generic, not JSX
-						++this.pos;
-						return this.finishToken(tt.relational, '<');
+					// Skip whitespace backwards
+					while (lookback >= 0) {
+						const ch = this.input.charCodeAt(lookback);
+						if (ch !== 32 && ch !== 9) break; // not space or tab
+						lookback--;
 					}
 
-					// Check if everything before this position on the current line is whitespace
-					let lineStart = this.pos - 1;
-					while (
-						lineStart >= 0 &&
-						this.input.charCodeAt(lineStart) !== 10 &&
-						this.input.charCodeAt(lineStart) !== 13
-					) {
-						lineStart--;
-					}
-					lineStart++; // Move past the newline character
+					// Check what character/token precedes the <
+					if (lookback >= 0) {
+						const prevChar = this.input.charCodeAt(lookback);
 
-					// Check if all characters from line start to current position are whitespace
-					let allWhitespace = true;
-					for (let i = lineStart; i < this.pos; i++) {
-						const ch = this.input.charCodeAt(i);
-						if (ch !== 32 && ch !== 9) {
-							allWhitespace = false;
-							break;
+						// If preceded by identifier character (letter, digit, _, $) or closing paren,
+						// this is likely TypeScript generics, not JSX
+						const isIdentifierChar =
+							(prevChar >= 65 && prevChar <= 90) ||  // A-Z
+							(prevChar >= 97 && prevChar <= 122) || // a-z
+							(prevChar >= 48 && prevChar <= 57) ||  // 0-9
+							prevChar === 95 ||  // _
+							prevChar === 36 ||  // $
+							prevChar === 41;    // )
+
+						if (isIdentifierChar) {
+							return super.getTokenFromCode(code);
 						}
 					}
 
-					// Check if the character after < is not whitespace
-					if (allWhitespace && this.pos + 1 < this.input.length) {
-						const nextChar = this.input.charCodeAt(this.pos + 1);
-						if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
-							const tokTypes = this.acornTypeScript.tokTypes;
+					if (inComponent) {
+						// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
+						// At component top-level (scopeStack.length <= 4), apply JSX detection logic
+						if (this.scopeStack.length >= 5) {
+							// Inside function - treat as TypeScript generic, not JSX
 							++this.pos;
-							return this.finishToken(tokTypes.jsxTagStart);
+							return this.finishToken(tt.relational, '<');
+						}
+
+						// Check if everything before this position on the current line is whitespace
+						let lineStart = this.pos - 1;
+						while (
+							lineStart >= 0 &&
+							this.input.charCodeAt(lineStart) !== 10 &&
+							this.input.charCodeAt(lineStart) !== 13
+						) {
+							lineStart--;
+						}
+						lineStart++; // Move past the newline character
+
+						// Check if all characters from line start to current position are whitespace
+						let allWhitespace = true;
+						for (let i = lineStart; i < this.pos; i++) {
+							const ch = this.input.charCodeAt(i);
+							if (ch !== 32 && ch !== 9) {
+								allWhitespace = false;
+								break;
+							}
+						}
+
+						// Check if the character after < is not whitespace
+						if (allWhitespace && this.pos + 1 < this.input.length) {
+							const nextChar = this.input.charCodeAt(this.pos + 1);
+							if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
+								const tokTypes = this.acornTypeScript.tokTypes;
+								++this.pos;
+								return this.finishToken(tokTypes.jsxTagStart);
+							}
 						}
 					}
 				}
-			}
 
-			if (code === 35) {
+				if (code === 35) {
 					// # character
 					// Look ahead to see if this is followed by [ for tuple syntax
 					if (this.pos + 1 < this.input.length) {
@@ -703,7 +703,7 @@ function RipplePlugin(config) {
 						var t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
-								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+							this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
 					case tok.jsxTagStart:
@@ -755,7 +755,7 @@ function RipplePlugin(config) {
 					chunkStart = this.pos;
 				const tok = this.acornTypeScript.tokTypes;
 
-				for (;;) {
+				for (; ;) {
 					if (this.pos >= this.input.length) this.raise(this.start, 'Unterminated JSX contents');
 					let ch = this.input.charCodeAt(this.pos);
 
@@ -868,14 +868,14 @@ function RipplePlugin(config) {
 							this.raise(
 								this.pos,
 								'Unexpected token `' +
-									this.input[this.pos] +
-									'`. Did you mean `' +
-									(ch === 62 ? '&gt;' : '&rbrace;') +
-									'` or ' +
-									'`{"' +
-									this.input[this.pos] +
-									'"}' +
-									'`?',
+								this.input[this.pos] +
+								'`. Did you mean `' +
+								(ch === 62 ? '&gt;' : '&rbrace;') +
+								'` or ' +
+								'`{"' +
+								this.input[this.pos] +
+								'"}' +
+								'`?',
 							);
 						}
 
@@ -1275,7 +1275,7 @@ function get_comment_handlers(source, comments, index = 0) {
 
 			comments = comments
 				.filter((comment) => comment.start >= index)
-				.map(({ type, value, start, end }) => ({ type, value, start, end }));
+				.map(({ type, value, start, end, loc }) => ({ type, value, start, end, loc }));
 
 			walk(ast, null, {
 				_(node, { next, path }) {
@@ -1409,12 +1409,6 @@ export function parse(source) {
 	}
 
 	add_comments(ast);
-
-	// Attach preprocessed source for prettier to use (only if we actually preprocessed)
-	// Prettier needs this because node locations refer to the preprocessed source
-	if (sourceChanged) {
-		ast.__preprocessedSource = preprocessedSource;
-	}
 
 	return /** @type {Program} */ (ast);
 }

@@ -342,25 +342,33 @@ describe('composite components', () => {
 			// Ambiguous generics vs JSX / less-than parsing scenarios
 
 			// // 7. Generic following optional chaining
-			// const maybe = {};
-			// const g = maybe?.factory<number>()?.make<boolean>();
+			const maybe = {
+				factory<T>() {
+					return {
+						make<U>() {
+							return 1;
+						}
+					};
+				}
+			};
+			const g = maybe?.factory<number>()?.make<boolean>();
 
 			// // 8. Comparison operator (ensure '<' here NOT misparsed as generics)
-			// let x = 10, y = 20;
-			// const h = x < y ? 'lt' : 'ge';
+			let x = 10, y = 20;
+			const h = x < y ? 'lt' : 'ge';
 
 			// // 9. Chained comparisons with intervening generics
-			// class Box<T> {
-			// 	value: T;
-			// 	constructor(value?: T) {
-			// 		this.value = value;
-			// 	}
-			// 	open<U>() {
-			// 		return new Box<U>();
-			// 	}
-			// }
-			// const limit = 100;
-			// const i = new Box<number>().value < limit ? 'ok' : 'no';
+			class Box<T> {
+				value: T;
+				constructor(value?: T) {
+					this.value = value;
+				}
+				open<U>() {
+					return new Box<U>();
+				}
+			}
+			const limit = 100;
+			const i = new Box<number>().value < limit ? 'ok' : 'no';
 
 			// 10. JSX / Element should still work
 			<div class="still-works">
@@ -401,16 +409,16 @@ describe('composite components', () => {
 			const m: Extractor = (v) => v.id;
 
 			// // 15. Generic in angle after "new" + trailing call
-			// class Wrapper<T> {
-			// 	value: T;
-			// 	constructor() {
-			// 		this.value = null as unknown as T;
-			// 	}
-			// 	unwrap<U>() {
-			// 		return null as unknown as U;
-			// 	}
-			// }
-			// const n = new Wrapper<number>().unwrap<string>();
+			class Wrapper<T> {
+				value: T;
+				constructor() {
+					this.value = null as unknown as T;
+				}
+				unwrap<U>() {
+					return null as unknown as U;
+				}
+			}
+			const n = new Wrapper<number>().unwrap<string>();
 
 			// // 16. Angle brackets inside type assertion vs generic call
 			// function getUnknown(): unknown {
@@ -427,40 +435,40 @@ describe('composite components', () => {
 			// const o = (raw as Map<string, number>).get('a');
 
 			// // 17. Generic with comma + trailing less-than comparison on next token
-			// class Pair<T1, T2> {
-			// 	first: T1;
-			// 	second: T2;
-			// 	constructor() {
-			// 		this.first = null as unknown as T1;
-			// 		this.second = null as unknown as T2;
-			// 	}
-			// }
-			// const p = new Pair<number, string>();
-			// const q = 1 < 2 ? p : null;
+			class Pair<T1, T2> {
+				first: T1;
+				second: T2;
+				constructor() {
+					this.first = null as unknown as T1;
+					this.second = null as unknown as T2;
+				}
+			}
+			const p = new Pair<number, string>();
+			const q = 1 < 2 ? p : null;
 
 			// // 18. Nested generics with line breaks resembling JSX indentation
-			// interface Node<T> {
-			// 	value: T;
-			// }
-			// interface Edge<W> {
-			// 	weight: W;
-			// }
-			// class Graph<N, E> {
-			// 	nodes: N[];
-			// 	edges: E[];
-			// 	constructor() {
-			// 		this.nodes = [];
-			// 		this.edges = [];
-			// 	}
-			// }
-			// const r = new Graph<
-			// 	Node<string>,
-			// 	Edge<number>
-			// >();
+			interface Node<T> {
+				value: T;
+			}
+			interface Edge<W> {
+				weight: W;
+			}
+			class Graph<N, E> {
+				nodes: N[];
+				edges: E[];
+				constructor() {
+					this.nodes = [];
+					this.edges = [];
+				}
+			}
+			const r = new Graph<
+				Node<string>,
+				Edge<number>
+			>();
 
 			// // 19. Ternary containing generics in both branches
-			// let flag = true;
-			// const s = flag ? new Box<number>() : new Box<string>();
+			let flag = true;
+			const s = flag ? new Box<number>() : new Box<string>();
 
 			// 20. Generic inside template expression
 			const t = `length=${new TrackedArray<number>().length}`;
@@ -473,7 +481,7 @@ describe('composite components', () => {
 			// function make<T>() {
 			// 	return (value: T) => value;
 			// }
-			// const v = make<number>()('done');
+			// const v = make<number>()(10);
 
 			// // 23. Generic followed by tagged template (ensure not confused with JSX)
 			// function tagFn<T>(strings: TemplateStringsArray, ...values: T[]) {
@@ -493,7 +501,7 @@ describe('composite components', () => {
 			// Additional component focusing on edge crankers
 
 			// // 28. Generic after parenthesized new expression
-			// const aa = (new Box<number>()).open<string>();
+			const aa = (new Box<number>()).open<string>();
 
 			// // 29. Generic chain right after closing paren of IIFE
 			// class Builder<Kind> {
@@ -518,27 +526,22 @@ describe('composite components', () => {
 
 
 			// // 32. Generic with comments inside angle list
-			// class Mapper<Key, Value> {
-			// 	map: Map<Key, Value>;
-			// 	constructor() {
-			// 		this.map = new Map<Key, Value>();
-			// 	}
-			// }
-			// const gg = new Mapper<
-			// 	// key type
-			// 	string,
-			// 	/* value type */
-			// 	number
-			// >();
+			class Mapper<Key, Value> {
+				map: Map<Key, Value>;
+				constructor() {
+					this.map = new Map<Key, Value>();
+				}
+			}
+			const gg = new Mapper<
+				// key type
+				string,
+				/* value type */
+				number
+			>();
 
 			// // 33. Map of generic instance as key
-			// const mm = new Map<TrackedArray<number>, TrackedArray<string>>();
-
-			// // 34. Inline assertion then generic call
-
-			// const asserted = (getUnknown() as Factory).create<number>();
+			const mm = new Map<TrackedArray<number>, TrackedArray<string>>();
 		}
-
 
 		render(App);
 	});

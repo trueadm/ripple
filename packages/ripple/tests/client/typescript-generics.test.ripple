@@ -65,165 +65,149 @@ describe('generic patterns', () => {
 		render(App);
 	});
 
-	/**
-	 * Complex generics tests
-	 * These currently break the parser
-	 * We can't just use skip and then the tests are still parsed and compiled
-	 *
-	 * This test case involves object literal methods with generic type parameters
-	 * and explicit return type annotations, which is not supported by TypeScript's
-	 * parser when JSX mode is enabled. Even in pure TypeScript with JSX, this syntax
-	 * requires trailing commas (e.g., <T,>) to disambiguate from JSX.
-	 *
-	 * For now, this test is commented out to allow the simple generic tests to run.
-	 */
-	
-		describe('complex generics', () => {
-			it ('tests simple generic function with return type', () => {
-				component App() {
-					function getBuilder() {
+	it ('tests simple generic function with return type', () => {
+		component App() {
+			function getBuilder() {
+				return {
+					build: function<T>() { return 'test' }
+				}
+			}
+		}
+
+		render(App);
+	})
+
+	it ('tests simple generic function with return type and no arrow function', () => {
+		component App() {
+			function getBuilder() {
+				return {
+					build<T>() { return 'test' }
+				}
+			}
+
+			<div class="still-works">
+				<span>{'Test'}</span>
+			</div>
+
+			const f = getBuilder().build<string>();
+		}
+
+		render(App);
+	})
+
+	it ('tests simple generic arrow function with return type', () => {
+		component App() {
+			function getBuilder() {
+				return <T>() => ({
+					build<U>() { return 'test' }
+				})
+			}
+
+			<div class="still-works">
+				<span>{'Test'}</span>
+			</div>
+
+			type ResultType = string;
+			const f = getBuilder()<ResultType>().build<string>();
+			<div>{f}</div>
+		}
+
+		render(App);
+	})
+
+	it ('tests simple generic arrow function with explicit return type', () => {
+		component App() {
+			function getBuilder() {
+				return <T>() => ({
+					build<U>(): U { return 'test' }
+				})
+			}
+
+			<div class="still-works">
+				<span>{'Test'}</span>
+			</div>
+
+			type ResultType = string;
+			const f = getBuilder()<ResultType>().build<string>();
+			<div>{f}</div>
+		}
+
+		render(App);
+	})
+
+	it ('tests complex generic arrow function with return type', () => {
+		component App() {
+			function getBuilder() {
+				return <T>() => ({
+					build<U>(): { build: <V>() => V; data: T; key: U } {
+						return 'test';
+					}
+				})
+			}
+
+			<div class="still-works">
+				<span>{'Test'}</span>
+			</div>
+
+			type ResultType = string;
+			const f = getBuilder()<ResultType>().build<string>();
+			<div>{f}</div>
+		}
+
+		render(App);
+	})
+
+	it ('tests more complex generic arrow function with return type', () => {
+		component App() {
+			function getBuilder() {
+				return <T>() => ({
+					build<U>(): { build: <V>() => V; data: T; key: U } {
 						return {
-							build: function<T>() { return 'test' }
-						}
+							build<V>(): V {
+								return 'test' as V;
+							}
+						};
 					}
-				}
+				});
+			}
 
-				render(App);
-			})
+			<div class="still-works">
+				<span>{'Test'}</span>
+			</div>
 
-			it ('tests simple generic function with return type and no arrow function', () => {
-				component App() {
-					function getBuilder() {
+			type ResultType = string;
+			const f = getBuilder()<ResultType>().build<string>();
+			<div>{f}</div>
+		}
+
+		render(App);
+	})
+
+	it ('tests most complex generic arrow function with return type', () => {
+		component App() {
+			function getBuilder() {
+				return <T>() => ({
+					build<U>(): { build: <V>() => V; data: T; key: U } {
 						return {
-							build<T>() { return 'test' }
-						}
+							build<V>(): V {
+								return 42 as V;
+							},
+							data: undefined as T,
+							key: undefined as U
+						};
 					}
+				});
+			}
 
-					<div class="still-works">
-						<span>{'Test'}</span>
-					</div>
+			<div class="still-works">
+				<span>{'Test'}</span>
+			</div>
 
-					const f = getBuilder().build<string>();
-				}
+			type ResultType = string;
+			const f = getBuilder()<ResultType>().build<string>();
+			<div>{f}</div>
+		}
 
-				render(App);
-			})
-
-			it ('tests simple generic arrow function with return type', () => {
-				component App() {
-					function getBuilder() {
-						return <T>() => ({
-							build<U>() { return 'test' }
-						})
-					}
-
-					<div class="still-works">
-						<span>{'Test'}</span>
-					</div>
-
-					type ResultType = string;
-					const f = getBuilder()<ResultType>().build<string>();
-					<div>{f}</div>
-				}
-
-				render(App);
-			})
-
-			it ('tests simple generic arrow function with explicit return type', () => {
-				component App() {
-					function getBuilder() {
-						return <T>() => ({
-							build<U>(): U { return 'test' }
-						})
-					}
-
-					<div class="still-works">
-						<span>{'Test'}</span>
-					</div>
-
-					type ResultType = string;
-					const f = getBuilder()<ResultType>().build<string>();
-					<div>{f}</div>
-				}
-
-				render(App);
-			})
-
-			it ('tests complex generic arrow function with return type', () => {
-				component App() {
-					function getBuilder() {
-						return <T>() => ({
-							build<U>(): { build: <V>() => V; data: T; key: U } {
-								return 'test';
-							}
-						})
-					}
-
-					<div class="still-works">
-						<span>{'Test'}</span>
-					</div>
-
-					type ResultType = string;
-					const f = getBuilder()<ResultType>().build<string>();
-					<div>{f}</div>
-				}
-
-				render(App);
-			})
-
-			it ('tests more complex generic arrow function with return type', () => {
-				component App() {
-					function getBuilder() {
-						return <T>() => ({
-							build<U>(): { build: <V>() => V; data: T; key: U } {
-								return {
-									build<V>(): V {
-										return 'test' as V;
-									}
-								};
-							}
-						});
-					}
-
-					<div class="still-works">
-						<span>{'Test'}</span>
-					</div>
-
-					type ResultType = string;
-					const f = getBuilder()<ResultType>().build<string>();
-					<div>{f}</div>
-				}
-
-				render(App);
-			})
-
-			it ('tests most complex generic arrow function with return type', () => {
-				component App() {
-					function getBuilder() {
-						return <T>() => ({
-							build<U>(): { build: <V>() => V; data: T; key: U } {
-								return {
-									build<V>(): V {
-										return 42 as V;
-									},
-									data: undefined as T,
-									key: undefined as U
-								};
-							}
-						});
-					}
-
-					<div class="still-works">
-						<span>{'Test'}</span>
-					</div>
-
-					type ResultType = string;
-					const f = getBuilder()<ResultType>().build<string>();
-					<div>{f}</div>
-				}
-
-				render(App);
-			})
-		});
-
+		render(App);
+	})
 });
