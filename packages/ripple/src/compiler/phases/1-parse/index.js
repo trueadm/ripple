@@ -64,44 +64,77 @@ function RipplePlugin(config) {
 			 * @param {number} code - Character code
 			 * @returns {any} Token or calls super method
 			 */
-			getTokenFromCode(code) {
-				if (code === 60) {
-					// < character
-					if (this.#path.findLast((n) => n.type === 'Component')) {
-						// Check if everything before this position on the current line is whitespace
-						let lineStart = this.pos - 1;
-						while (
-							lineStart >= 0 &&
-							this.input.charCodeAt(lineStart) !== 10 &&
-							this.input.charCodeAt(lineStart) !== 13
-						) {
-							lineStart--;
+		getTokenFromCode(code) {
+			if (code === 60) {
+				// < character
+				if (this.#path.findLast((n) => n.type === 'Component')) {
+					// Check if this could be TypeScript generics instead of JSX
+					// TypeScript generics appear after: identifiers, closing parens, 'new' keyword
+					// For example: Array<T>, func<T>(), new Map<K,V>()
+					
+					// Look back to see what precedes the <
+					let lookback = this.pos - 1;
+					
+					// Skip whitespace backwards
+					while (lookback >= 0) {
+						const ch = this.input.charCodeAt(lookback);
+						if (ch !== 32 && ch !== 9) break; // not space or tab
+						lookback--;
+					}
+					
+					// Check what character/token precedes the <
+					if (lookback >= 0) {
+						const prevChar = this.input.charCodeAt(lookback);
+						
+						// If preceded by identifier character (letter, digit, _, $) or closing paren,
+						// this is likely TypeScript generics, not JSX
+						const isIdentifierChar = 
+							(prevChar >= 65 && prevChar <= 90) ||  // A-Z
+							(prevChar >= 97 && prevChar <= 122) || // a-z
+							(prevChar >= 48 && prevChar <= 57) ||  // 0-9
+							prevChar === 95 ||  // _
+							prevChar === 36 ||  // $
+							prevChar === 41;    // )
+						
+						if (isIdentifierChar) {
+							return super.getTokenFromCode(code);
 						}
-						lineStart++; // Move past the newline character
+					}
+					
+					// Check if everything before this position on the current line is whitespace
+					let lineStart = this.pos - 1;
+					while (
+						lineStart >= 0 &&
+						this.input.charCodeAt(lineStart) !== 10 &&
+						this.input.charCodeAt(lineStart) !== 13
+					) {
+						lineStart--;
+					}
+					lineStart++; // Move past the newline character
 
-						// Check if all characters from line start to current position are whitespace
-						let allWhitespace = true;
-						for (let i = lineStart; i < this.pos; i++) {
-							const ch = this.input.charCodeAt(i);
-							if (ch !== 32 && ch !== 9) {
-								allWhitespace = false;
-								break;
-							}
+					// Check if all characters from line start to current position are whitespace
+					let allWhitespace = true;
+					for (let i = lineStart; i < this.pos; i++) {
+						const ch = this.input.charCodeAt(i);
+						if (ch !== 32 && ch !== 9) {
+							allWhitespace = false;
+							break;
 						}
+					}
 
-						// Check if the character after < is not whitespace
-						if (allWhitespace && this.pos + 1 < this.input.length) {
-							const nextChar = this.input.charCodeAt(this.pos + 1);
-							if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
-								const tokTypes = this.acornTypeScript.tokTypes;
-								++this.pos;
-								return this.finishToken(tokTypes.jsxTagStart);
-							}
+					// Check if the character after < is not whitespace
+					if (allWhitespace && this.pos + 1 < this.input.length) {
+						const nextChar = this.input.charCodeAt(this.pos + 1);
+						if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
+							const tokTypes = this.acornTypeScript.tokTypes;
+							++this.pos;
+							return this.finishToken(tokTypes.jsxTagStart);
 						}
 					}
 				}
+			}
 
-				if (code === 35) {
+			if (code === 35) {
 					// # character
 					// Look ahead to see if this is followed by [ for tuple syntax
 					if (this.pos + 1 < this.input.length) {

@@ -305,17 +305,25 @@ const visitors = {
 			is_inside_call_expression(context) ||
 			is_value_static(node)
 		) {
+			if (!context.state.to_ts) {
+				delete node.typeArguments;
+			}
 			return context.next();
+		}
+
+		const newNode = {
+			...node,
+			callee: context.visit(callee),
+			arguments: node.arguments.map((arg) => context.visit(arg)),
+		};
+		if (!context.state.to_ts) {
+			delete newNode.typeArguments;
 		}
 
 		return b.call(
 			'_$_.with_scope',
 			b.id('__block'),
-			b.thunk({
-				...node,
-				callee: context.visit(callee),
-				arguments: node.arguments.map((arg) => context.visit(arg)),
-			}),
+			b.thunk(newNode),
 		);
 	},
 
