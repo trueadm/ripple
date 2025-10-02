@@ -260,7 +260,7 @@ function RipplePlugin(config) {
 			}
 
 			/**
-			 * Parse expression atom - handles TrackedArray and TrackedObject literals and generic arrow functions
+			 * Parse expression atom - handles TrackedArray and TrackedObject literals
 			 * @param {any} [refDestructuringErrors]
 			 * @param {any} [forNew]
 			 * @param {any} [forInit]
@@ -274,104 +274,7 @@ function RipplePlugin(config) {
 					return this.parseTrackedObjectExpression();
 				}
 
-				// Generic arrow functions are now handled by preprocessing (adding trailing comma)
-				// No need for custom parsing that can corrupt parser state
-
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
-			}
-
-			/**
-			 * Manually parse generic arrow function: <T>() => expr
-			 * @returns {any} ArrowFunctionExpression node
-			 */
-			parseGenericArrowFunction() {
-				const node = this.startNode();
-
-				// We're currently at the < token (already consumed)
-				// Parse type parameters manually
-				const typeParameters = [];
-
-				// Skip whitespace
-				while (this.pos < this.input.length && (this.input.charCodeAt(this.pos) === 32 || this.input.charCodeAt(this.pos) === 9)) {
-					this.pos++;
-				}
-
-				// Read type parameter name
-				let paramName = '';
-				while (this.pos < this.input.length) {
-					const ch = this.input.charCodeAt(this.pos);
-					if ((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122) || (ch >= 48 && ch <= 57) || ch === 95 || ch === 36) {
-						paramName += this.input[this.pos++];
-					} else {
-						break;
-					}
-				}
-
-				// Skip whitespace
-				while (this.pos < this.input.length && (this.input.charCodeAt(this.pos) === 32 || this.input.charCodeAt(this.pos) === 9)) {
-					this.pos++;
-				}
-
-				// Skip optional comma
-				if (this.input.charCodeAt(this.pos) === 44) {
-					this.pos++;
-				}
-
-				// Skip whitespace
-				while (this.pos < this.input.length && (this.input.charCodeAt(this.pos) === 32 || this.input.charCodeAt(this.pos) === 9)) {
-					this.pos++;
-				}
-
-				// Expect >
-				if (this.input.charCodeAt(this.pos) !== 62) {
-					this.raise(this.pos, 'Expected > in generic arrow function');
-				}
-				this.pos++;
-
-				// Now tokenize from current position
-				this.next(); // Move to next token after >
-
-				// Parse the arrow function parameters
-				node.params = [];
-				if (this.type === tt.parenL) {
-					this.next(); // consume (
-					// Parse parameters
-					let first = true;
-					while (this.type !== tt.parenR) {
-						if (!first) {
-							this.expect(tt.comma);
-						}
-						first = false;
-						node.params.push(this.parseBindingAtom());
-					}
-					this.expect(tt.parenR); // consume )
-				}
-
-				// Expect =>
-				this.expect(tt.arrow);
-
-				// Parse body
-				if (this.type === tt.braceL) {
-					node.body = this.parseBlock(true);
-					node.expression = false;
-				} else {
-					node.body = this.parseMaybeAssign();
-					node.expression = true;
-				}
-
-				// Add type parameters to node
-				node.typeParameters = {
-					type: 'TSTypeParameterDeclaration',
-					params: [{
-						type: 'TSTypeParameter',
-						name: paramName
-					}]
-				};
-
-				node.async = false;
-				node.generator = false;
-
-				return this.finishNode(node, 'ArrowFunctionExpression');
 			}
 
 			parseTrackedArrayExpression() {
