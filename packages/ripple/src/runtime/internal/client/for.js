@@ -267,6 +267,8 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 			}
 			a_val = a[j];
 			b_val = b[j];
+			a_key = a_keys[j];
+			b_key = b_keys[j];
 		}
 
 		a_val = a[a_end];
