@@ -35,12 +35,12 @@ component Card(props: { children: Component }) {
 }
 
 export component App() {
-  // Use like this...
+	// Use implicitly...
 	<Card>
 		<p>{"Card content here"}</p>
 	</Card>
 
-	// Or explicitly!
+	// or explicitly!
 	<Card>
 		component children() {
 			<p>{"Card content here"}</p>
@@ -52,12 +52,36 @@ export component App() {
 ### Named Children
 
 If you need to pass more than one child to a component, you can either pass the
-child as a prop or define it within the scope of the parent. (This is equivalent
-to slots/snippets from Vue and Svelte)
+child as a prop or define a component with the same name as the prop within the
+scope of the parent.
 
 ::: warning Note
 The child you pass in MUST be a component, not just templates!
 :::
+
+```ripple
+component Composite({ PropComp, InlineComp }) {
+	<PropComp />
+	<InlineComp />
+}
+
+component Seperate() {
+	<p>{`I'm a seperate component.`}</p>
+}
+
+export component App() {
+	<Composite PropComp={Seperate}>
+		component InlineComp() {
+			<p>{`I'm an inline component.`}</p>
+		}
+	</Composite>
+}
+```
+
+### Slots Pattern
+
+With all that in place, we can now recreate the pattern of "slots" from Vue/Web
+Components and "snippets" from Svelte:
 
 ```ripple
 component Card({ children, Header, Footer }) {
