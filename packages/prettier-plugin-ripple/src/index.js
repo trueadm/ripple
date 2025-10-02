@@ -279,8 +279,11 @@ function printRippleNode(node, path, options, print, args) {
 
 			const elements = path.map(print, 'elements');
 
-			// Simple single-line for short arrays
-			if (elements.length <= 3) {
+			// Check if any element is an object expression (multi-line formatting)
+			const hasObjectElements = node.elements.some(el => el && el.type === 'ObjectExpression');
+
+			// Simple single-line for short arrays without object elements
+			if (elements.length <= 3 && !hasObjectElements) {
 				const parts = [prefix + '['];
 				for (let i = 0; i < elements.length; i++) {
 					if (i > 0) parts.push(', ');
@@ -291,19 +294,27 @@ function printRippleNode(node, path, options, print, args) {
 				break;
 			}
 
-			// Multi-line for longer arrays
+			// Multi-line for longer arrays or arrays with objects
+			const shouldUseTrailingComma = options.trailingComma !== 'none';
 			const parts = [prefix + '['];
-			parts.push(line);
+			const contentParts = [];
+
 			for (let i = 0; i < elements.length; i++) {
 				if (i > 0) {
-					parts.push(',');
-					parts.push(line);
+					contentParts.push(',');
+					contentParts.push(hardline);
 				}
-				parts.push(indent(elements[i]));
+				contentParts.push(elements[i]);
 			}
-			parts.push(line);
+
+			if (shouldUseTrailingComma) {
+				contentParts.push(',');
+			}
+
+			parts.push(indent([hardline, concat(contentParts)]));
+			parts.push(hardline);
 			parts.push(']');
-			nodeContent = parts;
+			nodeContent = group(parts);
 			break;
 		}
 
@@ -2077,7 +2088,26 @@ function printProperty(node, path, options, print) {
 	}
 
 	const parts = [];
-	parts.push(path.call(print, 'key'));
+
+	// Handle property key - if it's a Literal (quoted string in source),
+	// check if it needs quotes or can be unquoted
+	if (node.key.type === 'Literal' && typeof node.key.value === 'string') {
+		// Check if the key is a valid identifier that doesn't need quotes
+		const key = node.key.value;
+		const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
+
+		if (isValidIdentifier) {
+			// Don't quote valid identifiers
+			parts.push(key);
+		} else {
+			// Quote keys that need it (e.g., contain special characters)
+			parts.push(formatStringLiteral(key, options));
+		}
+	} else {
+		// For computed properties or non-literal keys, print normally
+		parts.push(path.call(print, 'key'));
+	}
+
 	parts.push(': ');
 	parts.push(path.call(print, 'value'));
 	return concat(parts);
