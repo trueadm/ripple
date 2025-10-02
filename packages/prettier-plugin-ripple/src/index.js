@@ -1,7 +1,7 @@
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
-const { concat, join, line, hardline, group, indent, dedent } = doc.builders;
+const { concat, join, line, hardline, group, indent, dedent, ifBreak } = doc.builders;
 
 // Embed function - not needed for now
 export function embed(path, options) {
@@ -277,10 +277,46 @@ function printRippleNode(node, path, options, print, args) {
 				break;
 			}
 
-			const elements = path.map(print, 'elements');
-
-			// Check if any element is an object expression (multi-line formatting)
+			// Check if any element is an object expression
 			const hasObjectElements = node.elements.some(el => el && el.type === 'ObjectExpression');
+
+			// Check if this array is inside an attribute
+			const isInAttribute = args && args.isInAttribute;
+
+			// For arrays of simple objects with only a few properties, try to keep compact
+			if (hasObjectElements) {
+				// Check if all objects are simple (2 properties or less)
+				const allSimpleObjects = node.elements.every(el => {
+					if (!el || el.type !== 'ObjectExpression') return false;
+					return el.properties && el.properties.length <= 2;
+				});
+
+				// If all are simple objects, try single-line format
+				if (allSimpleObjects && node.elements.length <= 3) {
+					// Print with appropriate context - isInAttribute takes precedence over isInArray
+					const elements = path.map((elPath) => {
+						return print(elPath, isInAttribute ? { isInAttribute: true } : { isInArray: true });
+					}, 'elements');
+
+					const parts = [prefix + '['];
+					for (let i = 0; i < elements.length; i++) {
+						if (i > 0) parts.push(', ');
+						parts.push(elements[i]);
+					}
+					parts.push(']');
+					nodeContent = concat(parts);
+					break;
+				}
+			}
+
+			// Default printing - pass isInArray or isInAttribute context
+			const elements = path.map((elPath) => {
+				if (isInAttribute) {
+					return print(elPath, { isInAttribute: true });
+				} else {
+					return print(elPath, { isInArray: hasObjectElements });
+				}
+			}, 'elements');
 
 			// Simple single-line for short arrays without object elements
 			if (elements.length <= 3 && !hasObjectElements) {
@@ -294,7 +330,7 @@ function printRippleNode(node, path, options, print, args) {
 				break;
 			}
 
-			// Multi-line for longer arrays or arrays with objects
+			// Multi-line for longer arrays or complex arrays with objects
 			const shouldUseTrailingComma = options.trailingComma !== 'none';
 			const parts = [prefix + '['];
 			const contentParts = [];
@@ -319,7 +355,11 @@ function printRippleNode(node, path, options, print, args) {
 		}
 
 		case 'ObjectExpression':
-			nodeContent = printObjectExpression(node, path, options, print);
+			nodeContent = printObjectExpression(node, path, options, print, args);
+			break;
+
+		case 'TrackedObjectExpression':
+			nodeContent = printTrackedObjectExpression(node, path, options, print, args);
 			break;
 
 		case 'ClassBody':
@@ -1222,8 +1262,15 @@ function printArrowFunction(node, path, options, print) {
 	if (node.body.type === 'BlockStatement') {
 		parts.push(path.call(print, 'body'));
 	} else {
-		// For expression bodies, print normally
-		parts.push(path.call(print, 'body'));
+		// For expression bodies, check if we need to wrap in parens
+		// Wrap ObjectExpression in parens to avoid ambiguity with block statements
+		if (node.body.type === 'ObjectExpression') {
+			parts.push('(');
+			parts.push(path.call(print, 'body'));
+			parts.push(')');
+		} else {
+			parts.push(path.call(print, 'body'));
+		}
 	}
 
 	return concat(parts);
@@ -1366,14 +1413,43 @@ function printDoWhileStatement(node, path, options, print) {
 	return parts;
 }
 
-function printObjectExpression(node, path, options, print) {
+function printObjectExpression(node, path, options, print, args) {
 	if (!node.properties || node.properties.length === 0) {
 		return '{}';
 	}
 
+	// Check if we should try to format inline
+	const isInArray = args && args.isInArray;
+	const isInAttribute = args && args.isInAttribute;
+	const isSimple = node.properties.length <= 2;
+	// Only 1-property objects are considered very simple for compact formatting
+	const isVerySimple = node.properties.length === 1;
+
 	// Use AST builders and respect trailing commas
 	const properties = path.map(print, 'properties');
 	const shouldUseTrailingComma = options.trailingComma !== 'none' && properties.length > 0;
+
+	// For arrays: very simple (1-prop) objects can be inline, 2-prop objects always multiline
+	// For attributes: force inline for simple objects
+	if (isSimple && (isInArray || isInAttribute)) {
+		if (isInArray) {
+			if (isVerySimple) {
+				// 1-property objects: force inline with spaces
+				return concat(['{', ' ', properties[0], ' ', '}']);
+			}
+			// 2-property objects: let normal formatting handle it (will be multiline)
+			// Fall through to default multiline formatting below
+		} else {
+			// For attributes, force inline without spaces
+			const parts = ['{'];
+			for (let i = 0; i < properties.length; i++) {
+				if (i > 0) parts.push(', ');
+				parts.push(properties[i]);
+			}
+			parts.push('}');
+			return concat(parts);
+		}
+	}
 
 	let content = [hardline];
 	if (properties.length > 0) {
@@ -1391,6 +1467,41 @@ function printObjectExpression(node, path, options, print) {
 		content[content.length - 1], // Add the final hardline without indentation
 		'}',
 	]);
+}
+
+function printTrackedObjectExpression(node, path, options, print, args) {
+	if (!node.properties || node.properties.length === 0) {
+		return '#{}';
+	}
+
+	// Use AST builders and respect trailing commas
+	const properties = path.map(print, 'properties');
+	const shouldUseTrailingComma = options.trailingComma !== 'none' && properties.length > 0;
+
+	// Build properties with proper separators
+	const propertyParts = [];
+	for (let i = 0; i < properties.length; i++) {
+		if (i > 0) {
+			propertyParts.push(',');
+			propertyParts.push(line);
+		}
+		propertyParts.push(properties[i]);
+	}
+
+	// Add trailing comma only when breaking to multiline
+	if (shouldUseTrailingComma) {
+		propertyParts.push(ifBreak(',', ''));
+	}
+
+	// Use group with proper breaking behavior
+	// When inline: #{ prop1, prop2 }
+	// When multiline: #{\n  prop1,\n  prop2,\n}
+	return group(concat([
+		'#{',
+		indent(concat([line, concat(propertyParts)])),
+		line,
+		'}',
+	]));
 }
 
 function printClassDeclaration(node, path, options, print) {
@@ -1937,6 +2048,13 @@ function shouldAddBlankLine(currentNode, nextNode, sourceText) {
 		return true;
 	}
 
+	// Add blank line between Component declarations at top level
+	if (currentNode.type === 'Component' || currentNode.type === 'ExportNamedDeclaration' || currentNode.type === 'ExportDefaultDeclaration') {
+		if (nextNode.type === 'Component' || nextNode.type === 'ExportNamedDeclaration' || nextNode.type === 'ExportDefaultDeclaration') {
+			return true;
+		}
+	}
+
 	// Add blank line after if/for/try statements if next is an element
 	if (
 		currentNode.type === 'IfStatement' ||
@@ -2426,8 +2544,17 @@ function printElement(node, path, options, print, sourceText) {
 		let elementOutput;
 		
 		// For single simple children, try to keep on one line
-		if (finalChildren.length === 1) {
+		// But never if the child is a non-self-closing Component node
+		const hasComponentChild = node.children && node.children.some(ch => ch.type === 'Component' && !ch.selfClosing);
+
+		if (finalChildren.length === 1 && !hasComponentChild) {
 			const child = finalChildren[0];
+			const firstChild = node.children[0];
+
+			// Try to inline if:
+			// 1. Short string content (<= 20 chars)
+			// 2. Simple JSX expression (Text or Html nodes)
+			// 3. Self-closing elements/components
 			if (typeof child === 'string' && child.length < 20) {
 				// Single line with short content
 				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
@@ -2540,8 +2667,17 @@ function printElement(node, path, options, print, sourceText) {
 	let elementOutput;
 	
 	// For single simple children, try to keep on one line
-	if (finalChildren.length === 1) {
+	// But never if the child is a non-self-closing Component node
+	const hasComponentChild2 = node.children && node.children.some(ch => ch.type === 'Component' && !ch.selfClosing);
+
+	if (finalChildren.length === 1 && !hasComponentChild2) {
 		const child = finalChildren[0];
+		const firstChild = node.children[0];
+
+		// Try to inline if:
+		// 1. Short string content (<= 20 chars)
+		// 2. Simple JSX expression (Text or Html nodes)
+		// 3. Self-closing elements/components
 		if (typeof child === 'string' && child.length < 20) {
 			// Single line
 			elementOutput = group([openingTag, child, closingTag]);
@@ -2566,6 +2702,18 @@ function printElement(node, path, options, print, sourceText) {
 
 function printAttribute(node, path, options, print) {
 	const parts = [];
+
+	// Handle shorthand syntax: {id} instead of id={id}
+	// Check if either node.shorthand is true, OR if the value is an Identifier with the same name
+	const isShorthand = node.shorthand || (node.value && node.value.type === 'Identifier' && node.value.name === node.name.name);
+
+	if (isShorthand) {
+		parts.push('{');
+		parts.push(node.name.name);
+		parts.push('}');
+		return parts;
+	}
+
 	parts.push(node.name.name);
 
 	if (node.value) {
@@ -2576,7 +2724,8 @@ function printAttribute(node, path, options, print) {
 		} else {
 			// All other values need curly braces: numbers, booleans, null, expressions, etc.
 			parts.push('={');
-			parts.push(path.call(print, 'value'));
+			// Pass inline context for attribute values (keep objects compact)
+			parts.push(path.call((attrPath) => print(attrPath, { isInAttribute: true }), 'value'));
 			parts.push('}');
 		}
 	}
