@@ -1,7 +1,7 @@
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
-const { concat, join, line, hardline, group, indent, dedent } = doc.builders;
+const { concat, join, line, hardline, group, indent, dedent, ifBreak } = doc.builders;
 
 // Embed function - not needed for now
 export function embed(path, options) {
@@ -345,6 +345,10 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'ObjectExpression':
 			nodeContent = printObjectExpression(node, path, options, print, args);
+			break;
+
+		case 'TrackedObjectExpression':
+			nodeContent = printTrackedObjectExpression(node, path, options, print, args);
 			break;
 
 		case 'ClassBody':
@@ -1439,6 +1443,41 @@ function printObjectExpression(node, path, options, print, args) {
 		content[content.length - 1], // Add the final hardline without indentation
 		'}',
 	]);
+}
+
+function printTrackedObjectExpression(node, path, options, print, args) {
+	if (!node.properties || node.properties.length === 0) {
+		return '#{}';
+	}
+
+	// Use AST builders and respect trailing commas
+	const properties = path.map(print, 'properties');
+	const shouldUseTrailingComma = options.trailingComma !== 'none' && properties.length > 0;
+
+	// Build properties with proper separators
+	const propertyParts = [];
+	for (let i = 0; i < properties.length; i++) {
+		if (i > 0) {
+			propertyParts.push(',');
+			propertyParts.push(line);
+		}
+		propertyParts.push(properties[i]);
+	}
+
+	// Add trailing comma only when breaking to multiline
+	if (shouldUseTrailingComma) {
+		propertyParts.push(ifBreak(',', ''));
+	}
+
+	// Use group with proper breaking behavior
+	// When inline: #{ prop1, prop2 }
+	// When multiline: #{\n  prop1,\n  prop2,\n}
+	return group(concat([
+		'#{',
+		indent(concat([line, concat(propertyParts)])),
+		line,
+		'}',
+	]));
 }
 
 function printClassDeclaration(node, path, options, print) {
