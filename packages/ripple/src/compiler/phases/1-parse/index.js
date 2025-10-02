@@ -70,6 +70,40 @@ function RipplePlugin(config) {
 				// < character
 				const inComponent = this.#path.findLast((n) => n.type === 'Component');
 
+				// Check if this could be TypeScript generics instead of JSX
+				// TypeScript generics appear after: identifiers, closing parens, 'new' keyword
+				// For example: Array<T>, func<T>(), new Map<K,V>(), method<T>()
+				// This check applies everywhere, not just inside components
+
+				// Look back to see what precedes the <
+				let lookback = this.pos - 1;
+
+				// Skip whitespace backwards
+				while (lookback >= 0) {
+					const ch = this.input.charCodeAt(lookback);
+					if (ch !== 32 && ch !== 9) break; // not space or tab
+					lookback--;
+				}
+
+				// Check what character/token precedes the <
+				if (lookback >= 0) {
+					const prevChar = this.input.charCodeAt(lookback);
+
+					// If preceded by identifier character (letter, digit, _, $) or closing paren,
+					// this is likely TypeScript generics, not JSX
+					const isIdentifierChar =
+						(prevChar >= 65 && prevChar <= 90) ||  // A-Z
+						(prevChar >= 97 && prevChar <= 122) || // a-z
+						(prevChar >= 48 && prevChar <= 57) ||  // 0-9
+						prevChar === 95 ||  // _
+						prevChar === 36 ||  // $
+						prevChar === 41;    // )
+
+					if (isIdentifierChar) {
+						return super.getTokenFromCode(code);
+					}
+				}
+
 				if (inComponent) {
 					// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
 					// At component top-level (scopeStack.length <= 4), apply JSX detection logic
@@ -79,40 +113,6 @@ function RipplePlugin(config) {
 						return this.finishToken(tt.relational, '<');
 					}
 
-					// At component top-level - apply JSX vs generic disambiguation
-					// Check if this could be TypeScript generics instead of JSX
-					// TypeScript generics appear after: identifiers, closing parens, 'new' keyword
-					// For example: Array<T>, func<T>(), new Map<K,V>()
-
-					// Look back to see what precedes the <
-					let lookback = this.pos - 1;
-					
-					// Skip whitespace backwards
-					while (lookback >= 0) {
-						const ch = this.input.charCodeAt(lookback);
-						if (ch !== 32 && ch !== 9) break; // not space or tab
-						lookback--;
-					}
-					
-					// Check what character/token precedes the <
-					if (lookback >= 0) {
-						const prevChar = this.input.charCodeAt(lookback);
-						
-						// If preceded by identifier character (letter, digit, _, $) or closing paren,
-						// this is likely TypeScript generics, not JSX
-						const isIdentifierChar = 
-							(prevChar >= 65 && prevChar <= 90) ||  // A-Z
-							(prevChar >= 97 && prevChar <= 122) || // a-z
-							(prevChar >= 48 && prevChar <= 57) ||  // 0-9
-							prevChar === 95 ||  // _
-							prevChar === 36 ||  // $
-							prevChar === 41;    // )
-						
-						if (isIdentifierChar) {
-							return super.getTokenFromCode(code);
-						}
-					}
-					
 					// Check if everything before this position on the current line is whitespace
 					let lineStart = this.pos - 1;
 					while (
@@ -257,6 +257,46 @@ function RipplePlugin(config) {
 					this.pos = prev_pos;
 				}
 				return node;
+			}
+
+			/**
+			 * Override parsePropertyValue to handle generic method shorthand
+			 * @param {any} prop - Property node
+			 * @param {any} isPattern - Whether in pattern context
+			 * @param {any} isGenerator - Whether generator
+			 * @param {any} isAsync - Whether async
+			 * @param {any} startPos - Start position
+			 * @param {any} startLoc - Start location
+			 * @param {any} refDestructuringErrors - Destructuring errors
+			 * @returns {any} Property value
+			 */
+			parsePropertyValue(prop, isPattern, isGenerator, isAsync, startPos, startLoc, refDestructuringErrors) {
+				// Check if this looks like a generic method: identifier followed by <
+				// This handles method shorthand syntax like: { method<T>() { ... } }
+				if (!isPattern && !isGenerator && !isAsync && this.type === tt.relational && this.value === '<') {
+					// We're at the < after a property name, this is likely a generic method
+					// Manually parse the type parameters and then the method
+					const typeParamStart = this.pos;
+
+					// Skip to the matching >
+					let depth = 1;
+					let pos = this.pos + 1;
+					while (pos < this.input.length && depth > 0) {
+						const ch = this.input.charCodeAt(pos);
+						if (ch === 60) depth++; // <
+						else if (ch === 62) depth--; // >
+						pos++;
+					}
+
+					// Move parser position past the type parameters
+					this.pos = pos;
+					this.next(); // Move to next token after >
+
+					// Now parse as a regular method
+					return super.parsePropertyValue(prop, isPattern, isGenerator, isAsync, startPos, startLoc, refDestructuringErrors);
+				}
+
+				return super.parsePropertyValue(prop, isPattern, isGenerator, isAsync, startPos, startLoc, refDestructuringErrors);
 			}
 
 			/**

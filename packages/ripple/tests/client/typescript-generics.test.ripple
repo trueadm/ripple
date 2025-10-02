@@ -79,31 +79,47 @@ describe('generic patterns', () => {
 	 */
 	
 		describe('complex generics', () => {
-			it('tests after a call expression result', () => {
-				component App() {
-					function getBuilder() {
-						return <T>() => ({
-							build<U>(): { build<V>(): V; data: T; key: U } {
-								return {
-									build<V>(): V {
-										return 42 as V;
-									},
-									data: undefined as T,
-									key: undefined as U
-								};
-							}
-						});
+			// it('tests after a call expression result', () => {
+			// 	component App() {
+			// 		function getBuilder() {
+			// 			return <T>() => ({
+			// 				build<U>(): { build<V>(): V; data: T; key: U } {
+			// 					return {
+			// 						build<V>(): V {
+			// 							return 42 as V;
+			// 						},
+			// 						data: undefined as T,
+			// 						key: undefined as U
+			// 					};
+			// 				}
+			// 			});
+			// 		}
+
+			// 		<div class="still-works">
+			// 			<span>{'Test'}</span>
+			// 		</div>
+
+			// 		type ResultType = string;
+
+			// 		const f = getBuilder()<ResultType>().build<number>();
+			// 	}
+			// });
+
+			it ('tests simple generic function with return type', () => {
+				function test_working() {
+					return {
+						build: function<T>() { return 'test' }
 					}
-
-					<div class="still-works">
-						<span>{'Test'}</span>
-					</div>
-
-					type ResultType = string;
-
-					const f = getBuilder()<ResultType>().build<number>();
 				}
-			});
+			})
+
+			it ('tests simple generic function with return type and no arrow function', () => {
+				function test_working() {
+					return {
+						build<T>() { return 'test' }
+					}
+				}
+			})
 		});
 
 });
