@@ -5173,15 +5173,34 @@
 			"match": ";"
 		},
 		"punctuation-accessor": {
-			"match": "(?:(\\.)|(\\?\\.(?!\\s*[[:digit:]])))",
-			"captures": {
-				"1": {
-					"name": "punctuation.accessor.js"
+			"patterns": [
+				{
+					"name": "meta.reactive-computed-member-access.ripple",
+					"match": "(\\.)(\\@)(\\[)",
+					"captures": {
+						"1": {
+							"name": "punctuation.accessor.js"
+						},
+						"2": {
+							"name": "punctuation.section.embedded.begin.js"
+						},
+						"3": {
+							"name": "punctuation.definition.computed-property.begin.js"
+						}
+					}
 				},
-				"2": {
-					"name": "punctuation.accessor.optional.js"
+				{
+					"match": "(?:(\\.)|(\\?\\.(?!\\s*[[:digit:]])))",
+					"captures": {
+						"1": {
+							"name": "punctuation.accessor.js"
+						},
+						"2": {
+							"name": "punctuation.accessor.optional.js"
+						}
+					}
 				}
-			}
+			]
 		},
 		"string": {
 			"patterns": [
