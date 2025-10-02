@@ -1349,9 +1349,13 @@ export function parse(source) {
 
 	// Preprocess step 1: Add trailing commas to single-parameter generics followed by (
 	// This is a workaround for @sveltejs/acorn-typescript limitations with JSX enabled
-	let preprocessedSource = source.replace(
+	let preprocessedSource = source;
+	let sourceChanged = false;
+
+	preprocessedSource = source.replace(
 		/(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(/g,
-		(match, generic) => {
+		(_, generic) => {
+			sourceChanged = true;
 			// Add trailing comma to disambiguate from JSX
 			return `${generic},>(`;
 		}
@@ -1375,6 +1379,7 @@ export function parse(source) {
 
 			// Only transform if we're in an object literal context AND not inside a class
 			if ((prevChar === '{' || prevChar === ',') && !classMatch) {
+				sourceChanged = true;
 				// This is object literal method shorthand - convert to function property
 				// Add trailing comma if not already present
 				const fixedGenerics = generics.includes(',') ? generics : generics.replace('>', ',>');
@@ -1383,6 +1388,11 @@ export function parse(source) {
 			return match;
 		}
 	);
+
+	// Only mark as preprocessed if we actually changed something
+	if (!sourceChanged) {
+		preprocessedSource = source;
+	}
 
 	const { onComment, add_comments } = get_comment_handlers(preprocessedSource, comments);
 	let ast;
@@ -1399,6 +1409,12 @@ export function parse(source) {
 	}
 
 	add_comments(ast);
+
+	// Attach preprocessed source for prettier to use (only if we actually preprocessed)
+	// Prettier needs this because node locations refer to the preprocessed source
+	if (sourceChanged) {
+		ast.__preprocessedSource = preprocessedSource;
+	}
 
 	return /** @type {Program} */ (ast);
 }

@@ -22,8 +22,9 @@ export const parsers = {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
 			const ast = parse(text);
+			const sourceText = ast.__preprocessedSource || text;
 			// Attach source text to AST for line counting when comments lack loc info
-			ast.__source = text;
+			ast.__source = sourceText;
 			return ast;
 		},
 
@@ -2555,11 +2556,13 @@ function printElement(node, path, options, print, sourceText) {
 			// 1. Short string content (<= 20 chars)
 			// 2. Simple JSX expression (Text or Html nodes)
 			// 3. Self-closing elements/components
+			// But DON'T inline if child is a non-self-closing Element
+			const isNonSelfClosingElement = firstChild && firstChild.type === 'Element' && !firstChild.selfClosing;
+
 			if (typeof child === 'string' && child.length < 20) {
 				// Single line with short content
 				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
-			} else if (child && typeof child === 'object') {
-				// For JSX expressions, always try single line if simple
+			} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
 				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
 			} else {
 				elementOutput = group([
