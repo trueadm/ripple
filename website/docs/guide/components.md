@@ -18,7 +18,7 @@ may rerun if they have reactive variables within them. Therefore, it is
 advisable to only write pure code within your components, and place side-effects
 within `effect()` to ensure they only run when intended.
 
-## Children and Slots
+## Children
 
 To pass elements to be nested within a component, simply nest it as you would
 writing HTML. By default, Ripple will make the content available as the
