@@ -64,8 +64,8 @@
   },
   "dependencies": {
     "@jridgewell/sourcemap-codec": "^1.5.5",
+    "@sveltejs/acorn-typescript": "^1.0.6",
     "acorn": "^8.15.0",
-    "acorn-typescript": "^1.4.13",
     "clsx": "^2.1.1",
     "esrap": "^2.1.0",
     "is-reference": "^3.0.3",

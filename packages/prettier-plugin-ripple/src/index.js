@@ -22,8 +22,9 @@ export const parsers = {
 		astFormat: 'ripple-ast',
 		parse(text, parsers, options) {
 			const ast = parse(text);
+			const sourceText = ast.__preprocessedSource || text;
 			// Attach source text to AST for line counting when comments lack loc info
-			ast.__source = text;
+			ast.__source = sourceText;
 			return ast;
 		},
 
@@ -2442,8 +2443,66 @@ function printCSSBlock(node, path, options, print) {
 function printElement(node, path, options, print, sourceText) {
 	const tagName = node.id.name;
 
+	// Check if any children have leading comments that are actually at the element's level
+	// (i.e., comments that appear before the element in the source code)
+	const elementLevelCommentParts = [];
+	let originalLeadingComments = null;
+	
+	if (node.children && node.children.length > 0 && node.children[0].leadingComments) {
+		const firstChild = node.children[0];
+		if (firstChild.leadingComments) {
+			const elementLevelComments = [];
+			for (let i = 0; i < firstChild.leadingComments.length; i++) {
+				const comment = firstChild.leadingComments[i];
+				// For elements, all leading comments on the first child that appear before
+				// the element's opening tag should be treated as element-level comments.
+				// This is because comments truly inside an element would be after the opening tag.
+				let isBeforeElement = true; // Default to true for safety
+				
+				// Only set to false if we can confirm the comment is AFTER the element starts
+				if (typeof comment.start === 'number' && typeof node.start === 'number') {
+					isBeforeElement = comment.start < node.start;
+				} else if (comment.loc && node.loc) {
+					isBeforeElement = comment.loc.start.line <= node.loc.start.line;
+				}
+				
+				if (isBeforeElement) {
+					elementLevelComments.push(comment);
+					
+					// Manually format the comment for printing
+					if (comment.type === 'Line') {
+						elementLevelCommentParts.push('//' + comment.value);
+						elementLevelCommentParts.push(hardline);
+					} else if (comment.type === 'Block') {
+						elementLevelCommentParts.push('/*' + comment.value + '*/');
+						elementLevelCommentParts.push(hardline);
+					}
+				}
+			}
+			
+			// If we found element-level comments, temporarily remove them from the child
+			if (elementLevelComments.length > 0) {
+				originalLeadingComments = firstChild.leadingComments;
+				firstChild.leadingComments = originalLeadingComments.filter(
+					c => !elementLevelComments.includes(c)
+				);
+				if (firstChild.leadingComments.length === 0) {
+					firstChild.leadingComments = undefined;
+				}
+			}
+		}
+	}
+
 	if (!node.attributes || node.attributes.length === 0) {
 		if (node.selfClosing || !node.children || node.children.length === 0) {
+			// Restore original comments before returning
+			if (originalLeadingComments && node.children && node.children[0]) {
+				node.children[0].leadingComments = originalLeadingComments;
+			}
+			// Prepend element-level comments if any
+			if (elementLevelCommentParts.length > 0) {
+				return concat([...elementLevelCommentParts, group(['<', tagName, ' />'])]);
+			}
 			return group(['<', tagName, ' />']);
 		}
 
@@ -2477,6 +2536,14 @@ function printElement(node, path, options, print, sourceText) {
 			}
 		}
 
+		// Restore original comments after printing
+		if (originalLeadingComments && node.children && node.children[0]) {
+			node.children[0].leadingComments = originalLeadingComments;
+		}
+
+		// Build the element output
+		let elementOutput;
+		
 		// For single simple children, try to keep on one line
 		// But never if the child is a non-self-closing Component node
 		const hasComponentChild = node.children && node.children.some(ch => ch.type === 'Component' && !ch.selfClosing);
@@ -2489,39 +2556,44 @@ function printElement(node, path, options, print, sourceText) {
 			// 1. Short string content (<= 20 chars)
 			// 2. Simple JSX expression (Text or Html nodes)
 			// 3. Self-closing elements/components
+			// But DON'T inline if child is a non-self-closing Element
+			const isNonSelfClosingElement = firstChild && firstChild.type === 'Element' && !firstChild.selfClosing;
+
 			if (typeof child === 'string' && child.length < 20) {
-				return group(['<', tagName, '>', child, '</', tagName, '>']);
+				// Single line with short content
+				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
+			} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
+				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
+			} else {
+				elementOutput = group([
+					'<',
+					tagName,
+					'>',
+					indent(concat([hardline, ...finalChildren])),
+					hardline,
+					'</',
+					tagName,
+					'>',
+				]);
 			}
-			if (child && typeof child === 'object' && firstChild) {
-				if (firstChild.type === 'Text' || firstChild.type === 'Html') {
-					return group(['<', tagName, '>', child, '</', tagName, '>']);
-				}
-				// Self-closing elements/components (including uppercase elements like <Expand />)
-				if (firstChild.selfClosing) {
-					return group(['<', tagName, '>', child, '</', tagName, '>']);
-				}
-			}
+		} else {
+			elementOutput = group([
+				'<',
+				tagName,
+				'>',
+				indent(concat([hardline, ...finalChildren])),
+				hardline,
+				'</',
+				tagName,
+				'>',
+			]);
 		}
-
-		// Check if this is a style tag with StyleSheet content
-		const firstChild = node.children[0];
-		const hasStyleSheet = firstChild && firstChild.type === 'StyleSheet';
-
-		if (hasStyleSheet) {
-			// StyleSheet already has its own indent, don't double-indent
-			return group(['<', tagName, '>', ...finalChildren, '</', tagName, '>']);
+		
+		// Prepend element-level comments if any
+		if (elementLevelCommentParts.length > 0) {
+			return concat([...elementLevelCommentParts, elementOutput]);
 		}
-
-		return group([
-			'<',
-			tagName,
-			'>',
-			indent(concat([hardline, ...finalChildren])),
-			hardline,
-			'</',
-			tagName,
-			'>',
-		]);
+		return elementOutput;
 	}
 
 	const openingTag = group([
@@ -2538,6 +2610,14 @@ function printElement(node, path, options, print, sourceText) {
 	]);
 
 	if (node.selfClosing || !node.children || node.children.length === 0) {
+		// Restore original comments before returning
+		if (originalLeadingComments && node.children && node.children[0]) {
+			node.children[0].leadingComments = originalLeadingComments;
+		}
+		// Prepend element-level comments if any
+		if (elementLevelCommentParts.length > 0) {
+			return concat([...elementLevelCommentParts, openingTag]);
+		}
 		return openingTag;
 	}
 
@@ -2579,8 +2659,16 @@ function printElement(node, path, options, print, sourceText) {
 		}
 	}
 
+	// Restore original comments after printing
+	if (originalLeadingComments && node.children && node.children[0]) {
+		node.children[0].leadingComments = originalLeadingComments;
+	}
+
 	const closingTag = concat(['</', tagName, '>']);
 
+	// Build the element output
+	let elementOutput;
+	
 	// For single simple children, try to keep on one line
 	// But never if the child is a non-self-closing Component node
 	const hasComponentChild2 = node.children && node.children.some(ch => ch.type === 'Component' && !ch.selfClosing);
@@ -2594,21 +2682,25 @@ function printElement(node, path, options, print, sourceText) {
 		// 2. Simple JSX expression (Text or Html nodes)
 		// 3. Self-closing elements/components
 		if (typeof child === 'string' && child.length < 20) {
-			return group([openingTag, child, closingTag]);
+			// Single line
+			elementOutput = group([openingTag, child, closingTag]);
+		} else if (child && typeof child === 'object') {
+			// For JSX expressions, always try single line
+			elementOutput = group([openingTag, child, closingTag]);
+		} else {
+			// Multi-line
+			elementOutput = group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 		}
-		if (child && typeof child === 'object' && firstChild) {
-			if (firstChild.type === 'Text' || firstChild.type === 'Html') {
-				return group([openingTag, child, closingTag]);
-			}
-			// Self-closing elements/components (including uppercase elements like <Expand />)
-			if (firstChild.selfClosing) {
-				return group([openingTag, child, closingTag]);
-			}
-		}
+	} else {
+		// Multi-line
+		elementOutput = group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 	}
-
-	// Multi-line
-	return group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
+	
+	// Prepend element-level comments if any
+	if (elementLevelCommentParts.length > 0) {
+		return concat([...elementLevelCommentParts, elementOutput]);
+	}
+	return elementOutput;
 }
 
 function printAttribute(node, path, options, print) {
@@ -2639,52 +2731,6 @@ function printAttribute(node, path, options, print) {
 			parts.push(path.call((attrPath) => print(attrPath, { isInAttribute: true }), 'value'));
 			parts.push('}');
 		}
-	}
-
-	return parts;
-}
-
-// Simple CSS formatter for basic CSS rules
-function formatCss(css) {
-	const parts = [];
-
-	// Split by rules and format each one
-	const ruleRegex = /([^{}]+)\{([^}]*)\}/g;
-	let match;
-
-	while ((match = ruleRegex.exec(css)) !== null) {
-		const selector = match[1].trim();
-		const properties = match[2].trim();
-
-		// Add selector (will be indented at component level)
-		parts.push(selector);
-		parts.push(' {');
-		parts.push(hardline);
-
-		// Add properties - handle the case where properties might be on one line
-		const propLines = properties.split(';').filter((prop) => prop.trim().length > 0);
-		for (const prop of propLines) {
-			const trimmedProp = prop.trim();
-			if (trimmedProp) {
-				// Normalize spacing around colons
-				let formattedProp = trimmedProp;
-				if (formattedProp.includes(':')) {
-					const [propName, propValue] = formattedProp.split(':', 2);
-					formattedProp = propName.trim() + ': ' + propValue.trim();
-				}
-				// Add semicolon if it's missing
-				if (!formattedProp.endsWith(';')) {
-					formattedProp += ';';
-				}
-				// Properties will be indented at component level (2 spaces) + style content level (2 spaces)
-				parts.push('  ' + formattedProp);
-				parts.push(hardline);
-			}
-		}
-
-		// Close rule (will be indented at component level)
-		parts.push('}');
-		parts.push(hardline);
 	}
 
 	return parts;

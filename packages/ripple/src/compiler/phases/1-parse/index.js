@@ -5,12 +5,12 @@
  * } from '#compiler' */
 
 import * as acorn from 'acorn';
-import { tsPlugin } from 'acorn-typescript';
+import { tsPlugin } from '@sveltejs/acorn-typescript';
 import { parse_style } from './style.js';
 import { walk } from 'zimmerframe';
 import { regex_newline_characters } from '../../../utils/patterns.js';
 
-const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
+const parser = acorn.Parser.extend(tsPlugin({ jsx: true }), RipplePlugin());
 
 /**
  * Convert JSX node types to regular JavaScript node types
@@ -59,49 +59,94 @@ function RipplePlugin(config) {
 				return null;
 			}
 
+
 			/**
 			 * Get token from character code - handles Ripple-specific tokens
 			 * @param {number} code - Character code
 			 * @returns {any} Token or calls super method
 			 */
-			getTokenFromCode(code) {
-				if (code === 60) {
-					// < character
-					if (this.#path.findLast((n) => n.type === 'Component')) {
-						// Check if everything before this position on the current line is whitespace
-						let lineStart = this.pos - 1;
-						while (
-							lineStart >= 0 &&
-							this.input.charCodeAt(lineStart) !== 10 &&
-							this.input.charCodeAt(lineStart) !== 13
-						) {
-							lineStart--;
-						}
-						lineStart++; // Move past the newline character
+		getTokenFromCode(code) {
+			if (code === 60) {
+				// < character
+				const inComponent = this.#path.findLast((n) => n.type === 'Component');
 
-						// Check if all characters from line start to current position are whitespace
-						let allWhitespace = true;
-						for (let i = lineStart; i < this.pos; i++) {
-							const ch = this.input.charCodeAt(i);
-							if (ch !== 32 && ch !== 9) {
-								allWhitespace = false;
-								break;
-							}
-						}
+				// Check if this could be TypeScript generics instead of JSX
+				// TypeScript generics appear after: identifiers, closing parens, 'new' keyword
+				// For example: Array<T>, func<T>(), new Map<K,V>(), method<T>()
+				// This check applies everywhere, not just inside components
 
-						// Check if the character after < is not whitespace
-						if (allWhitespace && this.pos + 1 < this.input.length) {
-							const nextChar = this.input.charCodeAt(this.pos + 1);
-							if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
-								const tokTypes = this.acornTypeScript.tokTypes;
-								++this.pos;
-								return this.finishToken(tokTypes.jsxTagStart);
-							}
-						}
+				// Look back to see what precedes the <
+				let lookback = this.pos - 1;
+
+				// Skip whitespace backwards
+				while (lookback >= 0) {
+					const ch = this.input.charCodeAt(lookback);
+					if (ch !== 32 && ch !== 9) break; // not space or tab
+					lookback--;
+				}
+
+				// Check what character/token precedes the <
+				if (lookback >= 0) {
+					const prevChar = this.input.charCodeAt(lookback);
+
+					// If preceded by identifier character (letter, digit, _, $) or closing paren,
+					// this is likely TypeScript generics, not JSX
+					const isIdentifierChar =
+						(prevChar >= 65 && prevChar <= 90) ||  // A-Z
+						(prevChar >= 97 && prevChar <= 122) || // a-z
+						(prevChar >= 48 && prevChar <= 57) ||  // 0-9
+						prevChar === 95 ||  // _
+						prevChar === 36 ||  // $
+						prevChar === 41;    // )
+
+					if (isIdentifierChar) {
+						return super.getTokenFromCode(code);
 					}
 				}
 
-				if (code === 35) {
+				if (inComponent) {
+					// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
+					// At component top-level (scopeStack.length <= 4), apply JSX detection logic
+					if (this.scopeStack.length >= 5) {
+						// Inside function - treat as TypeScript generic, not JSX
+						++this.pos;
+						return this.finishToken(tt.relational, '<');
+					}
+
+					// Check if everything before this position on the current line is whitespace
+					let lineStart = this.pos - 1;
+					while (
+						lineStart >= 0 &&
+						this.input.charCodeAt(lineStart) !== 10 &&
+						this.input.charCodeAt(lineStart) !== 13
+					) {
+						lineStart--;
+					}
+					lineStart++; // Move past the newline character
+
+					// Check if all characters from line start to current position are whitespace
+					let allWhitespace = true;
+					for (let i = lineStart; i < this.pos; i++) {
+						const ch = this.input.charCodeAt(i);
+						if (ch !== 32 && ch !== 9) {
+							allWhitespace = false;
+							break;
+						}
+					}
+
+					// Check if the character after < is not whitespace
+					if (allWhitespace && this.pos + 1 < this.input.length) {
+						const nextChar = this.input.charCodeAt(this.pos + 1);
+						if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
+							const tokTypes = this.acornTypeScript.tokTypes;
+							++this.pos;
+							return this.finishToken(tokTypes.jsxTagStart);
+						}
+					}
+				}
+			}
+
+			if (code === 35) {
 					// # character
 					// Look ahead to see if this is followed by [ for tuple syntax
 					if (this.pos + 1 < this.input.length) {
@@ -1301,11 +1346,59 @@ function get_comment_handlers(source, comments, index = 0) {
 export function parse(source) {
 	/** @type {CommentWithLocation[]} */
 	const comments = [];
-	const { onComment, add_comments } = get_comment_handlers(source, comments);
+
+	// Preprocess step 1: Add trailing commas to single-parameter generics followed by (
+	// This is a workaround for @sveltejs/acorn-typescript limitations with JSX enabled
+	let preprocessedSource = source;
+	let sourceChanged = false;
+
+	preprocessedSource = source.replace(
+		/(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(/g,
+		(_, generic) => {
+			sourceChanged = true;
+			// Add trailing comma to disambiguate from JSX
+			return `${generic},>(`;
+		}
+	);
+
+	// Preprocess step 2: Convert generic method shorthand in object literals to function property syntax
+	// Transform `method<T,>(...): ReturnType { body }` to `method: function<T,>(...): ReturnType { body }`
+	// Note: This only applies to object literal methods, not class methods
+	// The trailing comma was already added by step 1
+	preprocessedSource = preprocessedSource.replace(
+		/(\w+)(<[A-Z][a-zA-Z0-9_$,\s]*>)\s*\(([^)]*)\)(\s*:\s*[^{]+)?(\s*\{)/g,
+		(match, methodName, generics, params, returnType, brace, offset) => {
+			// Look backward to determine context
+			let checkPos = offset - 1;
+			while (checkPos >= 0 && /\s/.test(preprocessedSource[checkPos])) checkPos--;
+			const prevChar = preprocessedSource[checkPos];
+
+			// Check if we're inside a class
+			const before = preprocessedSource.substring(Math.max(0, offset - 500), offset);
+			const classMatch = before.match(/\bclass\s+\w+[^{]*\{[^}]*$/);
+
+			// Only transform if we're in an object literal context AND not inside a class
+			if ((prevChar === '{' || prevChar === ',') && !classMatch) {
+				sourceChanged = true;
+				// This is object literal method shorthand - convert to function property
+				// Add trailing comma if not already present
+				const fixedGenerics = generics.includes(',') ? generics : generics.replace('>', ',>');
+				return `${methodName}: function${fixedGenerics}(${params})${returnType || ''}${brace}`;
+			}
+			return match;
+		}
+	);
+
+	// Only mark as preprocessed if we actually changed something
+	if (!sourceChanged) {
+		preprocessedSource = source;
+	}
+
+	const { onComment, add_comments } = get_comment_handlers(preprocessedSource, comments);
 	let ast;
 
 	try {
-		ast = parser.parse(source, {
+		ast = parser.parse(preprocessedSource, {
 			sourceType: 'module',
 			ecmaVersion: 13,
 			locations: true,
@@ -1316,6 +1409,12 @@ export function parse(source) {
 	}
 
 	add_comments(ast);
+
+	// Attach preprocessed source for prettier to use (only if we actually preprocessed)
+	// Prettier needs this because node locations refer to the preprocessed source
+	if (sourceChanged) {
+		ast.__preprocessedSource = preprocessedSource;
+	}
 
 	return /** @type {Program} */ (ast);
 }
