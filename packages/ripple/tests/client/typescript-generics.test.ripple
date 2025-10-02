@@ -175,81 +175,81 @@ describe('generic patterns', () => {
 				render(App);
 			})
 
-			// it ('tests complex generic arrow function with return type', () => {
-			// 	component App() {
-			// 		function getBuilder() {
-			// 			return <T>() => ({
-			// 				build<U>(): { build<V>(): V; data: T; key: U } {
-			// 					return 'test';
-			// 				}
-			// 			})
-			// 		}
+			it ('tests complex generic arrow function with return type', () => {
+				component App() {
+					function getBuilder() {
+						return <T>() => ({
+							build<U>(): { build: <V>() => V; data: T; key: U } {
+								return 'test';
+							}
+						})
+					}
 
-			// 		<div class="still-works">
-			// 			<span>{'Test'}</span>
-			// 		</div>
+					<div class="still-works">
+						<span>{'Test'}</span>
+					</div>
 
-			// 		type ResultType = string;
-			// 		const f = getBuilder()<ResultType>().build<string>();
-			// 		<div>{f}</div>
-			// 	}
+					type ResultType = string;
+					const f = getBuilder()<ResultType>().build<string>();
+					<div>{f}</div>
+				}
 
-			// 	render(App);
-			// })
+				render(App);
+			})
 
-			// it ('tests more complex generic arrow function with return type', () => {
-			// 	component App() {
-			// 		function getBuilder() {
-			// 			return <T>() => ({
-			// 				build<U>(): { build<V>(): V; data: T; key: U } {
-			// 					return {
-			// 						build<V>(): V {
-			// 							return 'test' as V;
-			// 						}
-			// 					};
-			// 				}
-			// 			});
-			// 		}
+			it ('tests more complex generic arrow function with return type', () => {
+				component App() {
+					function getBuilder() {
+						return <T>() => ({
+							build<U>(): { build: <V>() => V; data: T; key: U } {
+								return {
+									build<V>(): V {
+										return 'test' as V;
+									}
+								};
+							}
+						});
+					}
 
-			// 		<div class="still-works">
-			// 			<span>{'Test'}</span>
-			// 		</div>
+					<div class="still-works">
+						<span>{'Test'}</span>
+					</div>
 
-			// 		type ResultType = string;
-			// 		const f = getBuilder()<ResultType>().build<string>();
-			// 		<div>{f}</div>
-			// 	}
+					type ResultType = string;
+					const f = getBuilder()<ResultType>().build<string>();
+					<div>{f}</div>
+				}
 
-			// 	render(App);
-			// })
+				render(App);
+			})
 
-			// it ('tests complex generic arrow function with return type', () => {
-			// 	component App() {
-			// 		function getBuilder() {
-			// 			return <T>() => ({
-			// 				build<U>(): { build<V>(): V; data: T; key: U } {
-			// 					return {
-			// 						build<V>(): V {
-			// 							return 42 as V;
-			// 						},
-			// 						data: undefined as T,
-			// 						key: undefined as U
-			// 					};
-			// 				}
-			// 			});
-			// 		}
+			it ('tests complex generic arrow function with return type', () => {
+				component App() {
+					function getBuilder() {
+						return <T>() => ({
+							build<U>(): { build: <V>() => V; data: T; key: U } {
+								return {
+									build<V>(): V {
+										return 42 as V;
+									},
+									data: undefined as T,
+									key: undefined as U
+								};
+							}
+						});
+					}
 
-			// 		<div class="still-works">
-			// 			<span>{'Test'}</span>
-			// 		</div>
+					<div class="still-works">
+						<span>{'Test'}</span>
+					</div>
 
-			// 		type ResultType = string;
-			// 		const f = getBuilder()<ResultType>().build<string>();
-			// 		<div>{f}</div>
-			// 	}
+					type ResultType = string;
+					const f = getBuilder()<ResultType>().build<string>();
+					<div>{f}</div>
+				}
 
-			// 	render(App);
-			// })
+				render(App);
+			})
 		});
 
 });

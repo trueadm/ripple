@@ -1444,35 +1444,20 @@ export function parse(source) {
 	/** @type {CommentWithLocation[]} */
 	const comments = [];
 
-	// Preprocess step 1: Add trailing commas to single-parameter generic arrow functions
-	// Transform `<T>() =>` to `<T,>() =>` to work around JSX/TS ambiguity
+	// Preprocess step 1: Add trailing commas to single-parameter generics followed by (
+	// This is a workaround for @sveltejs/acorn-typescript limitations with JSX enabled
 	let preprocessedSource = source.replace(
-		/(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(\s*\)\s*=>/g,
-		'$1,>() =>'
-	);
-
-	// Preprocess step 2: Add trailing commas to class method generics
-	// Transform `method<T>(` to `method<T,>(` for class methods
-	// We need to add commas for class methods but NOT convert them to function syntax
-	preprocessedSource = preprocessedSource.replace(
-		/(\w+)(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(/g,
-		(match, methodName, generic, offset) => {
-			// Check if we're inside a class
-			const before = preprocessedSource.substring(Math.max(0, offset - 500), offset);
-			const classMatch = before.match(/\bclass\s+\w+[^{]*\{[^}]*$/);
-
-			if (classMatch) {
-				// Inside a class - just add comma
-				return `${methodName}${generic},>(`;
-			}
-			// Not in class, return unchanged for now (step 3 will handle object literals)
-			return match;
+		/(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(/g,
+		(match, generic) => {
+			// Add trailing comma to disambiguate from JSX
+			return `${generic},>(`;
 		}
 	);
 
-	// Preprocess step 3: Convert generic method shorthand in object literals to function property syntax
-	// Transform `method<T>(...): ReturnType { body }` to `method: function<T,>(...): ReturnType { body }`
-	// This only applies to object literal methods, not class methods
+	// Preprocess step 2: Convert generic method shorthand in object literals to function property syntax
+	// Transform `method<T,>(...): ReturnType { body }` to `method: function<T,>(...): ReturnType { body }`
+	// Note: This only applies to object literal methods, not class methods
+	// The trailing comma was already added by step 1
 	preprocessedSource = preprocessedSource.replace(
 		/(\w+)(<[A-Z][a-zA-Z0-9_$,\s]*>)\s*\(([^)]*)\)(\s*:\s*[^{]+)?(\s*\{)/g,
 		(match, methodName, generics, params, returnType, brace, offset) => {
