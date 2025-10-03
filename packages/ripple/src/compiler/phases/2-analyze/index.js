@@ -106,7 +106,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {Node} */(parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -117,7 +117,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {Node} */(parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -250,7 +250,10 @@ const visitors = {
 		}
 		const elements = [];
 
-		context.next({ ...context.state, elements, function_depth: context.state.function_depth + 1 });
+		// Track metadata for this component
+		const metadata = { await: false };
+
+		context.next({ ...context.state, elements, function_depth: context.state.function_depth + 1, metadata });
 
 		const css = node.css;
 
@@ -259,6 +262,12 @@ const visitors = {
 				prune_css(css, node);
 			}
 		}
+
+		// Store component metadata in analysis
+		context.state.analysis.component_metadata.push({
+			id: node.id.name,
+			async: metadata.await,
+		});
 	},
 
 	ForStatement(node, context) {
@@ -357,6 +366,11 @@ const visitors = {
 		}
 
 		if (node.pending) {
+			// Try/pending blocks indicate async operations
+			if (context.state.metadata?.await === false) {
+				context.state.metadata.await = true;
+			}
+
 			node.metadata = {
 				has_template: false,
 			};
@@ -594,6 +608,7 @@ export function analyze(ast, filename) {
 		ast,
 		scope,
 		scopes,
+		component_metadata: [],
 	};
 
 	walk(
