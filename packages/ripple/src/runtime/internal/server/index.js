@@ -63,7 +63,6 @@ class Output {
 export async function render(component) {
 	const output = new Output(null);
 
-	// TODO add expando "async" property to component functions during SSR
 	if (component.async) {
 		await component(output, {});
 	} else {
