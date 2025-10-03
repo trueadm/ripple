@@ -943,5 +943,129 @@ try {
 			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('properly formats components markup and new lines and leaves one new line between components and <style> if one or more exits', async () => {
+			const input = `export component App() {
+  <div>
+    <RowList rows={#[{id: 'a'}, {id: 'b'}, {id: 'c'}]}>
+      component Row({id, index, isHighlighted = (index) => (index % 2) === 0}) {
+        <div class={{highlighted: isHighlighted(index)}}>{index}{' - '}{id}</div>
+
+        <style>
+          .highlighted {
+            background-color: lightgray;
+            color: black;
+          }
+        </style>
+      }
+    </RowList>
+  </div>
+}
+
+component RowList({ rows, Row }) {
+  for (const { id } of rows; index i;) {
+    <Row index={i} {id} />
+  }
+}`;
+
+			const expected = `export component App() {
+  <div>
+    <RowList rows={#[{id: 'a'}, {id: 'b'}, {id: 'c'}]}>
+      component Row({ id, index, isHighlighted = (index) => index % 2 === 0 }) {
+        <div class={{highlighted: isHighlighted(index)}}>
+          {index}
+          {' - '}
+          {id}
+        </div>
+
+        <style>
+          .highlighted {
+            background-color: lightgray;
+            color: black;
+          }
+        </style>
+      }
+    </RowList>
+  </div>
+}
+
+component RowList({ rows, Row }) {
+  for (const { id } of rows; index i) {
+    <Row index={i} {id} />
+  }
+}`;
+			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('leaves the shorthand reactive declaration intact and formats the same way as plain objects', async () => {
+			const input = `export component App() {
+  const obj = #{ a: 1, b: 2, c: 3 };
+  let singleUser = #{name:"Test Me", email: "abc@example.com"}
+}`;
+
+			const expected = `export component App() {
+  const obj = #{ a: 1, b: 2, c: 3 };
+  let singleUser = #{ name: 'Test Me', email: 'abc@example.com' };
+}`;
+			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('formats single line reactive object into multiline when printWidth is exceeded', async () => {
+			const input = `export component App() {
+  const obj = #{a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9, j: 10, k: 11, l: 12, m: 13, n: 14, o: 15};
+  let singleUser = #{name:"Test Me", email: "abc@example.com"}
+}`;
+
+			const expected = `export component App() {
+  const obj = #{
+    a: 1,
+    b: 2,
+    c: 3,
+    d: 4,
+    e: 5,
+    f: 6,
+    g: 7,
+    h: 8,
+    i: 9,
+    j: 10,
+    k: 11,
+    l: 12,
+    m: 13,
+    n: 14,
+    o: 15,
+  };
+  let singleUser = #{ name: 'Test Me', email: 'abc@example.com' };
+}`;
+			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('leaves the shorthand reactive array declaration intact and formats the same way as regular array', async () => {
+			const input = `export component App() {
+  const arr = #[ {a: 1}, { b:2}, {c:3 }   ];
+  let multi = #[{a: 1}, {b: 2}, {c: 3}, {d: 4}, {e:5}, {f:6}, {g: 7}, {h: 8}, {i:9}, {j: 10}, {k: 11}];
+}`;
+
+			const expected = `export component App() {
+  const arr = #[{ a: 1 }, { b: 2 }, { c: 3 }];
+  let multi = #[
+    { a: 1 },
+    { b: 2 },
+    { c: 3 },
+    { d: 4 },
+    { e: 5 },
+    { f: 6 },
+    { g: 7 },
+    { h: 8 },
+    { i: 9 },
+    { j: 10 },
+    { k: 11 },
+  ];
+}`;
+			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 });

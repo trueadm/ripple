@@ -1,0 +1,64 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, track, TrackedArray, TrackedMap, effect } from 'ripple';
+
+describe('computed tracked properties', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+  it('should update a property using assignment', () => {
+    component App() {
+      let obj = {
+        [0]: track(0),
+      };
+
+      <div>{obj.@[0]}</div>
+
+      <button onClick={() => { obj.@[0] += 1 }}>{"Increment"}</button>
+    }
+
+    render(App);
+    expect(container).toMatchSnapshot();
+
+    const button = container.querySelector('button');
+    button.click();
+    flushSync();
+
+    expect(container).toMatchSnapshot();
+  });
+
+  it('should update a property using update expressions', () => {
+    component App() {
+      let obj = {
+        [0]: track(0),
+      };
+
+      <div>{obj.@[0]}</div>
+
+      <button onClick={() => { obj.@[0]++ }}>{"Increment"}</button>
+    }
+
+    render(App);
+    expect(container).toMatchSnapshot();
+
+    const button = container.querySelector('button');
+    button.click();
+    flushSync();
+
+    expect(container).toMatchSnapshot();
+  });
+});

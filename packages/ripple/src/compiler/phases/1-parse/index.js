@@ -5,12 +5,12 @@
  * } from '#compiler' */
 
 import * as acorn from 'acorn';
-import { tsPlugin } from 'acorn-typescript';
+import { tsPlugin } from '@sveltejs/acorn-typescript';
 import { parse_style } from './style.js';
 import { walk } from 'zimmerframe';
 import { regex_newline_characters } from '../../../utils/patterns.js';
 
-const parser = acorn.Parser.extend(tsPlugin({ allowSatisfies: true }), RipplePlugin());
+const parser = acorn.Parser.extend(tsPlugin({ jsx: true }), RipplePlugin());
 
 /**
  * Convert JSX node types to regular JavaScript node types
@@ -67,7 +67,51 @@ function RipplePlugin(config) {
 			getTokenFromCode(code) {
 				if (code === 60) {
 					// < character
-					if (this.#path.findLast((n) => n.type === 'Component')) {
+					const inComponent = this.#path.findLast((n) => n.type === 'Component');
+
+					// Check if this could be TypeScript generics instead of JSX
+					// TypeScript generics appear after: identifiers, closing parens, 'new' keyword
+					// For example: Array<T>, func<T>(), new Map<K,V>(), method<T>()
+					// This check applies everywhere, not just inside components
+
+					// Look back to see what precedes the <
+					let lookback = this.pos - 1;
+
+					// Skip whitespace backwards
+					while (lookback >= 0) {
+						const ch = this.input.charCodeAt(lookback);
+						if (ch !== 32 && ch !== 9) break; // not space or tab
+						lookback--;
+					}
+
+					// Check what character/token precedes the <
+					if (lookback >= 0) {
+						const prevChar = this.input.charCodeAt(lookback);
+
+						// If preceded by identifier character (letter, digit, _, $) or closing paren,
+						// this is likely TypeScript generics, not JSX
+						const isIdentifierChar =
+							(prevChar >= 65 && prevChar <= 90) || // A-Z
+							(prevChar >= 97 && prevChar <= 122) || // a-z
+							(prevChar >= 48 && prevChar <= 57) || // 0-9
+							prevChar === 95 || // _
+							prevChar === 36 || // $
+							prevChar === 41; // )
+
+						if (isIdentifierChar) {
+							return super.getTokenFromCode(code);
+						}
+					}
+
+					if (inComponent) {
+						// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
+						// At component top-level (scopeStack.length <= 4), apply JSX detection logic
+						if (this.scopeStack.length >= 5) {
+							// Inside function - treat as TypeScript generic, not JSX
+							++this.pos;
+							return this.finishToken(tt.relational, '<');
+						}
+
 						// Check if everything before this position on the current line is whitespace
 						let lineStart = this.pos - 1;
 						while (
@@ -214,6 +258,88 @@ function RipplePlugin(config) {
 				return node;
 			}
 
+			/**
+			 * Override parseSubscripts to handle `.@[expression]` syntax for reactive computed member access
+			 * @param {any} base - The base expression
+			 * @param {number} startPos - Start position
+			 * @param {any} startLoc - Start location
+			 * @param {boolean} noCalls - Whether calls are disallowed
+			 * @param {any} maybeAsyncArrow - Optional async arrow flag
+			 * @param {any} optionalChained - Optional chaining flag
+			 * @param {any} forInit - For-init flag
+			 * @returns {any} Parsed subscript expression
+			 */
+			parseSubscripts(
+				base,
+				startPos,
+				startLoc,
+				noCalls,
+				maybeAsyncArrow,
+				optionalChained,
+				forInit,
+			) {
+				// Check for `.@[` pattern for reactive computed member access
+				const isDotOrOptional = this.type === tt.dot || this.type === tt.questionDot;
+
+				if (isDotOrOptional) {
+					// Check the next two characters without consuming tokens
+					// this.pos currently points AFTER the dot token
+					const nextChar = this.input.charCodeAt(this.pos);
+					const charAfter = this.input.charCodeAt(this.pos + 1);
+
+					// Check for @[ pattern (@ = 64, [ = 91)
+					if (nextChar === 64 && charAfter === 91) {
+						const node = this.startNodeAt(startPos, startLoc);
+						node.object = base;
+						node.computed = true;
+						node.optional = this.type === tt.questionDot;
+						node.tracked = true;
+
+						// Consume the dot/questionDot token
+						this.next();
+
+						// Manually skip the @ character
+						this.pos += 1;
+
+						// Now call finishToken to properly consume the [ bracket
+						this.finishToken(tt.bracketL);
+
+						// Now we're positioned correctly to parse the expression
+						this.next(); // Move to first token inside brackets
+
+						// Parse the expression inside brackets
+						node.property = this.parseExpression();
+
+						// Expect closing bracket
+						this.expect(tt.bracketR);
+
+						// Finish this MemberExpression node
+						base = this.finishNode(node, 'MemberExpression');
+
+						// Recursively handle any further subscripts (chaining)
+						return this.parseSubscripts(
+							base,
+							startPos,
+							startLoc,
+							noCalls,
+							maybeAsyncArrow,
+							optionalChained,
+							forInit,
+						);
+					}
+				}
+
+				// Fall back to default parseSubscripts implementation
+				return super.parseSubscripts(
+					base,
+					startPos,
+					startLoc,
+					noCalls,
+					maybeAsyncArrow,
+					optionalChained,
+					forInit,
+				);
+			}
 			/**
 			 * Parse expression atom - handles TrackedArray and TrackedObject literals
 			 * @param {any} [refDestructuringErrors]
@@ -1230,7 +1356,7 @@ function get_comment_handlers(source, comments, index = 0) {
 
 			comments = comments
 				.filter((comment) => comment.start >= index)
-				.map(({ type, value, start, end }) => ({ type, value, start, end }));
+				.map(({ type, value, start, end, loc }) => ({ type, value, start, end, loc }));
 
 			walk(ast, null, {
 				_(node, { next, path }) {
@@ -1301,11 +1427,56 @@ function get_comment_handlers(source, comments, index = 0) {
 export function parse(source) {
 	/** @type {CommentWithLocation[]} */
 	const comments = [];
-	const { onComment, add_comments } = get_comment_handlers(source, comments);
+
+	// Preprocess step 1: Add trailing commas to single-parameter generics followed by (
+	// This is a workaround for @sveltejs/acorn-typescript limitations with JSX enabled
+	let preprocessedSource = source;
+	let sourceChanged = false;
+
+	preprocessedSource = source.replace(/(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(/g, (_, generic) => {
+		sourceChanged = true;
+		// Add trailing comma to disambiguate from JSX
+		return `${generic},>(`;
+	});
+
+	// Preprocess step 2: Convert generic method shorthand in object literals to function property syntax
+	// Transform `method<T,>(...): ReturnType { body }` to `method: function<T,>(...): ReturnType { body }`
+	// Note: This only applies to object literal methods, not class methods
+	// The trailing comma was already added by step 1
+	preprocessedSource = preprocessedSource.replace(
+		/(\w+)(<[A-Z][a-zA-Z0-9_$,\s]*>)\s*\(([^)]*)\)(\s*:\s*[^{]+)?(\s*\{)/g,
+		(match, methodName, generics, params, returnType, brace, offset) => {
+			// Look backward to determine context
+			let checkPos = offset - 1;
+			while (checkPos >= 0 && /\s/.test(preprocessedSource[checkPos])) checkPos--;
+			const prevChar = preprocessedSource[checkPos];
+
+			// Check if we're inside a class
+			const before = preprocessedSource.substring(Math.max(0, offset - 500), offset);
+			const classMatch = before.match(/\bclass\s+\w+[^{]*\{[^}]*$/);
+
+			// Only transform if we're in an object literal context AND not inside a class
+			if ((prevChar === '{' || prevChar === ',') && !classMatch) {
+				sourceChanged = true;
+				// This is object literal method shorthand - convert to function property
+				// Add trailing comma if not already present
+				const fixedGenerics = generics.includes(',') ? generics : generics.replace('>', ',>');
+				return `${methodName}: function${fixedGenerics}(${params})${returnType || ''}${brace}`;
+			}
+			return match;
+		},
+	);
+
+	// Only mark as preprocessed if we actually changed something
+	if (!sourceChanged) {
+		preprocessedSource = source;
+	}
+
+	const { onComment, add_comments } = get_comment_handlers(preprocessedSource, comments);
 	let ast;
 
 	try {
-		ast = parser.parse(source, {
+		ast = parser.parse(preprocessedSource, {
 			sourceType: 'module',
 			ecmaVersion: 13,
 			locations: true,

@@ -1,4 +1,4 @@
-/** @import {Expression, FunctionExpression} from 'estree' */
+/** @import {Expression, FunctionExpression, Pattern} from 'estree' */
 
 import { walk } from 'zimmerframe';
 import path from 'node:path';
@@ -293,7 +293,6 @@ const visitors = {
 
 	NewExpression(node, context) {
 		const callee = node.callee;
-		const parent = context.path.at(-1);
 
 		if (context.state.metadata?.tracking === false) {
 			context.state.metadata.tracking = true;
@@ -305,18 +304,22 @@ const visitors = {
 			is_inside_call_expression(context) ||
 			is_value_static(node)
 		) {
+			if (!context.state.to_ts) {
+				delete node.typeArguments;
+			}
 			return context.next();
 		}
 
-		return b.call(
-			'_$_.with_scope',
-			b.id('__block'),
-			b.thunk({
-				...node,
-				callee: context.visit(callee),
-				arguments: node.arguments.map((arg) => context.visit(arg)),
-			}),
-		);
+		const new_node = {
+			...node,
+			callee: context.visit(callee),
+			arguments: node.arguments.map((arg) => context.visit(arg)),
+		};
+		if (!context.state.to_ts) {
+			delete new_node.typeArguments;
+		}
+
+		return b.call('_$_.with_scope', b.id('__block'), b.thunk(new_node));
 	},
 
 	TrackedArrayExpression(node, context) {
@@ -366,7 +369,7 @@ const visitors = {
 			context.state.metadata.tracking = true;
 		}
 
-		if (node.property.type === 'Identifier' && node.property.tracked) {
+		if (node.tracked || (node.property.type === 'Identifier' && node.property.tracked)) {
 			add_ripple_internal_import(context);
 
 			return b.call(
@@ -918,8 +921,7 @@ const visitors = {
 
 		if (
 			left.type === 'MemberExpression' &&
-			left.property.type === 'Identifier' &&
-			left.property.tracked
+			(left.tracked || (left.property.type === 'Identifier' && left.property.tracked))
 		) {
 			add_ripple_internal_import(context);
 			const operator = node.operator;
@@ -976,8 +978,7 @@ const visitors = {
 
 		if (
 			argument.type === 'MemberExpression' &&
-			argument.property.type === 'Identifier' &&
-			argument.property.tracked
+			(argument.tracked || (argument.property.type === 'Identifier' && argument.property.tracked))
 		) {
 			add_ripple_internal_import(context);
 			context.state.metadata.tracking = true;
@@ -1052,7 +1053,9 @@ const visitors = {
 						),
 					),
 					b.literal(flags),
-					key != null ? b.arrow(index ? [pattern, index] : [pattern], context.visit(key)) : undefined,
+					key != null
+						? b.arrow(index ? [pattern, index] : [pattern], context.visit(key))
+						: undefined,
 				),
 			),
 		);
@@ -1401,6 +1404,9 @@ function transform_ts_child(node, context) {
 			...context,
 			state: { ...context.state, scope: body_scope },
 		});
+		if (node.key) {
+			block_body.unshift(b.stmt(visit(node.key)));
+		}
 		if (node.index) {
 			block_body.unshift(b.let(visit(node.index), b.literal(0)));
 		}
