@@ -1,4 +1,4 @@
-/** @import {Expression, FunctionExpression} from 'estree' */
+/** @import {Expression, FunctionExpression, Pattern} from 'estree' */
 
 import { walk } from 'zimmerframe';
 import path from 'node:path';
@@ -293,7 +293,6 @@ const visitors = {
 
 	NewExpression(node, context) {
 		const callee = node.callee;
-		const parent = context.path.at(-1);
 
 		if (context.state.metadata?.tracking === false) {
 			context.state.metadata.tracking = true;
@@ -311,20 +310,16 @@ const visitors = {
 			return context.next();
 		}
 
-		const newNode = {
+		const new_node = {
 			...node,
 			callee: context.visit(callee),
 			arguments: node.arguments.map((arg) => context.visit(arg)),
 		};
 		if (!context.state.to_ts) {
-			delete newNode.typeArguments;
+			delete new_node.typeArguments;
 		}
 
-		return b.call(
-			'_$_.with_scope',
-			b.id('__block'),
-			b.thunk(newNode),
-		);
+		return b.call('_$_.with_scope', b.id('__block'), b.thunk(new_node));
 	},
 
 	TrackedArrayExpression(node, context) {
@@ -374,7 +369,7 @@ const visitors = {
 			context.state.metadata.tracking = true;
 		}
 
-		if (node.property.type === 'Identifier' && node.property.tracked) {
+		if (node.tracked || (node.property.type === 'Identifier' && node.property.tracked)) {
 			add_ripple_internal_import(context);
 
 			return b.call(
@@ -926,8 +921,7 @@ const visitors = {
 
 		if (
 			left.type === 'MemberExpression' &&
-			left.property.type === 'Identifier' &&
-			left.property.tracked
+			(left.tracked || (left.property.type === 'Identifier' && left.property.tracked))
 		) {
 			add_ripple_internal_import(context);
 			const operator = node.operator;
@@ -984,8 +978,7 @@ const visitors = {
 
 		if (
 			argument.type === 'MemberExpression' &&
-			argument.property.type === 'Identifier' &&
-			argument.property.tracked
+			(argument.tracked || (argument.property.type === 'Identifier' && argument.property.tracked))
 		) {
 			add_ripple_internal_import(context);
 			context.state.metadata.tracking = true;

@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`computed tracked properties > should update a property using assignment 1`] = `
+<div>
+  <div>
+    0
+  </div>
+  <button>
+    Increment
+  </button>
+  
+</div>
+`;
+
+exports[`computed tracked properties > should update a property using assignment 2`] = `
+<div>
+  <div>
+    1
+  </div>
+  <button>
+    Increment
+  </button>
+  
+</div>
+`;
+
+exports[`computed tracked properties > should update a property using update expressions 1`] = `
+<div>
+  <div>
+    0
+  </div>
+  <button>
+    Increment
+  </button>
+  
+</div>
+`;
+
+exports[`computed tracked properties > should update a property using update expressions 2`] = `
+<div>
+  <div>
+    1
+  </div>
+  <button>
+    Increment
+  </button>
+  
+</div>
+`;

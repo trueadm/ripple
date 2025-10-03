@@ -59,7 +59,6 @@ function RipplePlugin(config) {
 				return null;
 			}
 
-
 			/**
 			 * Get token from character code - handles Ripple-specific tokens
 			 * @param {number} code - Character code
@@ -92,12 +91,12 @@ function RipplePlugin(config) {
 						// If preceded by identifier character (letter, digit, _, $) or closing paren,
 						// this is likely TypeScript generics, not JSX
 						const isIdentifierChar =
-							(prevChar >= 65 && prevChar <= 90) ||  // A-Z
+							(prevChar >= 65 && prevChar <= 90) || // A-Z
 							(prevChar >= 97 && prevChar <= 122) || // a-z
-							(prevChar >= 48 && prevChar <= 57) ||  // 0-9
-							prevChar === 95 ||  // _
-							prevChar === 36 ||  // $
-							prevChar === 41;    // )
+							(prevChar >= 48 && prevChar <= 57) || // 0-9
+							prevChar === 95 || // _
+							prevChar === 36 || // $
+							prevChar === 41; // )
 
 						if (isIdentifierChar) {
 							return super.getTokenFromCode(code);
@@ -259,6 +258,88 @@ function RipplePlugin(config) {
 				return node;
 			}
 
+			/**
+			 * Override parseSubscripts to handle `.@[expression]` syntax for reactive computed member access
+			 * @param {any} base - The base expression
+			 * @param {number} startPos - Start position
+			 * @param {any} startLoc - Start location
+			 * @param {boolean} noCalls - Whether calls are disallowed
+			 * @param {any} maybeAsyncArrow - Optional async arrow flag
+			 * @param {any} optionalChained - Optional chaining flag
+			 * @param {any} forInit - For-init flag
+			 * @returns {any} Parsed subscript expression
+			 */
+			parseSubscripts(
+				base,
+				startPos,
+				startLoc,
+				noCalls,
+				maybeAsyncArrow,
+				optionalChained,
+				forInit,
+			) {
+				// Check for `.@[` pattern for reactive computed member access
+				const isDotOrOptional = this.type === tt.dot || this.type === tt.questionDot;
+
+				if (isDotOrOptional) {
+					// Check the next two characters without consuming tokens
+					// this.pos currently points AFTER the dot token
+					const nextChar = this.input.charCodeAt(this.pos);
+					const charAfter = this.input.charCodeAt(this.pos + 1);
+
+					// Check for @[ pattern (@ = 64, [ = 91)
+					if (nextChar === 64 && charAfter === 91) {
+						const node = this.startNodeAt(startPos, startLoc);
+						node.object = base;
+						node.computed = true;
+						node.optional = this.type === tt.questionDot;
+						node.tracked = true;
+
+						// Consume the dot/questionDot token
+						this.next();
+
+						// Manually skip the @ character
+						this.pos += 1;
+
+						// Now call finishToken to properly consume the [ bracket
+						this.finishToken(tt.bracketL);
+
+						// Now we're positioned correctly to parse the expression
+						this.next(); // Move to first token inside brackets
+
+						// Parse the expression inside brackets
+						node.property = this.parseExpression();
+
+						// Expect closing bracket
+						this.expect(tt.bracketR);
+
+						// Finish this MemberExpression node
+						base = this.finishNode(node, 'MemberExpression');
+
+						// Recursively handle any further subscripts (chaining)
+						return this.parseSubscripts(
+							base,
+							startPos,
+							startLoc,
+							noCalls,
+							maybeAsyncArrow,
+							optionalChained,
+							forInit,
+						);
+					}
+				}
+
+				// Fall back to default parseSubscripts implementation
+				return super.parseSubscripts(
+					base,
+					startPos,
+					startLoc,
+					noCalls,
+					maybeAsyncArrow,
+					optionalChained,
+					forInit,
+				);
+			}
 			/**
 			 * Parse expression atom - handles TrackedArray and TrackedObject literals
 			 * @param {any} [refDestructuringErrors]
@@ -703,7 +784,7 @@ function RipplePlugin(config) {
 						var t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
-							this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
 					case tok.jsxTagStart:
@@ -755,7 +836,7 @@ function RipplePlugin(config) {
 					chunkStart = this.pos;
 				const tok = this.acornTypeScript.tokTypes;
 
-				for (; ;) {
+				for (;;) {
 					if (this.pos >= this.input.length) this.raise(this.start, 'Unterminated JSX contents');
 					let ch = this.input.charCodeAt(this.pos);
 
@@ -868,14 +949,14 @@ function RipplePlugin(config) {
 							this.raise(
 								this.pos,
 								'Unexpected token `' +
-								this.input[this.pos] +
-								'`. Did you mean `' +
-								(ch === 62 ? '&gt;' : '&rbrace;') +
-								'` or ' +
-								'`{"' +
-								this.input[this.pos] +
-								'"}' +
-								'`?',
+									this.input[this.pos] +
+									'`. Did you mean `' +
+									(ch === 62 ? '&gt;' : '&rbrace;') +
+									'` or ' +
+									'`{"' +
+									this.input[this.pos] +
+									'"}' +
+									'`?',
 							);
 						}
 
@@ -1352,14 +1433,11 @@ export function parse(source) {
 	let preprocessedSource = source;
 	let sourceChanged = false;
 
-	preprocessedSource = source.replace(
-		/(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(/g,
-		(_, generic) => {
-			sourceChanged = true;
-			// Add trailing comma to disambiguate from JSX
-			return `${generic},>(`;
-		}
-	);
+	preprocessedSource = source.replace(/(<\s*[A-Z][a-zA-Z0-9_$]*\s*)>\s*\(/g, (_, generic) => {
+		sourceChanged = true;
+		// Add trailing comma to disambiguate from JSX
+		return `${generic},>(`;
+	});
 
 	// Preprocess step 2: Convert generic method shorthand in object literals to function property syntax
 	// Transform `method<T,>(...): ReturnType { body }` to `method: function<T,>(...): ReturnType { body }`
@@ -1386,7 +1464,7 @@ export function parse(source) {
 				return `${methodName}: function${fixedGenerics}(${params})${returnType || ''}${brace}`;
 			}
 			return match;
-		}
+		},
 	);
 
 	// Only mark as preprocessed if we actually changed something
