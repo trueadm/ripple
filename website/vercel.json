@@ -40,6 +40,11 @@
 			"source": "/github",
 			"destination": "https://github.com/trueadm/ripple",
 			"permanent": false
+		},
+		{
+			"source": "/docs",
+			"destination": "/docs/introduction",
+			"permanent": false
 		}
 	]
 }
