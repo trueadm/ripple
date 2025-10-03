@@ -14,6 +14,9 @@ module.exports = createLanguageServicePlugin((ts, info) => {
           if (prop === 'getSemanticDiagnostics') {
             return getSemanticDiagnostics;
           }
+          if (prop === 'getSuggestionDiagnostics') {
+            return getSuggestionDiagnostics;
+          }
           return target[prop];
         },
         set(target, prop, value) {
@@ -23,15 +26,15 @@ module.exports = createLanguageServicePlugin((ts, info) => {
       });
 
       function getSyntacticDiagnostics(fileName) {
-        return isErrorMode(fileName)
-          ? []
-          : languageService.getSyntacticDiagnostics(fileName);
+        return isErrorMode(fileName) ? [] : languageService.getSyntacticDiagnostics(fileName);
       }
 
       function getSemanticDiagnostics(fileName) {
-        return isErrorMode(fileName)
-          ? []
-          : languageService.getSemanticDiagnostics(fileName);
+        return isErrorMode(fileName) ? [] : languageService.getSemanticDiagnostics(fileName);
+      }
+
+      function getSuggestionDiagnostics(fileName) {
+        return isErrorMode(fileName) ? [] : languageService.getSuggestionDiagnostics(fileName);
       }
 
       function isErrorMode(fileName) {
