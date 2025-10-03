@@ -772,6 +772,34 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+			case 'TSTupleType':
+				nodeContent = printTSTupleType(node, path, options, print);
+				break;
+
+			case 'TSIndexSignature':
+				nodeContent = printTSIndexSignature(node, path, options, print);
+				break;
+
+			case 'TSConstructorType':
+				nodeContent = printTSConstructorType(node, path, options, print);
+				break;
+
+			case 'TSConditionalType':
+				nodeContent = printTSConditionalType(node, path, options, print);
+				break;
+
+			case 'TSMappedType':
+				nodeContent = printTSMappedType(node, path, options, print);
+				break;
+
+			case 'TSQualifiedName':
+				nodeContent = printTSQualifiedName(node, path, options, print);
+				break;
+
+			case 'TSIndexedAccessType':
+				nodeContent = printTSIndexedAccessType(node, path, options, print);
+				break;
+
 		case 'Element':
 			nodeContent = printElement(node, path, options, print);
 			break;
@@ -2245,6 +2273,123 @@ function printTSTypeReference(node, path, options, print) {
 	}
 
 	return concat(parts);
+}
+
+function printTSTupleType(node, path, options, print) {
+	const parts = ['['];
+	const elements = node.elementTypes ? path.map(print, 'elementTypes') : [];
+	for (let i = 0; i < elements.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(elements[i]);
+	}
+	parts.push(']');
+	return concat(parts);
+}
+
+function printTSIndexSignature(node, path, options, print) {
+	const parts = [];
+	if (node.readonly === true || node.readonly === 'plus' || node.readonly === '+') {
+		parts.push('readonly ');
+	} else if (node.readonly === 'minus' || node.readonly === '-') {
+		parts.push('-readonly ');
+	}
+
+	parts.push('[');
+	const params = node.parameters ? path.map(print, 'parameters') : [];
+	for (let i = 0; i < params.length; i++) {
+		if (i > 0) parts.push(', ');
+		parts.push(params[i]);
+	}
+	parts.push(']');
+
+	if (node.typeAnnotation) {
+		parts.push(': ');
+		parts.push(path.call(print, 'typeAnnotation'));
+	}
+
+	return concat(parts);
+}
+
+function printTSConstructorType(node, path, options, print) {
+	const parts = [];
+	parts.push('new ');
+	parts.push('(');
+	const hasParams = Array.isArray(node.params) && node.params.length > 0;
+	const hasParameters = Array.isArray(node.parameters) && node.parameters.length > 0;
+	if (hasParams || hasParameters) {
+		const params = hasParams ? path.map(print, 'params') : path.map(print, 'parameters');
+		for (let i = 0; i < params.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(params[i]);
+		}
+	}
+	parts.push(')');
+	parts.push(' => ');
+	if (node.returnType) {
+		parts.push(path.call(print, 'returnType'));
+	} else if (node.typeAnnotation) {
+		parts.push(path.call(print, 'typeAnnotation'));
+	}
+	return concat(parts);
+}
+
+function printTSConditionalType(node, path, options, print) {
+	const parts = [];
+	parts.push(path.call(print, 'checkType'));
+	parts.push(' extends ');
+	parts.push(path.call(print, 'extendsType'));
+	parts.push(' ? ');
+	parts.push(path.call(print, 'trueType'));
+	parts.push(' : ');
+	parts.push(path.call(print, 'falseType'));
+	return concat(parts);
+}
+
+function printTSMappedType(node, path, options, print) {
+	const readonlyMod = node.readonly === true || node.readonly === 'plus' || node.readonly === '+'
+		? 'readonly '
+		: (node.readonly === 'minus' || node.readonly === '-') ? '-readonly ' : '';
+
+	let optionalMod = '';
+	if (node.optional === true || node.optional === 'plus' || node.optional === '+') {
+		optionalMod = '?';
+	} else if (node.optional === 'minus' || node.optional === '-') {
+		optionalMod = '-?';
+	}
+
+	const innerParts = [];
+	const typeParam = node.typeParameter;
+	innerParts.push('[');
+	if (typeParam) {
+		// name
+		innerParts.push(typeParam.name);
+		innerParts.push(' in ');
+		if (typeParam.constraint) {
+			innerParts.push(path.call(print, 'typeParameter', 'constraint'));
+		} else {
+			innerParts.push(path.call(print, 'typeParameter'));
+		}
+		if (node.nameType) {
+			innerParts.push(' as ');
+			innerParts.push(path.call(print, 'nameType'));
+		}
+	}
+	innerParts.push(']');
+	innerParts.push(optionalMod);
+	if (node.typeAnnotation) {
+		innerParts.push(': ');
+		innerParts.push(path.call(print, 'typeAnnotation'));
+	}
+
+	return group(['{ ', readonlyMod, concat(innerParts), ' }']);
+}
+
+function printTSQualifiedName(node, path, options, print) {
+	return concat([path.call(print, 'left'), '.', path.call(print, 'right')]);
+}
+
+function printTSIndexedAccessType(node, path, options, print) {
+	return concat([path.call(print, 'objectType'), '[', path.call(print, 'indexType'), ']']);
 }
 
 function printStyleSheet(node, path, options, print) {
