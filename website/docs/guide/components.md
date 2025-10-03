@@ -78,10 +78,10 @@ export component App() {
 }
 ```
 
-### Slots Pattern
+### "Slots" Pattern
 
 With all that in place, we can now recreate the pattern of "slots" from Vue/Web
-Components and "snippets" from Svelte:
+Components, "render props" from React, and "snippets" from Svelte:
 
 ```ripple
 component Card({ children, Header, Footer }) {
