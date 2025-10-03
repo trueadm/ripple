@@ -169,16 +169,6 @@ class RippleVirtualCode {
 			};
 		}
 	}
-
-	// Required by Volar for virtual code
-	getEmbeddedCodes() {
-		return this.embeddedCodes;
-	}
-
-	// Required by Volar for sourcemap mapping
-	getMirrorMap() {
-		return this.mappings;
-	}
 }
 
 module.exports = {
