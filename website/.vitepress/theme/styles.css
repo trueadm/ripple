@@ -46,34 +46,6 @@ div.VPContent {
 	margin-top: -7px !important;
 }
 
-/* Playground */
-body:has(.main-playground) {
-	overflow: hidden;
-}
-
-body:has(.main-playground) .VPNavBar .divider-line {
-	background-color: var(--vp-c-gutter);
-}
-
-body:has(.main-playground) .VPFooter {
-	display: none;
-}
-
-@media (max-height: 500px) {
-	body:has(.main-playground) {
-		overflow: auto; /* avoid hiding the lower part of playground on mobile (landscape) */
-	}
-
-	.VPHome:has(.main-playground) {
-		margin-bottom: 0;
-	}
-}
-
-.VPHome .container:has(.main-playground) {
-	padding: 0;
-	max-width: unset;
-}
-
-.main-playground .VPMenu {
-	max-height: calc(100dvh - 110px);
+*:focus-visible {
+	outline: 2px solid var(--vp-c-brand-1) !important;
 }
