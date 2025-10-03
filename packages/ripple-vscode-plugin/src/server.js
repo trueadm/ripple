@@ -3,7 +3,6 @@ const {
 	createServer,
 	createSimpleProject,
 } = require('@volar/language-server/node');
-const { createTypeScriptPlugins } = require('./ts.js');
 const { getRippleLanguagePlugin, createRippleDiagnosticPlugin } = require('./language.js');
 const { pathToFileURL } = require('url');
 const path = require('path');
