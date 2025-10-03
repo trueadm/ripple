@@ -127,6 +127,20 @@ const visitors = {
 		return context.next();
 	},
 
+	TSTypeAliasDeclaration(_, context) {
+		if (!context.state.to_ts) {
+			return b.empty;
+		}
+		context.next();
+	},
+
+	TSInterfaceDeclaration(_, context) {
+		if (!context.state.to_ts) {
+			return b.empty;
+		}
+		context.next();
+	},
+
 	ExportNamedDeclaration(node, context) {
 		if (!context.state.to_ts && node.exportKind === 'type') {
 			return b.empty;
@@ -164,13 +178,10 @@ const visitors = {
 			let class_attribute = null;
 
 			const handle_static_attr = (name, value) => {
-				const attr_value = b.literal(
-					` ${name}${
-						is_boolean_attribute(name) && value === true
-							? ''
-							: `="${value === true ? '' : escape_html(value, true)}"`
-					}`,
-				);
+				const attr_str = ` ${name}${is_boolean_attribute(name) && value === true
+					? ''
+					: `="${value === true ? '' : escape_html(value, true)}"`
+					}`;
 
 				if (is_spreading) {
 					// For spread attributes, store just the actual value, not the full attribute string
@@ -181,7 +192,7 @@ const visitors = {
 					spread_attributes.push(b.prop('init', b.literal(name), actual_value));
 				} else {
 					state.init.push(
-						b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(String(attr_value)))),
+						b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(attr_str))),
 					);
 				}
 			};
@@ -241,7 +252,8 @@ const visitors = {
 					let expression = visit(class_attribute.value, { ...state, metadata });
 
 					if (node.metadata.scoped && state.component.css) {
-						expression = b.binary('+', b.literal(state.component.css.hash + ' '), expression);
+						// Pass array to clsx so it can handle objects properly
+						expression = b.array([expression, b.literal(state.component.css.hash)]);
 					}
 
 					state.init.push(
@@ -256,7 +268,7 @@ const visitors = {
 			} else if (node.metadata.scoped && state.component.css) {
 				const value = state.component.css.hash;
 
-				// TOOO
+				handle_static_attr('class', value);
 			}
 
 			if (spread_attributes !== null && spread_attributes.length > 0) {
@@ -392,6 +404,126 @@ const visitors = {
 		}
 	},
 
+	ImportDeclaration(node, context) {
+		if (!context.state.to_ts && node.importKind === 'type') {
+			return b.empty;
+		}
+
+		return {
+			...node,
+			specifiers: node.specifiers
+				.filter((spec) => spec.importKind !== 'type')
+				.map((spec) => context.visit(spec)),
+		};
+	},
+
+	TryStatement(node, context) {
+		if (!is_inside_component(context)) {
+			return context.next();
+		}
+
+		const metadata = { await: false };
+		const body = transform_body(node.block.body, {
+			...context,
+			state: { ...context.state, metadata },
+		});
+
+		// If the try block contains async operations, wrap it
+		if (metadata.await) {
+			if (context.state.metadata?.await === false) {
+				context.state.metadata.await = true;
+			}
+
+			// For SSR, we render pending content first if available, then try block
+			if (node.pending !== null) {
+				// TODO: In a streaming SSR implementation, this would render pending first
+				// and stream the resolved content. For now, we just render the try block.
+				// const pending_body = transform_body(node.pending.body, context);
+			}
+
+			if (node.handler !== null) {
+				const handler_body = transform_body(node.handler.body.body, {
+					...context,
+					state: { ...context.state, scope: context.state.scopes.get(node.handler.body) },
+				});
+
+				context.state.init.push(
+					b.try(
+						b.block(body),
+						b.catch(
+							node.handler.param || b.id('error'),
+							b.block(handler_body),
+						),
+					),
+				);
+			} else {
+				context.state.init.push(b.try(b.block(body)));
+			}
+		} else {
+			// No async, just regular try/catch
+			if (node.handler !== null) {
+				const handler_body = transform_body(node.handler.body.body, {
+					...context,
+					state: { ...context.state, scope: context.state.scopes.get(node.handler.body) },
+				});
+
+				context.state.init.push(
+					b.try(
+						b.block(body),
+						b.catch(
+							node.handler.param || b.id('error'),
+							b.block(handler_body),
+						),
+					),
+				);
+			} else {
+				context.state.init.push(...body);
+			}
+		}
+	},
+
+	AwaitExpression(node, context) {
+		if (context.state.to_ts) {
+			return context.next();
+		}
+
+		if (context.state.metadata?.await === false) {
+			context.state.metadata.await = true;
+		}
+
+		return b.await(context.visit(node.argument));
+	},
+
+	TrackedObjectExpression(node, context) {
+		// For SSR, we just evaluate the object as-is since there's no reactivity
+		return b.object(node.properties.map((prop) => context.visit(prop)));
+	},
+
+	TrackedArrayExpression(node, context) {
+		// For SSR, we just evaluate the array as-is since there's no reactivity
+		return b.array(node.elements.map((el) => context.visit(el)));
+	},
+
+	MemberExpression(node, context) {
+		const parent = context.path.at(-1);
+
+		if (node.tracked || (node.property.type === 'Identifier' && node.property.tracked)) {
+			add_ripple_internal_import(context);
+
+			return b.call(
+				'_$_.get',
+				b.member(
+					context.visit(node.object),
+					node.computed ? context.visit(node.property) : node.property,
+					node.computed,
+					node.optional,
+				),
+			);
+		}
+
+		return context.next();
+	},
+
 	Text(node, { visit, state }) {
 		const metadata = { await: false };
 		const expression = visit(node.expression, { ...state, metadata });
@@ -406,6 +538,21 @@ const visitors = {
 			state.init.push(
 				b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.call('_$_.escape', expression))),
 			);
+		}
+	},
+
+	Html(node, { visit, state }) {
+		const metadata = { await: false };
+		const expression = visit(node.expression, { ...state, metadata });
+
+		// For Html nodes, we render the content as-is without escaping
+		if (expression.type === 'Literal') {
+			state.init.push(
+				b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(expression.value))),
+			);
+		} else {
+			// If it's dynamic, we need to evaluate it and push it directly (not escaped)
+			state.init.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), expression)));
 		}
 	},
 };
