@@ -780,6 +780,55 @@ const items = [] as unknown[];`
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should format TypeScript tuple types (TSTupleType)', async () => {
+			const input = `type T = [string, number, boolean];`;
+			const expected = `type T = [string, number, boolean];`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript index signatures (TSIndexSignature)', async () => {
+			const input = `interface Dict { [key: string]: number; readonly [id: number]: string }`;
+			const expected = `interface Dict {\n  [key: string]: number;\n  readonly [id: number]: string;\n}`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript constructor types (TSConstructorType)', async () => {
+			const input = `type Ctor = new (x: number, y: string) => Foo;`;
+			const expected = `type Ctor = new (x: number, y: string) => Foo;`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript conditional types (TSConditionalType)', async () => {
+			const input = `type T = string extends string ? number : boolean;`;
+			const expected = `type T = string extends string ? number : boolean;`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript mapped types (TSMappedType)', async () => {
+			const input = `type ReadonlyPartial<T> = { readonly [K in keyof T]?: T[K] }`;
+			const expected = `type ReadonlyPartial<T> = { readonly [K in keyof T]?: T[K] };`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript qualified names (TSQualifiedName)', async () => {
+			const input = `type T = Foo.Bar;`;
+			const expected = `type T = Foo.Bar;`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript indexed access types (TSIndexedAccessType)', async () => {
+			const input = `type V = Props["value"]; type W = Map<string, number>["size"]; type X = T[K];`;
+			const expected = `type V = Props["value"];\ntype W = Map<string, number>["size"];\ntype X = T[K];`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('respects arrowParens option', async () => {
 			const input = `function inputRef(node) {
 	const removeListener = on(node, 'input', e => { value = e.target.value; console.log(value) });
