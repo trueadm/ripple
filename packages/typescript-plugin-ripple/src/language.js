@@ -1,4 +1,5 @@
 const { forEachEmbeddedCode } = require('@volar/language-core');
+const fs = require('fs');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
@@ -12,8 +13,10 @@ function logError(...args) {
 	console.error('[Ripple Language ERROR]', ...args);
 }
 
-function getRippleLanguagePlugin(ripple) {
+function getRippleLanguagePlugin() {
 	log('Creating Ripple language plugin...')
+
+	const path2RipplePathMap = new Map();
 
 	return {
 		getLanguageId(fileNameOrUri) {
@@ -26,10 +29,15 @@ function getRippleLanguagePlugin(ripple) {
 			}
 		},
 		createVirtualCode(fileNameOrUri, languageId, snapshot) {
-			if (languageId === 'ripple' && ripple) {
+			if (languageId === 'ripple') {
 				const file_name = typeof fileNameOrUri === 'string'
 					? fileNameOrUri
 					: fileNameOrUri.fsPath.replace(/\\/g, '/');
+				const ripple = getRippleForFile(file_name);
+				if (!ripple) {
+					logError(`Ripple compiler not found for file: ${file_name}`);
+					return;
+				}
 				log('Creating virtual code for:', file_name);
 				try {
 					return new RippleVirtualCode(file_name, snapshot, ripple);
@@ -55,6 +63,31 @@ function getRippleLanguagePlugin(ripple) {
 			},
 		},
 	};
+
+	function getRippleForFile(file_name) {
+		const parts = file_name.split('/');
+
+		for (let i = parts.length - 2; i >= 0; i--) {
+			const dir = parts.slice(0, i + 1).join('/');
+
+			if (!path2RipplePathMap.has(dir)) {
+				const full_path = [dir, 'node_modules', 'ripple', 'src', 'compiler', 'index.js'].join('/');
+				console.log("Checking ripple path:", full_path)
+				if (fs.existsSync(full_path)) {
+					path2RipplePathMap.set(dir, full_path);
+					console.log("Found ripple compiler at:", full_path)
+				}
+				else {
+					path2RipplePathMap.set(dir, null);
+				}
+			}
+
+			const ripple_path = path2RipplePathMap.get(dir);
+			if (ripple_path) {
+				return require(ripple_path);
+			}
+		}
+	}
 }
 
 class RippleVirtualCode {

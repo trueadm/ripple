@@ -11,74 +11,6 @@ let client;
 async function activate(context) {
 	console.log("Ripple extension starting...")
 
-	// Try to find ripple compiler in workspace
-	let ripple_path = null;
-
-	// First try workspace folders
-	if (vscode.workspace.workspaceFolders) {
-		for (const folder of vscode.workspace.workspaceFolders) {
-			const workspaceRipplePath = path.join(
-				folder.uri.fsPath,
-				'node_modules',
-				'ripple',
-				'src',
-				'compiler',
-				'index.js',
-			);
-			console.log("Checking ripple path:", workspaceRipplePath)
-
-			if (fs.existsSync(workspaceRipplePath)) {
-				ripple_path = workspaceRipplePath;
-				console.log("Found ripple compiler at: ", ripple_path)
-				break;
-			}
-
-			// Also try packages/ripple for monorepo structure
-			const monorepoRipplePath = path.join(
-				folder.uri.fsPath,
-				'packages',
-				'ripple',
-				'src',
-				'compiler',
-				'index.js',
-			);
-			console.log("Checking monorepo ripple path:", monorepoRipplePath)
-
-			if (fs.existsSync(monorepoRipplePath)) {
-				ripple_path = monorepoRipplePath;
-				console.log("Found ripple compiler at:", ripple_path)
-				break;
-			}
-		}
-	}
-
-	// Fallback: try from active editor path
-	if (!ripple_path && vscode.window.activeTextEditor) {
-		const file_path = vscode.window.activeTextEditor.document.fileName;
-		const parts = file_path.split(path.sep);
-
-		for (let i = parts.length - 2; i >= 0; i--) {
-			const full_path = parts
-				.slice(0, i + 1)
-				.concat('node_modules', 'ripple', 'src', 'compiler', 'index.js')
-				.join(path.sep);
-
-			console.log("Checking fallback ripple path:", full_path)
-			if (fs.existsSync(full_path)) {
-				ripple_path = full_path;
-				console.log("Found ripple compiler at:", ripple_path)
-				break;
-			}
-		}
-	}
-
-	if (!ripple_path) {
-		const message = "Ripple compiler not found. Make sure ripple is installed in your workspace.";
-		console.error(message);
-		vscode.window.showWarningMessage(message);
-		return;
-	}
-
 	const serverModule = vscode.Uri.joinPath(context.extensionUri, 'src/server.js').fsPath;
 
 	if (!fs.existsSync(serverModule)) {
@@ -120,7 +52,6 @@ async function activate(context) {
 	};
 
 	const initializationOptions = {
-		ripplePath: ripple_path,
 		contentIntellisense: true,
 	};
 
