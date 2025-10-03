@@ -51,14 +51,8 @@ async function activate(context) {
 		},
 	};
 
-	const initializationOptions = {
-		contentIntellisense: true,
-	};
-
 	const clientOptions = {
 		documentSelector: [{ language: 'ripple' }],
-		initializationOptions,
-
 		errorHandler: {
 			error: (error, message, count) => {
 				console.error('Language server error:', error, message, count);
