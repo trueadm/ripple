@@ -339,6 +339,17 @@ watch(version, async () => {
 	await updateUrl()
 })
 
+const changeVersion = async (input: HTMLInputElement | null) => {
+	if (!input) return
+	const v = input.value
+	if (allVersions.includes(v)) {
+		version.value = v
+	}
+	if (v === 'latest' || v === '') {
+		version.value = latest
+	}
+}
+
 const loadExample = async (example: { title: string; code: string }) => {
 	if (!playground) return
 	await playground.setConfig({
@@ -368,7 +379,7 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 		<VPFlyout button="Examples" class="examples">
 			<button
 				v-for="(example, i) in examples"
-				class="menu-item"
+				class="menu-item clickable"
 				@click="() => loadExample(example)"
 				:key="i"
 			>
@@ -379,11 +390,12 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 		<input id="title-input" type="text" v-model="title" />
 
 		<VPFlyout
-			:button="`<span id='version-label'>Version: </span><span id='v-label'>V: </span>${version}`"
+			:button="`<span id='version-label'>Version: </span><span id='v-label'>v</span>${version}`"
+			class="version-menu"
 		>
 			<button
 				v-for="(v, i) in versions"
-				:class="`menu-item ${version === v ? 'active' : ''}`"
+				:class="`menu-item clickable ${version === v ? 'active' : ''}`"
 				@click="version = v"
 				:key="i"
 			>
@@ -392,13 +404,22 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 		</VPFlyout>
 
 		<VPFlyout :button="settingsIcon" title="Settings">
-			<div class="menu-item" @click="ai = !ai">
+			<div class="menu-item version-input">
+				<label for="version-input">Version: </label>
+				<input
+					id="version-input"
+					type="text"
+					:value="version"
+					@input="(ev: InputEvent) => changeVersion(ev?.target)"
+				/>
+			</div>
+			<div class="menu-item clickable" @click="ai = !ai">
 				AI assistant<VPSwitch :aria-checked="ai"></VPSwitch>
 			</div>
-			<div class="menu-item" @click="tailwind = !tailwind">
+			<div class="menu-item clickable" @click="tailwind = !tailwind">
 				Tailwind CSS<VPSwitch :aria-checked="tailwind"></VPSwitch>
 			</div>
-			<div class="menu-item" @click="vim = !vim">
+			<div class="menu-item clickable" @click="vim = !vim">
 				Vim mode <VPSwitch :aria-checked="vim"></VPSwitch>
 			</div>
 			<div class="menu-item font-size-selector">
@@ -466,6 +487,10 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 			right: unset;
 		}
 	}
+
+	.version-input {
+		display: none;
+	}
 }
 
 @media (min-width: 768px) {
@@ -485,8 +510,12 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	.playground-actions {
 		gap: unset;
 
-		#title-input {
+		.VPFlyout.version-menu {
 			display: none;
+		}
+
+		.version-input {
+			display: flex;
 		}
 	}
 }
@@ -509,36 +538,32 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	cursor: pointer;
 	white-space: nowrap;
 	padding: 6px 12px;
 	color: var(--vp-button-alt-hover-text);
-	border-radius: 6px;
 	width: 100%;
+
+	&.clickable {
+		cursor: pointer;
+
+		&:hover,
+		&:focus,
+		&.active {
+			border-radius: 6px;
+			color: var(--vp-c-brand-1);
+			background-color: var(--vp-c-default-soft);
+		}
+	}
+}
+
+.menu-item.font-size-selector button {
+	padding: 6px 12px;
+	color: var(--vp-button-alt-hover-text);
+	border-radius: 6px;
 
 	&:hover,
 	&:focus,
 	&.active {
-		color: var(--vp-c-brand-1);
-		background-color: var(--vp-c-default-soft);
-	}
-}
-
-.menu-item.font-size-selector {
-	&:hover {
-		color: unset;
-		background-color: unset;
-	}
-
-	button {
-		padding: 6px 12px;
-		color: var(--vp-button-alt-hover-text);
-		border-radius: 6px;
-	}
-
-	button:hover,
-	button:focus,
-	button.active {
 		color: var(--vp-c-brand-1);
 		background-color: var(--vp-c-default-soft);
 	}
@@ -556,7 +581,7 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	background-color: var(--vp-c-brand-1);
 }
 
-#title-input {
+input[type='text'] {
 	flex: 1;
 	border: 1px solid var(--vp-input-border-color);
 	border-radius: 6px;
@@ -569,6 +594,10 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 /* global styles */
 :global(body:has(.main-playground)) {
 	overflow: hidden;
+}
+
+:global(body:has(.main-playground) .VPFooter) {
+	display: none;
 }
 
 :global(body:has(.main-playground) .VPNavBar .divider-line) {
