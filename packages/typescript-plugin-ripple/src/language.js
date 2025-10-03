@@ -16,14 +16,20 @@ function getRippleLanguagePlugin(ripple) {
 	log('Creating Ripple language plugin...')
 
 	return {
-		getLanguageId(file_name) {
+		getLanguageId(fileNameOrUri) {
+			const file_name = typeof fileNameOrUri === 'string'
+				? fileNameOrUri
+				: fileNameOrUri.fsPath.replace(/\\/g, '/');
 			if (file_name.endsWith('.ripple')) {
 				log('Identified Ripple file:', file_name);
 				return 'ripple';
 			}
 		},
-		createVirtualCode(file_name, languageId, snapshot) {
+		createVirtualCode(fileNameOrUri, languageId, snapshot) {
 			if (languageId === 'ripple' && ripple) {
+				const file_name = typeof fileNameOrUri === 'string'
+					? fileNameOrUri
+					: fileNameOrUri.fsPath.replace(/\\/g, '/');
 				log('Creating virtual code for:', file_name);
 				try {
 					return new RippleVirtualCode(file_name, snapshot, ripple);
