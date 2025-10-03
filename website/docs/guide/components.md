@@ -78,19 +78,22 @@ export component App() {
 }
 ```
 
-### "Slots" Pattern
+## Example: Card Component Using Child Composition
 
-With all that in place, we can now recreate the pattern of "slots" from Vue/Web
-Components, "render props" from React, and "snippets" from Svelte:
+Using what we've learnt, let's make a versatile card component that can display
+an optional header and footer.
+
+This is a common pattern you'll see achieved with "slots" from Vue/Web
+Components, "render props" from React, and "snippets" from Svelte.
 
 ```ripple
 component Card({ children, Header, Footer }) {
 	<fieldset>
-		<Header />  // <-- Slot named `Header`
+		<Header />
 		<hr />
 		<children />
 		<hr />
-		<Footer />  // <-- Slot named `Footer`
+		<Footer />
 	</fieldset>
 }
 
@@ -101,7 +104,7 @@ component CustomHeader() {
 export component App() {
 	<Card Header={CustomHeader}> // <- Header passed in as a prop
 		<p>{'Card content here'}</p>
-		component Footer() {     // <- Footer passed in as a "named slot"
+		component Footer() {     // <- Footer passed in as a inline component
 			<button>{'Cancel'}</button>
 			<button>{'OK'}</button>
 		}
