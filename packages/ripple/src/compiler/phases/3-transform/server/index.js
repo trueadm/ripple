@@ -16,6 +16,7 @@ import {
 import is_reference from 'is-reference';
 import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
+import { render_stylesheets } from '../stylesheet.js';
 
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
@@ -93,6 +94,15 @@ const visitors = {
 
 		if (node.css !== null && node.css) {
 			context.state.stylesheets.push(node.css);
+			// Register CSS hash during rendering
+			body_statements.unshift(
+				b.stmt(
+					b.call(
+						b.member(b.id('__output'), b.id('register_css')),
+						b.literal(node.css.hash),
+					),
+				),
+			);
 		}
 
 		return b.function(
@@ -570,6 +580,21 @@ export function transform_server(filename, source, analysis) {
 		walk(analysis.ast, { ...state, namespace: 'html' }, visitors)
 	);
 
+	const css = render_stylesheets(state.stylesheets);
+
+	// Add CSS registration if there are stylesheets
+	if (state.stylesheets.length > 0 && css) {
+		// Register each stylesheet's CSS
+		for (const stylesheet of state.stylesheets) {
+			const css_for_component = render_stylesheets([stylesheet]);
+			program.body.push(
+				b.stmt(
+					b.call('_$_.register_css', b.literal(stylesheet.hash), b.literal(css_for_component)),
+				),
+			);
+		}
+	}
+
 	for (const import_node of state.imports) {
 		program.body.unshift(b.stmt(b.id(import_node)));
 	}
@@ -578,9 +603,6 @@ export function transform_server(filename, source, analysis) {
 		sourceMapContent: source,
 		sourceMapSource: path.basename(filename),
 	});
-
-	// TODO: extract css
-	const css = '';
 
 	return {
 		ast: program,

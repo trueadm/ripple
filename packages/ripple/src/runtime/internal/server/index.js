@@ -1,14 +1,12 @@
 /** @import { Component, Derived } from '#server' */
-
 import { DERIVED, UNINITIALIZED } from '../client/constants.js';
 import { is_tracked_object } from '../client/utils.js';
-
 import { escape } from '../../../utils/escaping.js';
 import { is_boolean_attribute } from '../../../compiler/utils';
-
 import { clsx } from 'clsx';
 
 export { escape };
+export { register_component_css as register_css } from './css-registry.js';
 
 /** @type {Component | null} */
 export let active_component = null;
@@ -29,6 +27,8 @@ const replacements = {
 class Output {
 	head = '';
 	body = '';
+	/** @type {Set<string>} */
+	css = new Set();
 	/** @type {Output | null} */
 	#parent = null;
 
@@ -46,11 +46,19 @@ class Output {
 	push(str) {
 		this.body += str;
 	}
+
+	/**
+	 * @param {string} hash
+	 * @returns {void}
+	 */
+	register_css(hash) {
+		this.css.add(hash);
+	}
 }
 
 /**
  * @param {((output: Output, props: Record<string, any>) => void | Promise<void>) & { async?: boolean }} component
- * @returns {Promise<{head: string, body: string}>}
+ * @returns {Promise<{head: string, body: string, css: Set<string>}>}
  */
 export async function render(component) {
 	const output = new Output(null);
@@ -62,9 +70,9 @@ export async function render(component) {
 		component(output, {});
 	}
 
-	const { head, body } = output;
+	const { head, body, css } = output;
 
-	return { head, body };
+	return { head, body, css };
 }
 
 /**
@@ -91,7 +99,15 @@ export function pop_component() {
  * @returns {Promise<void>}
  */
 export async function async(fn) {
-	// TODO
+	await fn();
+}
+
+/**
+ * @returns {boolean}
+ */
+export function aborted() {
+	// For SSR, we don't abort rendering
+	return false;
 }
 
 /**
@@ -118,7 +134,7 @@ export function get(tracked) {
 		return tracked;
 	}
 
-	return (tracked.f & DERIVED) !== 0 ? get_derived(/** @type {Derived} */ (tracked)) : tracked.v;
+	return (tracked.f & DERIVED) !== 0 ? get_derived(/** @type {Derived} */(tracked)) : tracked.v;
 }
 
 /**
@@ -153,13 +169,13 @@ export function spread_attrs(attrs, css_hash) {
 
 		if (typeof value === 'function') continue;
 
-    if (is_tracked_object(value)) {
-      value = get(value);
-    }
+		if (is_tracked_object(value)) {
+			value = get(value);
+		}
 
-    if (name === 'class' && css_hash) {
-      value = value == null ? css_hash : [value, css_hash];
-    }
+		if (name === 'class' && css_hash) {
+			value = value == null ? css_hash : [value, css_hash];
+		}
 
 		attr_str += attr(name, value, is_boolean_attribute(name));
 	}
