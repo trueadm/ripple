@@ -809,38 +809,6 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printElement(node, path, options, print);
 			break;
 
-		case 'JSXElement':
-			nodeContent = printJSXElement(node, path, options, print);
-			break;
-
-		case 'JSXFragment':
-			nodeContent = printJSXFragment(node, path, options, print);
-			break;
-
-		case 'JSXText':
-			nodeContent = node.value;
-			break;
-
-		case 'JSXExpressionContainer':
-			nodeContent = concat(['{', path.call(print, 'expression'), '}']);
-			break;
-
-		case 'JSXEmptyExpression':
-			nodeContent = '';
-			break;
-
-		case 'JSXIdentifier':
-			nodeContent = node.name;
-			break;
-
-		case 'JSXAttribute':
-			nodeContent = printJSXAttribute(node, path, options, print);
-			break;
-
-		case 'JSXSpreadAttribute':
-			nodeContent = concat(['{...', path.call(print, 'argument'), '}']);
-			break;
-
 		case 'StyleSheet':
 			nodeContent = printStyleSheet(node, path, options, print);
 			break;
@@ -2841,103 +2809,6 @@ function printElement(node, path, options, print) {
 	return elementOutput;
 }
 
-function printJSXElement(node, path, options, print) {
-	const parts = [];
-
-	// Print opening element
-	const openingElement = node.openingElement;
-	const tagName = openingElement.name.name;
-
-	// Build opening tag
-	if (openingElement.attributes && openingElement.attributes.length > 0) {
-		parts.push('<', tagName);
-		for (const attr of openingElement.attributes) {
-			parts.push(' ');
-			if (attr.type === 'JSXAttribute') {
-				parts.push(printJSXAttribute(attr, path, options, print));
-			} else if (attr.type === 'JSXSpreadAttribute') {
-				parts.push('{...', print(attr.argument), '}');
-			}
-		}
-		if (openingElement.selfClosing) {
-			parts.push(' />');
-			return concat(parts);
-		}
-		parts.push('>');
-	} else {
-		if (openingElement.selfClosing) {
-			parts.push('<', tagName, ' />');
-			return concat(parts);
-		}
-		parts.push('<', tagName, '>');
-	}
-
-	// Print children
-	if (node.children && node.children.length > 0) {
-		const children = [];
-		for (let i = 0; i < node.children.length; i++) {
-			const child = node.children[i];
-			if (child.type === 'JSXText') {
-				const text = child.value.trim();
-				if (text) {
-					children.push(text);
-				}
-			} else if (child.type === 'JSXElement' || child.type === 'JSXExpressionContainer') {
-				children.push(path.call(print, 'children', i));
-			}
-		}
-
-		if (children.length > 0) {
-			// Check if we can inline - only for simple text content
-			if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 40) {
-				parts.push(children[0]);
-			} else {
-				// Always break to multiple lines for complex children or nested elements
-				parts.push(indent([hardline, concat(children.flatMap((c, i) => i < children.length - 1 ? [c, hardline] : [c]))]));
-				parts.push(hardline);
-			}
-		}
-	}
-
-	// Print closing element
-	if (node.closingElement) {
-		parts.push('</', tagName, '>');
-	}
-
-	// Don't use group() which would allow collapsing - return concat directly
-	// to preserve the multiline formatting
-	return concat(parts);
-}
-
-function printJSXAttribute(node, path, options, print) {
-	const parts = [node.name.name];
-
-	if (node.value !== null && node.value !== undefined) {
-		parts.push('=');
-		if (node.value.type === 'Literal') {
-			// String literal attribute value
-			parts.push(formatStringLiteral(node.value.value, options));
-		} else if (node.value.type === 'JSXExpressionContainer') {
-			parts.push('{', print(node.value.expression), '}');
-		}
-	}
-
-	return concat(parts);
-}
-
-function printJSXFragment(node, path, options, print) {
-	const parts = ['<>'];
-
-	if (node.children && node.children.length > 0) {
-		const children = path.map(print, 'children');
-		parts.push(indent([hardline, join(hardline, children)]));
-		parts.push(hardline);
-	}
-
-	parts.push('</>');
-	return group(parts);
-}
-
 function printAttribute(node, path, options, print) {
 	const parts = [];
 
@@ -2957,9 +2828,10 @@ function printAttribute(node, path, options, print) {
 	if (node.value) {
 		if (node.value.type === 'Literal' && typeof node.value.value === 'string') {
 			// String literals don't need curly braces
-			// Always use double quotes for HTML/JSX attributes
+			// Use jsxSingleQuote option if available, otherwise use double quotes
 			parts.push('=');
-			parts.push(formatStringLiteral(node.value.value, { ...options, singleQuote: false }));
+			const useJsxSingleQuote = options.jsxSingleQuote === true;
+			parts.push(formatStringLiteral(node.value.value, { ...options, singleQuote: useJsxSingleQuote }));
 		} else {
 			// All other values need curly braces: numbers, booleans, null, expressions, etc.
 			parts.push('={');

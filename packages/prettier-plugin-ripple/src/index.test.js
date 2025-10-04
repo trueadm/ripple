@@ -680,7 +680,7 @@ const items = [] as unknown[];`
 	it('should not format html elements that fit on one line', async () => {
 		const expected = `export component App() {
   <div class="container">
-    <p>{'This is real JSX'}</p>
+    <p>{'Some Random text'}</p>
   </div>
 }`;
 
@@ -693,18 +693,35 @@ const items = [] as unknown[];`
 		const input = `export component App() {
   <div class="container">
     <p>
-      {'This is real JSX'}
+      {'Some Random text'}
     </p>
   </div>
 }`;
 
 		const expected = `export component App() {
   <div class="container">
-    <p>{'This is real JSX'}</p>
+    <p>{'Some Random text'}</p>
   </div>
 }`;
 
 		const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should support jsxSingleQuote option', async () => {
+		const input = `export component App() {
+  <div class="container">
+    <p>{'Some Random text'}</p>
+  </div>
+}`;
+
+		const expected = `export component App() {
+  <div class='container'>
+    <p>{'Some Random text'}</p>
+  </div>
+}`;
+		const result = await format(input, { singleQuote: true, jsxSingleQuote: true });
 
 		expect(result).toBeWithNewline(expected);
 	});
@@ -1208,7 +1225,7 @@ component RowList({ rows, Row }) {
   let htmlString = '<p>Paragraph</p>';
   let paragraphs = htmlString.match(/<p>/g);
   <div class="container">
-    <p>{'This is real JSX'}</p>
+    <p>{'Some Random text'}</p>
   </div>
 }`;
 
