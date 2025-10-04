@@ -67,6 +67,7 @@
     "@sveltejs/acorn-typescript": "^1.0.6",
     "acorn": "^8.15.0",
     "clsx": "^2.1.1",
+		"esm-env": "^1.2.2",
     "esrap": "^2.1.0",
     "is-reference": "^3.0.3",
     "magic-string": "^0.30.18",

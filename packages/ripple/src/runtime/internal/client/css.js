@@ -1,3 +1,5 @@
+import { DEV } from 'esm-env';
+
 export function remove_ssr_css() {
 	if (!document || typeof requestAnimationFrame !== "function") {
 		return;
@@ -7,14 +9,14 @@ export function remove_ssr_css() {
 }
 
 function remove_styles() {
-	if (import.meta.env?.DEV) {
+	if (DEV) {
 		const styles = document.querySelector('style[data-vite-dev-id]');
 		if (styles) {
 			remove();
 		} else {
 			requestAnimationFrame(remove_styles);
 		}
-	} else if (import.meta.env?.PROD) {
+	} else {
 		remove_when_css_loaded(() => requestAnimationFrame(remove));
 	}
 }
