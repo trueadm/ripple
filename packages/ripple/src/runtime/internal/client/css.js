@@ -7,14 +7,14 @@ export function remove_ssr_css() {
 }
 
 function remove_styles() {
-	if (import.meta.env.DEV) {
+	if (import.meta.env?.DEV) {
 		const styles = document.querySelector('style[data-vite-dev-id]');
 		if (styles) {
 			remove();
 		} else {
 			requestAnimationFrame(remove_styles);
 		}
-	} else if (import.meta.env.PROD) {
+	} else if (import.meta.env?.PROD) {
 		remove_when_css_loaded(() => requestAnimationFrame(remove));
 	}
 }
