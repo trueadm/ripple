@@ -38,35 +38,55 @@ function RipplePlugin(config) {
 				return null;
 			}
 
-			getTokenFromCode(code) {
-				if (code === 60) {
-					// < character
-					if (this.#path.findLast((n) => n.type === 'Component')) {
-						// Check if everything before this position on the current line is whitespace
-						let lineStart = this.pos - 1;
-						while (
-							lineStart >= 0 &&
-							this.input.charCodeAt(lineStart) !== 10 &&
-							this.input.charCodeAt(lineStart) !== 13
-						) {
-							lineStart--;
-						}
-						lineStart++; // Move past the newline character
+		getTokenFromCode(code) {
+			if (code === 60) {
+				// < character
+				if (this.#path.findLast((n) => n.type === 'Component')) {
+					// Check if we're in an expression context where JSX is unlikely
+					const currentType = this.type;
+					const inExpression =
+						this.exprAllowed ||
+						currentType === tt.braceL || // Inside { }
+						currentType === tt.parenL || // Inside ( ) - CRITICAL for method calls!
+						currentType === tt.eq || // After =
+						currentType === tt.comma || // After ,
+						currentType === tt.colon || // After :
+						currentType === tt.question || // After ?
+						currentType === tt.logicalOR || // After ||
+						currentType === tt.logicalAND || // After &&
+						currentType === tt.dot || // After . (for member expressions)
+						currentType === tt.questionDot; // After ?. (optional chaining)
 
-						// Check if all characters from line start to current position are whitespace
-						let allWhitespace = true;
-						for (let i = lineStart; i < this.pos; i++) {
-							const ch = this.input.charCodeAt(i);
-							if (ch !== 32 && ch !== 9) {
-								allWhitespace = false;
-								break;
-							}
-						}
+					// If we're in an expression context, don't treat as JSX
+					if (inExpression) {
+						return super.getTokenFromCode(code);
+					}
 
-						// Check if the character after < is not whitespace
-						if (allWhitespace && this.pos + 1 < this.input.length) {
-							const nextChar = this.input.charCodeAt(this.pos + 1);
-							if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
+					// Check if everything before this position on the current line is whitespace
+					let lineStart = this.pos - 1;
+					while (
+						lineStart >= 0 &&
+						this.input.charCodeAt(lineStart) !== 10 &&
+						this.input.charCodeAt(lineStart) !== 13
+					) {
+						lineStart--;
+					}
+					lineStart++; // Move past the newline character
+
+					// Check if all characters from line start to current position are whitespace
+					let allWhitespace = true;
+					for (let i = lineStart; i < this.pos; i++) {
+						const ch = this.input.charCodeAt(i);
+						if (ch !== 32 && ch !== 9) {
+							allWhitespace = false;
+							break;
+						}
+					}
+
+					// Check if the character after < is not whitespace
+					if (allWhitespace && this.pos + 1 < this.input.length) {
+						const nextChar = this.input.charCodeAt(this.pos + 1);
+						if (nextChar !== 32 && nextChar !== 9 && nextChar !== 10 && nextChar !== 13) {
 								const tokTypes = this.acornTypeScript.tokTypes;
 								++this.pos;
 								return this.finishToken(tokTypes.jsxTagStart);
