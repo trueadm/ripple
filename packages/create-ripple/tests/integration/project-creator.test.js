@@ -268,4 +268,34 @@ describe('createProject integration tests', () => {
 		const mainTsContent = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
 		expect(mainTsContent).toContain("import 'bootstrap/dist/css/bootstrap.min.css';");
 	});
+
+	it('should add ripple-router to dependencies when installRouter is true', async () => {
+		await createProject({
+			projectName: 'test-router-project',
+			projectPath,
+			template: 'basic',
+			packageManager: 'npm',
+			typescript: true,
+			gitInit: false,
+			installRouter: true
+		});
+
+		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+		expect(packageJson.dependencies).toHaveProperty('ripple-router', '^0.4.7');
+	});
+
+	it('should not add ripple-router to dependencies when installRouter is false', async () => {
+		await createProject({
+			projectName: 'test-no-router-project',
+			projectPath,
+			template: 'basic',
+			packageManager: 'npm',
+			typescript: true,
+			gitInit: false,
+			installRouter: false
+		});
+
+		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+		expect(packageJson.dependencies).not.toHaveProperty('ripple-router');
+	});
 });

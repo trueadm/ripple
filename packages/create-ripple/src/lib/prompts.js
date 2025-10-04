@@ -134,7 +134,9 @@ export async function promptGitInit() {
 
 	return response.gitInit;
 }
-
+/** 
+ * @returns {Promise<string>}
+*/
 export async function promptStylingFramework() {
 	const response = await prompts({
 		type: 'select',
@@ -161,4 +163,21 @@ export async function promptStylingFramework() {
 	}
 
 	return response.stylingFramework;
+}
+
+/**
+ * @returns {Promise<boolean>}
+ */
+export async function promptRippleRouter() {
+	const response = await prompts({
+		type: 'confirm',
+		name: 'useRippleRouter',
+		message: 'Would you like to install Ripple Router for your application?',
+		initial: false
+	}) 
+	if (response.useRippleRouter === undefined) {
+		console.log(red('✖ Operation cancelled'));
+		process.exit(1);
+	}
+	return response.useRippleRouter
 }
