@@ -12,6 +12,10 @@ for (const filename of await fs.readdir(dir)) {
 	if (filename.endsWith('.ripple')) {
 		const source = await fs.readFile(path.join(dir, filename), 'utf-8');
 		const result = compile(source, filename, { mode: 'server' });
-		await fs.writeFile(`${output_dir}/${filename.replace('.ripple', '.js')}`, result.js.code);
+		const base_name = filename.replace('.ripple', '');
+		await fs.writeFile(`${output_dir}/${base_name}.js`, result.js.code);
+		if (result.css) {
+			await fs.writeFile(`${output_dir}/${base_name}.css`, result.css);
+		}
 	}
 }

@@ -16,6 +16,7 @@ import {
 import is_reference from 'is-reference';
 import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
+import { render_stylesheets } from '../stylesheet.js';
 
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
@@ -93,17 +94,33 @@ const visitors = {
 
 		if (node.css !== null && node.css) {
 			context.state.stylesheets.push(node.css);
+			// Register CSS hash during rendering
+			body_statements.unshift(
+				b.stmt(
+					b.call(
+						b.member(b.id('__output'), b.id('register_css')),
+						b.literal(node.css.hash),
+					),
+				),
+			);
 		}
 
-		return b.function(
+		let component_fn = b.function(
 			node.id,
 			node.params.length > 0 ? [b.id('__output'), node.params[0]] : [b.id('__output')],
 			b.block([
 				...(metadata.await
-					? [b.stmt(b.call('_$_.async', b.thunk(b.block(body_statements), true)))]
+					? [b.return(b.call('_$_.async', b.thunk(b.block(body_statements), true)))]
 					: body_statements),
 			]),
 		);
+
+		// Mark function as async if needed
+		if (metadata.await) {
+			component_fn = b.async(component_fn);
+		}
+
+		return component_fn;
 	},
 
 	CallExpression(node, context) {
@@ -349,11 +366,33 @@ const visitors = {
 				}
 			}
 
-			state.init.push(b.stmt(b.call(visit(node.id, state), b.id('__output'), b.object(props))));
-		}
-	},
+			// For SSR, determine if we should await based on component metadata
+			const component_call = b.call(visit(node.id, state), b.id('__output'), b.object(props));
 
-	ForOfStatement(node, context) {
+			// Check if this is a locally defined component and if it's async
+			const component_name = node.id.type === 'Identifier' ? node.id.name : null;
+			const local_metadata = component_name
+				? state.component_metadata.find((m) => m.id === component_name)
+				: null;
+
+			if (local_metadata) {
+				// Component is defined locally - we know if it's async or not
+				if (local_metadata.async) {
+					state.init.push(b.stmt(b.await(component_call)));
+				} else {
+					state.init.push(b.stmt(component_call));
+				}
+			} else {
+				// Component is imported or dynamic - check .async property at runtime
+				const conditional_await = b.conditional(
+					b.member(visit(node.id, state), b.id('async')),
+					b.await(component_call),
+					component_call
+				);
+				state.init.push(b.stmt(conditional_await));
+			}
+		}
+	}, ForOfStatement(node, context) {
 		if (!is_inside_component(context)) {
 			context.next();
 			return;
@@ -422,43 +461,48 @@ const visitors = {
 			return context.next();
 		}
 
+		// If there's a pending block, this is an async operation
+		const has_pending = node.pending !== null;
+		if (has_pending && context.state.metadata?.await === false) {
+			context.state.metadata.await = true;
+		}
+
 		const metadata = { await: false };
 		const body = transform_body(node.block.body, {
 			...context,
 			state: { ...context.state, metadata },
 		});
 
-		// If the try block contains async operations, wrap it
-		if (metadata.await) {
+		// Check if the try block itself contains async operations
+		const is_async = metadata.await || has_pending;
+
+		if (is_async) {
 			if (context.state.metadata?.await === false) {
 				context.state.metadata.await = true;
 			}
 
-			// For SSR, we render pending content first if available, then try block
-			if (node.pending !== null) {
-				// TODO: In a streaming SSR implementation, this would render pending first
-				// and stream the resolved content. For now, we just render the try block.
-				// const pending_body = transform_body(node.pending.body, context);
-			}
-
-			if (node.handler !== null) {
-				const handler_body = transform_body(node.handler.body.body, {
-					...context,
-					state: { ...context.state, scope: context.state.scopes.get(node.handler.body) },
-				});
-
-				context.state.init.push(
+			// For SSR with pending block: render the resolved content wrapped in async
+			// In a streaming SSR implementation, we'd render pending first, then stream resolved
+			const try_statements = node.handler !== null
+				? [
 					b.try(
 						b.block(body),
-						b.catch(
+						b.catch_clause(
 							node.handler.param || b.id('error'),
-							b.block(handler_body),
+							b.block(
+								transform_body(node.handler.body.body, {
+									...context,
+									state: { ...context.state, scope: context.state.scopes.get(node.handler.body) },
+								}),
+							),
 						),
 					),
-				);
-			} else {
-				context.state.init.push(b.try(b.block(body)));
-			}
+				]
+				: body;
+
+			context.state.init.push(
+				b.stmt(b.await(b.call('_$_.async', b.thunk(b.block(try_statements), true)))),
+			);
 		} else {
 			// No async, just regular try/catch
 			if (node.handler !== null) {
@@ -470,7 +514,7 @@ const visitors = {
 				context.state.init.push(
 					b.try(
 						b.block(body),
-						b.catch(
+						b.catch_clause(
 							node.handler.param || b.id('error'),
 							b.block(handler_body),
 						),
@@ -558,17 +602,47 @@ const visitors = {
 };
 
 export function transform_server(filename, source, analysis) {
+	// Use component metadata collected during the analyze phase
+	const component_metadata = analysis.component_metadata || [];
+
 	const state = {
 		imports: new Set(),
 		init: null,
 		scope: analysis.scope,
 		scopes: analysis.scopes,
 		stylesheets: [],
+		component_metadata,
 	};
 
 	const program = /** @type {ESTree.Program} */ (
 		walk(analysis.ast, { ...state, namespace: 'html' }, visitors)
 	);
+
+	const css = render_stylesheets(state.stylesheets);
+
+	// Add CSS registration if there are stylesheets
+	if (state.stylesheets.length > 0 && css) {
+		// Register each stylesheet's CSS
+		for (const stylesheet of state.stylesheets) {
+			const css_for_component = render_stylesheets([stylesheet]);
+			program.body.push(
+				b.stmt(
+					b.call('_$_.register_css', b.literal(stylesheet.hash), b.literal(css_for_component)),
+				),
+			);
+		}
+	}
+
+	// Add async property to component functions
+	for (const metadata of state.component_metadata) {
+		if (metadata.async) {
+			program.body.push(
+				b.stmt(
+					b.assignment('=', b.member(b.id(metadata.id), b.id('async')), b.true),
+				),
+			);
+		}
+	}
 
 	for (const import_node of state.imports) {
 		program.body.unshift(b.stmt(b.id(import_node)));
@@ -578,9 +652,6 @@ export function transform_server(filename, source, analysis) {
 		sourceMapContent: source,
 		sourceMapSource: path.basename(filename),
 	});
-
-	// TODO: extract css
-	const css = '';
 
 	return {
 		ast: program,

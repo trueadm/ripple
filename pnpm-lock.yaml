@@ -141,6 +141,9 @@ importers:
       '@volar/vscode':
         specifier: ~2.4.23
         version: 2.4.23
+      typescript-plugin-ripple:
+        specifier: workspace:*
+        version: link:../typescript-plugin-ripple
       volar-service-typescript:
         specifier: 0.0.65
         version: 0.0.65(@volar/language-service@2.4.23)
@@ -169,6 +172,18 @@ importers:
       uvu:
         specifier: ^0.5.6
         version: 0.5.6
+
+  packages/typescript-plugin-ripple:
+    dependencies:
+      '@jridgewell/sourcemap-codec':
+        specifier: ^1.5.5
+        version: 1.5.5
+      '@volar/language-core':
+        specifier: ~2.4.23
+        version: 2.4.23
+      '@volar/typescript':
+        specifier: ~2.4.23
+        version: 2.4.23
 
   packages/vite-plugin-ripple:
     devDependencies:

@@ -42,6 +42,7 @@ const themeColor =
 		.getPropertyValue('--vp-c-brand-3') || '#2d6dbf'
 let playground: Playground | undefined
 const playgroundActions = useTemplateRef('playground-actions')
+const title = ref('')
 const tailwind = ref(false)
 const vim = ref(getUserSettings().vim ?? false)
 const ai = ref(getUserSettings().ai !== false)
@@ -110,6 +111,7 @@ const getStyle = () => ({
 })
 
 const config: Partial<Config> = {
+	title: props.code ? undefined : 'Counter',
 	customSettings: { ripple: { version: version.value } },
 	view: props.view ?? 'split',
 	mode: props.mode ?? 'full',
@@ -144,6 +146,9 @@ const getShareUrl = async () => {
 	const url = new URL(window.location.href)
 	url.hash = shareUrl.hash
 	url.searchParams.set('v', version.value)
+	if (title.value) {
+		url.searchParams.set('title', title.value)
+	}
 	return url.href
 }
 
@@ -158,6 +163,10 @@ const onReady = (sdk: Playground) => {
 
 	// sync the UI with config from  shared URL
 	playground.getConfig().then((config) => {
+		if (config.title?.trim() && config.title !== 'Untitled Project') {
+			title.value = config.title
+		}
+
 		if (config.processors.includes('tailwindcss')) {
 			tailwind.value = true
 		}
@@ -314,6 +323,14 @@ watch(fontSize, async () => {
 	setUserSettings({ fontSize: fontSize.value })
 })
 
+watch(title, async () => {
+	if (!playground) return
+	playground.setConfig({
+		title: title.value,
+	})
+	await updateUrl()
+})
+
 watch(version, async () => {
 	if (!playground) return
 	playground.setConfig({
@@ -322,17 +339,30 @@ watch(version, async () => {
 	await updateUrl()
 })
 
-const loadExample = async (code: string) => {
+const changeVersion = async (input: HTMLInputElement | null) => {
+	if (!input) return
+	const v = input.value
+	if (allVersions.includes(v)) {
+		version.value = v
+	}
+	if (v === 'latest' || v === '') {
+		version.value = latest
+	}
+}
+
+const loadExample = async (example: { title: string; code: string }) => {
 	if (!playground) return
 	await playground.setConfig({
+		title: example.title,
 		script: {
 			language: 'ripple',
-			content: code,
+			content: example.code,
 		},
-		...(code.includes('console.')
+		...(example.code.includes('console.')
 			? { tools: { active: 'console', status: 'open' } }
 			: undefined),
 	})
+	title.value = example.title
 	await updateUrl()
 }
 
@@ -348,19 +378,24 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	>
 		<VPFlyout button="Examples" class="examples">
 			<button
-				v-for="({ title, code }, i) in examples"
-				class="menu-item"
-				@click="() => loadExample(code)"
+				v-for="(example, i) in examples"
+				class="menu-item clickable"
+				@click="() => loadExample(example)"
 				:key="i"
 			>
-				{{ title }}
+				{{ example.title }}
 			</button>
 		</VPFlyout>
 
-		<VPFlyout :button="`Version: ${version}`">
+		<input id="title-input" type="text" v-model="title" />
+
+		<VPFlyout
+			:button="`<span id='version-label'>Version: </span><span id='v-label'>v</span>${version}`"
+			class="version-menu"
+		>
 			<button
 				v-for="(v, i) in versions"
-				:class="`menu-item ${version === v ? 'active' : ''}`"
+				:class="`menu-item clickable ${version === v ? 'active' : ''}`"
 				@click="version = v"
 				:key="i"
 			>
@@ -369,13 +404,22 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 		</VPFlyout>
 
 		<VPFlyout :button="settingsIcon" title="Settings">
-			<div class="menu-item" @click="ai = !ai">
+			<div class="menu-item version-input">
+				<label for="version-input">Version: </label>
+				<input
+					id="version-input"
+					type="text"
+					:value="version"
+					@input="(ev: InputEvent) => changeVersion(ev?.target)"
+				/>
+			</div>
+			<div class="menu-item clickable" @click="ai = !ai">
 				AI assistant<VPSwitch :aria-checked="ai"></VPSwitch>
 			</div>
-			<div class="menu-item" @click="tailwind = !tailwind">
+			<div class="menu-item clickable" @click="tailwind = !tailwind">
 				Tailwind CSS<VPSwitch :aria-checked="tailwind"></VPSwitch>
 			</div>
-			<div class="menu-item" @click="vim = !vim">
+			<div class="menu-item clickable" @click="vim = !vim">
 				Vim mode <VPSwitch :aria-checked="vim"></VPSwitch>
 			</div>
 			<div class="menu-item font-size-selector">
@@ -438,11 +482,14 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 
 	.examples {
 		margin-left: 20px;
-		margin-right: auto;
 
 		& > * {
 			right: unset;
 		}
+	}
+
+	.version-input {
+		display: none;
 	}
 }
 
@@ -455,13 +502,28 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 @media (max-width: 768px) {
 	.examples {
 		margin-left: 12px !important;
+		margin-right: auto;
 	}
 }
 
 @media (max-width: 480px) {
 	.playground-actions {
 		gap: unset;
+
+		.VPFlyout.version-menu {
+			display: none;
+		}
+
+		.version-input {
+			display: flex;
+		}
 	}
+}
+
+.playground-actions .VPFlyout {
+	height: 42px;
+	display: flex;
+	align-items: center;
 }
 
 .playground-actions button.text-btn {
@@ -476,36 +538,32 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	cursor: pointer;
 	white-space: nowrap;
 	padding: 6px 12px;
 	color: var(--vp-button-alt-hover-text);
-	border-radius: 6px;
 	width: 100%;
+
+	&.clickable {
+		cursor: pointer;
+
+		&:hover,
+		&:focus,
+		&.active {
+			border-radius: 6px;
+			color: var(--vp-c-brand-1);
+			background-color: var(--vp-c-default-soft);
+		}
+	}
+}
+
+.menu-item.font-size-selector button {
+	padding: 6px 12px;
+	color: var(--vp-button-alt-hover-text);
+	border-radius: 6px;
 
 	&:hover,
 	&:focus,
 	&.active {
-		color: var(--vp-c-brand-1);
-		background-color: var(--vp-c-default-soft);
-	}
-}
-
-.menu-item.font-size-selector {
-	&:hover {
-		color: unset;
-		background-color: unset;
-	}
-
-	button {
-		padding: 6px 12px;
-		color: var(--vp-button-alt-hover-text);
-		border-radius: 6px;
-	}
-
-	button:hover,
-	button:focus,
-	button.active {
 		color: var(--vp-c-brand-1);
 		background-color: var(--vp-c-default-soft);
 	}
@@ -521,5 +579,70 @@ const settingsIcon = `<svg style="height: 18px; stroke: var(--vp-c-text-1);" vie
 
 .VPSwitch[aria-checked='true'] {
 	background-color: var(--vp-c-brand-1);
+}
+
+input[type='text'] {
+	flex: 1;
+	border: 1px solid var(--vp-input-border-color);
+	border-radius: 6px;
+	padding-inline: 8px;
+	width: 0;
+	max-width: 30rem;
+	margin-right: auto;
+}
+
+/* global styles */
+:global(body:has(.main-playground)) {
+	overflow: hidden;
+}
+
+:global(body:has(.main-playground) .VPFooter) {
+	display: none;
+}
+
+:global(body:has(.main-playground) .VPNavBar .divider-line) {
+	background-color: var(--vp-c-gutter);
+}
+
+@media (max-height: 500px) {
+	:global(body:has(.main-playground)) {
+		overflow: auto; /* avoid hiding the lower part of playground on mobile (landscape) */
+	}
+
+	:global(.VPHome:has(.main-playground)) {
+		margin-bottom: 0;
+	}
+}
+
+:global(.VPHome .container:has(.main-playground)) {
+	padding: 0;
+	max-width: unset;
+}
+
+:global(.playground-actions .VPFlyout > .button) {
+	height: 42px !important;
+	overflow: clip;
+}
+
+:global(.playground-actions .VPFlyout > .menu) {
+	margin-top: -10px !important;
+}
+
+:global(.main-playground .VPMenu) {
+	max-height: calc(100dvh - 112px);
+}
+
+:global(.main-playground #v-label) {
+	display: none;
+}
+
+@media (max-width: 768px) {
+	:global(.main-playground #version-label) {
+		display: none;
+	}
+
+	:global(.main-playground #v-label) {
+		display: unset;
+	}
 }
 </style>

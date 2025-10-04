@@ -5,6 +5,7 @@ import { handle_root_events } from './internal/client/events.js';
 import { init_operations } from './internal/client/operations.js';
 import { active_block, tracked, derived } from './internal/client/runtime.js';
 import { create_anchor } from './internal/client/utils.js';
+import { remove_ssr_css } from './internal/client/css.js';
 
 // Re-export JSX runtime functions for jsxImportSource: "ripple"
 export { jsx, jsxs, Fragment } from '../jsx-runtime.js';
@@ -16,6 +17,7 @@ export { jsx, jsxs, Fragment } from '../jsx-runtime.js';
  */
 export function mount(component, options) {
 	init_operations();
+	remove_ssr_css();
 
 	const props = options.props || {};
 	const target = options.target;

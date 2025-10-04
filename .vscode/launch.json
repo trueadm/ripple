@@ -9,6 +9,7 @@
 			"name": "Extension",
 			"type": "extensionHost",
 			"request": "launch",
+			"autoAttachChildProcesses": true,
 			"args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/ripple-vscode-plugin/"]
 		}
 	]

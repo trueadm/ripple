@@ -3,80 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const protocol = require('@volar/language-server/protocol');
 const lsp = require('vscode-languageclient/node');
-const { createLabsInfo, getTsdk } = require('@volar/vscode');
+const { createLabsInfo } = require('@volar/vscode');
 
+const neededRestart = !patchTypeScriptExtension();
 let client;
 
 async function activate(context) {
 	console.log("Ripple extension starting...")
-
-	// Try to find ripple compiler in workspace
-	let ripple_path = null;
-
-	// First try workspace folders
-	if (vscode.workspace.workspaceFolders) {
-		for (const folder of vscode.workspace.workspaceFolders) {
-			const workspaceRipplePath = path.join(
-				folder.uri.fsPath,
-				'node_modules',
-				'ripple',
-				'src',
-				'compiler',
-				'index.js',
-			);
-			console.log("Checking ripple path:", workspaceRipplePath)
-
-			if (fs.existsSync(workspaceRipplePath)) {
-				ripple_path = workspaceRipplePath;
-				console.log("Found ripple compiler at: ", ripple_path)
-				break;
-			}
-
-			// Also try packages/ripple for monorepo structure
-			const monorepoRipplePath = path.join(
-				folder.uri.fsPath,
-				'packages',
-				'ripple',
-				'src',
-				'compiler',
-				'index.js',
-			);
-			console.log("Checking monorepo ripple path:", monorepoRipplePath)
-
-			if (fs.existsSync(monorepoRipplePath)) {
-				ripple_path = monorepoRipplePath;
-				console.log("Found ripple compiler at:", ripple_path)
-				break;
-			}
-		}
-	}
-
-	// Fallback: try from active editor path
-	if (!ripple_path && vscode.window.activeTextEditor) {
-		const file_path = vscode.window.activeTextEditor.document.fileName;
-		const parts = file_path.split(path.sep);
-
-		for (let i = parts.length - 2; i >= 0; i--) {
-			const full_path = parts
-				.slice(0, i + 1)
-				.concat('node_modules', 'ripple', 'src', 'compiler', 'index.js')
-				.join(path.sep);
-
-			console.log("Checking fallback ripple path:", full_path)
-			if (fs.existsSync(full_path)) {
-				ripple_path = full_path;
-				console.log("Found ripple compiler at:", ripple_path)
-				break;
-			}
-		}
-	}
-
-	if (!ripple_path) {
-		const message = "Ripple compiler not found. Make sure ripple is installed in your workspace.";
-		console.error(message);
-		vscode.window.showWarningMessage(message);
-		return;
-	}
 
 	const serverModule = vscode.Uri.joinPath(context.extensionUri, 'src/server.js').fsPath;
 
@@ -86,7 +19,7 @@ async function activate(context) {
 		vscode.window.showErrorMessage(message)
 		return
 	}
-	
+
 	const runOptions = {
 		execArgv: [],
 		env: {
@@ -118,28 +51,8 @@ async function activate(context) {
 		},
 	};
 
-	let tsdk;
-	try {
-		tsdk = (await getTsdk(context)).tsdk;
-		console.log("TypeScript SDK found at:", tsdk);
-	} catch (error) {
-		console.error("Failed to get TypeScript SDK: ", error);
-		vscode.window.showErrorMessage(`Failed to get TypeScript SDK: ${error.message}`);
-		return;
-	}
-
-	const initializationOptions = {
-		typescript: {
-			tsdk,
-		},
-		ripplePath: ripple_path,
-		contentIntellisense: true,
-	};
-
 	const clientOptions = {
 		documentSelector: [{ language: 'ripple' }],
-		initializationOptions,
-
 		errorHandler: {
 			error: (error, message, count) => {
 				console.error('Language server error:', error, message, count);
@@ -161,7 +74,7 @@ async function activate(context) {
 			serverOptions,
 			clientOptions,
 		);
-		
+
 		console.log("Starting language client...")
 		await client.start();
 		console.log("Language client started successfully")
@@ -250,6 +163,44 @@ async function deactivate() {
 	}
 }
 
+function patchTypeScriptExtension() {
+	const tsExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
+	if (tsExtension.isActive) {
+		return false;
+	}
+
+	const fs = require('node:fs');
+	const readFileSync = fs.readFileSync;
+	const extensionJsPath = require.resolve('./dist/extension.js', { paths: [tsExtension.extensionPath] });
+
+	fs.readFileSync = (...args) => {
+		if (args[0] === extensionJsPath) {
+			let text = readFileSync(...args);
+			// patch jsTsLanguageModes
+			text = text.replace(
+				't.jsTsLanguageModes=[t.javascript,t.javascriptreact,t.typescript,t.typescriptreact]',
+				s => s + '.concat("ripple")',
+			);
+			// patch isSupportedLanguageMode
+			text = text.replace(
+				'.languages.match([t.typescript,t.typescriptreact,t.javascript,t.javascriptreact]',
+				s => s + '.concat("ripple")',
+			);
+			return text;
+		}
+		return readFileSync(...args);
+	};
+
+	const loadedModule = require.cache[extensionJsPath];
+	if (loadedModule) {
+		delete require.cache[extensionJsPath];
+		const patchedModule = require(extensionJsPath);
+		Object.assign(loadedModule.exports, patchedModule);
+	}
+	return true;
+}
+
 module.exports = {
 	activate,
+	deactivate,
 };

@@ -99,15 +99,19 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	/** @type {string[]} */
 	const tokens = [];
 	
+	// We have to visit everything in generated order to maintain correct indices
 	walk(ast, null, {
-		_(node, { next, visit }) {
+		_(node, { visit }) {
 			// Collect key node types: Identifiers, Literals, and JSX Elements
 			if (node.type === 'Identifier' && node.name) {
 				tokens.push(node.name);
+				return; // Leaf node, don't traverse further
 			} else if (node.type === 'JSXIdentifier' && node.name) {
 				tokens.push(node.name);
+				return; // Leaf node, don't traverse further
 			} else if (node.type === 'Literal' && node.raw) {
 				tokens.push(node.raw);
+				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
 				// Visit specifiers in source order
 				if (node.specifiers) {
@@ -134,14 +138,14 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				}
 				return;
 			} else if (node.type === 'ExportNamedDeclaration') {
-				// Visit in source order: declaration, specifiers
-				if (node.declaration) {
-					visit(node.declaration);
-				}
-				if (node.specifiers) {
+				if (node.specifiers && node.specifiers.length > 0) {
 					for (const specifier of node.specifiers) {
 						visit(specifier);
 					}
+				}
+				if (node.declaration) {
+					// The declaration will be visited with proper ordering
+					visit(node.declaration);
 				}
 				return;
 			} else if (node.type === 'ExportDefaultDeclaration') {
@@ -152,6 +156,41 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				return;
 			} else if (node.type === 'ExportAllDeclaration') {
 				// Nothing to visit (just source string)
+				return;
+			} else if (node.type === 'JSXOpeningElement') {
+				// Visit name and attributes in source order
+				if (node.name) {
+					visit(node.name);
+				}
+				if (node.attributes) {
+					for (const attr of node.attributes) {
+						visit(attr);
+					}
+				}
+				return;
+			} else if (node.type === 'JSXAttribute') {
+				// Visit name and value in source order
+				if (node.name) {
+					visit(node.name);
+				}
+				if (node.value) {
+					visit(node.value);
+				}
+				return;
+			} else if (node.type === 'JSXSpreadAttribute') {
+				// Visit the spread argument
+				if (node.argument) {
+					visit(node.argument);
+				}
+				return;
+			} else if (node.type === 'JSXExpressionContainer') {
+				// Visit the expression inside {}
+				if (node.expression) {
+					visit(node.expression);
+				}
+				return;
+			} else if (node.type === 'JSXText') {
+				// Text content, no tokens to collect
 				return;
 			} else if (node.type === 'JSXElement') {
 				// Manually visit in source order: opening element, children, closing element
@@ -335,11 +374,18 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				return;
 			} else if (node.type === 'Property') {
 				// Visit in source order: key, value
-				if (node.key) {
-					visit(node.key);
-				}
-				if (node.value) {
-					visit(node.value);
+				// For shorthand properties ({ count }), key and value are the same node, only visit once
+				if (node.shorthand) {
+					if (node.value) {
+						visit(node.value);
+					}
+				} else {
+					if (node.key) {
+						visit(node.key);
+					}
+					if (node.value) {
+						visit(node.value);
+					}
 				}
 				return;
 			} else if (node.type === 'ArrayExpression' || node.type === 'ArrayPattern') {
@@ -459,9 +505,482 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 					visit(node.value);
 				}
 				return;
+			} else if (node.type === 'SequenceExpression') {
+				// Visit expressions in order
+				if (node.expressions) {
+					for (const expr of node.expressions) {
+						visit(expr);
+					}
+				}
+				return;
+			} else if (node.type === 'SpreadElement' || node.type === 'RestElement') {
+				// Visit the argument
+				if (node.argument) {
+					visit(node.argument);
+				}
+				return;
+			} else if (node.type === 'YieldExpression' || node.type === 'AwaitExpression') {
+				// Visit the argument if present
+				if (node.argument) {
+					visit(node.argument);
+				}
+				return;
+			} else if (node.type === 'ChainExpression') {
+				// Visit the expression
+				if (node.expression) {
+					visit(node.expression);
+				}
+				return;
+			} else if (node.type === 'Super' || node.type === 'ThisExpression') {
+				// Leaf nodes, no children
+				return;
+			} else if (node.type === 'MetaProperty') {
+				// Visit meta and property (e.g., new.target, import.meta)
+				if (node.meta) {
+					visit(node.meta);
+				}
+				if (node.property) {
+					visit(node.property);
+				}
+				return;
+			} else if (node.type === 'EmptyStatement' || node.type === 'DebuggerStatement') {
+				// No children to visit
+				return;
+			} else if (node.type === 'LabeledStatement') {
+				// Visit label and statement
+				if (node.label) {
+					visit(node.label);
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'BreakStatement' || node.type === 'ContinueStatement') {
+				// Visit label if present
+				if (node.label) {
+					visit(node.label);
+				}
+				return;
+			} else if (node.type === 'WithStatement') {
+				// Visit object and body
+				if (node.object) {
+					visit(node.object);
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'JSXFragment') {
+				// Visit children in order
+				if (node.children) {
+					for (const child of node.children) {
+						visit(child);
+					}
+				}
+				return;
+			} else if (node.type === 'JSXClosingElement' || node.type === 'JSXClosingFragment' || node.type === 'JSXOpeningFragment') {
+				// These are handled by their parent nodes
+				return;
+			} else if (node.type === 'JSXMemberExpression') {
+				// Visit object and property (e.g., <Foo.Bar>)
+				if (node.object) {
+					visit(node.object);
+				}
+				if (node.property) {
+					visit(node.property);
+				}
+				return;
+			} else if (node.type === 'JSXNamespacedName') {
+				// Visit namespace and name (e.g., <svg:circle>)
+				if (node.namespace) {
+					visit(node.namespace);
+				}
+				if (node.name) {
+					visit(node.name);
+				}
+				return;
+			} else if (node.type === 'JSXEmptyExpression') {
+				// No children
+				return;
+			} else if (node.type === 'TemplateElement') {
+				// Leaf node, no children to visit
+				return;
+			} else if (node.type === 'PrivateIdentifier') {
+				// Leaf node
+				return;
+			} else if (node.type === 'PropertyDefinition') {
+				// Visit key and value
+				if (node.key) {
+					visit(node.key);
+				}
+				if (node.value) {
+					visit(node.value);
+				}
+				return;
+			} else if (node.type === 'StaticBlock') {
+				// Visit body
+				if (node.body) {
+					for (const statement of node.body) {
+						visit(statement);
+					}
+				}
+				return;
+			} else if (node.type === 'ImportExpression') {
+				// Visit source
+				if (node.source) {
+					visit(node.source);
+				}
+				return;
+			} else if (node.type === 'ParenthesizedExpression') {
+				// Visit the wrapped expression
+				if (node.expression) {
+					visit(node.expression);
+				}
+				return;
+			} else if (node.type === 'TSAsExpression' || node.type === 'TSSatisfiesExpression') {
+				// Type assertion: value as Type
+				if (node.expression) {
+					visit(node.expression);
+				}
+				// Skip typeAnnotation
+				return;
+			} else if (node.type === 'TSNonNullExpression') {
+				// Non-null assertion: value!
+				if (node.expression) {
+					visit(node.expression);
+				}
+				return;
+			} else if (node.type === 'TSTypeAssertion') {
+				// Type assertion: <Type>value
+				if (node.expression) {
+					visit(node.expression);
+				}
+				// Skip typeAnnotation
+				return;
+			} else if (node.type === 'TSTypeParameterInstantiation' || node.type === 'TSTypeParameterDeclaration') {
+				// Generic type parameters - visit to collect type variable names
+				if (node.params) {
+					for (const param of node.params) {
+						visit(param);
+					}
+				}
+				return;
+			} else if (node.type === 'TSTypeParameter') {
+				// Type parameter like T in <T>
+				if (node.name) {
+					visit(node.name);
+				}
+				if (node.constraint) {
+					visit(node.constraint);
+				}
+				if (node.default) {
+					visit(node.default);
+				}
+				return;
+			} else if (node.type === 'TSTypeAnnotation') {
+				// Type annotation - visit the type
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSTypeReference') {
+				// Type reference like "string" or "Array<T>"
+				if (node.typeName) {
+					visit(node.typeName);
+				}
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				return;
+			} else if (node.type === 'TSQualifiedName') {
+				// Qualified name (e.g., Foo.Bar in types)
+				if (node.left) {
+					visit(node.left);
+				}
+				if (node.right) {
+					visit(node.right);
+				}
+				return;
+			} else if (node.type === 'TSArrayType') {
+				// Array type like T[]
+				if (node.elementType) {
+					visit(node.elementType);
+				}
+				return;
+			} else if (node.type === 'TSTupleType') {
+				// Tuple type like [string, number]
+				if (node.elementTypes) {
+					for (const type of node.elementTypes) {
+						visit(type);
+					}
+				}
+				return;
+			} else if (node.type === 'TSUnionType' || node.type === 'TSIntersectionType') {
+				// Union (A | B) or Intersection (A & B) types
+				if (node.types) {
+					for (const type of node.types) {
+						visit(type);
+					}
+				}
+				return;
+			} else if (node.type === 'TSFunctionType' || node.type === 'TSConstructorType') {
+				// Function or constructor type
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				if (node.parameters) {
+					for (const param of node.parameters) {
+						visit(param);
+					}
+				}
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSTypeLiteral') {
+				// Object type literal { foo: string }
+				if (node.members) {
+					for (const member of node.members) {
+						visit(member);
+					}
+				}
+				return;
+			} else if (node.type === 'TSPropertySignature') {
+				// Property signature in type
+				if (node.key) {
+					visit(node.key);
+				}
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSMethodSignature') {
+				// Method signature in type
+				if (node.key) {
+					visit(node.key);
+				}
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				if (node.parameters) {
+					for (const param of node.parameters) {
+						visit(param);
+					}
+				}
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSIndexSignature') {
+				// Index signature [key: string]: Type
+				if (node.parameters) {
+					for (const param of node.parameters) {
+						visit(param);
+					}
+				}
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSCallSignatureDeclaration' || node.type === 'TSConstructSignatureDeclaration') {
+				// Call or construct signature
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				if (node.parameters) {
+					for (const param of node.parameters) {
+						visit(param);
+					}
+				}
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSConditionalType') {
+				// Conditional type: T extends U ? X : Y
+				if (node.checkType) {
+					visit(node.checkType);
+				}
+				if (node.extendsType) {
+					visit(node.extendsType);
+				}
+				if (node.trueType) {
+					visit(node.trueType);
+				}
+				if (node.falseType) {
+					visit(node.falseType);
+				}
+				return;
+			} else if (node.type === 'TSInferType') {
+				// Infer type: infer T
+				if (node.typeParameter) {
+					visit(node.typeParameter);
+				}
+				return;
+			} else if (node.type === 'TSParenthesizedType') {
+				// Parenthesized type: (T)
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSTypeOperator') {
+				// Type operator: keyof T, readonly T
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSIndexedAccessType') {
+				// Indexed access: T[K]
+				if (node.objectType) {
+					visit(node.objectType);
+				}
+				if (node.indexType) {
+					visit(node.indexType);
+				}
+				return;
+			} else if (node.type === 'TSMappedType') {
+				// Mapped type: { [K in keyof T]: ... }
+				if (node.typeParameter) {
+					visit(node.typeParameter);
+				}
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSLiteralType') {
+				// Literal type: "foo" | 123 | true
+				if (node.literal) {
+					visit(node.literal);
+				}
+				return;
+			} else if (node.type === 'TSExpressionWithTypeArguments') {
+				// Expression with type arguments: Foo<Bar>
+				if (node.expression) {
+					visit(node.expression);
+				}
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				return;
+			} else if (node.type === 'TSImportType') {
+				// Import type: import("module").Type
+				if (node.argument) {
+					visit(node.argument);
+				}
+				if (node.qualifier) {
+					visit(node.qualifier);
+				}
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				return;
+			} else if (node.type === 'TSTypeQuery') {
+				// Type query: typeof x
+				if (node.exprName) {
+					visit(node.exprName);
+				}
+				return;
+			} else if (node.type === 'TSInterfaceDeclaration') {
+				// Interface declaration
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				if (node.extends) {
+					for (const ext of node.extends) {
+						visit(ext);
+					}
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'TSInterfaceBody') {
+				// Interface body
+				if (node.body) {
+					for (const member of node.body) {
+						visit(member);
+					}
+				}
+				return;
+			} else if (node.type === 'TSTypeAliasDeclaration') {
+				// Type alias
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSEnumDeclaration') {
+				// Visit id and members
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.members) {
+					for (const member of node.members) {
+						visit(member);
+					}
+				}
+				return;
+			} else if (node.type === 'TSEnumMember') {
+				// Visit id and initializer
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.initializer) {
+					visit(node.initializer);
+				}
+				return;
+			} else if (node.type === 'TSModuleDeclaration') {
+				// Namespace/module declaration
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.body) {
+					visit(node.body);
+				}
+				return;
+			} else if (node.type === 'TSModuleBlock') {
+				// Module body
+				if (node.body) {
+					for (const statement of node.body) {
+						visit(statement);
+					}
+				}
+				return;
+			} else if (node.type === 'TSNamedTupleMember') {
+				// Named tuple member: [name: Type]
+				if (node.label) {
+					visit(node.label);
+				}
+				if (node.elementType) {
+					visit(node.elementType);
+				}
+				return;
+			} else if (node.type === 'TSRestType') {
+				// Rest type: ...T[]
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSOptionalType') {
+				// Optional type: T?
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
+				}
+				return;
+			} else if (node.type === 'TSAnyKeyword' || node.type === 'TSUnknownKeyword' || node.type === 'TSNumberKeyword' || node.type === 'TSObjectKeyword' || node.type === 'TSBooleanKeyword' || node.type === 'TSBigIntKeyword' || node.type === 'TSStringKeyword' || node.type === 'TSSymbolKeyword' || node.type === 'TSVoidKeyword' || node.type === 'TSUndefinedKeyword' || node.type === 'TSNullKeyword' || node.type === 'TSNeverKeyword' || node.type === 'TSThisType' || node.type === 'TSIntrinsicKeyword') {
+				// Primitive type keywords - leaf nodes, no children
+				return;
 			}
 
-			next();
+			throw new Error(`Unhandled AST node type in mapping walker: ${node.type}`);
 		}
 	});
 
