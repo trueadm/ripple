@@ -60,7 +60,6 @@ describe('prettier-plugin-ripple', () => {
 			const input = `export component Test(){let count=0;<div>{"Hello"}</div>}`;
 			const expected = `export component Test() {
   let count = 0;
-
   <div>{'Hello'}</div>
 }`;
 			const result = await format(input, { singleQuote: true });
@@ -71,7 +70,6 @@ describe('prettier-plugin-ripple', () => {
 			const input = `export component Test(){let count=0;<div>{"Hello"}</div>}`;
 			const expected = `export component Test() {
   let count = 0;
-
   <div>{'Hello'}</div>
 }`;
 			const result = await formatWithCursorHelper(input, {
@@ -205,15 +203,15 @@ function foo() {
 }
 
 export default component Basic() {
-  <div class='container'>
+  <div class="container">
     <h1>{'Welcome to Ripple!'}</h1>
     const items = [];
 
-    <div class='counter'>
+    <div class="counter">
       let $count = 0;
 
       <button onClick={() => $count--}>{'-'}</button>
-      <span class='count'>{$count}</span>
+      <span class="count">{$count}</span>
       <button onClick={() => $count++}>{'+'}</button>
     </div>
     <div>
@@ -237,7 +235,7 @@ export default component Basic() {
 			const already_formatted = `import type { Component } from 'ripple';
 
 export default component App() {
-  <div class='container'>
+  <div class="container">
     let $count = 0;
 
     <button onClick={() => $count++}>{$count}</button>
@@ -317,7 +315,6 @@ export default component App() {
 			const input = `export component Test(){const items=[1,2,3];for(const item of items){<li>{item}</li>}}`;
 			const expected = `export component Test() {
   const items = [1, 2, 3];
-
   for (const item of items) {
     <li>{item}</li>
   }
@@ -451,7 +448,6 @@ export component Test({ a, b }: Props) {}`;
 
 			const expected = `export component App() {
   const context = track(globalContext.get().theme);
-
   <div>
     <TypedComponent />
     {@context}
@@ -661,6 +657,58 @@ const items = [] as unknown[];`
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should not insert a new line between js and jsx if not provided', async () => {
+		const expected = `export component App() {
+  let text = 'something';
+  <div>{String(text)}</div>
+}`;
+
+		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should keep a new line between js and jsx if provided', async () => {
+		const expected = `export component App() {
+  let text = 'something';
+  <div>{String(text)}</div>
+}`;
+
+		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should not format html elements that fit on one line', async () => {
+		const expected = `export component App() {
+  <div class="container">
+    <p>{'This is real JSX'}</p>
+  </div>
+}`;
+
+		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should format html elements that fit on one line', async () => {
+		const input = `export component App() {
+  <div class="container">
+    <p>
+      {'This is real JSX'}
+    </p>
+  </div>
+}`;
+
+		const expected = `export component App() {
+  <div class="container">
+    <p>{'This is real JSX'}</p>
+  </div>
+}`;
+
+		const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+
+		expect(result).toBeWithNewline(expected);
+	});
+
 	describe('TypeScript types', () => {
 		it('should format all basic TypeScript primitive types', async () => {
 			const input = `component TypeTest() {
@@ -751,7 +799,6 @@ const items = [] as unknown[];`
   let open: Tracked<boolean> = track(false);
   let items: Array<string> = [];
   let map: Map<string, number> = new Map();
-
   <div>{'test'}</div>
 }`;
 
@@ -772,7 +819,6 @@ const items = [] as unknown[];`
   type Props = { a: string } & { b: number };
 
   let value: string | null = null;
-
   <div>{'test'}</div>
 }`;
 
@@ -908,7 +954,7 @@ function inputRef(node) {
 		});
 
 		it('keeps one new line comments and functions when 1 or more exist', async () => {
-			const input = `export function App() {
+			const input = `export component App() {
   // try {
     doSomething()
   // } catch {
@@ -924,7 +970,7 @@ try {
   }
 }`;
 
-			const expected = `export function App() {
+			const expected = `export component App() {
   // try {
   doSomething();
   // } catch {
@@ -1114,6 +1160,72 @@ component RowList({ rows, Row }) {
   ];
 }`;
 			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+	});
+
+	describe('regex formatting', () => {
+		it('preserves regex literals in method calls', async () => {
+			const expected = `export component App() {
+  let text = 'Hello <span>world</span>';
+  let result = text.match(/<span>/);
+  <div>{String(result)}</div>
+}`;
+
+			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+
+			expect(result).toBeWithNewline(expected);
+
+		});
+
+		it('preserves multiple regex patterns', async () => {
+			const expected = `export component App() {
+  let html = '<div>Hello</div><span>World</span>';
+  let divMatch = html.match(/<div>/g);
+  let spanReplace = html.replace(/<span>/g, '[SPAN]');
+  let allTags = html.split(/<br>/);
+}`;
+
+			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('preserves regex literals in variable assignments', async () => {
+			const expected = `export component App() {
+  let spanRegex = /<span>/g;
+  let divRegex = /<div>/;
+  let simpleRegex = /<br>/g;
+}`;
+
+			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('distinguishes regex from JSX', async () => {
+			const expected = `export component App() {
+  let htmlString = '<p>Paragraph</p>';
+  let paragraphs = htmlString.match(/<p>/g);
+  <div class="container">
+    <p>{'This is real JSX'}</p>
+  </div>
+}`;
+
+			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should handle edge case regex patterns', async () => {
+			const expected = `export component Test() {
+  let text = '<<test>> <span>content</span>';
+  let multiAngle = text.match(/<span>/);
+  let simplePattern = text.match(/<>/);
+}`;
+
+			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+
 			expect(result).toBeWithNewline(expected);
 		});
 	});

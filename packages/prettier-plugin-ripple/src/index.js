@@ -547,9 +547,7 @@ function printRippleNode(node, path, options, print, args) {
 			const parts = ['{...', path.call(print, 'argument'), '}'];
 			nodeContent = concat(parts);
 			break;
-		}
-
-		case 'Identifier': {
+		} case 'Identifier': {
 			// Simple case - just return the name directly like Prettier core
 			const trackedPrefix = node.tracked ? "@" : "";
 			if (node.typeAnnotation) {
@@ -561,7 +559,14 @@ function printRippleNode(node, path, options, print, args) {
 		}
 
 		case 'Literal':
-			nodeContent = formatStringLiteral(node.value, options);
+			// Handle regex literals specially
+			if (node.regex) {
+				// Regex literal: use the raw representation
+				nodeContent = node.raw || `/${node.regex.pattern}/${node.regex.flags}`;
+			} else {
+				// String, number, boolean, or null literal
+				nodeContent = formatStringLiteral(node.value, options);
+			}
 			break;
 
 		case 'ArrowFunctionExpression':
@@ -772,36 +777,68 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
-			case 'TSTupleType':
-				nodeContent = printTSTupleType(node, path, options, print);
-				break;
+		case 'TSTupleType':
+			nodeContent = printTSTupleType(node, path, options, print);
+			break;
 
-			case 'TSIndexSignature':
-				nodeContent = printTSIndexSignature(node, path, options, print);
-				break;
+		case 'TSIndexSignature':
+			nodeContent = printTSIndexSignature(node, path, options, print);
+			break;
 
-			case 'TSConstructorType':
-				nodeContent = printTSConstructorType(node, path, options, print);
-				break;
+		case 'TSConstructorType':
+			nodeContent = printTSConstructorType(node, path, options, print);
+			break;
 
-			case 'TSConditionalType':
-				nodeContent = printTSConditionalType(node, path, options, print);
-				break;
+		case 'TSConditionalType':
+			nodeContent = printTSConditionalType(node, path, options, print);
+			break;
 
-			case 'TSMappedType':
-				nodeContent = printTSMappedType(node, path, options, print);
-				break;
+		case 'TSMappedType':
+			nodeContent = printTSMappedType(node, path, options, print);
+			break;
 
-			case 'TSQualifiedName':
-				nodeContent = printTSQualifiedName(node, path, options, print);
-				break;
+		case 'TSQualifiedName':
+			nodeContent = printTSQualifiedName(node, path, options, print);
+			break;
 
-			case 'TSIndexedAccessType':
-				nodeContent = printTSIndexedAccessType(node, path, options, print);
-				break;
+		case 'TSIndexedAccessType':
+			nodeContent = printTSIndexedAccessType(node, path, options, print);
+			break;
 
 		case 'Element':
 			nodeContent = printElement(node, path, options, print);
+			break;
+
+		case 'JSXElement':
+			nodeContent = printJSXElement(node, path, options, print);
+			break;
+
+		case 'JSXFragment':
+			nodeContent = printJSXFragment(node, path, options, print);
+			break;
+
+		case 'JSXText':
+			nodeContent = node.value;
+			break;
+
+		case 'JSXExpressionContainer':
+			nodeContent = concat(['{', path.call(print, 'expression'), '}']);
+			break;
+
+		case 'JSXEmptyExpression':
+			nodeContent = '';
+			break;
+
+		case 'JSXIdentifier':
+			nodeContent = node.name;
+			break;
+
+		case 'JSXAttribute':
+			nodeContent = printJSXAttribute(node, path, options, print);
+			break;
+
+		case 'JSXSpreadAttribute':
+			nodeContent = concat(['{...', path.call(print, 'argument'), '}']);
 			break;
 
 		case 'StyleSheet':
@@ -1984,7 +2021,8 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Add blank line after variable declarations when followed by elements or control flow statements
-	if (currentNode.type === 'VariableDeclaration') {
+	// Only if there was originally a blank line
+	if (originalBlankLines > 0 && currentNode.type === 'VariableDeclaration') {
 		if (
 			nextNode.type === 'Element' ||
 			nextNode.type === 'IfStatement' ||
@@ -2034,12 +2072,14 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Add blank line after if/for/try statements if next is an element
+	// Only if there was originally a blank line
 	if (
-		currentNode.type === 'IfStatement' ||
-		currentNode.type === 'ForStatement' ||
-		currentNode.type === 'ForOfStatement' ||
-		currentNode.type === 'TryStatement' ||
-		currentNode.type === 'WhileStatement'
+		originalBlankLines > 0 &&
+		(currentNode.type === 'IfStatement' ||
+			currentNode.type === 'ForStatement' ||
+			currentNode.type === 'ForOfStatement' ||
+			currentNode.type === 'TryStatement' ||
+			currentNode.type === 'WhileStatement')
 	) {
 		if (nextNode.type === 'Element') {
 			return true;
@@ -2047,7 +2087,8 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Add blank line before elements when preceded by non-element statements
-	if (nextNode.type === 'Element') {
+	// Only if there was originally a blank line
+	if (originalBlankLines > 0 && nextNode.type === 'Element') {
 		if (
 			currentNode.type !== 'Element' &&
 			currentNode.type !== 'VariableDeclaration' &&
@@ -2659,6 +2700,7 @@ function printElement(node, path, options, print) {
 			} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
 				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
 			} else {
+				// Multi-line for non-self-closing elements
 				elementOutput = group([
 					'<',
 					tagName,
@@ -2773,15 +2815,19 @@ function printElement(node, path, options, print) {
 		// 1. Short string content (<= 20 chars)
 		// 2. Simple JSX expression (Text or Html nodes)
 		// 3. Self-closing elements/components
+		// But DON'T inline if child is a non-self-closing Element or JSXElement
+		const isNonSelfClosingElement = firstChild && (firstChild.type === 'Element' || firstChild.type === 'JSXElement') && !firstChild.selfClosing;
+
 		if (typeof child === 'string' && child.length < 20) {
-			// Single line
+			// Single line with short text
 			elementOutput = group([openingTag, child, closingTag]);
-		} else if (child && typeof child === 'object') {
-			// For JSX expressions, always try single line
+		} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
+			// For simple JSX expressions (Text, Html nodes), try single line
+			// But not for nested elements
 			elementOutput = group([openingTag, child, closingTag]);
 		} else {
-			// Multi-line
-			elementOutput = group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
+			// Multi-line for nested elements
+			elementOutput = concat([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 		}
 	} else {
 		// Multi-line
@@ -2793,6 +2839,103 @@ function printElement(node, path, options, print) {
 		return concat([...elementLevelCommentParts, elementOutput]);
 	}
 	return elementOutput;
+}
+
+function printJSXElement(node, path, options, print) {
+	const parts = [];
+
+	// Print opening element
+	const openingElement = node.openingElement;
+	const tagName = openingElement.name.name;
+
+	// Build opening tag
+	if (openingElement.attributes && openingElement.attributes.length > 0) {
+		parts.push('<', tagName);
+		for (const attr of openingElement.attributes) {
+			parts.push(' ');
+			if (attr.type === 'JSXAttribute') {
+				parts.push(printJSXAttribute(attr, path, options, print));
+			} else if (attr.type === 'JSXSpreadAttribute') {
+				parts.push('{...', print(attr.argument), '}');
+			}
+		}
+		if (openingElement.selfClosing) {
+			parts.push(' />');
+			return concat(parts);
+		}
+		parts.push('>');
+	} else {
+		if (openingElement.selfClosing) {
+			parts.push('<', tagName, ' />');
+			return concat(parts);
+		}
+		parts.push('<', tagName, '>');
+	}
+
+	// Print children
+	if (node.children && node.children.length > 0) {
+		const children = [];
+		for (let i = 0; i < node.children.length; i++) {
+			const child = node.children[i];
+			if (child.type === 'JSXText') {
+				const text = child.value.trim();
+				if (text) {
+					children.push(text);
+				}
+			} else if (child.type === 'JSXElement' || child.type === 'JSXExpressionContainer') {
+				children.push(path.call(print, 'children', i));
+			}
+		}
+
+		if (children.length > 0) {
+			// Check if we can inline - only for simple text content
+			if (children.length === 1 && typeof children[0] === 'string' && children[0].length < 40) {
+				parts.push(children[0]);
+			} else {
+				// Always break to multiple lines for complex children or nested elements
+				parts.push(indent([hardline, concat(children.flatMap((c, i) => i < children.length - 1 ? [c, hardline] : [c]))]));
+				parts.push(hardline);
+			}
+		}
+	}
+
+	// Print closing element
+	if (node.closingElement) {
+		parts.push('</', tagName, '>');
+	}
+
+	// Don't use group() which would allow collapsing - return concat directly
+	// to preserve the multiline formatting
+	return concat(parts);
+}
+
+function printJSXAttribute(node, path, options, print) {
+	const parts = [node.name.name];
+
+	if (node.value !== null && node.value !== undefined) {
+		parts.push('=');
+		if (node.value.type === 'Literal') {
+			// String literal attribute value
+			parts.push(formatStringLiteral(node.value.value, options));
+		} else if (node.value.type === 'JSXExpressionContainer') {
+			parts.push('{', print(node.value.expression), '}');
+		}
+	}
+
+	return concat(parts);
+}
+
+function printJSXFragment(node, path, options, print) {
+	const parts = ['<>'];
+
+	if (node.children && node.children.length > 0) {
+		const children = path.map(print, 'children');
+		parts.push(indent([hardline, join(hardline, children)]));
+		parts.push(hardline);
+	}
+
+	parts.push('</>');
+	return group(parts);
 }
 
 function printAttribute(node, path, options, print) {
@@ -2814,8 +2957,9 @@ function printAttribute(node, path, options, print) {
 	if (node.value) {
 		if (node.value.type === 'Literal' && typeof node.value.value === 'string') {
 			// String literals don't need curly braces
+			// Always use double quotes for HTML/JSX attributes
 			parts.push('=');
-			parts.push(formatStringLiteral(node.value.value, options));
+			parts.push(formatStringLiteral(node.value.value, { ...options, singleQuote: false }));
 		} else {
 			// All other values need curly braces: numbers, booleans, null, expressions, etc.
 			parts.push('={');
