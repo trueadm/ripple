@@ -167,9 +167,16 @@ function RipplePlugin(config) {
 
 				if (code === 64) {
 					// @ character
-					// Look ahead to see if this is followed by a valid identifier character
+					// Look ahead to see if this is followed by a valid identifier character or opening paren
 					if (this.pos + 1 < this.input.length) {
 						const nextChar = this.input.charCodeAt(this.pos + 1);
+						
+						// Check if this is @( for unboxing expression syntax
+						if (nextChar === 40) { // ( character
+							this.pos += 2; // skip '@('
+							return this.finishToken(tt.parenL, '@(');
+						}
+						
 						// Check if the next character can start an identifier
 						if (
 							(nextChar >= 65 && nextChar <= 90) || // A-Z
@@ -348,6 +355,11 @@ function RipplePlugin(config) {
 			 * @returns {any} Parsed expression atom
 			 */
 			parseExprAtom(refDestructuringErrors, forNew, forInit) {
+				// Check if this is @(expression) for unboxing tracked values
+				if (this.type === tt.parenL && this.value === '@(') {
+					return this.parseTrackedExpression();
+				}
+				
 				// Check if this is a tuple literal starting with #[
 				if (this.type === tt.bracketL && this.value === '#[') {
 					return this.parseTrackedArrayExpression();
@@ -356,6 +368,33 @@ function RipplePlugin(config) {
 				}
 
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
+			}
+
+			/**
+			 * Parse `@(expression)` syntax for unboxing tracked values
+			 * Creates a TrackedExpression node with the argument property
+			 * @returns {any} TrackedExpression node
+			 */
+			parseTrackedExpression() {
+				const node = this.startNode();
+				this.next(); // consume '@(' token
+				node.argument = this.parseExpression();
+				this.expect(tt.parenR); // expect ')'
+				return this.finishNode(node, 'TrackedExpression');
+			}
+
+			/**
+			 * Override to allow TrackedExpression as a valid lvalue for update expressions
+			 * @param {any} expr - Expression to check
+			 * @param {any} bindingType - Binding type
+			 * @param {any} checkClashes - Check for clashes
+			 */
+			checkLValSimple(expr, bindingType, checkClashes) {
+				// Allow TrackedExpression as a valid lvalue for ++/-- operators
+				if (expr.type === 'TrackedExpression') {
+					return;
+				}
+				return super.checkLValSimple(expr, bindingType, checkClashes);
 			}
 
 			parseTrackedArrayExpression() {

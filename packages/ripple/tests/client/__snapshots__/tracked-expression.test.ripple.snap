@@ -1,0 +1,34 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`TrackedExpression tests > should handle the syntax correctly 1`] = `
+<div>
+  <div>
+    0
+  </div>
+  <div>
+    0
+  </div>
+  <div>
+    1
+  </div>
+  <div>
+    2
+  </div>
+  <div>
+    2
+  </div>
+  <div>
+    3
+  </div>
+  <div>
+    4
+  </div>
+  <div>
+    false
+  </div>
+  <div>
+    true
+  </div>
+  
+</div>
+`;

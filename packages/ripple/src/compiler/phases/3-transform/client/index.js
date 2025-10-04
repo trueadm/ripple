@@ -362,6 +362,10 @@ const visitors = {
 		);
 	},
 
+	TrackedExpression(node, context) {
+		return b.call('_$_.get', context.visit(node.argument));
+	},
+
 	MemberExpression(node, context) {
 		const parent = context.path.at(-1);
 
@@ -1000,6 +1004,16 @@ const visitors = {
 				node.operator === '--' ? b.literal(-1) : undefined,
 			);
 		}
+
+		if (argument.type === 'TrackedExpression') {
+			return b.call(
+				node.prefix ? '_$_.update_pre' : '_$_.update',
+				context.visit(argument.argument, { ...context.state, metadata: { tracking: null } }),
+				b.id('__block'),
+				node.operator === '--' ? b.literal(-1) : undefined,
+			);
+		}
+
 
 		const left = object(argument);
 		const binding = context.state.scope.get(left.name);

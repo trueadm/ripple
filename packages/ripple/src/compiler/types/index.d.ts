@@ -65,6 +65,11 @@ export interface TrackedArrayExpression extends Omit<ArrayExpression, 'type'> {
 	elements: (Expression | null)[];
 }
 
+export interface TrackedExpression extends Omit<Expression, 'type'> {
+	argument: Expression;
+	type: 'TrackedExpression';
+}
+
 /**
  * Tracked object expression node
  */

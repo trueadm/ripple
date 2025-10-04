@@ -388,6 +388,29 @@
 		"decorator": {
 			"patterns": [
 				{
+					"name": "meta.unbox.tracked.paren.js",
+					"begin": "(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(\\@)(\\()",
+					"beginCaptures": {
+						"1": {
+							"name": "punctuation.section.embedded.begin.js"
+						},
+						"2": {
+							"name": "punctuation.section.embedded.begin.js"
+						}
+					},
+					"end": "\\)",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.embedded.end.js"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				},
+				{
 					"name": "meta.identifier.tracked.js",
 					"match": "(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(@)([_$[:alpha:]][_$[:alnum:]]*)",
 					"captures": {
@@ -6519,6 +6542,29 @@
 		},
 		"non-jsx-expression": {
 			"patterns": [
+				{
+					"name": "meta.unbox.tracked.paren.js",
+					"begin": "(\\@)(\\()",
+					"beginCaptures": {
+						"1": {
+							"name": "punctuation.section.embedded.begin.js"
+						},
+						"2": {
+							"name": "punctuation.section.embedded.begin.js"
+						}
+					},
+					"end": "\\)",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.embedded.end.js"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#expression"
+						}
+					]
+				},
 				{
 					"name": "meta.identifier.tracked.js",
 					"match": "(@)([_$[:alpha:]][_$[:alnum:]]*)",
