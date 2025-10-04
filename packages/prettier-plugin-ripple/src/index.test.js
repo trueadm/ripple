@@ -586,4 +586,101 @@ const items = [] as unknown[];`
     expect(result).toBe(input);
 
   });
+
+  describe('regex literal formatting', () => {
+    it('should preserve regex literals in method calls', async () => {
+      const input = `export component App() {
+  let text = 'Hello <span>world</span>';
+  let result = text.match(/<span>/);
+  <div>{String(result)}</div>
+}`;
+
+      const result = await format(input);
+
+      // Main assertion: regex should NOT be converted to {}
+      expect(result).toContain('/<span>/');
+      expect(result).not.toContain('text.match({})');
+
+      // Additional format check
+      expect(result).toContain('text.match(/<span>/)');
+    });
+
+    it('should handle multiple regex patterns', async () => {
+      const input = `export component App() {
+  let html = '<div>Hello</div><span>World</span>';
+  let divMatch = html.match(/<div>/g);
+  let spanReplace = html.replace(/<span>/g, '[SPAN]');
+  let allTags = html.split(/<br>/);
+}`;
+
+      const result = await format(input);
+
+      // Main assertions: all regex should be preserved
+      expect(result).toContain('/<div>/g');
+      expect(result).toContain('/<span>/g');
+      expect(result).toContain('/<br>/');
+
+      // Should not be converted to empty objects
+      expect(result).not.toContain('match({})');
+      expect(result).not.toContain('replace({})');
+      expect(result).not.toContain('split({})');
+    });
+
+    it('should handle regex literals in variable assignments', async () => {
+      const input = `export component App() {
+  let spanRegex = /<span>/g;
+  let divRegex = /<div>/;
+  let simpleRegex = /<br>/g;
+}`;
+
+      const result = await format(input);
+
+      // All regex literals should be preserved
+      expect(result).toContain('spanRegex = /<span>/g');
+      expect(result).toContain('divRegex = /<div>/');
+      expect(result).toContain('simpleRegex = /<br>/g');
+
+      // Should not be converted to empty objects
+      expect(result).not.toContain('= {}');
+    });
+
+    it('should distinguish regex from JSX correctly', async () => {
+      const input = `export component App() {
+  let htmlString = '<p>Paragraph</p>';
+  let paragraphs = htmlString.match(/<p>/g);
+  <div class='container'>
+    <p>{'This is real JSX'}</p>
+  </div>
+}`;
+
+      const result = await format(input);
+
+      // Regex should be preserved
+      expect(result).toContain('match(/<p>/g)');
+
+      // JSX should be preserved
+      expect(result).toContain('<p>{"This is real JSX"}</p>');
+      expect(result).toContain('<div');
+
+      // Should not mix them up
+      expect(result).not.toContain('match({})');
+    });
+
+    it('should handle edge case regex patterns', async () => {
+      const input = `export component Test() {
+  let text = '<<test>> <span>content</span>';
+  let multiAngle = text.match(/<span>/);
+  let simplePattern = text.match(/<>/);
+}`;
+
+      const result = await format(input);
+
+      // All regex patterns should be preserved
+      expect(result).toContain('match(/<span>/)');
+      expect(result).toContain('match(/<>/)');
+
+      // Should not be converted to empty objects
+      expect(result).not.toContain('match({})');
+    });
+  });
 });

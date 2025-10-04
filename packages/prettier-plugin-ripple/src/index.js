@@ -459,9 +459,22 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
-		case 'Literal':
-			nodeContent = formatStringLiteral(node.value, options);
+		case 'Literal': {
+			// Check if this is a regex literal
+			if (node.regex) {
+				// This is a regex literal with { pattern, flags }
+				const pattern = node.regex.pattern || '';
+				const flags = node.regex.flags || '';
+				nodeContent = `/${pattern}/${flags}`;
+			} else if (node.raw && node.raw.startsWith('/') && node.raw.match(/^\/.*\/[gimsuxy]*$/)) {
+				// This is a regex literal with raw format
+				nodeContent = node.raw;
+			} else {
+				// Regular string/number literal
+				nodeContent = formatStringLiteral(node.value, options);
+			}
 			break;
+		}
 
 		case 'ArrowFunctionExpression':
 			nodeContent = printArrowFunction(node, path, options, print);
@@ -682,6 +695,21 @@ function printRippleNode(node, path, options, print, args) {
 		case 'Attribute':
 			nodeContent = printAttribute(node, path, options, print);
 			break;
+
+		case 'RegExp':
+		case 'RegExpLiteral': {
+			// Handle regex literals properly
+			const flags = node.flags || '';
+			const pattern = node.pattern || node.raw || '';
+			if (pattern.startsWith('/') && pattern.includes('/')) {
+				// If it's already formatted as /pattern/flags, use as-is
+				nodeContent = pattern;
+			} else {
+				// Construct regex literal
+				nodeContent = `/${pattern}/${flags}`;
+			}
+			break;
+		}
 
 		case 'Text': {
 			const parts = ['{', path.call(print, 'expression'), '}'];
