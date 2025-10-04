@@ -408,6 +408,12 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'TrackedExpression': {
+			const parts = ['@(', path.call(print, 'argument'), ')'];
+			nodeContent = concat(parts);
+			break;
+		}
+
 		case 'UnaryExpression':
 			nodeContent = printUnaryExpression(node, path, options, print);
 			break;
