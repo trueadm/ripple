@@ -1,0 +1,103 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, track } from 'ripple';
+
+describe('dynamic DOM elements', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container,
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+	it('renders static dynamic element', () => {
+		component App() {
+			let tag = track('div');
+
+			<@tag>{'Hello World'}</@tag>
+		}
+		render(App);
+
+		const element = container.querySelector('div');
+		expect(element).toBeTruthy();
+		expect(element.textContent).toBe('Hello World');
+	});
+	it('renders reactive dynamic element', () => {
+		component App() {
+			let tag = track('div');
+
+			<button onClick={() => {
+					@tag = 'span';
+				}}>{'Change Tag'}</button>
+			<@tag id="dynamic">{'Hello World'}</@tag>
+		}
+		render(App);
+		// Initially should be a div
+		let dynamicElement = container.querySelector('#dynamic');
+		expect(dynamicElement.tagName).toBe('DIV');
+		expect(dynamicElement.textContent).toBe('Hello World');
+		// Click button to change tag
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+		// Should now be a span
+		dynamicElement = container.querySelector('#dynamic');
+		expect(dynamicElement.tagName).toBe('SPAN');
+		expect(dynamicElement.textContent).toBe('Hello World');
+	});
+	it('renders self-closing dynamic element', () => {
+		component App() {
+			let tag = track('input');
+
+			<@tag type="text" value="test" />
+		}
+		render(App);
+
+		const element = container.querySelector('input');
+		expect(element).toBeTruthy();
+		expect(element.type).toBe('text');
+		expect(element.value).toBe('test');
+	});
+	it('handles dynamic element with attributes', () => {
+		component App() {
+			let tag = track('div');
+			let className = track('test-class');
+
+			<@tag class={@className} id="test" data-testid="dynamic-element">{'Content'}</@tag>
+		}
+		render(App);
+
+		const element = container.querySelector('#test');
+		expect(element.tagName).toBe('DIV');
+		expect(element.className).toBe('test-class');
+		expect(element.getAttribute('data-testid')).toBe('dynamic-element');
+		expect(element.textContent).toBe('Content');
+	});
+	it('handles nested dynamic elements', () => {
+		component App() {
+			let outerTag = track('div');
+			let innerTag = track('span');
+
+			<@outerTag class="outer">
+				<@innerTag class="inner">{'Nested content'}</@innerTag>
+			</@outerTag>
+		}
+		render(App);
+
+		const outer = container.querySelector('.outer');
+		const inner = container.querySelector('.inner');
+
+		expect(outer.tagName).toBe('DIV');
+		expect(inner.tagName).toBe('SPAN');
+		expect(inner.textContent).toBe('Nested content');
+		expect(outer.contains(inner)).toBe(true);
+	});
+});
