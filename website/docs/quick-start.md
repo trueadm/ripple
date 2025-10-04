@@ -43,8 +43,8 @@ Ripple also maintains a TextMate bundle that provides syntax highlighting for
 Ripple files in editors that support TextMate grammars, such as WebStorm/IntelliJ
 and Sublime Text.
 
-1. Create a directory named `Ripple`.
-2. Create a directory named `Syntaxes` inside the `Ripple` directory.
+1. Create a directory named `Ripple.tmbundle`.
+2. Create a directory named `Syntaxes` inside the `Ripple.tmbundle` directory.
 3. Save the
 		[`ripple.tmLanguage`](https://github.com/trueadm/ripple/blob/main/assets/Ripple.tmbundle/Syntaxes/ripple.tmLanguage)
 		file into the `Syntaxes` directory.
@@ -52,11 +52,11 @@ and Sublime Text.
 	* **WebStorm/IntelliJ**:
 		1. Save the
 				[`info.plist`](https://github.com/trueadm/ripple/blob/main/assets/Ripple.tmbundle/info.plist)
-				file into the `Ripple` directory.
-		2. Go to `Settings` > `Editor` > `TextMate Bundles`, click the `+` icon, and select the `Ripple` directory.
+				file into the `Ripple.tmbundle` directory.
+		2. Go to `Settings` > `Editor` > `TextMate Bundles`, click the `+` icon, and select the `Ripple.tmbundle` directory.
 		3. All `.ripple` files should now have syntax highlighting.
 	* **Sublime Text**:
-		1. Go to `Preferences` > `Browse Packages`, and move the `Ripple` directory into the opened folder.
+		1. Go to `Preferences` > `Browse Packages`, and move the `Ripple.tmbundle` directory into the opened folder.
 		2. You should now be able to select `Ripple` in `View` > `Syntax`.
 
 ## Getting Help
