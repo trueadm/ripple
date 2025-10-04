@@ -599,6 +599,49 @@
                 <array>
                     <dict>
                         <key>name</key>
+                        <string>meta.unbox.tracked.paren.js</string>
+                        <key>begin</key>
+                        <string
+                        >(?&lt;![_$[:alnum:]])(?:(?&lt;=\.\.\.)|(?&lt;!\.))(\@)(\()</string>
+                        <key>beginCaptures</key>
+                        <dict>
+                            <key>1</key>
+                            <dict>
+                                <key>name</key>
+                                <string>
+                                    punctuation.section.embedded.begin.js
+                                </string>
+                            </dict>
+                            <key>2</key>
+                            <dict>
+                                <key>name</key>
+                                <string>
+                                    punctuation.section.embedded.begin.js
+                                </string>
+                            </dict>
+                        </dict>
+                        <key>end</key>
+                        <string>\)</string>
+                        <key>endCaptures</key>
+                        <dict>
+                            <key>0</key>
+                            <dict>
+                                <key>name</key>
+                                <string>
+                                    punctuation.section.embedded.end.js
+                                </string>
+                            </dict>
+                        </dict>
+                        <key>patterns</key>
+                        <array>
+                            <dict>
+                                <key>include</key>
+                                <string>#expression</string>
+                            </dict>
+                        </array>
+                    </dict>
+                    <dict>
+                        <key>name</key>
                         <string>meta.identifier.tracked.js</string>
                         <key>match</key>
                         <string
@@ -11586,6 +11629,48 @@
             <dict>
                 <key>patterns</key>
                 <array>
+                    <dict>
+                        <key>name</key>
+                        <string>meta.unbox.tracked.paren.js</string>
+                        <key>begin</key>
+                        <string>(\@)(\()</string>
+                        <key>beginCaptures</key>
+                        <dict>
+                            <key>1</key>
+                            <dict>
+                                <key>name</key>
+                                <string>
+                                    punctuation.section.embedded.begin.js
+                                </string>
+                            </dict>
+                            <key>2</key>
+                            <dict>
+                                <key>name</key>
+                                <string>
+                                    punctuation.section.embedded.begin.js
+                                </string>
+                            </dict>
+                        </dict>
+                        <key>end</key>
+                        <string>\)</string>
+                        <key>endCaptures</key>
+                        <dict>
+                            <key>0</key>
+                            <dict>
+                                <key>name</key>
+                                <string>
+                                    punctuation.section.embedded.end.js
+                                </string>
+                            </dict>
+                        </dict>
+                        <key>patterns</key>
+                        <array>
+                            <dict>
+                                <key>include</key>
+                                <string>#expression</string>
+                            </dict>
+                        </array>
+                    </dict>
                     <dict>
                         <key>name</key>
                         <string>meta.identifier.tracked.js</string>
