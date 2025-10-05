@@ -128,22 +128,22 @@ export function apply_styles(element, newStyles) {
  * @returns {void}
  */
 export function set_attributes(element, attributes) {
-	let foundEnumerableKeys = false;
+	let found_enumerable_keys = false;
 
 	for (const key in attributes) {
 		if (key === 'children') continue;
-		foundEnumerableKeys = true;
+		found_enumerable_keys = true;
 
 		let value = attributes[key];
 		if (is_tracked_object(value)) {
 			value = get(value);
 		}
-		_set_attribute_helper(element, key, value);
+		set_attribute_helper(element, key, value);
 	}
 
 	// Only if no enumerable keys but attributes object exists
 	// This handles spread_props Proxy objects from dynamic elements with {...spread}
-	if (!foundEnumerableKeys && attributes) {
+	if (!found_enumerable_keys && attributes) {
 		const allKeys = Reflect.ownKeys(attributes);
 		for (const key of allKeys) {
 			if (key === 'children') continue;
@@ -153,7 +153,7 @@ export function set_attributes(element, attributes) {
 			if (is_tracked_object(value)) {
 				value = get(value);
 			}
-			_set_attribute_helper(element, key, value);
+			set_attribute_helper(element, key, value);
 		}
 	}
 }
@@ -164,7 +164,7 @@ export function set_attributes(element, attributes) {
  * @param {string} key
  * @param {any} value
 */
-function _set_attribute_helper(element, key, value) {
+function set_attribute_helper(element, key, value) {
   if (key === 'class') {
     const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
     set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
