@@ -131,7 +131,7 @@ See [Reactivity](/docs/guide/reactivity#Props-and-Attributes).
 
 ## Portal Component
 
-The `Portal` component allows you to render content anywhere in the DOM tree, breaking out of the normal component hierarchy. This is particularly useful for modals, tooltips, and notifications.
+The `Portal` component allows you to render (teleport) content anywhere in the DOM tree, breaking out of the normal component hierarchy. This is particularly useful for modals, tooltips, and notifications.
 
 ```ripple
 import { Portal } from 'ripple';
