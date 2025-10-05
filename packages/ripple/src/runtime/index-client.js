@@ -62,6 +62,14 @@ export { TrackedMap } from './map.js';
 
 export { TrackedDate } from './date.js';
 
+export { TrackedURL } from './url.js';
+
+export { TrackedURLSearchParams } from './url-search-params.js';
+
+export { createSubscriber } from './create-subscriber.js';
+
+export { MediaQuery } from './media-query.js';
+
 export { user_effect as effect } from './internal/client/blocks.js';
 
 export { Portal } from './internal/client/portal.js';
