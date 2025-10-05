@@ -163,7 +163,6 @@ const onReady = (sdk: Playground) => {
 
 	// sync the UI with config from  shared URL
 	playground.getConfig().then((config) => {
-		console.log(config.title, title.value)
 		if (
 			config.title?.trim() &&
 			config.title !== 'Untitled Project' &&
