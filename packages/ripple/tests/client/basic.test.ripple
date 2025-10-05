@@ -1860,4 +1860,33 @@ describe('basic client', () => {
 
 		expect(state.count).toBe(0);
 	});
+
+	it('unwraps tracked values with update expressions inside effect', () => {
+		let state = {};
+
+		component Basic() {
+			let count = track(5);
+
+			effect(() => {
+				untrack(() => {
+					state.initialValue = @count;
+					state.preIncrement = ++@count;
+					state.postIncrement = @count++;
+					state.preDecrement = --@count;
+					state.postDecrement = @count--;
+					state.finalValue = @count;
+				});
+			})
+		}
+
+		render(Basic);
+		flushSync();
+
+		expect(state.initialValue).toBe(5);
+		expect(state.preIncrement).toBe(6);
+		expect(state.postIncrement).toBe(6);
+		expect(state.preDecrement).toBe(6);
+		expect(state.postDecrement).toBe(6);
+		expect(state.finalValue).toBe(5);
+	});
 });
