@@ -228,8 +228,8 @@ importers:
   website:
     dependencies:
       livecodes:
-        specifier: 0.11.1
-        version: 0.11.1
+        specifier: 0.12.0
+        version: 0.12.0
     devDependencies:
       vitepress:
         specifier: 2.0.0-alpha.12
@@ -1393,8 +1393,8 @@ packages:
     resolution: {integrity: sha512-xi6IyHML+c9+Q3W0S4fCQJOym42pyurFiJUHEcEyHS0CeKzia4yZDEsLlqOFykxOdHpNy0NmvVO31vcSqAxJCg==}
     engines: {node: '>= 12.0.0'}
 
-  livecodes@0.11.1:
-    resolution: {integrity: sha512-v+TF4pD4wVk+7jYV7WD+PGMxU/zWlATZ80Y7ze6gAgPCJMdWNwbz5Y16+BSbwmfPjFeyMTSGWSYuiCEwEBkSzw==}
+  livecodes@0.12.0:
+    resolution: {integrity: sha512-qDK12wLThvdfAoDLyCDSn7hQ6Ii7/BkG8YQOlYuM5LjxOSNkJvh9F2Lm6BOS0dNy2uBXRSvWm3XAph3QgBdlOw==}
 
   log-symbols@6.0.0:
     resolution: {integrity: sha512-i24m8rpwhmPIS4zscNzK6MSEhk0DUWa/8iYQWxhffV8jkI4Phvs3F+quL5xvS0gdQR0FyTCMMH33Y78dDTzzIw==}
@@ -2996,7 +2996,7 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.30.1
       lightningcss-win32-x64-msvc: 1.30.1
 
-  livecodes@0.11.1: {}
+  livecodes@0.12.0: {}
 
   log-symbols@6.0.0:
     dependencies:

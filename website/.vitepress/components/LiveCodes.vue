@@ -135,7 +135,7 @@ const config: Partial<Config> = {
 }
 
 const options: EmbedOptions = {
-	appUrl: hash ? `${playgroundUrl}${hash.replace('#', '?')}` : playgroundUrl,
+	appUrl: playgroundUrl + (hash || ''),
 	loading: 'eager',
 	config: hash ? undefined : config,
 }
