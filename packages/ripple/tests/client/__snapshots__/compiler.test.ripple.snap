@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`compiler success tests > compiles tracked values in effect with assignment expression 1`] = `"state.count = _$_.get(count);"`;
+
+exports[`compiler success tests > compiles tracked values in effect with update expressions 1`] = `
+"_$_.with_scope(__block, () => untrack(() => {
+			state.preIncrement = _$_.update_pre(count, __block);
+			state.postIncrement = _$_.update(count, __block);
+			state.preDecrement = _$_.update_pre(count, __block, -1);
+			state.postDecrement = _$_.update(count, __block, -1);
+		}));"
+`;
