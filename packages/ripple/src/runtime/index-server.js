@@ -10,8 +10,6 @@ export function effect() {
 	// NO-OP
 }
 
-export const TrackedArray = Array;
-
 var empty_get_set = { get: undefined, set: undefined };
 
 /**
@@ -43,4 +41,31 @@ export function track(v, get, set) {
 		f: TRACKED,
 		v,
 	};
+}
+
+export const TrackedObject = globalThis.Object;
+export const TrackedArray = globalThis.Array;
+export const TrackedDate = globalThis.Date;
+export const TrackedSet = globalThis.Set;
+export const TrackedMap = globalThis.Map;
+export const TrackedURL = globalThis.URL;
+export const TrackedURLSearchParams = globalThis.URLSearchParams;
+
+/**
+ * @param {string} query A media query string
+ * @param {boolean} [matches] Fallback value for the server
+ */
+export function MediaQuery(query, matches = false) {
+	if (!new.target) {
+		throw new TypeError('MediaQuery must be called with new');
+	}
+
+	return matches;
+}
+
+/**
+ * @param {any} _
+ */
+export function createSubscriber(_) {
+	return () => { /* NO-OP */ };
 }

@@ -26,19 +26,19 @@ export declare const TrackedArray: TrackedArrayConstructor;
 
 export declare class Context<T> {
 	constructor(initial_value: T);
-  get(): T;
-  set(value: T): void;
+	get(): T;
+	set(value: T): void;
 	#private;
 }
 
 export declare class TrackedSet<T> extends Set<T> {
-	isDisjointFrom(other: TrackedSet<T> | Set<T>): boolean;
-	isSubsetOf(other: TrackedSet<T> | Set<T>): boolean;
-	isSupersetOf(other: TrackedSet<T> | Set<T>): boolean;
-	difference(other: TrackedSet<T> | Set<T>): TrackedSet<T>;
-	intersection(other: TrackedSet<T> | Set<T>): TrackedSet<T>;
-	symmetricDifference(other: TrackedSet<T> | Set<T>): TrackedSet<T>;
-	union(other: TrackedSet<T> | Set<T>): TrackedSet<T>;
+	isDisjointFrom<U>(other: ReadonlySetLike<U> | TrackedSet<U>): boolean;
+	isSubsetOf<U>(other: ReadonlySetLike<U> | TrackedSet<U>): boolean;
+	isSupersetOf<U>(other: ReadonlySetLike<U> | TrackedSet<U>): boolean;
+	difference<U>(other: ReadonlySetLike<U> | TrackedSet<U>): TrackedSet<T>;
+	intersection<U>(other: ReadonlySetLike<U> | TrackedSet<U>): TrackedSet<T & U>;
+	symmetricDifference<U>(other: ReadonlySetLike<U> | TrackedSet<U>): TrackedSet<T | U>;
+	union<U>(other: ReadonlySetLike<U> | TrackedSet<U>): TrackedSet<T | U>;
 	toJSON(): T[];
 	#private;
 }
@@ -164,9 +164,39 @@ export interface TrackedObjectConstructor {
 
 export declare const TrackedObject: TrackedObjectConstructor;
 
-export class SvelteDate extends Date {
+export class TrackedDate extends Date {
 	constructor(...params: any[]);
 	#private;
 }
 
-export function Portal<V = HTMLElement>({ target, children: Component }: { target: V }): void;
+declare const REPLACE: unique symbol;
+
+export class TrackedURLSearchParams extends URLSearchParams {
+	[REPLACE](params: URLSearchParams): void;
+	#private;
+}
+
+export class TrackedURL extends URL {
+	get searchParams(): TrackedURLSearchParams;
+	#private;
+}
+
+export function createSubscriber(start: () => void | (() => void)): () => void;
+
+interface ReactiveValue<V> extends Tracked<V> {
+	new(fn: () => Tracked<V>, start: () => void | (() => void)): Tracked<V>;
+	/** @private */
+	_brand: void;
+}
+
+export interface MediaQuery extends Tracked<boolean> {
+	new(query: string, fallback?: boolean | undefined): Tracked<boolean>;
+	/** @private */
+	_brand: void;
+}
+
+export declare const MediaQuery: {
+	new(query: string, fallback?: boolean | undefined): Tracked<boolean>;
+};
+
+export function Portal<V = HTMLElement>({ target, children: Component }: { target: V, children?: Component }): void;
