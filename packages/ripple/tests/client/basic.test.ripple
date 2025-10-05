@@ -1843,5 +1843,21 @@ describe('basic client', () => {
 
 		expect(error).toBe(undefined);
 	});
-});
 
+	it('unwraps tracked values inside effect', () => {
+		let state = {};
+
+		component Basic() {
+			let count = track(0);
+
+			effect(() => {
+				state.count = @count;
+			})
+		}
+
+		render(Basic);
+		flushSync();
+
+		expect(state.count).toBe(0);
+	});
+});
