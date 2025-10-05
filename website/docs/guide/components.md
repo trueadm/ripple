@@ -128,3 +128,25 @@ See [Reactivity](/docs/guide/reactivity#Props-and-Attributes).
 // Equivalent to:
 <div onClick={onClick} className={className}>{"Content"}</div>
 ```
+
+## Portal Component
+
+The `Portal` component allows you to render (teleport) content anywhere in the DOM tree, breaking out of the normal component hierarchy. This is particularly useful for modals, tooltips, and notifications.
+
+```ripple
+import { Portal } from 'ripple';
+
+export component App() {
+	<div class="app">
+		<h1>{'My App'}</h1>
+
+		{/* This will render inside document.body, not inside the .app div */}
+		<Portal target={document.body}>
+			<div class="modal">
+				<h2>{'I am rendered in document.body!'}</h2>
+				<p>{'This content escapes the normal component tree.'}</p>
+			</div>
+		</Portal>
+	</div>
+}
+```
