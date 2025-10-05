@@ -1,4 +1,4 @@
-/** @import {Expression, FunctionExpression, Pattern} from 'estree' */
+/** @import {Expression, FunctionExpression, Pattern, Node, Program} from 'estree' */
 
 import { walk } from 'zimmerframe';
 import path from 'node:path';
@@ -1014,7 +1014,6 @@ const visitors = {
 			);
 		}
 
-
 		const left = object(argument);
 		const binding = context.state.scope.get(left.name);
 		const transformers = left && binding?.transform;
@@ -1073,6 +1072,52 @@ const visitors = {
 				),
 			),
 		);
+	},
+
+	SwitchStatement(node, context) {
+		if (!is_inside_component(context)) {
+			return context.next();
+		}
+		context.state.template.push('<!>');
+
+		const id = context.state.flush_node();
+		const statements = [];
+		const cases = [];
+
+		let i = 1;
+
+		for (const switch_case of node.cases) {
+			const consequent_scope =
+				context.state.scopes.get(switch_case.consequent) || context.state.scope;
+			const consequent_id = context.state.scope.generate('switch_case_' + (switch_case.test == null ? 'default' : i));
+			const consequent = b.block(
+				transform_body(switch_case.consequent, {
+					...context,
+					state: { ...context.state, scope: consequent_scope },
+				}),
+			);
+
+			statements.push(b.var(b.id(consequent_id), b.arrow([b.id('__anchor')], consequent)));
+
+			cases.push(
+				b.switch_case(switch_case.test ? context.visit(switch_case.test) : null, [
+					b.return(b.id(consequent_id)),
+				]),
+			);
+			i++;
+		}
+
+		statements.push(
+			b.stmt(
+				b.call(
+					'_$_.switch',
+					id,
+					b.thunk(b.block([b.switch(context.visit(node.discriminant), cases)])),
+				),
+			),
+		);
+
+		context.state.init.push(b.block(statements));
 	},
 
 	IfStatement(node, context) {
@@ -1483,6 +1528,7 @@ function transform_children(children, context) {
 				node.type === 'IfStatement' ||
 				node.type === 'TryStatement' ||
 				node.type === 'ForOfStatement' ||
+				node.type === 'SwitchStatement' ||
 				node.type === 'Html' ||
 				(node.type === 'Element' &&
 					(node.id.type !== 'Identifier' || !is_element_dom_element(node))),
@@ -1634,6 +1680,9 @@ function transform_children(children, context) {
 			} else if (node.type === 'TryStatement') {
 				node.is_controlled = is_controlled;
 				visit(node, { ...state, flush_node, namespace: state.namespace });
+			} else if (node.type === 'SwitchStatement') {
+				node.is_controlled = is_controlled;
+				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else {
 				debugger;
 			}
@@ -1715,7 +1764,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 		to_ts,
 	};
 
-	const program = /** @type {ESTree.Program} */ (
+	const program = /** @type {Program} */ (
 		walk(analysis.ast, { ...state, namespace: 'html' }, visitors)
 	);
 

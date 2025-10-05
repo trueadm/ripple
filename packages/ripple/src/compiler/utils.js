@@ -808,7 +808,7 @@ export function normalize_children(children, context) {
  * @param {TransformContext} context
  */
 function normalize_child(node, normalized, context) {
-	if (node.type === 'EmptyStatement') {
+	if (node.type === 'EmptyStatement' || node.type === 'BreakStatement') {
 		return;
 	} else if (
 		node.type === 'Element' &&

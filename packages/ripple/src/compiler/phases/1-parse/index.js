@@ -170,13 +170,14 @@ function RipplePlugin(config) {
 					// Look ahead to see if this is followed by a valid identifier character or opening paren
 					if (this.pos + 1 < this.input.length) {
 						const nextChar = this.input.charCodeAt(this.pos + 1);
-						
+
 						// Check if this is @( for unboxing expression syntax
-						if (nextChar === 40) { // ( character
+						if (nextChar === 40) {
+							// ( character
 							this.pos += 2; // skip '@('
 							return this.finishToken(tt.parenL, '@(');
 						}
-						
+
 						// Check if the next character can start an identifier
 						if (
 							(nextChar >= 65 && nextChar <= 90) || // A-Z
@@ -359,7 +360,7 @@ function RipplePlugin(config) {
 				if (this.type === tt.parenL && this.value === '@(') {
 					return this.parseTrackedExpression();
 				}
-				
+
 				// Check if this is a tuple literal starting with #[
 				if (this.type === tt.bracketL && this.value === '#[') {
 					return this.parseTrackedArrayExpression();
@@ -1317,6 +1318,19 @@ function RipplePlugin(config) {
 					if (expressionResult.node) {
 						return expressionResult.node;
 					}
+				}
+
+				if (this.type.label === 'jsxTagStart') {
+					this.next();
+					if (this.value === '/') {
+						this.unexpected();
+					}
+					const node = this.parseElement();
+					
+					if (!node) {
+						this.unexpected();
+					}
+					return node;
 				}
 
 				return super.parseStatement(context, topLevel, exports);

@@ -34,7 +34,8 @@ function mark_control_flow_has_template(path) {
 			node.type === 'ForInStatement' ||
 			node.type === 'ForOfStatement' ||
 			node.type === 'TryStatement' ||
-			node.type === 'IfStatement'
+			node.type === 'IfStatement' ||
+			node.type === 'SwitchStatement'
 		) {
 			node.metadata.has_template = true;
 		}
@@ -106,7 +107,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */(parent)) &&
+			is_reference(node, /** @type {Node} */ (parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -117,7 +118,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */(parent)) &&
+			is_reference(node, /** @type {Node} */ (parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -253,7 +254,12 @@ const visitors = {
 		// Track metadata for this component
 		const metadata = { await: false };
 
-		context.next({ ...context.state, elements, function_depth: context.state.function_depth + 1, metadata });
+		context.next({
+			...context.state,
+			elements,
+			function_depth: context.state.function_depth + 1,
+			metadata,
+		});
 
 		const css = node.css;
 
@@ -280,6 +286,41 @@ const visitors = {
 		}
 
 		context.next();
+	},
+
+	SwitchStatement(node, context) {
+		if (!is_inside_component(context)) {
+			return context.next();
+		}
+
+		context.visit(node.discriminant, context.state);
+
+		for (const switch_case of node.cases) {
+			// Validate that each cases ends in a break statement, except for the last case
+			const last = switch_case.consequent?.[switch_case.consequent.length - 1];
+
+			if (last.type !== 'BreakStatement' && node.cases.indexOf(switch_case) !== node.cases.length - 1) {
+				error(
+					'Template switch cases must end with a break statement (with the exception of the last case).',
+					context.state.analysis.module.filename,
+					switch_case,
+				);
+			}
+
+			node.metadata = {
+				has_template: false,
+			};
+
+			context.visit(switch_case, context.state);
+
+			if (!node.metadata.has_template) {
+				error(
+					'Component switch statements must contain a template in each of their cases. Move the switch statement into an effect if it does not render anything.',
+					context.state.analysis.module.filename,
+					node,
+				);
+			}
+		}
 	},
 
 	ForOfStatement(node, context) {

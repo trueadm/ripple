@@ -774,7 +774,38 @@ export function jsx_spread_attribute(argument) {
   };
 }
 
+
+/**
+ * @returns {ESTree.SwitchStatement}
+ */
+export function switch_builder(discriminant, cases) {
+  return {
+    type: 'SwitchStatement',
+    discriminant,
+    cases,
+  };
+}
+
+/**
+ * @returns {ESTree.SwitchCase}
+ */
+export function switch_case(test = null, consequent = []) {
+  return {
+    type: 'SwitchCase',
+    test,
+    consequent,
+  };
+}
+
 export const void0 = unary('void', literal(0));
+
+/**
+ * @returns {ESTree.BreakStatement}
+ */
+export const break_statement = {
+  type: 'BreakStatement',
+  label: null,
+};
 
 export {
   await_builder as await,
@@ -783,7 +814,9 @@ export {
   var_builder as var,
   true_instance as true,
   false_instance as false,
+  break_statement as break,
   for_builder as for,
+  switch_builder as switch,
   function_builder as function,
   return_builder as return,
   if_builder as if,
