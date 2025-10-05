@@ -241,7 +241,12 @@ export function run_block(block) {
 		active_dependency = null;
 		var res = block.fn();
 
-		if (typeof res === 'function') {
+		// Handle async functions that return a Promise
+		if (res && typeof res === 'object' && typeof res.then === 'function') {
+			res.catch(/** @param {any} error */(error) => {
+				handle_error(error, block);
+			});
+		} else if (typeof res === 'function') {
 			block.t = res;
 			/** @type {Block | null} */
 			let current = block;

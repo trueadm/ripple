@@ -17,7 +17,7 @@ import {
 
 /**
  * @param {Node} node
- * @param {(anchor: Node) => void} fn
+ * @param {(anchor: Node) => void | Promise<void>} fn
  * @param {((anchor: Node, error: any) => void) | null} catch_fn
  * @param {((anchor: Node) => void) | null} [pending_fn=null]
  * @returns {void}
@@ -38,15 +38,25 @@ export function try_block(node, fn, catch_fn, pending_fn = null) {
 	 * @returns {void}
 	 */
 	function move_block(block, fragment) {
-		var state = block.s;
-		var node = state.start;
-		var end = state.end;
+		// For blocks with DOM state (like HTML blocks), move their tracked DOM nodes
+		if (block.s !== null && block.s.start !== undefined) {
+			var state = block.s;
+			var node = state.start;
+			var end = state.end;
 
-		while (node !== null) {
-			var next = node === end ? null : next_sibling(node);
+			while (node !== null) {
+				var next = node === end ? null : next_sibling(node);
+				fragment.append(node);
+				node = next;
+			}
+			return;
+		}
 
-			fragment.append(node);
-			node = next;
+		// For branch blocks without explicit DOM state, move all child blocks
+		var child = block.first;
+		while (child !== null) {
+			move_block(child, fragment);
+			child = child.next;
 		}
 	}
 
@@ -71,10 +81,10 @@ export function try_block(node, fn, catch_fn, pending_fn = null) {
 					destroy_block(b);
 				}
 				/** @type {ChildNode} */ (anchor).before(
-					/** @type {DocumentFragment} */ (offscreen_fragment),
+					/** @type {DocumentFragment} */(offscreen_fragment),
 				);
 				offscreen_fragment = null;
-				resume_block(/** @type {Block} */ (suspended));
+				resume_block(/** @type {Block} */(suspended));
 				b = suspended;
 				suspended = null;
 			}
@@ -102,7 +112,17 @@ export function try_block(node, fn, catch_fn, pending_fn = null) {
 
 	create_try_block(() => {
 		b = branch(() => {
-			fn(anchor);
+			const result = fn(anchor);
+			// If fn returns a Promise (async function), we need to handle it
+			if (result && typeof result.then === 'function') {
+				result.catch((error) => {
+					if (state.c !== null) {
+						state.c(error);
+					} else {
+						throw error;
+					}
+				});
+			}
 		});
 	}, state);
 }

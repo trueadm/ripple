@@ -1221,8 +1221,14 @@ const visitors = {
 			state: { ...context.state, metadata },
 		});
 
-		if (metadata.pending) {
-			body = [b.stmt(b.call('_$_.async', b.thunk(b.block(body), true)))];
+		// If there's a pending block and the try block contains await, wrap with _$_.async
+		const has_async_wrapper = node.pending !== null && metadata.await;
+
+		if (has_async_wrapper) {
+			// Create an async arrow function that wraps the body
+			// The outer arrow (__anchor) => { ... } should NOT be async
+			// The inner thunk async () => { ...body } is the one that's async
+			body = [b.stmt(b.call('_$_.async', b.arrow([], b.block(body), true)))];
 		}
 
 		context.state.init.push(
@@ -1230,7 +1236,8 @@ const visitors = {
 				b.call(
 					'_$_.try',
 					id,
-					b.arrow([b.id('__anchor')], b.block(body)),
+					// Only make arrow async if there's no _$_.async wrapper (which is already async)
+					b.arrow([b.id('__anchor')], b.block(body), !has_async_wrapper && metadata.await),
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(

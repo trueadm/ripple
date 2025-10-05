@@ -1,5 +1,60 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`compiler success tests > compiles async component with try-pending-catch blocks 1`] = `
+"import * as _$_ from 'ripple/internal/client';
+
+var root = _$_.template(\`<!>\`, 1);
+var root_3 = _$_.template(\`<p>Loading.....</p>\`, 0);
+var root_2 = _$_.template(\`<p> </p>\`, 0);
+var root_1 = _$_.template(\`<pre> </pre>\`, 0);
+
+function HomePage(__anchor, __props, __block) {
+	_$_.push_component();
+
+	var fragment = root();
+	var node = _$_.child_frag(fragment);
+
+	_$_.try(
+		node,
+		(__anchor) => {
+			_$_.async(async () => {
+				var pre_1 = root_1();
+				var text = _$_.child(pre_1);
+				const res = (await _$_.maybe_tracked(_$_.with_scope(__block, async () => __props.rpc.add(3, 7).divide(4, 2).fetch(__props.router.signal))))();
+
+				if (_$_.aborted()) return;
+
+				{
+					_$_.render(() => {
+						_$_.set_text(text, _$_.with_scope(__block, () => JSON.stringify(res, null, 2)));
+					});
+				}
+
+				_$_.append(__anchor, pre_1);
+			});
+		},
+		(__anchor, e) => {
+			var p_1 = root_2();
+			var text_1 = _$_.child(p_1);
+
+			_$_.render(() => {
+				_$_.set_text(text_1, e.message);
+			});
+
+			_$_.append(__anchor, p_1);
+		},
+		(__anchor) => {
+			var p_2 = root_3();
+
+			_$_.append(__anchor, p_2);
+		}
+	);
+
+	_$_.append(__anchor, fragment);
+	_$_.pop_component();
+}"
+`;
+
 exports[`compiler success tests > compiles tracked values in effect with assignment expression 1`] = `"state.count = _$_.get(count);"`;
 
 exports[`compiler success tests > compiles tracked values in effect with update expressions 1`] = `

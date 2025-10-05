@@ -1889,4 +1889,229 @@ describe('basic client', () => {
 		expect(state.postDecrement).toBe(6);
 		expect(state.finalValue).toBe(5);
 	});
+
+	// Async try-catch tests
+
+	it('handles await directly in try block with pending fallback', async () => {
+		component Basic() {
+			let result = track('');
+
+			try {
+				const data = await new Promise(resolve => setTimeout(() => resolve('success'), 10));
+				@result = data;
+				<div class='result'>{@result}</div>
+			} pending {
+				<div class='pending'>{'Loading...'}</div>
+			} catch (e) {
+				<div class='error'>{e.message}</div>
+			}
+		}
+
+		render(Basic);
+
+		// Wait for microtasks to flush (for handle_await to execute)
+		await new Promise(resolve => queueMicrotask(resolve));
+		flushSync();
+
+		let pendingDiv = container.querySelector('.pending');
+		expect(pendingDiv).toBeTruthy();
+		expect(pendingDiv.textContent).toBe('Loading...');
+
+		// Wait for promise to resolve
+		await new Promise(resolve => setTimeout(resolve, 20));
+		flushSync();
+
+		const resultDiv = container.querySelector('.result');
+		expect(resultDiv.textContent).toBe('success');
+		expect(container.querySelector('.pending')).toBeFalsy();
+	});
+
+	it('handles await directly in try block with regular catch', async () => {
+		component Basic() {
+			let result = track('');
+
+			try {
+				const data = await new Promise(resolve => setTimeout(() => resolve('done'), 10));
+				@result = data;
+				<div class='result'>{@result}</div>
+			} catch (e) {
+				<div class='error'>{e.message}</div>
+			}
+		}
+
+		render(Basic);
+
+		await new Promise(resolve => setTimeout(resolve, 0));
+		flushSync();
+
+		await new Promise(resolve => setTimeout(resolve, 20));
+		flushSync();
+
+		const resultDiv = container.querySelector('.result');
+		expect(resultDiv.textContent).toBe('done');
+	});
+
+	it('handles await in child component used inside try with pending block', async () => {
+		component AsyncChild() {
+			const data = await new Promise(resolve => setTimeout(() => resolve('loaded'), 10));
+			<div class='child-data'>{data}</div>
+		}
+
+		component Basic() {
+			try {
+				<AsyncChild />
+			} pending {
+				<div class='pending'>{'Loading child...'}</div>
+			} catch (e) {
+				<div class='error'>{e.message}</div>
+			}
+		}
+
+		render(Basic);
+
+		await new Promise(resolve => setTimeout(resolve, 0));
+		flushSync();
+
+		const pendingDiv = container.querySelector('.pending');
+		expect(pendingDiv).toBeTruthy();
+
+		await new Promise(resolve => setTimeout(resolve, 20));
+		flushSync();
+
+		const childData = container.querySelector('.child-data');
+		expect(childData.textContent).toBe('loaded');
+		expect(container.querySelector('.pending')).toBeFalsy();
+	});
+
+	it('handles sync child component inside try with regular catch', async () => {
+		component Child({ message }) {
+			<div class='child'>{message}</div>
+		}
+
+		component Basic() {
+			let errorThrown = track(false);
+
+			try {
+				if (@errorThrown) {
+					throw new Error('test error');
+				}
+				<Child message={'rendered successfully'} />
+			} catch (e) {
+				<div class='error'>{e.message}</div>
+			}
+
+			<button onClick={() => @errorThrown = true}>{'Throw Error'}</button>
+		}
+
+		render(Basic);
+		flushSync();
+
+		const child = container.querySelector('.child');
+		expect(child).toBeTruthy();
+		expect(child.textContent).toBe('rendered successfully');
+
+		// Test that errors are caught
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		const errorDiv = container.querySelector('.error');
+		expect(errorDiv).toBeTruthy();
+		expect(errorDiv.textContent).toBe('test error');
+		expect(container.querySelector('.child')).toBeFalsy();
+	});
+
+	it('handles pending block without any await (should not add async wrapper)', async () => {
+		component Basic() {
+			let count = track(0);
+
+			try {
+				<div class='content'>
+					<button onClick={() => @count++}>{'Increment'}</button>
+					<div class='count'>{@count}</div>
+				</div>
+			} pending {
+				<div class='pending'>{'This should never show'}</div>
+			} catch (e) {
+				<div class='error'>{e.message}</div>
+			}
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const countDiv = container.querySelector('.count');
+
+		expect(countDiv.textContent).toBe('0');
+		expect(container.querySelector('.pending')).toBeFalsy();
+
+		button.click();
+		flushSync();
+
+		expect(countDiv.textContent).toBe('1');
+		expect(container.querySelector('.pending')).toBeFalsy();
+	});
+
+	it('handles error thrown after await in try block with pending', async () => {
+		component Basic() {
+			let errorMsg = track('');
+
+			try {
+				await new Promise(resolve => setTimeout(resolve, 10));
+				throw new Error('Async error occurred');
+				<div class='success'>{'Should not show'}</div>
+			} pending {
+				<div class='pending'>{'Loading...'}</div>
+			} catch (e) {
+				@errorMsg = e.message;
+				<div class='error'>{@errorMsg}</div>
+			}
+		}
+
+		render(Basic);
+
+		await new Promise(resolve => setTimeout(resolve, 0));
+		flushSync();
+
+		await new Promise(resolve => setTimeout(resolve, 20));
+		flushSync();
+
+		const errorDiv = container.querySelector('.error');
+		expect(errorDiv.textContent).toBe('Async error occurred');
+	});
+
+	it('handles multiple awaits in try block with reactive updates', async () => {
+		component Basic() {
+			let step = track(0);
+
+			try {
+				@step = 1;
+				await new Promise(resolve => setTimeout(resolve, 5));
+
+				@step = 2;
+				await new Promise(resolve => setTimeout(resolve, 5));
+
+				@step = 3;
+				<div class='result'>{'All steps completed: ' + @step}</div>
+			} pending {
+				<div class='pending'>{'Processing step ' + @step + '...'}</div>
+			} catch (e) {
+				<div class='error'>{'error'}</div>
+			}
+		}
+
+		render(Basic);
+
+		await new Promise(resolve => setTimeout(resolve, 0));
+		flushSync();
+
+		const pendingDiv = container.querySelector('.pending');
+		expect(pendingDiv).toBeTruthy();
+
+		await new Promise(resolve => setTimeout(resolve, 20));
+		flushSync();
+
+		const resultDiv = container.querySelector('.result');
+		expect(resultDiv.textContent).toBe('All steps completed: 3');
+	});
 });

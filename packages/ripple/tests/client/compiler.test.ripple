@@ -495,4 +495,25 @@ effect(() => {
 		const effectMatch = result.js.code.match(/effect\(\(\) => \{([\s\S]+?)\n\t\}\)\)/);
 		expect(effectMatch[1].trim()).toMatchSnapshot();
 	});
+
+	it('compiles async component with try-pending-catch blocks', () => {
+		const source = `component HomePage({router, rpc}) {
+try {
+  const res = await rpc.add(3,7).divide(4, 2).fetch(router.signal);
+      <pre>{JSON.stringify(res, null, 2)}</pre>
+    } pending {
+      <p>{'Loading.....'}</p>
+    } catch (e) {
+      <p>{e.message}</p>
+    }
+}`;
+		const result = compile(source, 'test.ripple', { mode: 'client' });
+
+		// Verify that the code compiles without errors
+		expect(result.js.code).toBeTruthy();
+		expect(result.js.code.length).toBeGreaterThan(0);
+
+		// Snapshot the entire compiled output for regression testing
+		expect(result.js.code).toMatchSnapshot();
+	});
 });
