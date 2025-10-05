@@ -1043,7 +1043,7 @@ export component App() {
 
 ## Testing
 
-We recommend using Ripple using Ripple's Vite plugin. We also recommend using Vitest for testing. When using Vitest, make sure to configure your `vitest.config.js` according by using this template config:
+We recommend using Ripple with Ripple's Vite plugin. We also recommend using Vitest for testing. When using Vitest, make sure to configure your `vitest.config.js` accordingly by using this template config:
 
 ```js
 import { configDefaults, defineConfig } from 'vitest/config';
