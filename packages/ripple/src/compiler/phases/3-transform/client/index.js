@@ -159,11 +159,12 @@ const visitors = {
 				}
 			} else {
 				const binding = context.state.scope.get(node.name);
-				const isRightSideOfAssignment = parent.type === 'AssignmentExpression' && parent.right === node;
+				const is_right_side_of_assignment =
+					parent.type === 'AssignmentExpression' && parent.right === node;
 				if (
 					(context.state.metadata?.tracking === false ||
 						(parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression') ||
-						isRightSideOfAssignment) &&
+						is_right_side_of_assignment) &&
 					(node.tracked ||
 						binding?.kind === 'prop' ||
 						binding?.kind === 'index' ||
@@ -469,9 +470,10 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${is_boolean_attribute(name) && value === true
-					? ''
-					: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${
+					is_boolean_attribute(name) && value === true
+						? ''
+						: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -943,10 +945,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Pattern} */(context.visit(left)),
-							/** @type {Expression} */(context.visit(right)),
-					),
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */ (context.visit(left)),
+							/** @type {Expression} */ (context.visit(right)),
+						),
 				b.id('__block'),
 			);
 		}
@@ -962,12 +964,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Pattern} */(
-							context.visit(left, { ...context.state, metadata: { tracking: false } })
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */ (
+								context.visit(left, { ...context.state, metadata: { tracking: false } })
+							),
+							/** @type {Expression} */ (context.visit(right)),
 						),
-							/** @type {Expression} */(context.visit(right)),
-					),
 				b.id('__block'),
 			);
 		}
@@ -1090,7 +1092,9 @@ const visitors = {
 		for (const switch_case of node.cases) {
 			const consequent_scope =
 				context.state.scopes.get(switch_case.consequent) || context.state.scope;
-			const consequent_id = context.state.scope.generate('switch_case_' + (switch_case.test == null ? 'default' : i));
+			const consequent_id = context.state.scope.generate(
+				'switch_case_' + (switch_case.test == null ? 'default' : i),
+			);
 			const consequent = b.block(
 				transform_body(switch_case.consequent, {
 					...context,
@@ -1172,12 +1176,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-										b.call(
-											b.id('__render'),
-											b.id(alternate_id),
-											node.alternate ? b.literal(false) : undefined,
-										),
-									)
+											b.call(
+												b.id('__render'),
+												b.id(alternate_id),
+												node.alternate ? b.literal(false) : undefined,
+											),
+										)
 									: undefined,
 							),
 						]),
@@ -1230,9 +1234,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-							b.block(transform_body(node.handler.body.body, context)),
-						),
+								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+								b.block(transform_body(node.handler.body.body, context)),
+							),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1309,7 +1313,7 @@ function join_template(items) {
 				push(e);
 			}
 
-			const last = /** @type {TemplateElement} */ (expression.quasis.at(-1));
+			const last = /** @type {any} */ (expression.quasis.at(-1));
 			quasi.value.cooked += /** @type {string} */ (last.value.cooked);
 		} else if (expression.type === 'Literal') {
 			/** @type {string} */ (quasi.value.cooked) += expression.value;
@@ -1328,7 +1332,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
 	}
 
 	quasi.tail = true;
@@ -1458,6 +1462,23 @@ function transform_ts_child(node, context) {
 		}
 
 		state.init.push(b.if(visit(node.test), consequent, alternate));
+	} else if (node.type === 'SwitchStatement') {
+		const cases = [];
+
+		for (const switch_case of node.cases) {
+			const consequent_scope =
+				context.state.scopes.get(switch_case.consequent) || context.state.scope;
+			const consequent_body = transform_body(switch_case.consequent, {
+				...context,
+				state: { ...context.state, scope: consequent_scope },
+			});
+
+			cases.push(
+				b.switch_case(switch_case.test ? context.visit(switch_case.test) : null, consequent_body),
+			);
+		}
+
+		context.state.init.push(b.switch(context.visit(node.discriminant), cases));
 	} else if (node.type === 'ForOfStatement') {
 		const body_scope = context.state.scopes.get(node.body);
 		const block_body = transform_body(node.body.body, {
@@ -1510,6 +1531,8 @@ function transform_ts_child(node, context) {
 		const component = visit(node, state);
 
 		state.init.push(component);
+	} else if (node.type === 'BreakStatement') {
+		state.init.push(b.break);
 	} else {
 		debugger;
 		throw new Error('TODO');
@@ -1684,6 +1707,8 @@ function transform_children(children, context) {
 			} else if (node.type === 'SwitchStatement') {
 				node.is_controlled = is_controlled;
 				visit(node, { ...state, flush_node, namespace: state.namespace });
+			} else if (node.type === 'BreakStatement') {
+				// do nothing
 			} else {
 				debugger;
 			}
@@ -1766,7 +1791,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 	};
 
 	const program = /** @type {Program} */ (
-		walk(analysis.ast, { ...state, namespace: 'html' }, visitors)
+		walk(/** @type {Node} */ (analysis.ast), { ...state, namespace: 'html' }, visitors)
 	);
 
 	for (const hoisted of state.hoisted) {
