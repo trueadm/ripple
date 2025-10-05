@@ -412,7 +412,7 @@ function is_tracking_dirty(tracking) {
 		var tracked = tracking.t;
 
 		if ((tracked.f & DERIVED) !== 0) {
-			update_derived(/** @type {Derived} **/(tracked));
+			update_derived(/** @type {Derived} **/ (tracked));
 		}
 
 		if (tracked.c > tracking.c) {
@@ -472,7 +472,7 @@ export function async_computed(fn, block) {
 		}
 
 		promise.then((v) => {
-			if (parent && is_destroyed(/** @type {Block} */(parent))) {
+			if (parent && is_destroyed(/** @type {Block} */ (parent))) {
 				return;
 			}
 			if (promise === current && t.v !== v) {
@@ -746,7 +746,7 @@ export function get(tracked) {
 	}
 
 	return (tracked.f & DERIVED) !== 0
-		? get_derived(/** @type {Derived} */(tracked))
+		? get_derived(/** @type {Derived} */ (tracked))
 		: get_tracked(tracked);
 }
 
@@ -775,7 +775,9 @@ export function get_tracked(tracked) {
  */
 export function set(tracked, value, block) {
 	if (!is_mutating_allowed) {
-		throw new Error('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+		throw new Error(
+			'Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation',
+		);
 	}
 
 	var old_value = tracked.v;
@@ -1152,7 +1154,7 @@ export async function maybe_tracked(v) {
 		} else {
 			value = await async_computed(async () => {
 				return await get_tracked(v);
-			}, /** @type {Block} */(active_block));
+			}, /** @type {Block} */ (active_block));
 		}
 	} else {
 		value = await v;

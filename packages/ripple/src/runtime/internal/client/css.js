@@ -1,7 +1,7 @@
 import { DEV } from 'esm-env';
 
 export function remove_ssr_css() {
-	if (!document || typeof requestAnimationFrame !== "function") {
+	if (!document || typeof requestAnimationFrame !== 'function') {
 		return;
 	}
 
@@ -22,7 +22,7 @@ function remove_styles() {
 }
 
 function remove() {
-	document.querySelectorAll("style[data-ripple-ssr]").forEach((el) => el.remove());
+	document.querySelectorAll('style[data-ripple-ssr]').forEach((el) => el.remove());
 }
 
 /**

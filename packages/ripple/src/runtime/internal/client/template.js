@@ -1,10 +1,10 @@
 /** @import { Block } from '#client' */
 
 import {
-  TEMPLATE_FRAGMENT,
-  TEMPLATE_USE_IMPORT_NODE,
-  TEMPLATE_SVG_NAMESPACE,
-  TEMPLATE_MATHML_NAMESPACE,
+	TEMPLATE_FRAGMENT,
+	TEMPLATE_USE_IMPORT_NODE,
+	TEMPLATE_SVG_NAMESPACE,
+	TEMPLATE_MATHML_NAMESPACE,
 } from '../../../constants.js';
 import { first_child, is_firefox } from './operations.js';
 import { active_block } from './runtime.js';
@@ -15,17 +15,17 @@ import { active_block } from './runtime.js';
  * @param {Node} end - The end node.
  */
 export function assign_nodes(start, end) {
-  var block = /** @type {Block} */ (active_block);
-  var s = block.s;
-  if (s === null) {
-    block.s = {
-      start,
-      end,
-    };
-  } else if (s.start === null) {
-    s.start = start;
-    s.end = end;
-  }
+	var block = /** @type {Block} */ (active_block);
+	var s = block.s;
+	if (s === null) {
+		block.s = {
+			start,
+			end,
+		};
+	} else if (s.start === null) {
+		s.start = start;
+		s.end = end;
+	}
 }
 
 /**
@@ -35,16 +35,20 @@ export function assign_nodes(start, end) {
  * @param {boolean} use_mathml_namespace - Whether to use MathML namespace.
  * @returns {DocumentFragment}
  */
-export function create_fragment_from_html(html, use_svg_namespace = false, use_mathml_namespace = false) {
-  if (use_svg_namespace) {
-    return from_namespace(html, 'svg');
-  }
-  if (use_mathml_namespace) {
-    return from_namespace(html, 'math');
-  }
-  var elem = document.createElement('template');
-  elem.innerHTML = html;
-  return elem.content;
+export function create_fragment_from_html(
+	html,
+	use_svg_namespace = false,
+	use_mathml_namespace = false,
+) {
+	if (use_svg_namespace) {
+		return from_namespace(html, 'svg');
+	}
+	if (use_mathml_namespace) {
+		return from_namespace(html, 'math');
+	}
+	var elem = document.createElement('template');
+	elem.innerHTML = html;
+	return elem.content;
 }
 
 /**
@@ -54,38 +58,40 @@ export function create_fragment_from_html(html, use_svg_namespace = false, use_m
  * @returns {() => Node}
  */
 export function template(content, flags) {
-  var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
-  var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
-  var use_svg_namespace = (flags & TEMPLATE_SVG_NAMESPACE) !== 0;
-  var use_mathml_namespace = (flags & TEMPLATE_MATHML_NAMESPACE) !== 0;
-  /** @type {Node | DocumentFragment | undefined} */
-  var node;
-  var has_start = !content.startsWith('<!>');
+	var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
+	var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
+	var use_svg_namespace = (flags & TEMPLATE_SVG_NAMESPACE) !== 0;
+	var use_mathml_namespace = (flags & TEMPLATE_MATHML_NAMESPACE) !== 0;
+	/** @type {Node | DocumentFragment | undefined} */
+	var node;
+	var has_start = !content.startsWith('<!>');
 
-  return () => {
-    if (node === undefined) {
-      node = create_fragment_from_html(
-        has_start ? content : '<!>' + content,
-        use_svg_namespace,
-        use_mathml_namespace,
-      );
-      if (!is_fragment) node = /** @type {Node} */ (first_child(node));
-    }
+	return () => {
+		if (node === undefined) {
+			node = create_fragment_from_html(
+				has_start ? content : '<!>' + content,
+				use_svg_namespace,
+				use_mathml_namespace,
+			);
+			if (!is_fragment) node = /** @type {Node} */ (first_child(node));
+		}
 
-    var clone =
-      use_import_node || is_firefox ? document.importNode(/** @type {Node} */ (node), true) : /** @type {Node} */ (node).cloneNode(true);
+		var clone =
+			use_import_node || is_firefox
+				? document.importNode(/** @type {Node} */ (node), true)
+				: /** @type {Node} */ (node).cloneNode(true);
 
-    if (is_fragment) {
-      var start = first_child(clone);
-      var end = clone.lastChild;
+		if (is_fragment) {
+			var start = first_child(clone);
+			var end = clone.lastChild;
 
-      assign_nodes(/** @type {Node} */ (start), /** @type {Node} */ (end));
-    } else {
-      assign_nodes(clone, clone);
-    }
+			assign_nodes(/** @type {Node} */ (start), /** @type {Node} */ (end));
+		} else {
+			assign_nodes(clone, clone);
+		}
 
-    return clone;
-  };
+		return clone;
+	};
 }
 
 /**
@@ -94,7 +100,7 @@ export function template(content, flags) {
  * @param {Node} dom - The DOM node to append.
  */
 export function append(anchor, dom) {
-  anchor.before(/** @type {Node} */ (dom));
+	anchor.before(/** @type {Node} */ (dom));
 }
 
 /**
@@ -104,18 +110,18 @@ export function append(anchor, dom) {
  * @returns {DocumentFragment}
  */
 function from_namespace(content, ns = 'svg') {
-  var wrapped = `<${ns}>${content}</${ns}>`;
+	var wrapped = `<${ns}>${content}</${ns}>`;
 
-  var elem = document.createElement('template');
-  elem.innerHTML = wrapped;
-  var fragment = elem.content;
+	var elem = document.createElement('template');
+	elem.innerHTML = wrapped;
+	var fragment = elem.content;
 
-  var root = /** @type {Element} */ (first_child(fragment));
-  var result = document.createDocumentFragment();
+	var root = /** @type {Element} */ (first_child(fragment));
+	var result = document.createDocumentFragment();
 
-  while (first_child(root)) {
-    result.appendChild(/** @type {Node} */ (first_child(root)));
-  }
+	while (first_child(root)) {
+		result.appendChild(/** @type {Node} */ (first_child(root)));
+	}
 
-  return result;
+	return result;
 }

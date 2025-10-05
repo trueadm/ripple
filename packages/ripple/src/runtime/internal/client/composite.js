@@ -18,10 +18,10 @@ export function composite(get_component, node, props) {
 	render(() => {
 		var component = get_component();
 
-    if (b !== null) {
-      destroy_block(b);
-      b = null;
-    }
+		if (b !== null) {
+			destroy_block(b);
+			b = null;
+		}
 
 		b = branch(() => {
 			var block = active_block;

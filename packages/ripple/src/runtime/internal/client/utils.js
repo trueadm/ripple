@@ -30,9 +30,9 @@ export var array_prototype = Array.prototype;
  * @returns {Text}
  */
 export function create_anchor() {
-  var t = document.createTextNode('');
-  /** @type {any} */ (t).__t = '';
-  return t;
+	var t = document.createTextNode('');
+	/** @type {any} */ (t).__t = '';
+	return t;
 }
 
 /**
@@ -40,7 +40,7 @@ export function create_anchor() {
  * @returns {boolean}
  */
 export function is_positive_integer(value) {
-  return Number.isInteger(value) && /**@type {number} */ (value) >= 0;
+	return Number.isInteger(value) && /**@type {number} */ (value) >= 0;
 }
 
 /**
@@ -49,5 +49,5 @@ export function is_positive_integer(value) {
  * @returns {boolean}
  */
 export function is_tracked_object(v) {
-  return typeof v === 'object' && v !== null && typeof /** @type {any} */ (v).f === 'number';
+	return typeof v === 'object' && v !== null && typeof (/** @type {any} */ (v).f) === 'number';
 }

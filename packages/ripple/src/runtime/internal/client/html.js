@@ -26,7 +26,7 @@ export function html(node, get_html, svg = false, mathml = false) {
 		else if (mathml) html = `<math>${html}</math>`;
 
 		if (block.s !== null && block.s.start !== null) {
-			remove_block_dom(block.s.start, /** @type {Node} */(block.s.end));
+			remove_block_dom(block.s.start, /** @type {Node} */ (block.s.end));
 			block.s.start = block.s.end = null;
 		}
 
@@ -35,14 +35,17 @@ export function html(node, get_html, svg = false, mathml = false) {
 		var node = create_fragment_from_html(html);
 
 		if (svg || mathml) {
-			node = /** @type {Element} */(first_child(node));
+			node = /** @type {Element} */ (first_child(node));
 		}
 
-		assign_nodes(/** @type {Element} */(first_child(node)), /** @type {Element} */(node.lastChild));
+		assign_nodes(
+			/** @type {Element} */ (first_child(node)),
+			/** @type {Element} */ (node.lastChild),
+		);
 
 		if (svg || mathml) {
 			while (first_child(node)) {
-				anchor.before(/** @type {Element} */(first_child(node)));
+				anchor.before(/** @type {Element} */ (first_child(node)));
 			}
 		} else {
 			anchor.before(node);
