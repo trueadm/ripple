@@ -128,8 +128,6 @@ export function apply_styles(element, newStyles) {
  * @returns {void}
  */
 export function set_attributes(element, attributes) {
-	// Fast path: Use for...in for regular objects (99% of cases)
-	// Avoids expensive Reflect.ownKeys calls for normal elements
 	let foundEnumerableKeys = false;
 
 	for (const key in attributes) {
