@@ -1861,7 +1861,7 @@ describe('basic client', () => {
 		expect(state.count).toBe(0);
 	});
 
-	it('unwraps tracked values with update expressions inside effect', () => {
+	it('does not unwrap values with update expressions inside effect', () => {
 		let state = {};
 
 		component Basic() {
