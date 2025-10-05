@@ -42,7 +42,7 @@ const themeColor =
 		.getPropertyValue('--vp-c-brand-3') || '#2d6dbf'
 let playground: Playground | undefined
 const playgroundActions = useTemplateRef('playground-actions')
-const title = ref('')
+const title = ref(props.code ? undefined : 'Counter')
 const tailwind = ref(false)
 const vim = ref(getUserSettings().vim ?? false)
 const ai = ref(getUserSettings().ai !== false)
@@ -111,7 +111,7 @@ const getStyle = () => ({
 })
 
 const config: Partial<Config> = {
-	title: props.code ? undefined : 'Counter',
+	title: title.value,
 	customSettings: { ripple: { version: version.value } },
 	view: props.view ?? 'split',
 	mode: props.mode ?? 'full',
@@ -163,7 +163,12 @@ const onReady = (sdk: Playground) => {
 
 	// sync the UI with config from  shared URL
 	playground.getConfig().then((config) => {
-		if (config.title?.trim() && config.title !== 'Untitled Project') {
+		console.log(config.title, title.value)
+		if (
+			config.title?.trim() &&
+			config.title !== 'Untitled Project' &&
+			config.title !== title.value
+		) {
 			title.value = config.title
 		}
 
