@@ -1019,6 +1019,28 @@ component Parent() {
 }
 ```
 
+### Portal
+
+The `Portal` component allows you to render content anywhere in the DOM tree, breaking out of the normal component hierarchy. This is particularly useful for modals, tooltips, and notifications.
+
+```jsx
+import { Portal } from 'ripple';
+
+export component App() {
+  <div class="app">
+    <h1>{'My App'}</h1>
+
+    {/* This will render inside document.body, not inside the .app div */}
+    <Portal target={document.body}>
+      <div class="modal">
+        <h2>{'I am rendered in document.body!'}</h2>
+        <p>{'This content escapes the normal component tree.'}</p>
+      </div>
+    </Portal>
+  </div>
+}
+```
+
 ## Testing
 
 We recommend using Ripple using Ripple's Vite plugin. We also recommend using Vitest for testing. When using Vitest, make sure to configure your `vitest.config.js` according by using this template config:
