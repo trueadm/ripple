@@ -462,4 +462,37 @@ describe('compiler success tests', () => {
 			expect(splitResult.textContent).toBe('Split result: Paragraph, Content');
 		});
 	});
+
+	it('compiles tracked values in effect with assignment expression', () => {
+		const source = `component App() {
+let count = track(0);
+
+effect(() => {
+	state.count = @count;
+})
+}`;
+		const result = compile(source, 'test.ripple');
+		// Extract just the effect callback body
+		const effectMatch = result.js.code.match(/effect\(\(\) => \{([^}]+)\}\)/s);
+		expect(effectMatch[1].trim()).toMatchSnapshot();
+	});
+
+	it('compiles tracked values in effect with update expressions', () => {
+		const source = `component App() {
+let count = track(5);
+
+effect(() => {
+	untrack(() => {
+		state.preIncrement = ++@count;
+		state.postIncrement = @count++;
+		state.preDecrement = --@count;
+		state.postDecrement = @count--;
+	});
+})
+}`;
+		const result = compile(source, 'test.ripple');
+		// Extract just the effect callback body
+		const effectMatch = result.js.code.match(/effect\(\(\) => \{([\s\S]+?)\n\t\}\)\)/);
+		expect(effectMatch[1].trim()).toMatchSnapshot();
+	});
 });

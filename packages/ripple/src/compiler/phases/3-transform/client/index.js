@@ -72,7 +72,7 @@ function visit_function(node, context) {
 	let body = context.visit(node.body, {
 		...state,
 		// we are new context so tracking no longer applies
-		metadata: { ...state.metadata, tracked: false },
+		metadata: { ...state.metadata, tracking: false },
 	});
 
 	if (metadata?.tracked === true) {
@@ -159,9 +159,11 @@ const visitors = {
 				}
 			} else {
 				const binding = context.state.scope.get(node.name);
+				const isRightSideOfAssignment = parent.type === 'AssignmentExpression' && parent.right === node;
 				if (
 					(context.state.metadata?.tracking === false ||
-						(parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression')) &&
+						(parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression') ||
+						isRightSideOfAssignment) &&
 					(node.tracked ||
 						binding?.kind === 'prop' ||
 						binding?.kind === 'index' ||
@@ -175,10 +177,10 @@ const visitors = {
 						add_ripple_internal_import(context);
 						return b.call('_$_.get', build_getter(node, context));
 					}
-				}
 
-				add_ripple_internal_import(context);
-				return build_getter(node, context);
+					add_ripple_internal_import(context);
+					return build_getter(node, context);
+				}
 			}
 		}
 	},
@@ -467,10 +469,9 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${
-					is_boolean_attribute(name) && value === true
-						? ''
-						: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${is_boolean_attribute(name) && value === true
+					? ''
+					: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -942,10 +943,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Pattern} */ (context.visit(left)),
-							/** @type {Expression} */ (context.visit(right)),
-						),
+						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Pattern} */(context.visit(left)),
+							/** @type {Expression} */(context.visit(right)),
+					),
 				b.id('__block'),
 			);
 		}
@@ -961,12 +962,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Pattern} */ (
-								context.visit(left, { ...context.state, metadata: { tracking: false } })
-							),
-							/** @type {Expression} */ (context.visit(right)),
+						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Pattern} */(
+							context.visit(left, { ...context.state, metadata: { tracking: false } })
 						),
+							/** @type {Expression} */(context.visit(right)),
+					),
 				b.id('__block'),
 			);
 		}
@@ -1171,12 +1172,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-											b.call(
-												b.id('__render'),
-												b.id(alternate_id),
-												node.alternate ? b.literal(false) : undefined,
-											),
-										)
+										b.call(
+											b.id('__render'),
+											b.id(alternate_id),
+											node.alternate ? b.literal(false) : undefined,
+										),
+									)
 									: undefined,
 							),
 						]),
@@ -1229,9 +1230,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-								b.block(transform_body(node.handler.body.body, context)),
-							),
+							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+							b.block(transform_body(node.handler.body.body, context)),
+						),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1327,7 +1328,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
 	}
 
 	quasi.tail = true;
