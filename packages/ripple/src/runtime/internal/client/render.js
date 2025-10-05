@@ -130,11 +130,11 @@ export function apply_styles(element, newStyles) {
 export function set_attributes(element, attributes) {
 	// Fast path: Use for...in for regular objects (99% of cases)
 	// Avoids expensive Reflect.ownKeys calls for normal elements
-	let hasAttributes = false;
+	let foundEnumerableKeys = false;
 
 	for (const key in attributes) {
 		if (key === 'children') continue;
-		hasAttributes = true;
+		foundEnumerableKeys = true;
 
 		let value = attributes[key];
 		if (is_tracked_object(value)) {
@@ -143,9 +143,9 @@ export function set_attributes(element, attributes) {
 		_set_attribute_helper(element, key, value);
 	}
 
-	// Slow path: Only if no regular keys found but we might have a Proxy
+	// Only if no enumerable keys but attributes object exists
 	// This handles spread_props Proxy objects from dynamic elements with {...spread}
-	if (!hasAttributes && attributes) {
+	if (!foundEnumerableKeys && attributes) {
 		const allKeys = Reflect.ownKeys(attributes);
 		for (const key of allKeys) {
 			if (key === 'children') continue;
