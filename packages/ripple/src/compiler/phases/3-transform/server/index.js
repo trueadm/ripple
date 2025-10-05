@@ -96,12 +96,7 @@ const visitors = {
 			context.state.stylesheets.push(node.css);
 			// Register CSS hash during rendering
 			body_statements.unshift(
-				b.stmt(
-					b.call(
-						b.member(b.id('__output'), b.id('register_css')),
-						b.literal(node.css.hash),
-					),
-				),
+				b.stmt(b.call(b.member(b.id('__output'), b.id('register_css')), b.literal(node.css.hash))),
 			);
 		}
 
@@ -195,10 +190,11 @@ const visitors = {
 			let class_attribute = null;
 
 			const handle_static_attr = (name, value) => {
-				const attr_str = ` ${name}${is_boolean_attribute(name) && value === true
-					? ''
-					: `="${value === true ? '' : escape_html(value, true)}"`
-					}`;
+				const attr_str = ` ${name}${
+					is_boolean_attribute(name) && value === true
+						? ''
+						: `="${value === true ? '' : escape_html(value, true)}"`
+				}`;
 
 				if (is_spreading) {
 					// For spread attributes, store just the actual value, not the full attribute string
@@ -387,12 +383,13 @@ const visitors = {
 				const conditional_await = b.conditional(
 					b.member(visit(node.id, state), b.id('async')),
 					b.await(component_call),
-					component_call
+					component_call,
 				);
 				state.init.push(b.stmt(conditional_await));
 			}
 		}
-	}, ForOfStatement(node, context) {
+	},
+	ForOfStatement(node, context) {
 		if (!is_inside_component(context)) {
 			context.next();
 			return;
@@ -483,22 +480,26 @@ const visitors = {
 
 			// For SSR with pending block: render the resolved content wrapped in async
 			// In a streaming SSR implementation, we'd render pending first, then stream resolved
-			const try_statements = node.handler !== null
-				? [
-					b.try(
-						b.block(body),
-						b.catch_clause(
-							node.handler.param || b.id('error'),
-							b.block(
-								transform_body(node.handler.body.body, {
-									...context,
-									state: { ...context.state, scope: context.state.scopes.get(node.handler.body) },
-								}),
+			const try_statements =
+				node.handler !== null
+					? [
+							b.try(
+								b.block(body),
+								b.catch_clause(
+									node.handler.param || b.id('error'),
+									b.block(
+										transform_body(node.handler.body.body, {
+											...context,
+											state: {
+												...context.state,
+												scope: context.state.scopes.get(node.handler.body),
+											},
+										}),
+									),
+								),
 							),
-						),
-					),
-				]
-				: body;
+						]
+					: body;
 
 			context.state.init.push(
 				b.stmt(b.await(b.call('_$_.async', b.thunk(b.block(try_statements), true)))),
@@ -514,10 +515,7 @@ const visitors = {
 				context.state.init.push(
 					b.try(
 						b.block(body),
-						b.catch_clause(
-							node.handler.param || b.id('error'),
-							b.block(handler_body),
-						),
+						b.catch_clause(node.handler.param || b.id('error'), b.block(handler_body)),
 					),
 				);
 			} else {
@@ -599,6 +597,10 @@ const visitors = {
 			state.init.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), expression)));
 		}
 	},
+
+	ServerBlock(node, context) {
+		return context.visit(node.body);
+	},
 };
 
 export function transform_server(filename, source, analysis) {
@@ -637,9 +639,7 @@ export function transform_server(filename, source, analysis) {
 	for (const metadata of state.component_metadata) {
 		if (metadata.async) {
 			program.body.push(
-				b.stmt(
-					b.assignment('=', b.member(b.id(metadata.id), b.id('async')), b.true),
-				),
+				b.stmt(b.assignment('=', b.member(b.id(metadata.id), b.id('async')), b.true)),
 			);
 		}
 	}

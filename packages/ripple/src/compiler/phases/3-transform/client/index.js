@@ -1282,6 +1282,10 @@ const visitors = {
 		return b.block(statements);
 	},
 
+	ServerBlock() {
+		return b.empty;
+	},
+
 	Program(node, context) {
 		const statements = [];
 

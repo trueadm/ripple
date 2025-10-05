@@ -824,6 +824,34 @@ function normalize_child(node, normalized, context) {
 }
 
 /**
+ * @param {TransformContext} context
+ */
+export function get_parent_block_node(context) {
+	const path = context.path;
+	
+	for (let i = path.length - 1; i >= 0; i -= 1) {
+		const context_node = path[i];
+		if (
+			context_node.type === 'IfStatement' ||
+			context_node.type === 'ForOfStatement' ||
+			context_node.type === 'SwitchStatement' ||
+			context_node.type === 'TryStatement' ||
+			context_node.type === 'Component'
+		) {
+			return context_node;
+		}
+		if (
+			context_node.type === 'FunctionExpression' ||
+			context_node.type === 'ArrowFunctionExpression' ||
+			context_node.type === 'FunctionDeclaration'
+		) {
+			return null;
+		}
+	}
+	return null;
+}
+
+/**
  * Builds a getter for a tracked identifier
  * @param {Identifier} node
  * @param {TransformContext} context

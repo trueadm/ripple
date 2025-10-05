@@ -3,6 +3,7 @@ import { walk } from 'zimmerframe';
 import { create_scopes, ScopeRoot } from '../../scope.js';
 import {
 	get_delegated_event,
+	get_parent_block_node,
 	is_element_dom_element,
 	is_inside_component,
 	is_ripple_track_call,
@@ -299,7 +300,10 @@ const visitors = {
 			// Validate that each cases ends in a break statement, except for the last case
 			const last = switch_case.consequent?.[switch_case.consequent.length - 1];
 
-			if (last.type !== 'BreakStatement' && node.cases.indexOf(switch_case) !== node.cases.length - 1) {
+			if (
+				last.type !== 'BreakStatement' &&
+				node.cases.indexOf(switch_case) !== node.cases.length - 1
+			) {
 				error(
 					'Template switch cases must end with a break statement (with the exception of the last case).',
 					context.state.analysis.module.filename,
@@ -633,6 +637,15 @@ const visitors = {
 			if (context.state.metadata?.await === false) {
 				context.state.metadata.await = true;
 			}
+		}
+		const parent_block = get_parent_block_node(context);
+
+		if (parent_block !== null && parent_block.type !== 'Component') {
+			error(
+				'`await` expressions can only currently be used at the top-level of a component body. Support for using them in control flow statements will be added in the future.',
+				context.state.analysis.module.filename,
+				node,
+			);
 		}
 
 		context.next();

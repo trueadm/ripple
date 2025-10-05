@@ -147,7 +147,7 @@ function RipplePlugin(config) {
 
 				if (code === 35) {
 					// # character
-					// Look ahead to see if this is followed by [ for tuple syntax
+					// Look ahead to see if this is followed by [ for tuple syntax or 'server' keyword
 					if (this.pos + 1 < this.input.length) {
 						const nextChar = this.input.charCodeAt(this.pos + 1);
 						if (nextChar === 91 || nextChar === 123) {
@@ -162,9 +162,27 @@ function RipplePlugin(config) {
 								return this.finishToken(tt.bracketL, '#[');
 							}
 						}
+
+						// Check if this is #server
+						if (this.input.slice(this.pos, this.pos + 7) === '#server') {
+							// Check that next char after 'server' is whitespace or {
+							const charAfter =
+								this.pos + 7 < this.input.length ? this.input.charCodeAt(this.pos + 7) : -1;
+							if (
+								charAfter === 123 ||
+								charAfter === 32 ||
+								charAfter === 9 ||
+								charAfter === 10 ||
+								charAfter === 13 ||
+								charAfter === -1
+							) {
+								// { or whitespace or EOF
+								this.pos += 7; // consume '#server'
+								return this.finishToken(tt.name, '#server');
+							}
+						}
 					}
 				}
-
 				if (code === 64) {
 					// @ character
 					// Look ahead to see if this is followed by a valid identifier character or opening paren
@@ -396,6 +414,14 @@ function RipplePlugin(config) {
 					return;
 				}
 				return super.checkLValSimple(expr, bindingType, checkClashes);
+			}
+
+			parseServerBlock() {
+				const node = this.startNode();
+				this.next();
+				node.body = this.parseBlock();
+				this.awaitPos = 0;
+				return this.finishNode(node, 'ServerBlock');
 			}
 
 			parseTrackedArrayExpression() {
@@ -1250,6 +1276,10 @@ function RipplePlugin(config) {
 					return node;
 				}
 
+				if (this.value === '#server') {
+					return this.parseServerBlock();
+				}
+
 				if (this.value === 'component') {
 					const node = this.startNode();
 					node.type = 'Component';
@@ -1326,7 +1356,7 @@ function RipplePlugin(config) {
 						this.unexpected();
 					}
 					const node = this.parseElement();
-					
+
 					if (!node) {
 						this.unexpected();
 					}

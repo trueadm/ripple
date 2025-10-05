@@ -624,6 +624,12 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'ServerBlock': {
+			const blockContent = path.call(print, 'body');
+			nodeContent = concat(['#server ', blockContent]);
+			break;
+		}
+
 		case 'ReturnStatement': {
 			const parts = ['return'];
 			if (node.argument) {

@@ -284,9 +284,9 @@ export interface TransformContext {
 	/** Compiler state */
 	state: CompilerState;
 	/** AST path */
-	path?: RippleNode[];
+	path: RippleNode[];
 	/** Visit function */
-	visit?: (node: any, state?: any) => any;
+	visit: (node: any, state?: any) => any;
 	/** Transform metadata */
 	metadata?: any;
 }
