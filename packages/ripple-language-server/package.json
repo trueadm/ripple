@@ -1,0 +1,25 @@
+{
+  "name": "ripple-language-server",
+  "version": "0.0.1",
+  "description": "Language Server Protocol implementation for Ripple",
+  "main": "index.js",
+  "bin": {
+    "ripple-language-server": "bin/ripple-language-server.js"
+  },
+  "author": "Dominic Gannaway",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/ripple-language-server"
+  },
+  "dependencies": {
+    "@volar/language-server": "~2.4.23",
+    "typescript-plugin-ripple": "workspace:*",
+    "vscode-uri": "^3.1.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}
+

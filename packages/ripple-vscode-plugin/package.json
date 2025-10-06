@@ -26,6 +26,7 @@
     "@volar/language-server": "~2.4.23",
     "@volar/typescript": "~2.4.23",
     "@volar/vscode": "~2.4.23",
+    "ripple-language-server": "workspace:*",
     "typescript-plugin-ripple": "workspace:*",
     "volar-service-typescript": "0.0.65",
     "vscode-languageclient": "^9.0.1",

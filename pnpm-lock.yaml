@@ -127,6 +127,21 @@ importers:
         specifier: 'catalog:'
         version: 5.9.2
 
+  packages/ripple-language-server:
+    dependencies:
+      '@volar/language-server':
+        specifier: ~2.4.23
+        version: 2.4.23
+      typescript:
+        specifier: '>=5.0.0'
+        version: 5.9.2
+      typescript-plugin-ripple:
+        specifier: workspace:*
+        version: link:../typescript-plugin-ripple
+      vscode-uri:
+        specifier: ^3.1.0
+        version: 3.1.0
+
   packages/ripple-vscode-plugin:
     dependencies:
       '@jridgewell/sourcemap-codec':
@@ -144,6 +159,9 @@ importers:
       '@volar/vscode':
         specifier: ~2.4.23
         version: 2.4.23
+      ripple-language-server:
+        specifier: workspace:*
+        version: link:../ripple-language-server
       typescript-plugin-ripple:
         specifier: workspace:*
         version: link:../typescript-plugin-ripple
