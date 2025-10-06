@@ -138,6 +138,9 @@ importers:
       typescript-plugin-ripple:
         specifier: workspace:*
         version: link:../typescript-plugin-ripple
+      volar-service-typescript:
+        specifier: 0.0.65
+        version: 0.0.65(@volar/language-service@2.4.23)
       vscode-uri:
         specifier: ^3.1.0
         version: 3.1.0
