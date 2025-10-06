@@ -758,7 +758,9 @@ function printRippleNode(node, path, options, print, args) {
 			const expr = path.call(print, 'exprName');
 			nodeContent = concat(['typeof ', expr]);
 			break;
-		} case 'TSFunctionType': {
+		}
+
+		case 'TSFunctionType': {
 			const parts = [];
 
 			// Handle parameters
@@ -782,7 +784,9 @@ function printRippleNode(node, path, options, print, args) {
 
 			nodeContent = concat(parts);
 			break;
-		} case 'TSTupleType':
+		}
+
+		case 'TSTupleType':
 			nodeContent = printTSTupleType(node, path, options, print);
 			break;
 
