@@ -659,4 +659,35 @@ describe('composite components', () => {
 
 		expect(container.querySelector('#container').textContent).toBe('I am child 1');
 	});
+
+	it('mutating a tracked value prop should work as intended', () => {
+		const logs = [];
+
+		component Counter({count}) {
+			effect(() => {
+				logs.push(@count);
+			})
+			
+			<button onClick={() => @count = @count + 1}>{'+'}</button>
+		} 
+
+		component App() {
+			const count = track(0);
+
+			<div>
+				<Counter count={count} />
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		expect(logs).toEqual([0]);
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(logs).toEqual([0, 1]);
+	})
 });
