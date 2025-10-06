@@ -12,3 +12,26 @@ const stringBox = makeStringBox('abc');
 const ErrorMap = (Map);
 const errorMap = new ErrorMap();"
 `;
+
+exports[`compiler success tests > compiles imported component with conditional async in SSR 1`] = `
+"import * as _$_ from 'ripple/internal/server';
+
+import { ChildComponent } from './Child.ripple';
+
+export async function App(__output) {
+	return _$_.async(async () => {
+		_$_.push_component();
+		__output.push('<div');
+		__output.push('>');
+
+		if (ChildComponent.async) {
+			await ChildComponent(__output, { message: "hello" });
+		} else {
+			ChildComponent(__output, { message: "hello" });
+		}
+
+		__output.push('</div>');
+		_$_.pop_component();
+	});
+}"
+`;

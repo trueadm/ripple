@@ -18,4 +18,22 @@ const errorMap = new ErrorMap();`;
 
 		expect(result.js.code).toMatchSnapshot();
 	});
+
+	it('compiles imported component with conditional async in SSR', () => {
+		const source =
+`import { ChildComponent } from './Child.ripple';
+
+export component App() {
+	<div>
+		<ChildComponent message="hello" />
+	</div>
+}`;
+
+		const result = compile(source, 'test.ripple', { mode: 'server' });
+
+		// Should use if-statement instead of ternary to avoid parser issues
+		expect(result.js.code).toContain('if (ChildComponent.async)');
+		expect(result.js.code).toContain('await ChildComponent');
+		expect(result.js.code).toMatchSnapshot();
+	});
 });
