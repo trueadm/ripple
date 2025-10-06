@@ -63,7 +63,15 @@ the loop's index.
 
 ```ripple
   for (const item of items; index i) {
-    <div>{item}{' at index '}{i}</div>
+    <div>{item.label}{' at index '}{i}</div>
+  }
+```
+
+You can also provide a `key` for efficient list updates and reconciliation:
+
+```ripple
+  for (const item of items; index i; key item.id) {
+    <div>{item.label}{' at index '}{i}</div>
   }
 ```
 
