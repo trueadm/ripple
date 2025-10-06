@@ -1,4 +1,4 @@
-/** @import { Block } from '#client' */
+/** @import { Block, Tracked } from '#client' */
 
 import { IS_CONTROLLED, IS_INDEXED } from '../../../constants.js';
 import { branch, destroy_block, destroy_block_children, render } from './blocks.js';
@@ -12,31 +12,45 @@ import { array_from, is_array } from './utils.js';
  * @param {Node} anchor
  * @param {V} value
  * @param {number} index
- * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {(anchor: Node, value: V | Tracked, index?: any) => Block} render_fn
  * @param {boolean} is_indexed
+ * @param {boolean} is_keyed
  * @returns {Block}
  */
-function create_item(anchor, value, index, render_fn, is_indexed) {
+function create_item(anchor, value, index, render_fn, is_indexed, is_keyed) {
 	var b = branch(() => {
 		var tracked_index;
+		/** @type {V | Tracked} */
+		var tracked_value = value;
 
-		if (is_indexed) {
+		if (is_indexed || is_keyed) {
 			var block = /** @type {Block} */ (active_block);
 
 			if (block.s === null) {
-				tracked_index = tracked(index, block);
+				if (is_indexed) {
+					tracked_index = tracked(index, block);
+				}
+				if (is_keyed) {
+					tracked_value = tracked(value, block);
+				}
 
 				block.s = {
 					start: null,
 					end: null,
 					i: tracked_index,
+					v: tracked_value,
 				};
 			} else {
-				tracked_index = block.s.i;
+				if (is_indexed) {
+					tracked_index = block.s.i;
+				}
+				if (is_keyed) {
+					tracked_index = block.s.v;
+				}
 			}
-			render_fn(anchor, value, tracked_index);
+			render_fn(anchor, tracked_value, tracked_index);
 		} else {
-			render_fn(anchor, value);
+			render_fn(anchor, tracked_value);
 		}
 	});
 	return b;
@@ -87,7 +101,7 @@ function collection_to_array(collection) {
  * @template V
  * @param {Element} node
  * @param {() => V[] | Iterable<V>} get_collection
- * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {(anchor: Node, value: V | Tracked, index?: any) => Block} render_fn
  * @param {number} flags
  * @returns {void}
  */
@@ -116,7 +130,7 @@ export function for_block(node, get_collection, render_fn, flags) {
  * @template K
  * @param {Element} node
  * @param {() => V[] | Iterable<V>} get_collection
- * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {(anchor: Node, value: V | Tracked, index?: any) => Block} render_fn
  * @param {number} flags
  * @param {(item: V) => K} [get_key]
  * @returns {void}
@@ -176,12 +190,21 @@ function update_index(block, index) {
 }
 
 /**
+ * @param {Block} block
+ * @param {any} value
+ * @returns {void}
+ */
+function update_value(block, value) {
+	set(block.s.v, value, block);
+}
+
+/**
  * @template V
  * @template K
  * @param {Element | Text} anchor
  * @param {Block} block
  * @param {V[]} b
- * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {(anchor: Node, value: V | Tracked, index?: any) => Block} render_fn
  * @param {boolean} is_controlled
  * @param {boolean} is_indexed
  * @param {(item: V) => K} get_key
@@ -236,7 +259,7 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 	// Fast-path for create
 	if (a_length === 0) {
 		for (; j < b_length; j++) {
-			b_blocks[j] = create_item(anchor, b[j], j, render_fn, is_indexed);
+			b_blocks[j] = create_item(anchor, b[j], j, render_fn, is_indexed, true);
 		}
 		state.array = b;
 		state.blocks = b_blocks;
@@ -261,6 +284,7 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 			if (is_indexed) {
 				update_index(b_block, j);
 			}
+			update_value(b_block, b_val);
 			++j;
 			if (j > a_end || j > b_end) {
 				break outer;
@@ -282,6 +306,7 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 			if (is_indexed) {
 				update_index(b_block, b_end);
 			}
+			update_value(b_block, b_val);
 			a_end--;
 			b_end--;
 			if (j > a_end || j > b_end) {
@@ -301,7 +326,7 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 			while (j <= b_end) {
 				b_val = b[j];
 				var target = j >= a_length ? anchor : a_blocks[j].s.start;
-				b_blocks[j] = create_item(target, b_val, j, render_fn, is_indexed);
+				b_blocks[j] = create_item(target, b_val, j, render_fn, is_indexed, true);
 				j++;
 			}
 		}
@@ -348,6 +373,7 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 							if (is_indexed) {
 								update_index(b_block, j);
 							}
+							update_value(b_block, b_val);
 							++patched;
 							break;
 						}
@@ -387,9 +413,11 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 							pos = j;
 						}
 						block = b_blocks[j] = a_blocks[i];
+						b_val = b[j];
 						if (is_indexed) {
 							update_index(block, j);
 						}
+						update_value(b_block, b_val);
 						++patched;
 					} else if (!fast_path_removal) {
 						destroy_block(a_blocks[i]);
@@ -417,7 +445,7 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 				next_pos = pos + 1;
 
 				var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
-				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed);
+				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed, true);
 			} else if (j < 0 || i !== seq[j]) {
 				pos = i + b_start;
 				b_val = b[pos];
@@ -437,7 +465,7 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
 				next_pos = pos + 1;
 
 				var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
-				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed);
+				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed, true);
 			}
 		}
 	}
@@ -452,7 +480,7 @@ function reconcile_by_key(anchor, block, b, render_fn, is_controlled, is_indexed
  * @param {Element | Text} anchor
  * @param {Block} block
  * @param {V[]} b
- * @param {(anchor: Node, value: V, index?: any) => Block} render_fn
+ * @param {(anchor: Node, value: V | Tracked, index?: any) => Block} render_fn
  * @param {boolean} is_controlled
  * @param {boolean} is_indexed
  * @returns {void}
@@ -505,7 +533,7 @@ function reconcile_by_ref(anchor, block, b, render_fn, is_controlled, is_indexed
 	// Fast-path for create
 	if (a_length === 0) {
 		for (; j < b_length; j++) {
-			b_blocks[j] = create_item(anchor, b[j], j, render_fn, is_indexed);
+			b_blocks[j] = create_item(anchor, b[j], j, render_fn, is_indexed, false);
 		}
 		state.array = b;
 		state.blocks = b_blocks;
@@ -560,7 +588,7 @@ function reconcile_by_ref(anchor, block, b, render_fn, is_controlled, is_indexed
 			while (j <= b_end) {
 				b_val = b[j];
 				var target = j >= a_length ? anchor : a_blocks[j].s.start;
-				b_blocks[j] = create_item(target, b_val, j, render_fn, is_indexed);
+				b_blocks[j] = create_item(target, b_val, j, render_fn, is_indexed, false);
 				j++;
 			}
 		}
@@ -673,7 +701,7 @@ function reconcile_by_ref(anchor, block, b, render_fn, is_controlled, is_indexed
 				next_pos = pos + 1;
 
 				var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
-				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed);
+				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed, false);
 			} else if (j < 0 || i !== seq[j]) {
 				pos = i + b_start;
 				b_val = b[pos];
@@ -693,7 +721,7 @@ function reconcile_by_ref(anchor, block, b, render_fn, is_controlled, is_indexed
 				next_pos = pos + 1;
 
 				var target = next_pos < b_length ? b_blocks[next_pos].s.start : anchor;
-				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed);
+				b_blocks[pos] = create_item(target, b_val, pos, render_fn, is_indexed, false);
 			}
 		}
 	}

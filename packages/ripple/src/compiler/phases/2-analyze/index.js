@@ -374,6 +374,29 @@ const visitors = {
 			}
 		}
 
+		if (node.key) {
+			const state = context.state;
+			const pattern = node.left.declarations[0].id;
+			const paths = extract_paths(pattern);
+			const scope = state.scopes.get(node);
+			const pattern_id = b.id(scope.generate('pattern'));
+
+			node.left.declarations[0].id = pattern_id;
+
+			for (const path of paths) {
+				const name = path.node.name;
+				const binding = context.state.scope.get(name);
+
+				if (binding !== null) {
+					binding.transform = {
+						read: () => {
+							return path.expression(b.call('_$_.get', pattern_id));
+						}
+					};
+				}
+			}
+		}
+
 		node.metadata = {
 			has_template: false,
 		};
