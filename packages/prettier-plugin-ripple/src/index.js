@@ -985,10 +985,12 @@ function printImportDeclaration(node, path, options, print) {
 			if (spec.type === 'ImportDefaultSpecifier') {
 				defaultImports.push(spec.local.name);
 			} else if (spec.type === 'ImportSpecifier') {
+				// Handle inline type imports: import { type Component } from 'ripple'
+				const typePrefix = spec.importKind === 'type' ? 'type ' : '';
 				const importName =
 					spec.imported.name === spec.local.name
-						? spec.local.name
-						: spec.imported.name + ' as ' + spec.local.name;
+						? typePrefix + spec.local.name
+						: typePrefix + spec.imported.name + ' as ' + spec.local.name;
 				namedImports.push(importName);
 			} else if (spec.type === 'ImportNamespaceSpecifier') {
 				namespaceImports.push('* as ' + spec.local.name);
