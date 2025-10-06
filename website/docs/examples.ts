@@ -15,8 +15,12 @@ export const examples: Array<{ title: string; code: string }> = [
 	},
 	{
 		title: 'Styling',
-		code: `export default component App() {
+		code: `import { track } from 'ripple';
+
+export default component App() {
   <div class="message">{"Hello Ripple!"}</div>
+
+  <InlineStyles />
 
 	<style>
 		.message {
@@ -27,7 +31,47 @@ export const examples: Array<{ title: string; code: string }> = [
 			padding: 1rem;
 		}
 	</style>
-}`,
+}
+
+component InlineStyles() {
+  let color = track('#3e95ff');
+
+  <p style={\`color: \${@color}; font-weight: bold; background-color: #eee\`}>
+    {'Hello Ripple!'}
+  </p>
+  <p style={{ color: @color, fontWeight: 'bold', 'background-color': '#eee' }}>
+    {'Hello Ripple!'}
+  </p>
+
+  const style = {
+    @color,
+    fontWeight: 'bold',
+    'background-color': '#eee',
+  };
+
+  // using object spread
+  <p style={{...style}}>{'Hello Ripple!'}</p>
+
+  // using object directly
+  <p style={style}>{'Hello Ripple!'}</p>
+}
+
+component DynamicClasses() {
+  let includeBaz = track(true);
+  <p class={{ foo: true, bar: false, baz: @includeBaz }}> // becomes: class="foo baz"
+    {'Hello Ripple!'}
+  </p>
+
+  <p class={['foo', {baz: false}, 0 && 'bar', [true && 'bat'] ]}> // becomes: class="foo bat"
+    {'Hello Ripple!'}
+  </p>
+
+  let count = track(3);
+  <p class={['foo', {bar: @count > 2}, @count > 3 && 'bat']}> // becomes: class="foo bar"
+    {'Hello Ripple!'}
+  </p>
+}
+`,
 	},
 	{
 		title: 'Components',
@@ -104,6 +148,71 @@ export default component App() {
 	<Card>
 		<p>{"Card content here"}</p>
 	</Card>
+}
+`,
+	},
+	{
+		title: 'Named Children',
+		code: `component Composite({ PropComp, InlineComp }) {
+	<PropComp />
+	<InlineComp />
+}
+
+component Separate() {
+	<p>{\`I'm a separate component.\`}</p>
+}
+
+export default component App() {
+	<Composite PropComp={Separate}>
+		component InlineComp() {
+			<p>{\`I'm an inline component.\`}</p>
+		}
+	</Composite>
+}
+`,
+	},
+	{
+		title: 'Child Composition',
+		code: `component Card({ children, Header, Footer }) {
+	<fieldset>
+		<Header />
+		<hr />
+		<children />
+		<hr />
+		<Footer />
+	</fieldset>
+}
+
+component CustomHeader() {
+	<h1>{'Card Title'}</h1>
+}
+
+export default component App() {
+	<Card Header={CustomHeader}> // <- Header passed in as a prop
+		<p>{'Card content here'}</p>
+		component Footer() {     // <- Footer passed in as a inline component
+			<p>{'Card footer'}</p>
+		}
+	</Card>
+}
+`,
+	},
+	{
+		title: 'Portal Component',
+		code: `import { Portal } from 'ripple';
+
+export default component App() {
+	<div class="app">
+		<h1>{'My App'}</h1>
+
+		{/* This will render inside document.body, not inside the .app div */}
+		<Portal target={document.body}>
+			<div class="modal">
+				<h2>{'I am rendered in document.body!'}</h2>
+				<p>{'This content escapes the normal component tree.'}</p>
+			</div>
+		</Portal>
+	</div>
 }
 `,
 	},
