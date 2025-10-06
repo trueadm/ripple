@@ -1,0 +1,27 @@
+import { describe, it, expect } from 'vitest';
+import { render } from 'ripple/server';
+
+describe('SSR: switch statements', () => {
+	it('renders simple switch with literal cases', async () => {
+		component App() {
+			let value = 'b';
+
+			switch (value) {
+				case 'a':
+					<div>{'Case A'}</div>
+					break;
+				case 'b':
+					<div>{'Case B'}</div>
+					break;
+				case 'c':
+					<div>{'Case C'}</div>
+					break;
+				default:
+					<div>{'Default Case'}</div>
+			}
+		}
+
+		const { body } = await render(App);
+		expect(body).toBe('<div>Case B</div>');
+	});
+});
