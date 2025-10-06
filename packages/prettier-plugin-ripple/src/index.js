@@ -467,28 +467,16 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSTypeParameterInstantiation(node, path, options, print);
 			break;
 
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
-
-		case 'TSBooleanKeyword':
-			nodeContent = 'boolean';
-			break;
-
-		case 'TSUndefinedKeyword':
-			nodeContent = 'undefined';
-			break;
-
 		case 'TSSymbolKeyword':
 			nodeContent = 'symbol';
 			break;
 
-		case 'TSBigIntKeyword':
-			nodeContent = 'bigint';
-			break;
-
 		case 'TSAnyKeyword':
 			nodeContent = 'any';
+			break;
+
+		case 'TSUnknownKeyword':
+			nodeContent = 'unknown';
 			break;
 
 		case 'TSNeverKeyword':
@@ -497,6 +485,38 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSVoidKeyword':
 			nodeContent = 'void';
+			break;
+
+		case 'TSUndefinedKeyword':
+			nodeContent = 'undefined';
+			break;
+
+		case 'TSNullKeyword':
+			nodeContent = 'null';
+			break;
+
+		case 'TSNumberKeyword':
+			nodeContent = 'number';
+			break;
+
+		case 'TSBigIntKeyword':
+			nodeContent = 'bigint';
+			break;
+
+		case 'TSObjectKeyword':
+			nodeContent = 'object';
+			break
+
+		case 'TSBooleanKeyword':
+			nodeContent = 'boolean';
+			break;
+
+		case 'TSStringKeyword':
+			nodeContent = 'string';
+			break;
+
+		case 'EmptyStatement':
+			nodeContent = '';
 			break;
 
 		case 'TSInterfaceBody':
@@ -532,11 +552,6 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = concat(parts);
 			break;
 		}
-
-		case 'EmptyStatement':
-			nodeContent = '';
-			break;
-
 		case 'VariableDeclaration':
 			nodeContent = printVariableDeclaration(node, path, options, print);
 			break;
@@ -553,7 +568,9 @@ function printRippleNode(node, path, options, print, args) {
 			const parts = ['{...', path.call(print, 'argument'), '}'];
 			nodeContent = concat(parts);
 			break;
-		} case 'Identifier': {
+		}
+
+		case 'Identifier': {
 			// Simple case - just return the name directly like Prettier core
 			const trackedPrefix = node.tracked ? "@" : "";
 			if (node.typeAnnotation) {
@@ -673,10 +690,6 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
-
 		case 'MemberExpression':
 			nodeContent = printMemberExpression(node, path, options, print);
 			break;
@@ -712,22 +725,6 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSPropertySignature':
 			nodeContent = printTSPropertySignature(node, path, options, print);
-			break;
-
-		case 'TSStringKeyword':
-			nodeContent = 'string';
-			break;
-
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
-
-		case 'TSNullKeyword':
-			nodeContent = 'null';
-			break;
-
-		case 'TSUnknownKeyword':
-			nodeContent = 'unknown';
 			break;
 
 		case 'TSLiteralType':
