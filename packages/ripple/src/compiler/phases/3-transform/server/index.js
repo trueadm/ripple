@@ -425,12 +425,19 @@ const visitors = {
 				}
 			} else {
 				// Component is imported or dynamic - check .async property at runtime
-				const conditional_await = b.conditional(
-					b.member(visit(node.id, state), b.id('async')),
-					b.await(component_call),
-					component_call,
+				// Use if-statement instead of ternary to avoid parser issues with await in conditionals
+				state.init.push(
+					b.if(
+						b.member(visit(node.id, state), b.id('async')),
+						b.block([b.stmt(b.await(component_call))]),
+						b.block([b.stmt(component_call)]),
+					),
 				);
-				state.init.push(b.stmt(conditional_await));
+
+				// Mark parent component as async since we're using await
+				if (state.metadata?.await === false) {
+					state.metadata.await = true;
+				}
 			}
 		}
 	},
