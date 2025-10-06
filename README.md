@@ -613,7 +613,15 @@ The `for...of` loop has also a built-in support for accessing the loops numerica
 
 ```jsx
   for (const item of items; index i) {
-    <div>{item}{' at index '}{i}</div>
+    <div>{item.label}{' at index '}{i}</div>
+  }
+```
+
+You can also provide a `key` for efficient list updates and reconciliation:
+
+```jsx
+  for (const item of items; index i; key item.id) {
+    <div>{item.label}{' at index '}{i}</div>
   }
 ```
 

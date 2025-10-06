@@ -395,6 +395,18 @@ component ListView({ title, items }) {
 }
 ```
 
+#### For Loops with key
+```ripple
+component ListView({ title, items }) {
+  <h2>{title}</h2>
+  <ul>
+    for (const item of items; index i; key item.id) {
+      <li>{item.text}{' at index '}{i}</li>
+    }
+  </ul>
+}
+```
+
 #### Try-Catch (Error Boundaries)
 ```ripple
 component ErrorBoundary() {
