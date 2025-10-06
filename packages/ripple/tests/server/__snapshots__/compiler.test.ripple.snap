@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`compiler success tests > compiles TSInstantiationExpression 1`] = `
+"import * as _$_ from 'ripple/internal/client';
+
+function makeBox(value) {
+	return { value };
+}
+
+const makeStringBox = (makeBox);
+const stringBox = makeStringBox('abc');
+const ErrorMap = (Map);
+const errorMap = new ErrorMap();"
+`;

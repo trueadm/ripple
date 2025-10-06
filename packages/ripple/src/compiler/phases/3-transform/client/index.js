@@ -54,6 +54,7 @@ function visit_function(node, context) {
 	const state = context.state;
 
 	delete node.returnType;
+	delete node.typeParameters;
 
 	for (const param of node.params) {
 		delete param.typeAnnotation;
@@ -1195,6 +1196,14 @@ const visitors = {
 	TSAsExpression(node, context) {
 		if (!context.state.to_ts) {
 			return context.visit(node.expression);
+		}
+		return context.next();
+	},
+
+	TSInstantiationExpression(node, context) {
+		if (!context.state.to_ts) {
+			// In JavaScript, just return the expression wrapped in parentheses
+			return b.sequence([context.visit(node.expression)]);
 		}
 		return context.next();
 	},

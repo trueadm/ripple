@@ -1,0 +1,21 @@
+import { describe, it, expect } from 'vitest';
+import { compile } from 'ripple/compiler'
+
+describe('compiler success tests', () => {
+
+
+	it('compiles TSInstantiationExpression', () => {
+		const source =
+`function makeBox<T>(value: T) {
+	return { value };
+}
+const makeStringBox = makeBox<string>;
+const stringBox = makeStringBox('abc');
+const ErrorMap = Map<string, Error>;
+const errorMap = new ErrorMap();`;
+
+		const result = compile(source, 'test.ripple', { mode: 'client' });
+
+		expect(result.js.code).toMatchSnapshot();
+	});
+});
