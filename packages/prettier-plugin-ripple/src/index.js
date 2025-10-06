@@ -756,17 +756,15 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSTypeQuery': {
 			const expr = path.call(print, 'exprName');
-			nodeContent = `typeof ${expr}`;
+			nodeContent = concat(['typeof ', expr]);
 			break;
-		}
-
-		case 'TSFunctionType': {
+		} case 'TSFunctionType': {
 			const parts = [];
 
 			// Handle parameters
 			parts.push('(');
-			if (node.params && node.params.length > 0) {
-				const params = path.map(print, 'params');
+			if (node.parameters && node.parameters.length > 0) {
+				const params = path.map(print, 'parameters');
 				for (let i = 0; i < params.length; i++) {
 					if (i > 0) parts.push(', ');
 					parts.push(params[i]);
@@ -784,9 +782,7 @@ function printRippleNode(node, path, options, print, args) {
 
 			nodeContent = concat(parts);
 			break;
-		}
-
-		case 'TSTupleType':
+		} case 'TSTupleType':
 			nodeContent = printTSTupleType(node, path, options, print);
 			break;
 

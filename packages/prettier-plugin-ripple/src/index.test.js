@@ -777,6 +777,8 @@ const items = [] as unknown[];`
         type t19 = Omit<t11, 'b'>;
         type t20 = ReturnType<() => string>;
         type t21 = Parameters<(x: number, y: string) => void>;
+        type t27 = new () => object;
+        type t41 = ReturnType<typeof Math.max>;
         <div>{"test"}</div>
       }`;
 
@@ -795,7 +797,9 @@ const items = [] as unknown[];`
   type t18 = Pick<t11, 'a'>;
   type t19 = Omit<t11, 'b'>;
   type t20 = ReturnType<() => string>;
-  type t21 = Parameters<() => void>;
+  type t21 = Parameters<(x: number, y: string) => void>;
+  type t27 = new () => object;
+  type t41 = ReturnType<typeof Math.max>;
 
   <div>{'test'}</div>
 }`;
