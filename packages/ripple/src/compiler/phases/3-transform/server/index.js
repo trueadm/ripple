@@ -30,11 +30,7 @@ function transform_children(children, context) {
 	const { visit, state, root } = context;
 	const normalized = normalize_children(children, context);
 
-	for (const node of normalized) {
-		if (node.type === 'BreakStatement') {
-			state.init.push(b.break);
-			continue;
-		}
+	
 		if (
 			node.type === 'VariableDeclaration' ||
 			node.type === 'ExpressionStatement' ||
