@@ -419,7 +419,21 @@ function RipplePlugin(config) {
 			parseServerBlock() {
 				const node = this.startNode();
 				this.next();
-				node.body = this.parseBlock();
+
+				const body = this.startNode();
+				node.body = body;
+				body.body = [];
+
+				this.expect(tt.braceL);
+				this.enterScope(0);
+				while (this.type !== tt.braceR) {
+					var stmt = this.parseStatement(null, true);
+					body.body.push(stmt);
+				}
+				this.next();
+				this.exitScope();
+				this.finishNode(body, 'BlockStatement');
+
 				this.awaitPos = 0;
 				return this.finishNode(node, 'ServerBlock');
 			}

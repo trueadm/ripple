@@ -96,9 +96,36 @@ const visitors = {
 		return context.next({ ...context.state, function_depth: 0, expression: null });
 	},
 
+	ServerBlock(node, context) {
+		context.visit(node.body, { ...context.state, inside_server_block: true });
+	},
+
 	Identifier(node, context) {
 		const binding = context.state.scope.get(node.name);
 		const parent = context.path.at(-1);
+
+		if (
+			is_reference(node, /** @type {Node} */ (parent)) &&
+			binding &&
+			context.state.inside_server_block
+		) {
+			let current_scope = binding.scope;
+
+			while (current_scope !== null) {
+				if (current_scope.server_block) {
+					break;
+				}
+				const parent_scope = current_scope.parent;
+				if (parent_scope === null) {
+					error(
+						`Cannot reference client-side variable "${node.name}" from a server block`,
+						context.state.analysis.module.filename,
+						node,
+					);
+				}
+				current_scope = parent_scope;
+			}
+		}
 
 		if (binding?.kind === 'prop' || binding?.kind === 'prop_fallback') {
 			mark_as_tracked(context.path);
@@ -672,6 +699,7 @@ export function analyze(ast, filename) {
 			scopes,
 			analysis,
 			inside_head: false,
+			inside_server_block: false,
 		},
 		visitors,
 	);
