@@ -128,37 +128,64 @@ export function apply_styles(element, newStyles) {
  * @returns {void}
  */
 export function set_attributes(element, attributes) {
+	let found_enumerable_keys = false;
+
 	for (const key in attributes) {
 		if (key === 'children') continue;
+		found_enumerable_keys = true;
 
 		let value = attributes[key];
-
 		if (is_tracked_object(value)) {
 			value = get(value);
 		}
+		set_attribute_helper(element, key, value);
+	}
 
-		if (key === 'class') {
-			const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
-			set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
-		} else if (key === '#class') {
-			// Special case for static class when spreading props
-			element.classList.add(value);
-		} else if (is_event_attribute(key)) {
-			// Handle event handlers in spread props
-			const event_name = get_attribute_event_name(key);
+	// Only if no enumerable keys but attributes object exists
+	// This handles spread_props Proxy objects from dynamic elements with {...spread}
+	if (!found_enumerable_keys && attributes) {
+		const allKeys = Reflect.ownKeys(attributes);
+		for (const key of allKeys) {
+			if (key === 'children') continue;
+			if (typeof key === 'symbol') continue; // Skip symbols - handled by apply_element_spread
 
-			if (is_delegated(event_name)) {
-				// Use delegation for delegated events
-				/** @type {any} */ (element)['__' + event_name] = value;
-				delegate([event_name]);
-			} else {
-				// Use addEventListener for non-delegated events
-				event(event_name, element, value);
+			let value = attributes[key];
+			if (is_tracked_object(value)) {
+				value = get(value);
 			}
-		} else {
-			set_attribute(element, key, value);
+			set_attribute_helper(element, key, value);
 		}
 	}
+}
+
+/**
+ * Helper function to set a single attribute
+ * @param {Element} element
+ * @param {string} key
+ * @param {any} value
+*/
+function set_attribute_helper(element, key, value) {
+  if (key === 'class') {
+    const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
+    set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
+  } else if (key === '#class') {
+    // Special case for static class when spreading props
+    element.classList.add(value);
+  } else if (typeof key === 'string' && is_event_attribute(key)) {
+    // Handle event handlers in spread props
+    const event_name = get_attribute_event_name(key);
+
+    if (is_delegated(event_name)) {
+      // Use delegation for delegated events
+      /** @type {any} */ (element)['__' + event_name] = value;
+      delegate([event_name]);
+    } else {
+      // Use addEventListener for non-delegated events
+      event(event_name, element, value);
+    }
+  } else {
+    set_attribute(element, key, value);
+  }
 }
 
 /**
