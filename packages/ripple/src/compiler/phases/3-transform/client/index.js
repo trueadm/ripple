@@ -1,4 +1,4 @@
-/** @import {Expression, FunctionExpression, Pattern, Node, Program} from 'estree' */
+/** @import {Expression, FunctionExpression, Node, Program} from 'estree' */
 
 import { walk } from 'zimmerframe';
 import path from 'node:path';
@@ -37,6 +37,7 @@ import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
 import { render_stylesheets } from '../stylesheet.js';
 import { is_event_attribute, is_passive_event } from '../../../../utils/events.js';
+import { createHash } from 'node:crypto';
 
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
@@ -184,6 +185,10 @@ const visitors = {
 				return build_getter(node, context);
 			}
 		}
+	},
+
+	ServerIdentifier(node, context) {
+		return b.id('_$_server_$_');
 	},
 
 	ImportDeclaration(node, context) {
@@ -1290,8 +1295,34 @@ const visitors = {
 		return b.block(statements);
 	},
 
-	ServerBlock() {
-		return b.empty;
+	ServerBlock(node, context) {
+		const exports = node.metadata.exports;
+
+		if (exports.length === 0) {
+			return b.empty;
+		}
+		const file_path = context.state.filename;
+
+		return b.const(
+			'_$_server_$_',
+			b.object(
+				exports.map((name) => {
+					const func_path = file_path + '#' + name;
+					// needs to be a sha256 hash of func_path, to avoid leaking file structure
+					const hash = createHash('sha256').update(func_path).digest('hex').slice(0, 8);
+
+					return b.prop(
+						'init',
+						b.id(name),
+						b.function(
+							null,
+							[b.rest(b.id('args'))],
+							b.block([b.return(b.call('_$_.rpc', b.literal(hash), b.id('args')))]),
+						),
+					);
+				}),
+			),
+		);
 	},
 
 	Program(node, context) {
@@ -1800,6 +1831,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 		scopes: analysis.scopes,
 		stylesheets: [],
 		to_ts,
+		filename,
 	};
 
 	const program = /** @type {Program} */ (

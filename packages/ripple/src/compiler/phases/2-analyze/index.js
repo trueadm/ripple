@@ -97,6 +97,10 @@ const visitors = {
 	},
 
 	ServerBlock(node, context) {
+		node.metadata = {
+			...node.metadata,
+			exports: [],
+		};
 		context.visit(node.body, { ...context.state, inside_server_block: true });
 	},
 
@@ -339,6 +343,7 @@ const visitors = {
 			}
 
 			node.metadata = {
+				...node.metadata,
 				has_template: false,
 			};
 
@@ -398,6 +403,7 @@ const visitors = {
 		}
 
 		node.metadata = {
+			...node.metadata,
 			has_template: false,
 		};
 		context.next();
@@ -409,6 +415,23 @@ const visitors = {
 				node,
 			);
 		}
+	},
+
+	ExportNamedDeclaration(node, context) {
+		if (!context.state.inside_server_block) {
+			return context.next();
+		}
+		const server_block = context.path.find((n) => n.type === 'ServerBlock');
+		const declaration = node.declaration;
+
+		if (declaration && declaration.type === 'FunctionDeclaration') {
+			server_block.metadata.exports.push(declaration.id.name);
+		} else {
+			// TODO
+			throw new Error('Not implemented');
+		}
+
+		return context.next();
 	},
 
 	TSTypeReference(node, context) {
@@ -426,6 +449,7 @@ const visitors = {
 		}
 
 		node.metadata = {
+			...node.metadata,
 			has_template: false,
 		};
 
@@ -441,6 +465,7 @@ const visitors = {
 
 		if (node.alternate) {
 			node.metadata = {
+				...node.metadata,
 				has_template: false,
 			};
 			context.visit(node.alternate, context.state);
@@ -467,6 +492,7 @@ const visitors = {
 			}
 
 			node.metadata = {
+				...node.metadata,
 				has_template: false,
 			};
 
@@ -481,6 +507,7 @@ const visitors = {
 			}
 
 			node.metadata = {
+				...node.metadata,
 				has_template: false,
 			};
 

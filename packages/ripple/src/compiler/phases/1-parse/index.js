@@ -165,18 +165,19 @@ function RipplePlugin(config) {
 
 						// Check if this is #server
 						if (this.input.slice(this.pos, this.pos + 7) === '#server') {
-							// Check that next char after 'server' is whitespace or {
+							// Check that next char after 'server' is whitespace, {, . (dot), or EOF
 							const charAfter =
 								this.pos + 7 < this.input.length ? this.input.charCodeAt(this.pos + 7) : -1;
 							if (
-								charAfter === 123 ||
-								charAfter === 32 ||
-								charAfter === 9 ||
-								charAfter === 10 ||
-								charAfter === 13 ||
-								charAfter === -1
+								charAfter === 123 || // {
+								charAfter === 46 || // . (dot)
+								charAfter === 32 || // space
+								charAfter === 9 || // tab
+								charAfter === 10 || // newline
+								charAfter === 13 || // carriage return
+								charAfter === -1 // EOF
 							) {
-								// { or whitespace or EOF
+								// { or . or whitespace or EOF
 								this.pos += 7; // consume '#server'
 								return this.finishToken(tt.name, '#server');
 							}
@@ -379,6 +380,13 @@ function RipplePlugin(config) {
 					return this.parseTrackedExpression();
 				}
 
+				// Check if this is #server identifier for server function calls
+				if (this.type === tt.name && this.value === '#server') {
+					const node = this.startNode();
+					this.next();
+					return this.finishNode(node, 'ServerIdentifier');
+				}
+
 				// Check if this is a tuple literal starting with #[
 				if (this.type === tt.bracketL && this.value === '#[') {
 					return this.parseTrackedArrayExpression();
@@ -388,7 +396,6 @@ function RipplePlugin(config) {
 
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
 			}
-
 			/**
 			 * Parse `@(expression)` syntax for unboxing tracked values
 			 * Creates a TrackedExpression node with the argument property
