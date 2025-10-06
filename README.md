@@ -332,6 +332,19 @@ component Child2(props) {
 }
 ```
 
+#### Dynamic Elements
+
+You can render dynamic HTML elements by storing the tag name in a tracked variable and using the `<@tagName>` syntax:
+
+```jsx
+export component App() {
+  let tag = track('div');
+
+  <@tag class="dynamic">{'Hello World'}</@tag>
+  <button onClick={() => @tag = @tag === 'div' ? 'span' : 'div'}>{'Toggle Element'}</button>
+}
+```
+
 #### Simple Reactive Arrays
 
 Just like objects, you can use the `Tracked<V>` objects in any standard JavaScript object, like arrays:

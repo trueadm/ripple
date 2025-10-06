@@ -395,6 +395,16 @@ component ListView({ title, items }) {
 }
 ```
 
+#### Dynamic Elements
+```ripple
+export component App() {
+  let tag = track('div');
+
+  <@tag class="dynamic">{'Hello World'}</@tag>
+  <button onClick={() => @tag = @tag === 'div' ? 'span' : 'div'}>{'Toggle Element'}</button>
+}
+```
+
 #### Try-Catch (Error Boundaries)
 ```ripple
 component ErrorBoundary() {
