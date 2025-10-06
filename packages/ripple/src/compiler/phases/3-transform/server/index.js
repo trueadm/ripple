@@ -31,6 +31,10 @@ function transform_children(children, context) {
 	const normalized = normalize_children(children, context);
 
 	for (const node of normalized) {
+		if (node.type === 'BreakStatement') {
+			state.init.push(b.break);
+			continue;
+		}
 		if (
 			node.type === 'VariableDeclaration' ||
 			node.type === 'ExpressionStatement' ||
@@ -389,6 +393,27 @@ const visitors = {
 			}
 		}
 	},
+	SwitchStatement(node, context) {
+		if (!is_inside_component(context)) {
+			return context.next();
+		}
+		const cases = [];
+		for (const switch_case of node.cases) {
+			const consequent_scope =
+				context.state.scopes.get(switch_case.consequent) || context.state.scope;
+			const consequent = b.block(
+				transform_body(switch_case.consequent, {
+					...context,
+					state: { ...context.state, scope: consequent_scope },
+				}),
+			);
+			cases.push(
+				b.switch_case(switch_case.test ? context.visit(switch_case.test) : null, consequent.body),
+			);
+		}
+		context.state.init.push(b.switch(context.visit(node.discriminant), cases));
+	},
+
 	ForOfStatement(node, context) {
 		if (!is_inside_component(context)) {
 			context.next();
