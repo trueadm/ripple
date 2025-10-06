@@ -178,10 +178,9 @@ const visitors = {
 						add_ripple_internal_import(context);
 						return b.call('_$_.get', build_getter(node, context));
 					}
-
-					add_ripple_internal_import(context);
-					return build_getter(node, context);
 				}
+				add_ripple_internal_import(context);
+				return build_getter(node, context);
 			}
 		}
 	},
