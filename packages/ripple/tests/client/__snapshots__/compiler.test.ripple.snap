@@ -23,3 +23,11 @@ exports[`compiler success tests > compiles tracked values in effect with update 
 			state.postDecrement = _$_.update(count, __block, -1);
 		}));"
 `;
+
+exports[`compiler success tests > removes type assertions from function parameters and leaves default values 1`] = `
+"import * as _$_ from 'ripple/internal/client';
+
+function getString(e = 'test') {
+	return e;
+}"
+`;

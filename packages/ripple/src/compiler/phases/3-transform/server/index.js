@@ -130,6 +130,13 @@ const visitors = {
 		return context.next();
 	},
 
+	NewExpression(node, context) {
+		if (!context.state.to_ts) {
+			delete node.typeArguments;
+		}
+		return context.next();
+	},
+
 	PropertyDefinition(node, context) {
 		if (!context.state.to_ts) {
 			delete node.typeAnnotation;
@@ -143,6 +150,10 @@ const visitors = {
 			delete node.typeParameters;
 			for (const param of node.params) {
 				delete param.typeAnnotation;
+				// Handle AssignmentPattern (parameters with default values)
+				if (param.type === 'AssignmentPattern' && param.left) {
+					delete param.left.typeAnnotation;
+				}
 			}
 		}
 		return context.next();
@@ -154,6 +165,10 @@ const visitors = {
 			delete node.typeParameters;
 			for (const param of node.params) {
 				delete param.typeAnnotation;
+				// Handle AssignmentPattern (parameters with default values)
+				if (param.type === 'AssignmentPattern' && param.left) {
+					delete param.left.typeAnnotation;
+				}
 			}
 		}
 		return context.next();
@@ -165,6 +180,10 @@ const visitors = {
 			delete node.typeParameters;
 			for (const param of node.params) {
 				delete param.typeAnnotation;
+				// Handle AssignmentPattern (parameters with default values)
+				if (param.type === 'AssignmentPattern' && param.left) {
+					delete param.left.typeAnnotation;
+				}
 			}
 		}
 		return context.next();

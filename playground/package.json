@@ -9,10 +9,14 @@
     "build": "vite build --outDir dist/client",
     "test": "vitest run",
     "debug-volar": "node volar-debug.js",
-    "debug-ssr": "node ssr-debug.js"
+    "debug-ssr": "node ssr-debug.js",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.12",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-ripple": "workspace:*",
     "polka": "^1.0.0-next.25",
     "ripple": "workspace:*",
     "typescript": "catalog:",
