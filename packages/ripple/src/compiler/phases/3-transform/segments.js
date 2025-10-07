@@ -978,7 +978,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 					visit(node.typeAnnotation);
 				}
 				return;
-			} else if (node.type === 'Literal' || node.type === 'TSAnyKeyword' || node.type === 'TSUnknownKeyword' || node.type === 'TSNumberKeyword' || node.type === 'TSObjectKeyword' || node.type === 'TSBooleanKeyword' || node.type === 'TSBigIntKeyword' || node.type === 'TSStringKeyword' || node.type === 'TSSymbolKeyword' || node.type === 'TSVoidKeyword' || node.type === 'TSUndefinedKeyword' || node.type === 'TSNullKeyword' || node.type === 'TSNeverKeyword' || node.type === 'TSThisType' || node.type === 'TSIntrinsicKeyword') {
+			} else if (node.type === 'TSAnyKeyword' || node.type === 'TSUnknownKeyword' || node.type === 'TSNumberKeyword' || node.type === 'TSObjectKeyword' || node.type === 'TSBooleanKeyword' || node.type === 'TSBigIntKeyword' || node.type === 'TSStringKeyword' || node.type === 'TSSymbolKeyword' || node.type === 'TSVoidKeyword' || node.type === 'TSUndefinedKeyword' || node.type === 'TSNullKeyword' || node.type === 'TSNeverKeyword' || node.type === 'TSThisType' || node.type === 'TSIntrinsicKeyword') {
 				// Primitive type keywords - leaf nodes, no children
 				return;
 			}
