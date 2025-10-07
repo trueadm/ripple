@@ -143,6 +143,10 @@ const visitors = {
 			delete node.typeParameters;
 			for (const param of node.params) {
 				delete param.typeAnnotation;
+				// Handle AssignmentPattern (parameters with default values)
+				if (param.type === 'AssignmentPattern' && param.left) {
+					delete param.left.typeAnnotation;
+				}
 			}
 		}
 		return context.next();
@@ -154,6 +158,10 @@ const visitors = {
 			delete node.typeParameters;
 			for (const param of node.params) {
 				delete param.typeAnnotation;
+				// Handle AssignmentPattern (parameters with default values)
+				if (param.type === 'AssignmentPattern' && param.left) {
+					delete param.left.typeAnnotation;
+				}
 			}
 		}
 		return context.next();
@@ -165,6 +173,10 @@ const visitors = {
 			delete node.typeParameters;
 			for (const param of node.params) {
 				delete param.typeAnnotation;
+				// Handle AssignmentPattern (parameters with default values)
+				if (param.type === 'AssignmentPattern' && param.left) {
+					delete param.left.typeAnnotation;
+				}
 			}
 		}
 		return context.next();

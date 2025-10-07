@@ -1192,6 +1192,14 @@ component RowList({ rows, Row }) {
 			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('preserves typescript parameter types with a default value', async () => {
+			const expected = `function getString(e: string = 'test') {
+  return e;
+}`;
+			const result = await format(expected, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		})
 	});
 
 	describe('regex formatting', () => {
