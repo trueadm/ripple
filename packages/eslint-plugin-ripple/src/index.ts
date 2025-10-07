@@ -34,7 +34,7 @@ function createConfig(name: string, files: string[], isStrict = false) {
     },
     rules: {
       'ripple/no-module-scope-track': 'error',
-      'ripple/require-component-export': isStrict ? 'error' : 'warn',
+      'ripple/require-component-export': 'off',
       'ripple/prefer-oninput': isStrict ? 'error' : 'warn',
       'ripple/no-return-in-component': 'error',
       'ripple/unbox-tracked-values': 'error',

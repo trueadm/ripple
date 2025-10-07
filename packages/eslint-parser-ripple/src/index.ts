@@ -10,6 +10,70 @@ interface ParseResult {
 }
 
 /**
+ * Recursively walks the AST and ensures all nodes have range and loc properties
+ * ESLint's scope analyzer requires these properties on ALL nodes
+ */
+function ensureNodeProperties(node: any, code: string): void {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+
+  // Ensure range property exists
+  if (node.start !== undefined && node.end !== undefined && !node.range) {
+    node.range = [node.start, node.end];
+  }
+
+  // Ensure loc property exists
+  if (!node.loc && node.start !== undefined && node.end !== undefined) {
+    const lines = code.split('\n');
+    let currentPos = 0;
+    let startLine = 1;
+    let startColumn = 0;
+    let endLine = 1;
+    let endColumn = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const lineLength = lines[i].length + 1;
+      if (currentPos + lineLength > node.start) {
+        startLine = i + 1;
+        startColumn = node.start - currentPos;
+        break;
+      }
+      currentPos += lineLength;
+    }
+
+    currentPos = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const lineLength = lines[i].length + 1;
+      if (currentPos + lineLength > node.end) {
+        endLine = i + 1;
+        endColumn = node.end - currentPos;
+        break;
+      }
+      currentPos += lineLength;
+    }
+
+    node.loc = {
+      start: { line: startLine, column: startColumn },
+      end: { line: endLine, column: endColumn },
+    };
+  }
+
+  for (const key in node) {
+    if (key === 'parent' || key === 'loc' || key === 'range') {
+      continue; // Skip these to avoid infinite loops
+    }
+
+    const value = node[key];
+    if (Array.isArray(value)) {
+      value.forEach(child => ensureNodeProperties(child, code));
+    } else if (value && typeof value === 'object' && value.type) {
+      ensureNodeProperties(value, code);
+    }
+  }
+}
+
+/**
  * ESLint parser for Ripple (.ripple) files
  *
  * This parser uses Ripple's built-in compiler to parse .ripple files
@@ -23,31 +87,31 @@ export function parseForESLint(code: string, options?: Linter.ParserOptions): Pa
 
     // Parse the Ripple source code using the Ripple compiler
     const ast = rippleCompiler.parse(code);
+    if (!ast) throw new Error('Parser returned null or undefined AST');
 
-    if (!ast) {
-      throw new Error('Parser returned null or undefined AST');
-    }
+    // Recursively ensure all nodes have range and loc properties
+    ensureNodeProperties(ast, code);
 
-    if (!ast.tokens) {
-      ast.tokens = [];
-    }
-    if (!ast.comments) {
-      ast.comments = [];
-    }
-    if (!ast.loc) {
-      ast.loc = {
+    // Create a properly structured AST object ensuring all required properties exist
+    const result: any = {
+      type: ast.type || 'Program',
+      start: ast.start !== undefined ? ast.start : 0,
+      end: ast.end !== undefined ? ast.end : code.length,
+      loc: ast.loc || {
         start: { line: 1, column: 0 },
-        end: { line: 1, column: code.length },
-      };
-    }
-    if (!ast.range) {
-      ast.range = [0, code.length];
-    }
+        end: { line: code.split('\n').length, column: 0 },
+      },
+      range: ast.range || [0, code.length],
+      body: ast.body || [],
+      sourceType: ast.sourceType || 'module',
+      comments: ast.comments || [],
+      tokens: ast.tokens || [],
+    };
 
     return {
-      ast,
+      ast: result,
       services: {},
-      visitorKeys: undefined,
+      visitorKeys: undefined, // Use ESLint's default visitor keys
     };
   } catch (error: any) {
     // Transform Ripple parse errors to ESLint-compatible format

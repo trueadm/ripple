@@ -15,30 +15,23 @@ const rule: Rule.RuleModule = {
     schema: [],
   },
   create(context) {
-    let functionDepth = 0;
+    let componentDepth = 0;
 
-    const incrementDepth = () => functionDepth++;
-    const decrementDepth = () => functionDepth--;
+    const incrementComponentDepth = () => componentDepth++;
+    const decrementComponentDepth = () => componentDepth--;
 
     return {
-      // Track when we enter any function (including components)
+      // Only track when we enter a Ripple component
       // Ripple's parser returns "Component" nodes for component declarations
-      'FunctionDeclaration': incrementDepth,
-      'FunctionExpression': incrementDepth,
-      'ArrowFunctionExpression': incrementDepth,
-      'Component': incrementDepth,
-
-      'FunctionDeclaration:exit': decrementDepth,
-      'FunctionExpression:exit': decrementDepth,
-      'ArrowFunctionExpression:exit': decrementDepth,
-      'Component:exit': decrementDepth,
+      'Component': incrementComponentDepth,
+      'Component:exit': decrementComponentDepth,
 
       // Check track() calls
       CallExpression(node: CallExpression) {
         if (
           node.callee.type === 'Identifier' &&
           node.callee.name === 'track' &&
-          functionDepth === 0
+          componentDepth === 0
         ) {
           context.report({
             node,
