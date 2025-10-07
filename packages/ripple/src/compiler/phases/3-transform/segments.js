@@ -605,6 +605,9 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 			} else if (node.type === 'TemplateElement') {
 				// Leaf node, no children to visit
 				return;
+			} else if (node.type === 'Literal') {
+				// Leaf node - literals have no children to visit
+				return;
 			} else if (node.type === 'PrivateIdentifier') {
 				// Leaf node
 				return;
