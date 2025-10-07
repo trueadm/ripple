@@ -1,0 +1,39 @@
+import { describe, it, expect } from 'vitest';
+import { compile } from 'ripple/compiler'
+
+describe('compiler success tests', () => {
+
+
+	it('compiles TSInstantiationExpression', () => {
+		const source =
+`function makeBox<T>(value: T) {
+	return { value };
+}
+const makeStringBox = makeBox<string>;
+const stringBox = makeStringBox('abc');
+const ErrorMap = Map<string, Error>;
+const errorMap = new ErrorMap();`;
+
+		const result = compile(source, 'test.ripple', { mode: 'client' });
+
+		expect(result.js.code).toMatchSnapshot();
+	});
+
+	it('compiles imported component with conditional async in SSR', () => {
+		const source =
+`import { ChildComponent } from './Child.ripple';
+
+export component App() {
+	<div>
+		<ChildComponent message="hello" />
+	</div>
+}`;
+
+		const result = compile(source, 'test.ripple', { mode: 'server' });
+
+		// Should use if-statement instead of ternary to avoid parser issues
+		expect(result.js.code).toContain('if (ChildComponent.async)');
+		expect(result.js.code).toContain('await ChildComponent');
+		expect(result.js.code).toMatchSnapshot();
+	});
+});

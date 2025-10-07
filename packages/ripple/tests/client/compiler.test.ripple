@@ -495,4 +495,19 @@ effect(() => {
 		const effectMatch = result.js.code.match(/effect\(\(\) => \{([\s\S]+?)\n\t\}\)\)/);
 		expect(effectMatch[1].trim()).toMatchSnapshot();
 	});
+
+	it('compiles TSInstantiationExpression', () => {
+		const source =
+`function makeBox<T>(value: T) {
+	return { value };
+}
+const makeStringBox = makeBox<string>;
+const stringBox = makeStringBox('abc');
+const ErrorMap = Map<string, Error>;
+const errorMap = new ErrorMap();`;
+
+		const result = compile(source, 'test.ripple', { mode: 'client' });
+
+		expect(result.js.code).toMatchSnapshot();
+	});
 });

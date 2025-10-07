@@ -151,7 +151,7 @@ export type DeclarationKind =
 /**
  * Binding kinds
  */
-export type BindingKind = 'normal' | 'each' | 'rest_prop' | 'prop' | 'prop_fallback';
+export type BindingKind = 'normal' | 'for_pattern' | 'rest_prop' | 'prop' | 'prop_fallback';
 
 /**
  * A variable binding in a scope
