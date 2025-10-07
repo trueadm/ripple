@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import polka from 'polka';
 import { createServer as createViteServer } from 'vite';
+import { executeServerFunction } from 'ripple/server';
 
 const PORT = process.env.PORT || '5173';
 
@@ -15,13 +16,12 @@ const vite = await createViteServer({
 
 const rpc_modules = new Map();
 
-function json_body(req) {
+function get_request_body(req) {
 	return new Promise((resolve, reject) => {
 		let data = '';
 
 		req.on('data', (chunk) => {
 			data += chunk;
-			// Optional: protect against large payloads
 			if (data.length > 1e6) {
 				req.destroy();
 				reject(new Error('Request body too large'));
@@ -30,8 +30,7 @@ function json_body(req) {
 
 		req.on('end', () => {
 			try {
-				const json = JSON.parse(data || '{}');
-				resolve(json);
+				resolve(data);
 			} catch (err) {
 				reject(err);
 			}
@@ -57,9 +56,9 @@ polka()
 				const file_path = module_info[0];
 				const func_name = module_info[1];
 				const { _$_server_$_: server } = await vite.ssrLoadModule(file_path);
-				const rpc_arguments = await json_body(req);
-				const result = await server[func_name].apply(null, rpc_arguments);
-				res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+				const rpc_arguments = await get_request_body(req);
+				const result = await executeServerFunction(server[func_name], rpc_arguments);
+				res.writeHead(200, { 'Content-Type': 'application/json' }).end(result);
 				return;
 			}
 			const template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
