@@ -55,7 +55,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 						continue; // Not a whole word match, keep searching
 					}
 				}
-				
+
 				sourceIndex = i + text.length;
 				return i;
 			}
@@ -87,7 +87,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 						continue; // Not a whole word match, keep searching
 					}
 				}
-				
+
 				generatedIndex = i + text.length;
 				return i;
 			}
@@ -98,7 +98,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	// Collect text tokens from AST nodes
 	/** @type {string[]} */
 	const tokens = [];
-	
+
 	// We have to visit everything in generated order to maintain correct indices
 	walk(ast, null, {
 		_(node, { visit }) {
@@ -194,24 +194,24 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				return;
 			} else if (node.type === 'JSXElement') {
 				// Manually visit in source order: opening element, children, closing element
-				
+
 				// 1. Visit opening element (name and attributes)
 				if (node.openingElement) {
 					visit(node.openingElement);
 				}
-				
+
 				// 2. Visit children in order
 				if (node.children) {
 					for (const child of node.children) {
 						visit(child);
 					}
 				}
-				
+
 				// 3. Push closing tag name (not visited by AST walker)
 				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
 					tokens.push(node.closingElement.name.name);
 				}
-				
+
 				return;
 			} else if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
 				// Visit in source order: id, params, body
@@ -991,7 +991,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	for (const text of tokens) {
 		const sourcePos = findInSource(text);
 		const genPos = findInGenerated(text);
-		
+
 		if (sourcePos !== null && genPos !== null) {
 			mappings.push({
 				sourceOffsets: [sourcePos],
