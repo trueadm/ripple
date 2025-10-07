@@ -607,6 +607,55 @@ component Truthy({ x }) {
 }
 ```
 
+### Switch statements
+
+Switch statements let you conditionally render content based on a value. They work with both static and reactive values.
+
+```ripple
+component StatusIndicator({ status }) {
+  switch (status) {
+    case 'loading':
+      <p>{'Loading...'}</p>
+      break;
+    case 'success':
+      <p>{'Success!'}</p>
+      break;
+    case 'error':
+      <p>{'Error!'}</p>
+      break;
+    default:
+      <p>{'Unknown status'}</p>
+  }  
+}
+```
+
+You can also use reactive values with switch statements:
+
+```ripple
+import { track } from 'ripple';
+
+component InteractiveStatus() {
+  let status = track('loading');
+
+  <button onClick={() => @status = 'success'}>{'Success'}</button>
+  <button onClick={() => @status = 'error'}>{'Error'}</button>
+
+  switch (@status) {
+    case 'loading':
+      <p>{'Loading...'}</p>
+      break;
+    case 'success':
+      <p>{'Success!'}</p>
+      break;
+    case 'error':
+      <p>{'Error!'}</p>
+      break;
+    default:
+      <p>{'Unknown status'}</p>
+  }
+}
+```
+
 ### For statements
 
 You can render collections using a `for...of` loop.
