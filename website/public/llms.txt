@@ -432,9 +432,7 @@ component InteractiveStatus() {
 }
 ```
 
-**⚠️ Critical: No Fall-Through and Mandatory `break`**
-
-Unlike JavaScript, Ripple's `switch` statements **do not support fall-through**. This is a deliberate design choice to prevent common bugs and improve code clarity.
+**⚠️ Critical: Mandatory `break`**
 
 - **`break` is required:** You **must** include a `break` statement at the end of each `case` block (except for `default`).
 - **Compilation Error:** If you omit the `break` statement, the Ripple compiler will throw an error.

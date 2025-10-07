@@ -656,9 +656,6 @@ component InteractiveStatus() {
 }
 ```
 
-> Ripple does not support fall-through in `switch` statements like that in case of JavaScript (and few other programming languages too). 
-Hence, you must use a `break` statement after each `case`, else Ripple will throw error regarding that.
-
 ### For statements
 
 You can render collections using a `for...of` loop.
