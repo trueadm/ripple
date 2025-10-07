@@ -405,6 +405,36 @@ export component Test({ a, b }: Props) {}`;
 			const result = await format(input, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('respects the semi false option', async () => {
+			const input = `export component Test() {
+  const a = 1
+  const b = 2
+  <div>{a + b}</div>
+}`;
+			const expected = `export component Test() {
+  const a = 1
+  const b = 2
+  <div>{a + b}</div>
+}`;
+			const result = await format(input, { singleQuote: true, semi: false });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('respects the semi true option', async () => {
+			const input = `export component Test() {
+  const a = 1
+  const b = 2
+  <div>{a + b}</div>
+}`;
+			const expected = `export component Test() {
+  const a = 1;
+  const b = 2;
+  <div>{a + b}</div>
+}`;
+			const result = await format(input, { singleQuote: true, semi: true });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {

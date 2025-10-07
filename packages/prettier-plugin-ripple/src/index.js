@@ -86,6 +86,11 @@ function createIndent(options, level = 1) {
 	}
 }
 
+// Helper function to add semicolons based on options.semi setting
+function semi(options) {
+	return options.semi !== false ? ';' : '';
+}
+
 function printRippleNode(node, path, options, print, args) {
 	if (!node || typeof node !== 'object') {
 		return String(node || '');
@@ -556,11 +561,9 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printVariableDeclaration(node, path, options, print);
 			break;
 
-		case 'ExpressionStatement':
-			nodeContent = concat([path.call(print, 'expression'), ';']);
-			break;
-
-		case 'RefAttribute':
+	case 'ExpressionStatement':
+		nodeContent = concat([path.call(print, 'expression'), semi(options)]);
+		break;		case 'RefAttribute':
 			nodeContent = concat(['{ref ', path.call(print, 'argument'), '}']);
 			break;
 
@@ -653,7 +656,7 @@ function printRippleNode(node, path, options, print, args) {
 				parts.push(' ');
 				parts.push(path.call(print, 'argument'));
 			}
-			parts.push(';');
+			parts.push(semi(options));
 			nodeContent = concat(parts);
 			break;
 		}
@@ -1012,7 +1015,7 @@ function printImportDeclaration(node, path, options, print) {
 		parts.push(' ' + importParts.join(', ') + ' from');
 	}
 
-	parts.push(' ' + formatStringLiteral(node.source.value, options) + ';');
+	parts.push(' ' + formatStringLiteral(node.source.value, options) + semi(options));
 
 	// Return as single string for proper cursor tracking
 	return parts;
@@ -1044,7 +1047,7 @@ function printExportNamedDeclaration(node, path, options, print) {
 			parts.push(' from ');
 			parts.push(formatStringLiteral(node.source.value, options));
 		}
-		parts.push(';');
+		parts.push(semi(options));
 
 		return parts;
 	}
@@ -1190,7 +1193,7 @@ function printVariableDeclaration(node, path, options, print) {
 	const declarationParts = join(', ', declarations);
 
 	if (!hasForLoopParent) {
-		return concat([kind, ' ', declarationParts, ';']);
+		return concat([kind, ' ', declarationParts, semi(options)]);
 	}
 
 	return concat([kind, ' ', declarationParts]);
@@ -1608,7 +1611,7 @@ function printPropertyDefinition(node, path, options, print) {
 		parts.push(path.call(print, 'value'));
 	}
 
-	parts.push(';');
+	parts.push(semi(options));
 
 	return concat(parts);
 }
@@ -1774,7 +1777,7 @@ function printThrowStatement(node, path, options, print) {
 	const parts = [];
 	parts.push('throw ');
 	parts.push(path.call(print, 'argument'));
-	parts.push(';');
+	parts.push(semi(options));
 	return parts;
 }
 
@@ -1801,7 +1804,7 @@ function printTSInterfaceBody(node, path, options, print) {
 	const members = path.map(print, 'body');
 
 	// Add semicolons to all members
-	const membersWithSemicolons = members.map((member) => concat([member, ';']));
+	const membersWithSemicolons = members.map((member) => concat([member, semi(options)]));
 
 	return group(['{', indent([hardline, join(hardline, membersWithSemicolons)]), hardline, '}']);
 }
@@ -1817,7 +1820,7 @@ function printTSTypeAliasDeclaration(node, path, options, print) {
 
 	parts.push(' = ');
 	parts.push(path.call(print, 'typeAnnotation'));
-	parts.push(';');
+	parts.push(semi(options));
 
 	return parts;
 }
@@ -1920,7 +1923,7 @@ function printBreakStatement(node, path, options, print) {
 		parts.push(' ');
 		parts.push(path.call(print, 'label'));
 	}
-	parts.push(';');
+	parts.push(semi(options));
 	return parts;
 }
 
@@ -1931,12 +1934,12 @@ function printContinueStatement(node, path, options, print) {
 		parts.push(' ');
 		parts.push(path.call(print, 'label'));
 	}
-	parts.push(';');
+	parts.push(semi(options));
 	return parts;
 }
 
 function printDebuggerStatement(node, path, options, print) {
-	return 'debugger;';
+	return 'debugger' + semi(options);
 }
 
 function printSequenceExpression(node, path, options, print) {
