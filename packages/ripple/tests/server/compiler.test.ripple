@@ -36,4 +36,15 @@ export component App() {
 		expect(result.js.code).toContain('await ChildComponent');
 		expect(result.js.code).toMatchSnapshot();
 	});
+
+	it('removes type assertions from function parameters and leaves default values', () => {
+		const source = `
+function getString(e: string = 'test') {
+	return e;
+}`;
+
+		const result = compile(source, 'test.ripple', { mode: 'client' });
+
+		expect(result.js.code).toMatchSnapshot();
+	});
 });

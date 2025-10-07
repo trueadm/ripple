@@ -59,6 +59,10 @@ function visit_function(node, context) {
 
 	for (const param of node.params) {
 		delete param.typeAnnotation;
+		// Handle AssignmentPattern (parameters with default values)
+		if (param.type === 'AssignmentPattern' && param.left) {
+			delete param.left.typeAnnotation;
+		}
 	}
 
 	if (metadata?.hoisted === true) {
