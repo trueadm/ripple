@@ -13,8 +13,11 @@
   "devDependencies": {
     "jsdom": "catalog:",
     "prettier": "catalog:",
-    "vite-plugin-ripple": "workspace:*",
     "prettier-plugin-ripple": "workspace:*",
+    "vite-plugin-ripple": "workspace:*",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@types/eslint": "^8.56.12"
   }
 }

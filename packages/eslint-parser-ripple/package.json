@@ -1,0 +1,42 @@
+{
+  "name": "eslint-parser-ripple",
+  "version": "0.1.0",
+  "description": "ESLint parser for Ripple (.ripple files)",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "eslint",
+    "parser",
+    "ripple"
+  ],
+  "author": "Dominic Gannaway",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean"
+  },
+  "peerDependencies": {
+    "eslint": ">=8.0.0",
+    "ripple": "*"
+  },
+  "dependencies": {
+    "acorn": "^8.14.0",
+    "acorn-typescript": "^1.4.13"
+  },
+  "devDependencies": {
+    "@types/eslint": "^8.56.12",
+    "@types/estree": "^1.0.6",
+    "@types/node": "^20.17.6",
+    "ripple": "workspace:*",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
