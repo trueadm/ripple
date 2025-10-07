@@ -170,7 +170,8 @@ const visitors = {
 					(node.tracked ||
 						binding?.kind === 'prop' ||
 						binding?.kind === 'index' ||
-						binding?.kind === 'prop_fallback') &&
+						binding?.kind === 'prop_fallback' ||
+						binding?.kind === 'for_pattern') &&
 					binding?.node !== node
 				) {
 					if (context.state.metadata?.tracking === false) {

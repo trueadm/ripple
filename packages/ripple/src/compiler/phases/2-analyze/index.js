@@ -131,7 +131,11 @@ const visitors = {
 			}
 		}
 
-		if (binding?.kind === 'prop' || binding?.kind === 'prop_fallback') {
+		if (
+			binding?.kind === 'prop' ||
+			binding?.kind === 'prop_fallback' ||
+			binding?.kind === 'for_pattern'
+		) {
 			mark_as_tracked(context.path);
 			if (context.state.metadata?.tracking === false) {
 				context.state.metadata.tracking = true;
@@ -392,11 +396,18 @@ const visitors = {
 				const name = path.node.name;
 				const binding = context.state.scope.get(name);
 
+				binding.kind = 'for_pattern';
+				if (!binding.metadata) {
+					binding.metadata = {
+						pattern: pattern_id,
+					};
+				}
+
 				if (binding !== null) {
 					binding.transform = {
 						read: () => {
 							return path.expression(b.call('_$_.get', pattern_id));
-						}
+						},
 					};
 				}
 			}
