@@ -130,6 +130,13 @@ const visitors = {
 		return context.next();
 	},
 
+	NewExpression(node, context) {
+		if (!context.state.to_ts) {
+			delete node.typeArguments;
+		}
+		return context.next();
+	},
+
 	PropertyDefinition(node, context) {
 		if (!context.state.to_ts) {
 			delete node.typeAnnotation;
