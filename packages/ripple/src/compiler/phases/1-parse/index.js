@@ -106,7 +106,11 @@ function RipplePlugin(config) {
 					if (inComponent) {
 						// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
 						// At component top-level (scopeStack.length <= 4), apply JSX detection logic
-						if (this.scopeStack.length >= 5) {
+						// BUT: if the < is followed by /, it's a closing JSX tag, not a less-than operator
+						const nextChar = this.pos + 1 < this.input.length ? this.input.charCodeAt(this.pos + 1) : -1;
+						const isClosingTag = nextChar === 47; // '/'
+
+						if (this.scopeStack.length >= 5 && !isClosingTag) {
 							// Inside function - treat as TypeScript generic, not JSX
 							++this.pos;
 							return this.finishToken(tt.relational, '<');
