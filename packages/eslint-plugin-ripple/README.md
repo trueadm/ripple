@@ -2,6 +2,8 @@
 
 ESLint plugin for [Ripple](https://ripplejs.com) - helps enforce best practices and catch common mistakes when writing Ripple applications.
 
+Works just like `eslint-plugin-react` - simply install and use the recommended config!
+
 ## Installation
 
 ```bash
@@ -20,17 +22,13 @@ pnpm add --save-dev eslint-plugin-ripple
 // eslint.config.js
 import ripple from 'eslint-plugin-ripple';
 
-export default [
-  {
-    plugins: {
-      ripple,
-    },
-    rules: {
-      ...ripple.configs.recommended.rules,
-    },
-  },
-];
+export default [...ripple.configs.recommended];
 ```
+
+The plugin automatically:
+- Detects and uses `eslint-parser-ripple` if installed for `.ripple` files
+- Excludes `.d.ts` files, `node_modules`, `dist`, and `build` directories from linting
+- Works with both `.ts`/`.tsx` and `.ripple` files
 
 ### Legacy Config (.eslintrc)
 

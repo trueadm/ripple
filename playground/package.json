@@ -16,7 +16,6 @@
     "@tailwindcss/vite": "^4.1.12",
     "@typescript-eslint/parser": "^8.20.0",
     "eslint": "^8.57.1",
-    "eslint-parser-ripple": "workspace:*",
     "eslint-plugin-ripple": "workspace:*",
     "polka": "^1.0.0-next.25",
     "ripple": "workspace:*",

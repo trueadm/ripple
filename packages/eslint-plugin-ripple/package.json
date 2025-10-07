@@ -19,21 +19,24 @@
   "author": "Dominic Gannaway",
   "license": "MIT",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts --format esm --dts --clean --target esnext --platform node",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "eslint": ">=8.0.0"
+    "eslint": ">=9.0.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint-parser-ripple": "workspace:*"
   },
   "devDependencies": {
-    "@types/eslint": "^8.56.12",
+    "@types/eslint": "^9.6.1",
     "@types/estree": "^1.0.6",
     "@types/node": "^20.17.6",
-    "eslint": "^8.57.1",
-    "tsup": "^8.3.5",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "eslint": "^9.0.0",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -21,7 +21,7 @@
     "build": "tsup src/index.ts --format esm --dts --clean"
   },
   "peerDependencies": {
-    "eslint": ">=8.0.0",
+    "eslint": ">=9.0.0",
     "ripple": "*"
   },
   "dependencies": {
@@ -29,12 +29,12 @@
     "acorn-typescript": "^1.4.13"
   },
   "devDependencies": {
-    "@types/eslint": "^8.56.12",
+    "@types/eslint": "^9.6.1",
     "@types/estree": "^1.0.6",
     "@types/node": "^20.17.6",
     "ripple": "workspace:*",
-    "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "tsup": "catalog:",
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"
