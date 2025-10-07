@@ -17,6 +17,7 @@ import is_reference from 'is-reference';
 import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';
+import { createHash } from 'node:crypto';
 
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
@@ -31,6 +32,10 @@ function transform_children(children, context) {
 	const normalized = normalize_children(children, context);
 
 	for (const node of normalized) {
+		if (node.type === 'BreakStatement') {
+			state.init.push(b.break);
+			continue;
+		}
 		if (
 			node.type === 'VariableDeclaration' ||
 			node.type === 'ExpressionStatement' ||
@@ -132,9 +137,50 @@ const visitors = {
 		return context.next();
 	},
 
+	FunctionDeclaration(node, context) {
+		if (!context.state.to_ts) {
+			delete node.returnType;
+			delete node.typeParameters;
+			for (const param of node.params) {
+				delete param.typeAnnotation;
+			}
+		}
+		return context.next();
+	},
+
+	FunctionExpression(node, context) {
+		if (!context.state.to_ts) {
+			delete node.returnType;
+			delete node.typeParameters;
+			for (const param of node.params) {
+				delete param.typeAnnotation;
+			}
+		}
+		return context.next();
+	},
+
+	ArrowFunctionExpression(node, context) {
+		if (!context.state.to_ts) {
+			delete node.returnType;
+			delete node.typeParameters;
+			for (const param of node.params) {
+				delete param.typeAnnotation;
+			}
+		}
+		return context.next();
+	},
+
 	TSAsExpression(node, context) {
 		if (!context.state.to_ts) {
 			return context.visit(node.expression);
+		}
+		return context.next();
+	},
+
+	TSInstantiationExpression(node, context) {
+		if (!context.state.to_ts) {
+			// In JavaScript, just return the expression wrapped in parentheses
+			return b.sequence([context.visit(node.expression)]);
 		}
 		return context.next();
 	},
@@ -157,8 +203,23 @@ const visitors = {
 		if (!context.state.to_ts && node.exportKind === 'type') {
 			return b.empty;
 		}
+		if (!context.state.inside_server_block) {
+			return context.next();
+		}
+		const declaration = node.declaration;
 
-		return context.next();
+		if (declaration && declaration.type === 'FunctionDeclaration') {
+			return b.stmt(
+				b.assignment(
+					'=',
+					b.member(b.id('_$_server_$_'), b.id(declaration.id.name)),
+					context.visit(declaration),
+				),
+			);
+		} else {
+			// TODO
+			throw new Error('Not implemented');
+		}
 	},
 
 	VariableDeclaration(node, context) {
@@ -380,15 +441,43 @@ const visitors = {
 				}
 			} else {
 				// Component is imported or dynamic - check .async property at runtime
-				const conditional_await = b.conditional(
-					b.member(visit(node.id, state), b.id('async')),
-					b.await(component_call),
-					component_call,
+				// Use if-statement instead of ternary to avoid parser issues with await in conditionals
+				state.init.push(
+					b.if(
+						b.member(visit(node.id, state), b.id('async')),
+						b.block([b.stmt(b.await(component_call))]),
+						b.block([b.stmt(component_call)]),
+					),
 				);
-				state.init.push(b.stmt(conditional_await));
+
+				// Mark parent component as async since we're using await
+				if (state.metadata?.await === false) {
+					state.metadata.await = true;
+				}
 			}
 		}
 	},
+	SwitchStatement(node, context) {
+		if (!is_inside_component(context)) {
+			return context.next();
+		}
+		const cases = [];
+		for (const switch_case of node.cases) {
+			const consequent_scope =
+				context.state.scopes.get(switch_case.consequent) || context.state.scope;
+			const consequent = b.block(
+				transform_body(switch_case.consequent, {
+					...context,
+					state: { ...context.state, scope: consequent_scope },
+				}),
+			);
+			cases.push(
+				b.switch_case(switch_case.test ? context.visit(switch_case.test) : null, consequent.body),
+			);
+		}
+		context.state.init.push(b.switch(context.visit(node.discriminant), cases));
+	},
+
 	ForOfStatement(node, context) {
 		if (!is_inside_component(context)) {
 			context.next();
@@ -438,6 +527,10 @@ const visitors = {
 			add_ripple_internal_import(context);
 			return b.call('_$_.get', build_getter(node, context));
 		}
+	},
+
+	ServerIdentifier(node, context) {
+		return b.id('_$_server_$_');
 	},
 
 	ImportDeclaration(node, context) {
@@ -599,7 +692,38 @@ const visitors = {
 	},
 
 	ServerBlock(node, context) {
-		return context.visit(node.body);
+		const exports = node.metadata.exports;
+
+		if (exports.length === 0) {
+			return context.visit(node.body);
+		}
+		const file_path = context.state.filename;
+		const block = context.visit(node.body, { ...context.state, inside_server_block: true });
+		const rpc_modules = globalThis.rpc_modules;
+
+		if (rpc_modules) {
+			for (const name of exports) {
+				const func_path = file_path + '#' + name;
+				// needs to be a sha256 hash of func_path, to avoid leaking file structure
+				const hash = createHash('sha256').update(func_path).digest('hex').slice(0, 8);
+				rpc_modules.set(hash, [file_path, name]);
+			}
+		}
+
+		return b.export(
+			b.const(
+				'_$_server_$_',
+				b.call(
+					b.thunk(
+						b.block([
+							b.var('_$_server_$_', b.object([])),
+							...block.body,
+							b.return(b.id('_$_server_$_')),
+						]),
+					),
+				),
+			),
+		);
 	},
 };
 
@@ -614,6 +738,8 @@ export function transform_server(filename, source, analysis) {
 		scopes: analysis.scopes,
 		stylesheets: [],
 		component_metadata,
+		inside_server_block: false,
+		filename,
 	};
 
 	const program = /** @type {ESTree.Program} */ (

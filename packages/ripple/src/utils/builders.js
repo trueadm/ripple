@@ -221,6 +221,17 @@ export function export_default(declaration) {
 }
 
 /**
+ * @param {ESTree.Declaration | null} declaration
+ * @param {ESTree.ExportSpecifier[]} [specifiers]
+ * @param {ESTree.ImportAttribute[]} [attributes]
+ * @param {ESTree.Literal | null} [source]
+ * @returns {ESTree.ExportNamedDeclaration}
+ */
+export function export_builder(declaration, specifiers = [], attributes = [], source = null) {
+  return { type: 'ExportNamedDeclaration', declaration, specifiers, attributes, source };
+}
+
+/**
  * @param {ESTree.Identifier} id
  * @param {ESTree.Pattern[]} params
  * @param {ESTree.BlockStatement} body
@@ -581,16 +592,17 @@ export function method(kind, key, params, body, computed = false, is_static = fa
  * @param {ESTree.Identifier | null} id
  * @param {ESTree.Pattern[]} params
  * @param {ESTree.BlockStatement} body
+ * @param {boolean} async
  * @returns {ESTree.FunctionExpression}
  */
-function function_builder(id, params, body) {
+function function_builder(id, params, body, async = false) {
   return {
     type: 'FunctionExpression',
     id,
     params,
     body,
     generator: false,
-    async: false,
+    async,
     metadata: /** @type {any} */ (null), // should not be used by codegen
   };
 }
@@ -812,6 +824,7 @@ export {
   let_builder as let,
   const_builder as const,
   var_builder as var,
+  export_builder as export,
   true_instance as true,
   false_instance as false,
   break_statement as break,

@@ -316,6 +316,8 @@ function get_hoisted_params(node, context) {
 		if (binding !== null && !scope.declarations.has(reference) && binding.initial !== node) {
 			if (binding.kind === 'prop') {
 				push_unique(b.id('__props'));
+			} else if (binding.kind === 'for_pattern') {
+				push_unique(binding.metadata.pattern);
 			} else if (binding.kind === 'prop_fallback') {
 				push_unique(b.id(binding.node.name));
 			} else if (

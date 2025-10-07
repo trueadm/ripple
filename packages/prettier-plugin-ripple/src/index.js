@@ -467,28 +467,16 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSTypeParameterInstantiation(node, path, options, print);
 			break;
 
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
-
-		case 'TSBooleanKeyword':
-			nodeContent = 'boolean';
-			break;
-
-		case 'TSUndefinedKeyword':
-			nodeContent = 'undefined';
-			break;
-
 		case 'TSSymbolKeyword':
 			nodeContent = 'symbol';
 			break;
 
-		case 'TSBigIntKeyword':
-			nodeContent = 'bigint';
-			break;
-
 		case 'TSAnyKeyword':
 			nodeContent = 'any';
+			break;
+
+		case 'TSUnknownKeyword':
+			nodeContent = 'unknown';
 			break;
 
 		case 'TSNeverKeyword':
@@ -497,6 +485,38 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSVoidKeyword':
 			nodeContent = 'void';
+			break;
+
+		case 'TSUndefinedKeyword':
+			nodeContent = 'undefined';
+			break;
+
+		case 'TSNullKeyword':
+			nodeContent = 'null';
+			break;
+
+		case 'TSNumberKeyword':
+			nodeContent = 'number';
+			break;
+
+		case 'TSBigIntKeyword':
+			nodeContent = 'bigint';
+			break;
+
+		case 'TSObjectKeyword':
+			nodeContent = 'object';
+			break
+
+		case 'TSBooleanKeyword':
+			nodeContent = 'boolean';
+			break;
+
+		case 'TSStringKeyword':
+			nodeContent = 'string';
+			break;
+
+		case 'EmptyStatement':
+			nodeContent = '';
 			break;
 
 		case 'TSInterfaceBody':
@@ -532,11 +552,6 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = concat(parts);
 			break;
 		}
-
-		case 'EmptyStatement':
-			nodeContent = '';
-			break;
-
 		case 'VariableDeclaration':
 			nodeContent = printVariableDeclaration(node, path, options, print);
 			break;
@@ -553,7 +568,9 @@ function printRippleNode(node, path, options, print, args) {
 			const parts = ['{...', path.call(print, 'argument'), '}'];
 			nodeContent = concat(parts);
 			break;
-		} case 'Identifier': {
+		}
+
+		case 'Identifier': {
 			// Simple case - just return the name directly like Prettier core
 			const trackedPrefix = node.tracked ? "@" : "";
 			if (node.typeAnnotation) {
@@ -673,10 +690,6 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
-
 		case 'MemberExpression':
 			nodeContent = printMemberExpression(node, path, options, print);
 			break;
@@ -714,22 +727,6 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSPropertySignature(node, path, options, print);
 			break;
 
-		case 'TSStringKeyword':
-			nodeContent = 'string';
-			break;
-
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
-
-		case 'TSNullKeyword':
-			nodeContent = 'null';
-			break;
-
-		case 'TSUnknownKeyword':
-			nodeContent = 'unknown';
-			break;
-
 		case 'TSLiteralType':
 			nodeContent = path.call(print, 'literal');
 			break;
@@ -759,7 +756,7 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSTypeQuery': {
 			const expr = path.call(print, 'exprName');
-			nodeContent = `typeof ${expr}`;
+			nodeContent = concat(['typeof ', expr]);
 			break;
 		}
 
@@ -768,8 +765,8 @@ function printRippleNode(node, path, options, print, args) {
 
 			// Handle parameters
 			parts.push('(');
-			if (node.params && node.params.length > 0) {
-				const params = path.map(print, 'params');
+			if (node.parameters && node.parameters.length > 0) {
+				const params = path.map(print, 'parameters');
 				for (let i = 0; i < params.length; i++) {
 					if (i > 0) parts.push(', ');
 					parts.push(params[i]);
@@ -988,10 +985,12 @@ function printImportDeclaration(node, path, options, print) {
 			if (spec.type === 'ImportDefaultSpecifier') {
 				defaultImports.push(spec.local.name);
 			} else if (spec.type === 'ImportSpecifier') {
+				// Handle inline type imports: import { type Component } from 'ripple'
+				const typePrefix = spec.importKind === 'type' ? 'type ' : '';
 				const importName =
 					spec.imported.name === spec.local.name
-						? spec.local.name
-						: spec.imported.name + ' as ' + spec.local.name;
+						? typePrefix + spec.local.name
+						: typePrefix + spec.imported.name + ' as ' + spec.local.name;
 				namedImports.push(importName);
 			} else if (spec.type === 'ImportNamespaceSpecifier') {
 				namespaceImports.push('* as ' + spec.local.name);

@@ -70,3 +70,5 @@ export { head } from './head.js';
 export { script } from './script.js';
 
 export { html } from './html.js';
+
+export { rpc } from './rpc.js';
