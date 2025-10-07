@@ -32,7 +32,7 @@
   "devDependencies": {
     "@types/eslint": "^9.6.1",
     "@types/estree": "^1.0.6",
-    "@types/node": "^20.17.6",
+    "@types/node": "^24.3.0",
     "eslint": "^9.0.0",
     "tsup": "catalog:",
     "typescript": "catalog:",
