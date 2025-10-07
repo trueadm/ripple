@@ -607,7 +607,7 @@ component Truthy({ x }) {
 }
 ```
 
-## Switch statements
+### Switch statements
 
 Switch statements let you conditionally render content based on a value. They work with both static and reactive values.
 
