@@ -104,7 +104,7 @@ typescript-auto-import-cache@^0.3.5:
     semver "^7.3.8"
 
 "typescript-plugin-ripple@workspace:*":
-  version "0.2.109"
+  version "0.2.110"
   resolved "https://registry.yarnpkg.com/typescript-plugin-ripple/-/typescript-plugin-ripple-0.2.103.tgz#58486abffd7b0ecd5fa386bee952a2ffde94fd03"
   integrity sha512-Bo5moiivSvuDC3TfnmuPawSpf0Qz6DTxx8VvkrZqo/DtKtDsQ45C8l8bI2A5hwzi7lwLD8IQ3eQTef9tqaE8iA==
   dependencies:
