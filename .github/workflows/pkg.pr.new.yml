@@ -96,8 +96,6 @@ jobs:
             './packages/rollup-plugin-ripple' \
             './packages/vite-plugin-ripple' \
             './packages/create-ripple' \
-            './packages/eslint-plugin-ripple' \
-            './packages/eslint-parser-ripple' \
             --compact \
             --comment=update \
             --packageManager=pnpm \
