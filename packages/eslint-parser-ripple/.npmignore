@@ -1,0 +1,7 @@
+src/
+node_modules/
+*.test.ts
+*.test.js
+debug-parse.js
+tsconfig.json
+.DS_Store

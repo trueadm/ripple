@@ -33,6 +33,24 @@ export default defineConfig({
 				plugins: [ripple()],
 			},
 			{
+				name: 'eslint-plugin',
+				test: {
+					include: ['packages/eslint-plugin-ripple/tests/**/*.test.ts'],
+					environment: 'jsdom',
+					globals: true,
+				},
+				plugins: [ripple()],
+			},
+			{
+				name: 'eslint-parser',
+				test: {
+					include: ['packages/eslint-parser-ripple/tests/**/*.test.ts'],
+					environment: 'jsdom',
+					globals: true,
+				},
+				plugins: [ripple()],
+			},
+			{
 				name: 'create-ripple',
 				test: {
 					include: ['packages/create-ripple/tests/**/*.test.js'],
