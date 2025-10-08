@@ -204,7 +204,7 @@ const visitors = {
 		return {
 			...node,
 			specifiers: node.specifiers
-				.filter((spec) => spec.importKind !== 'type')
+				.filter((spec) => context.state.to_ts || spec.importKind !== 'type')
 				.map((spec) => context.visit(spec)),
 		};
 	},
