@@ -5,9 +5,9 @@ export const mapping_data = {
 	completion: true,
 	semantic: true,
 	navigation: true,
-	codeActions: true,
-	formatting: true,
 	rename: true,
+	codeActions: false, // set to false to disable auto import when importing yourself
+	formatting: false, // not doing formatting through Volar, using Prettier.
 };
 
 /**
