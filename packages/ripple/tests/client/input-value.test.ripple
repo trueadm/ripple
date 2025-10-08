@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, flushSync, track, effect } from 'ripple';
-import { value } from 'ripple/bind';
+import { value, checked } from 'ripple/bind';
 
 describe('use value()', () => {
 	let container;
@@ -39,5 +39,25 @@ describe('use value()', () => {
 		input.dispatchEvent(new Event('input'));
 		flushSync();
 		expect(input.value).toBe('Hello');
+	});
+
+	it('should update checked on input', () => {
+		component App() {
+			const value = track(false);
+
+			effect(() => {
+				console.log('checked changed', @value);
+			});
+
+			<input type="checkbox" {ref checked(value)} />
+		}
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input');
+		input.checked = true;
+		input.dispatchEvent(new Event('input'));
+		flushSync();
+		expect(input.checked).toBe(true);
 	});
 });
