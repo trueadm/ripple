@@ -72,4 +72,3 @@ Ripple is a new project, and is not production-ready.
 ## Missing Features
 
 - **SSR**: Ripple is currently an SPA only, this is because I haven't gotten around to it
-- **Types**: The codebase is very raw with limited types, we're getting around to it
