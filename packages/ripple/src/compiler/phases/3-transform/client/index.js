@@ -1504,9 +1504,17 @@ function transform_ts_child(node, context) {
 		let closing_type = undefined;
 
 		if (!node.selfClosing) {
-			closing_type = tracked_type
-				? b.jsx_id(tracked_type)
-				: b.jsx_id(type);
+			closing_type = b.jsx_id(type);
+			closing_type.loc = {
+				start: {
+					line: node.loc.end.line,
+					column: node.loc.end.column - type.length - 1,
+				},
+				end: {
+					line: node.loc.end.line,
+					column: node.loc.end.column - 1,
+				},
+			};
 		}
 
 		const jsxElement = b.jsx_element(opening_type, attributes, children, node.selfClosing, closing_type);
