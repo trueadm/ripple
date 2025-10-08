@@ -16,7 +16,12 @@
 		"isolatedModules": true,
 		"noEmit": true,
 		"jsx": "preserve",
-		"jsxImportSource": "ripple"
+		"jsxImportSource": "ripple",
+		"plugins": [
+			{
+				"name": "typescript-plugin-ripple"
+			}
+		]
 	},
 	"exclude": ["node_modules", "dist"]
 }

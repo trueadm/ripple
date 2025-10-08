@@ -5,6 +5,9 @@ export const mapping_data = {
 	completion: true,
 	semantic: true,
 	navigation: true,
+	codeActions: true,
+	formatting: true,
+	rename: true,
 };
 
 /**
@@ -1004,6 +1007,17 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 
 	// Sort mappings by source offset
 	mappings.sort((a, b) => a.sourceOffsets[0] - b.sourceOffsets[0]);
+
+	// Add a mapping for the very beginning of the file to handle import additions
+	// This ensures that code actions adding imports at the top work correctly
+	if (mappings.length > 0 && mappings[0].sourceOffsets[0] > 0) {
+		mappings.unshift({
+			sourceOffsets: [0],
+			generatedOffsets: [0],
+			lengths: [1],
+			data: mapping_data,
+		});
+	}
 
 	return {
 		code: generated_code,

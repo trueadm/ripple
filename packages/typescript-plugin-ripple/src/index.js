@@ -3,27 +3,34 @@ const { getRippleLanguagePlugin } = require('./language.js')
 
 module.exports = createLanguageServicePlugin((ts, info) => {
   return {
-    languagePlugins: [getRippleLanguagePlugin()],
+		// Removing languagePlugins: [...] as Volar already adds it
     setup(language) {
       const languageService = info.languageService;
-      info.languageService = new Proxy(languageService, {
-        get(target, prop) {
-          if (prop === 'getSyntacticDiagnostics') {
-            return getSyntacticDiagnostics;
-          }
-          if (prop === 'getSemanticDiagnostics') {
-            return getSemanticDiagnostics;
-          }
-          if (prop === 'getSuggestionDiagnostics') {
-            return getSuggestionDiagnostics;
-          }
-          return target[prop];
-        },
-        set(target, prop, value) {
-          target[prop] = value;
-          return true;
-        }
-      });
+			info.languageService = new Proxy(languageService, {
+				get(target, prop) {
+					const value = target[prop];
+
+					if (prop === 'getSyntacticDiagnostics') {
+						return getSyntacticDiagnostics;
+					}
+					if (prop === 'getSemanticDiagnostics') {
+						return getSemanticDiagnostics;
+					}
+					if (prop === 'getSuggestionDiagnostics') {
+						return getSuggestionDiagnostics;
+					}
+
+					// FIX: Bind all methods to target so `this` remains correct
+					if (typeof value === 'function') {
+						return value.bind(target);
+					}
+					return value;
+				},
+				set(target, prop, value) {
+					target[prop] = value;
+					return true;
+				},
+			});
 
       function getSyntacticDiagnostics(fileName) {
         return isErrorMode(fileName) ? [] : languageService.getSyntacticDiagnostics(fileName);

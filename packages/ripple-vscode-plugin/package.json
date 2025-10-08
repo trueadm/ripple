@@ -33,9 +33,6 @@
     "vscode-uri": "^3.1.0"
   },
   "contributes": {
-    "activationEvents": [
-      "onLanguage"
-    ],
     "languages": [
       {
         "id": "ripple",
@@ -78,16 +75,6 @@
           "source.js.embedded.ripple-isolated": "javascript",
           "source.css": "css"
         }
-      }
-    ],
-    "typescriptServerPlugins": [
-      {
-        "name": "typescript-plugin-ripple",
-        "enableForWorkspaceTypeScriptVersions": true,
-        "configNamespace": "typescript",
-        "languages": [
-          "ripple"
-        ]
       }
     ],
     "menus": {
