@@ -71,3 +71,41 @@ export component App() {
 ```
 
 </Code>
+
+## Two-Way Data Binding
+
+Ripple provides `value()` and `checked()` utilities from `ripple/bind` for two-way form binding.
+
+### Basic Usage
+
+<Code console>
+
+```ripple
+import { track } from 'ripple';
+import { value, checked } from 'ripple/bind';
+
+export component App() {
+	let text = track('');
+	let isChecked = track(false);
+
+	<div>
+		<input type="text" {@ref value(text)} />
+		<p>{'Text: ' + @text}</p>
+		
+		<input type="checkbox" {@ref checked(isChecked)} />
+		<p>{'Checked: ' + @isChecked}</p>
+	</div>
+}
+```
+
+</Code>
+
+### Comparison
+
+```ripple
+// Manual event handling
+<input onInput={(e) => @text = e.target.value} value={@text} />
+
+// Two-way binding (equivalent)
+<input {@ref value(text)} />
+```

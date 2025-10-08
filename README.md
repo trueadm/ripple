@@ -914,6 +914,34 @@ export component App() {
 }
 ```
 
+#### Two-Way Data Binding
+
+Ripple provides utilities for two-way form binding to eliminate boilerplate:
+
+```jsx
+import { track } from 'ripple';
+import { value, checked } from 'ripple/bind';
+
+component FormExample() {
+  let text = track('');
+  let isChecked = track(false);
+
+  <div>
+    <input type="text" {@ref value(text)} />
+    <input type="checkbox" {@ref checked(isChecked)} />
+    <p>{'Text: ' + @text + ', Checked: ' + @isChecked}</p>
+  </div>
+}
+```
+
+This is equivalent to the manual approach:
+
+```jsx
+// Manual vs two-way binding
+<input onInput={(e) => @text = e.target.value} value={@text} />
+<input {@ref value(text)} />  // Equivalent but cleaner
+```
+
 ### Styling
 
 Ripple supports native CSS styling that is localized to the given component using the `<style>` element.
