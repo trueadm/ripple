@@ -59,16 +59,16 @@ needed. Prior experience with other frameworks helps, but is not required.
 
 ## Features
 
-- **Performant**: Fine-grained rendering with industry-leading performance and memory usage
-- **TypeScript-first**: Full TypeScript integration with type checking
-- **JSX-like syntax**: Familiar templating with Ripple-specific enhancements
-- **Reactive-first**: Reactivity is a built-in language feature
-- **Component-based**: Clean, reusable components with props and children
-
-::: info Please Note!
-Ripple is a new project, and is not production-ready.
-:::
+- **Reactive Primitives**: Built-in reactivity with `track` and `@` reactive syntax on primitives
+- **Reactive Objects**: You can create fully reactive arrays/objects using shorthand syntax `#[]` `#{}`
+- **Component-Based Architecture**: Clean, reusable components with props and children
+- **Template Syntax**: Familiar templating with Ripple-specific enhancements
+- **Performance**: Fine-grain rendering, with industry-leading performance, bundle-size and memory usage
+- **TypeScript Support**: Full TypeScript integration with type checking
+- **VSCode Integration**: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
+- **Prettier Support**: Full Prettier formatting support for `.ripple` modules
+- **ESLint Support**: linting support for `.ripple` modules
 
 ## Missing Features
 
-- **SSR**: Ripple is currently an SPA only, this is because I haven't gotten around to it
+- **SSR**: Ripple is currently an SPA only. It will have SSR soon! Hydration to follow after.
