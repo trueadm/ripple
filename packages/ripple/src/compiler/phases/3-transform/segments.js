@@ -8,6 +8,8 @@ export const mapping_data = {
 	rename: true,
 	codeActions: false, // set to false to disable auto import when importing yourself
 	formatting: false, // not doing formatting through Volar, using Prettier.
+	// these 3 below will be true by default
+	// leaving for reference
 	// hover: true,
 	// definition: true,
 	// references: true,
