@@ -119,7 +119,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 						visit(specifier);
 					}
 				}
-				// Skip source (just a string literal)
+				visit(node.source);
 				return;
 			} else if (node.type === 'ImportSpecifier') {
 				// If local and imported are the same, only visit local to avoid duplicates
