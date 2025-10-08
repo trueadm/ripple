@@ -1,5 +1,4 @@
 const { createLanguageServicePlugin } = require('@volar/typescript/lib/quickstart/createLanguageServicePlugin.js')
-const { getRippleLanguagePlugin } = require('./language.js')
 
 module.exports = createLanguageServicePlugin((ts, info) => {
   return {
