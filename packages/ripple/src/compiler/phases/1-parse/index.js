@@ -1306,6 +1306,7 @@ function RipplePlugin(config) {
 				}
 
 				if (this.value === 'component') {
+					this.awaitPos = 0;
 					const node = this.startNode();
 					node.type = 'Component';
 					node.css = null;

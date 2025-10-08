@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, flushSync, track, effect } from 'ripple';
-import { value, checked } from 'ripple/bindings';
+import { bindValue, bindChecked } from 'ripple/bindings';
 
 describe('use value()', () => {
 	let container;
@@ -31,7 +31,7 @@ describe('use value()', () => {
 				logs.push('text changed', @text);
 			});
 
-			<input type="text" {ref value(text)} />
+			<input type="text" {ref bindValue(text)} />
 		}
 		render(App);
 		flushSync();
@@ -45,22 +45,26 @@ describe('use value()', () => {
 	});
 
 	it('should update checked on input', () => {
+		const logs = [];
+
 		component App() {
 			const value = track(false);
 
 			effect(() => {
-				console.log('checked changed', @value);
+				logs.push('checked changed', @value);
 			});
 
-			<input type="checkbox" {ref checked(value)} />
+			<input type="checkbox" {ref bindChecked(value)} />
 		}
 		render(App);
 		flushSync();
 
 		const input = container.querySelector('input');
 		input.checked = true;
-		input.dispatchEvent(new Event('input'));
+		input.dispatchEvent(new Event('change'));
 		flushSync();
+		
 		expect(input.checked).toBe(true);
+		expect(logs).toEqual(['checked changed', false, 'checked changed', true]);
 	});
 });

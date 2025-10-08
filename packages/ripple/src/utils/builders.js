@@ -8,7 +8,7 @@ import { sanitize_template_string } from './sanitize_template_string.js';
  * @returns {ESTree.ArrayExpression}
  */
 export function array(elements = []) {
-  return { type: 'ArrayExpression', elements };
+	return { type: 'ArrayExpression', elements };
 }
 
 /**
@@ -16,7 +16,7 @@ export function array(elements = []) {
  * @returns {ESTree.ArrayPattern}
  */
 export function array_pattern(elements) {
-  return { type: 'ArrayPattern', elements };
+	return { type: 'ArrayPattern', elements };
 }
 
 /**
@@ -25,7 +25,7 @@ export function array_pattern(elements) {
  * @returns {ESTree.AssignmentPattern}
  */
 export function assignment_pattern(left, right) {
-  return { type: 'AssignmentPattern', left, right };
+	return { type: 'AssignmentPattern', left, right };
 }
 
 /**
@@ -34,24 +34,24 @@ export function assignment_pattern(left, right) {
  * @returns {ESTree.ArrowFunctionExpression}
  */
 export function arrow(params, body, async = false) {
-  return {
-    type: 'ArrowFunctionExpression',
-    params,
-    body,
-    expression: body.type !== 'BlockStatement',
-    generator: false,
-    async,
-    metadata: /** @type {any} */ (null), // should not be used by codegen
-  };
+	return {
+		type: 'ArrowFunctionExpression',
+		params,
+		body,
+		expression: body.type !== 'BlockStatement',
+		generator: false,
+		async,
+		metadata: /** @type {any} */ (null), // should not be used by codegen
+	};
 }
 
 export function component(id, params, body) {
-  return {
-    type: 'Component',
-    id,
-    params,
-    body,
-  };
+	return {
+		type: 'Component',
+		id,
+		params,
+		body,
+	};
 }
 
 /**
@@ -61,7 +61,7 @@ export function component(id, params, body) {
  * @returns {ESTree.AssignmentExpression}
  */
 export function assignment(operator, left, right) {
-  return { type: 'AssignmentExpression', operator, left, right };
+	return { type: 'AssignmentExpression', operator, left, right };
 }
 
 /**
@@ -70,7 +70,7 @@ export function assignment(operator, left, right) {
  * @returns {T & ESTree.BaseFunction}
  */
 export function async(func) {
-  return { ...func, async: true };
+	return { ...func, async: true };
 }
 
 /**
@@ -78,7 +78,7 @@ export function async(func) {
  * @returns {ESTree.AwaitExpression}
  */
 function await_builder(argument) {
-  return { type: 'AwaitExpression', argument };
+	return { type: 'AwaitExpression', argument };
 }
 
 /**
@@ -88,7 +88,7 @@ function await_builder(argument) {
  * @returns {ESTree.BinaryExpression}
  */
 export function binary(operator, left, right) {
-  return { type: 'BinaryExpression', operator, left, right };
+	return { type: 'BinaryExpression', operator, left, right };
 }
 
 /**
@@ -96,7 +96,7 @@ export function binary(operator, left, right) {
  * @returns {ESTree.BlockStatement}
  */
 export function block(body) {
-  return { type: 'BlockStatement', body };
+	return { type: 'BlockStatement', body };
 }
 
 /**
@@ -105,7 +105,7 @@ export function block(body) {
  * @returns {ESTree.LabeledStatement}
  */
 export function labeled(name, body) {
-  return { type: 'LabeledStatement', label: id(name), body };
+	return { type: 'LabeledStatement', label: id(name), body };
 }
 
 /**
@@ -114,30 +114,30 @@ export function labeled(name, body) {
  * @returns {ESTree.CallExpression}
  */
 export function call(callee, ...args) {
-  if (typeof callee === 'string') callee = id(callee);
-  args = args.slice();
+	if (typeof callee === 'string') callee = id(callee);
+	args = args.slice();
 
-  // replacing missing arguments with `void(0)`, unless they're at the end in which case remove them
-  let i = args.length;
-  let popping = true;
-  while (i--) {
-    if (!args[i]) {
-      if (popping) {
-        args.pop();
-      } else {
-        args[i] = void0;
-      }
-    } else {
-      popping = false;
-    }
-  }
+	// replacing missing arguments with `void(0)`, unless they're at the end in which case remove them
+	let i = args.length;
+	let popping = true;
+	while (i--) {
+		if (!args[i]) {
+			if (popping) {
+				args.pop();
+			} else {
+				args[i] = void0;
+			}
+		} else {
+			popping = false;
+		}
+	}
 
-  return {
-    type: 'CallExpression',
-    callee,
-    arguments: /** @type {Array<ESTree.Expression | ESTree.SpreadElement>} */ (args),
-    optional: false,
-  };
+	return {
+		type: 'CallExpression',
+		callee,
+		arguments: /** @type {Array<ESTree.Expression | ESTree.SpreadElement>} */ (args),
+		optional: false,
+	};
 }
 
 /**
@@ -146,13 +146,13 @@ export function call(callee, ...args) {
  * @returns {ESTree.ChainExpression}
  */
 export function maybe_call(callee, ...args) {
-  const expression = /** @type {ESTree.SimpleCallExpression} */ (call(callee, ...args));
-  expression.optional = true;
+	const expression = /** @type {ESTree.SimpleCallExpression} */ (call(callee, ...args));
+	expression.optional = true;
 
-  return {
-    type: 'ChainExpression',
-    expression,
-  };
+	return {
+		type: 'ChainExpression',
+		expression,
+	};
 }
 
 /**
@@ -161,7 +161,7 @@ export function maybe_call(callee, ...args) {
  * @returns {ESTree.UnaryExpression}
  */
 export function unary(operator, argument) {
-  return { type: 'UnaryExpression', argument, operator, prefix: true };
+	return { type: 'UnaryExpression', argument, operator, prefix: true };
 }
 
 /**
@@ -171,7 +171,7 @@ export function unary(operator, argument) {
  * @returns {ESTree.ConditionalExpression}
  */
 export function conditional(test, consequent, alternate) {
-  return { type: 'ConditionalExpression', test, consequent, alternate };
+	return { type: 'ConditionalExpression', test, consequent, alternate };
 }
 
 /**
@@ -181,7 +181,7 @@ export function conditional(test, consequent, alternate) {
  * @returns {ESTree.LogicalExpression}
  */
 export function logical(operator, left, right) {
-  return { type: 'LogicalExpression', operator, left, right };
+	return { type: 'LogicalExpression', operator, left, right };
 }
 
 /**
@@ -190,11 +190,11 @@ export function logical(operator, left, right) {
  * @returns {ESTree.VariableDeclaration}
  */
 export function declaration(kind, declarations) {
-  return {
-    type: 'VariableDeclaration',
-    kind,
-    declarations,
-  };
+	return {
+		type: 'VariableDeclaration',
+		kind,
+		declarations,
+	};
 }
 
 /**
@@ -203,13 +203,13 @@ export function declaration(kind, declarations) {
  * @returns {ESTree.VariableDeclarator}
  */
 export function declarator(pattern, init) {
-  if (typeof pattern === 'string') pattern = id(pattern);
-  return { type: 'VariableDeclarator', id: pattern, init };
+	if (typeof pattern === 'string') pattern = id(pattern);
+	return { type: 'VariableDeclarator', id: pattern, init };
 }
 
 /** @type {ESTree.EmptyStatement} */
 export const empty = {
-  type: 'EmptyStatement',
+	type: 'EmptyStatement',
 };
 
 /**
@@ -217,7 +217,7 @@ export const empty = {
  * @returns {ESTree.ExportDefaultDeclaration}
  */
 export function export_default(declaration) {
-  return { type: 'ExportDefaultDeclaration', declaration };
+	return { type: 'ExportDefaultDeclaration', declaration };
 }
 
 /**
@@ -228,7 +228,7 @@ export function export_default(declaration) {
  * @returns {ESTree.ExportNamedDeclaration}
  */
 export function export_builder(declaration, specifiers = [], attributes = [], source = null) {
-  return { type: 'ExportNamedDeclaration', declaration, specifiers, attributes, source };
+	return { type: 'ExportNamedDeclaration', declaration, specifiers, attributes, source };
 }
 
 /**
@@ -238,15 +238,15 @@ export function export_builder(declaration, specifiers = [], attributes = [], so
  * @returns {ESTree.FunctionDeclaration}
  */
 export function function_declaration(id, params, body) {
-  return {
-    type: 'FunctionDeclaration',
-    id,
-    params,
-    body,
-    generator: false,
-    async: false,
-    metadata: /** @type {any} */ (null), // should not be used by codegen
-  };
+	return {
+		type: 'FunctionDeclaration',
+		id,
+		params,
+		body,
+		generator: false,
+		async: false,
+		metadata: /** @type {any} */ (null), // should not be used by codegen
+	};
 }
 
 /**
@@ -255,7 +255,7 @@ export function function_declaration(id, params, body) {
  * @returns {ESTree.Property & { value: ESTree.FunctionExpression}}}
  */
 export function get(name, body) {
-  return prop('get', key(name), function_builder(null, [], block(body)));
+	return prop('get', key(name), function_builder(null, [], block(body)));
 }
 
 /**
@@ -263,7 +263,7 @@ export function get(name, body) {
  * @returns {ESTree.Identifier}
  */
 export function id(name) {
-  return { type: 'Identifier', name };
+	return { type: 'Identifier', name };
 }
 
 /**
@@ -271,7 +271,7 @@ export function id(name) {
  * @returns {ESTree.PrivateIdentifier}
  */
 export function private_id(name) {
-  return { type: 'PrivateIdentifier', name };
+	return { type: 'PrivateIdentifier', name };
 }
 
 /**
@@ -279,10 +279,10 @@ export function private_id(name) {
  * @returns {ESTree.ImportNamespaceSpecifier}
  */
 function import_namespace(local) {
-  return {
-    type: 'ImportNamespaceSpecifier',
-    local: id(local),
-  };
+	return {
+		type: 'ImportNamespaceSpecifier',
+		local: id(local),
+	};
 }
 
 /**
@@ -291,7 +291,7 @@ function import_namespace(local) {
  * @returns {ESTree.Property}
  */
 export function init(name, value) {
-  return prop('init', key(name), value);
+	return prop('init', key(name), value);
 }
 
 /**
@@ -299,8 +299,8 @@ export function init(name, value) {
  * @returns {ESTree.Literal}
  */
 export function literal(value) {
-  // @ts-expect-error we don't want to muck around with bigint here
-  return { type: 'Literal', value };
+	// @ts-expect-error we don't want to muck around with bigint here
+	return { type: 'Literal', value };
 }
 
 /**
@@ -311,11 +311,11 @@ export function literal(value) {
  * @returns {ESTree.MemberExpression}
  */
 export function member(object, property, computed = false, optional = false) {
-  if (typeof property === 'string') {
-    property = id(property);
-  }
+	if (typeof property === 'string') {
+		property = id(property);
+	}
 
-  return { type: 'MemberExpression', object, property, computed, optional };
+	return { type: 'MemberExpression', object, property, computed, optional };
 }
 
 /**
@@ -323,15 +323,15 @@ export function member(object, property, computed = false, optional = false) {
  * @returns {ESTree.Identifier | ESTree.MemberExpression}
  */
 export function member_id(path) {
-  const parts = path.split('.');
+	const parts = path.split('.');
 
-  /** @type {ESTree.Identifier | ESTree.MemberExpression} */
-  let expression = id(parts[0]);
+	/** @type {ESTree.Identifier | ESTree.MemberExpression} */
+	let expression = id(parts[0]);
 
-  for (let i = 1; i < parts.length; i += 1) {
-    expression = member(expression, id(parts[i]));
-  }
-  return expression;
+	for (let i = 1; i < parts.length; i += 1) {
+		expression = member(expression, id(parts[i]));
+	}
+	return expression;
 }
 
 /**
@@ -339,7 +339,7 @@ export function member_id(path) {
  * @returns {ESTree.ObjectExpression}
  */
 export function object(properties) {
-  return { type: 'ObjectExpression', properties };
+	return { type: 'ObjectExpression', properties };
 }
 
 /**
@@ -347,8 +347,8 @@ export function object(properties) {
  * @returns {ESTree.ObjectPattern}
  */
 export function object_pattern(properties) {
-  // @ts-expect-error the types appear to be wrong
-  return { type: 'ObjectPattern', properties };
+	// @ts-expect-error the types appear to be wrong
+	return { type: 'ObjectPattern', properties };
 }
 
 /**
@@ -360,7 +360,7 @@ export function object_pattern(properties) {
  * @returns {ESTree.Property & { value: Value }}
  */
 export function prop(kind, key, value, computed = false) {
-  return { type: 'Property', kind, key, value, method: false, shorthand: false, computed };
+	return { type: 'Property', kind, key, value, method: false, shorthand: false, computed };
 }
 
 /**
@@ -371,7 +371,7 @@ export function prop(kind, key, value, computed = false) {
  * @returns {ESTree.PropertyDefinition}
  */
 export function prop_def(key, value, computed = false, is_static = false) {
-  return { type: 'PropertyDefinition', key, value, computed, static: is_static };
+	return { type: 'PropertyDefinition', key, value, computed, static: is_static };
 }
 
 /**
@@ -380,8 +380,8 @@ export function prop_def(key, value, computed = false, is_static = false) {
  * @returns {ESTree.TemplateElement}
  */
 export function quasi(cooked, tail = false) {
-  const raw = sanitize_template_string(cooked);
-  return { type: 'TemplateElement', value: { raw, cooked }, tail };
+	const raw = sanitize_template_string(cooked);
+	return { type: 'TemplateElement', value: { raw, cooked }, tail };
 }
 
 /**
@@ -389,7 +389,7 @@ export function quasi(cooked, tail = false) {
  * @returns {ESTree.RestElement}
  */
 export function rest(argument) {
-  return { type: 'RestElement', argument };
+	return { type: 'RestElement', argument };
 }
 
 /**
@@ -397,7 +397,7 @@ export function rest(argument) {
  * @returns {ESTree.SequenceExpression}
  */
 export function sequence(expressions) {
-  return { type: 'SequenceExpression', expressions };
+	return { type: 'SequenceExpression', expressions };
 }
 
 /**
@@ -406,7 +406,7 @@ export function sequence(expressions) {
  * @returns {ESTree.Property & { value: ESTree.FunctionExpression}}
  */
 export function set(name, body) {
-  return prop('set', key(name), function_builder(null, [id('$$value')], block(body)));
+	return prop('set', key(name), function_builder(null, [id('$$value')], block(body)));
 }
 
 /**
@@ -414,7 +414,7 @@ export function set(name, body) {
  * @returns {ESTree.SpreadElement}
  */
 export function spread(argument) {
-  return { type: 'SpreadElement', argument };
+	return { type: 'SpreadElement', argument };
 }
 
 /**
@@ -422,7 +422,7 @@ export function spread(argument) {
  * @returns {ESTree.ExpressionStatement}
  */
 export function stmt(expression) {
-  return { type: 'ExpressionStatement', expression };
+	return { type: 'ExpressionStatement', expression };
 }
 
 /**
@@ -431,7 +431,7 @@ export function stmt(expression) {
  * @returns {ESTree.TemplateLiteral}
  */
 export function template(elements, expressions) {
-  return { type: 'TemplateLiteral', quasis: elements, expressions };
+	return { type: 'TemplateLiteral', quasis: elements, expressions };
 }
 
 /**
@@ -440,9 +440,9 @@ export function template(elements, expressions) {
  * @returns {ESTree.Expression}
  */
 export function thunk(expression, async = false) {
-  const fn = arrow([], expression);
-  if (async) fn.async = true;
-  return unthunk(fn);
+	const fn = arrow([], expression);
+	if (async) fn.async = true;
+	return unthunk(fn);
 }
 
 /**
@@ -451,20 +451,20 @@ export function thunk(expression, async = false) {
  * @returns {ESTree.Expression}
  */
 export function unthunk(expression) {
-  if (
-    expression.type === 'ArrowFunctionExpression' &&
-    expression.async === false &&
-    expression.body.type === 'CallExpression' &&
-    expression.body.callee.type === 'Identifier' &&
-    expression.params.length === expression.body.arguments.length &&
-    expression.params.every((param, index) => {
-      const arg = /** @type {ESTree.SimpleCallExpression} */ (expression.body).arguments[index];
-      return param.type === 'Identifier' && arg.type === 'Identifier' && param.name === arg.name;
-    })
-  ) {
-    return expression.body.callee;
-  }
-  return expression;
+	if (
+		expression.type === 'ArrowFunctionExpression' &&
+		expression.async === false &&
+		expression.body.type === 'CallExpression' &&
+		expression.body.callee.type === 'Identifier' &&
+		expression.params.length === expression.body.arguments.length &&
+		expression.params.every((param, index) => {
+			const arg = /** @type {ESTree.SimpleCallExpression} */ (expression.body).arguments[index];
+			return param.type === 'Identifier' && arg.type === 'Identifier' && param.name === arg.name;
+		})
+	) {
+		return expression.body.callee;
+	}
+	return expression;
 }
 
 /**
@@ -474,13 +474,13 @@ export function unthunk(expression) {
  * @returns {ESTree.NewExpression}
  */
 function new_builder(expression, ...args) {
-  if (typeof expression === 'string') expression = id(expression);
+	if (typeof expression === 'string') expression = id(expression);
 
-  return {
-    callee: expression,
-    arguments: args,
-    type: 'NewExpression',
-  };
+	return {
+		callee: expression,
+		arguments: args,
+		type: 'NewExpression',
+	};
 }
 
 /**
@@ -490,7 +490,7 @@ function new_builder(expression, ...args) {
  * @returns {ESTree.UpdateExpression}
  */
 export function update(operator, argument, prefix = false) {
-  return { type: 'UpdateExpression', operator, argument, prefix };
+	return { type: 'UpdateExpression', operator, argument, prefix };
 }
 
 /**
@@ -499,7 +499,7 @@ export function update(operator, argument, prefix = false) {
  * @returns {ESTree.DoWhileStatement}
  */
 export function do_while(test, body) {
-  return { type: 'DoWhileStatement', test, body };
+	return { type: 'DoWhileStatement', test, body };
 }
 
 const true_instance = literal(true);
@@ -508,12 +508,12 @@ const null_instane = literal(null);
 
 /** @type {ESTree.DebuggerStatement} */
 const debugger_builder = {
-  type: 'DebuggerStatement',
+	type: 'DebuggerStatement',
 };
 
 /** @type {ESTree.ThisExpression} */
 const this_instance = {
-  type: 'ThisExpression',
+	type: 'ThisExpression',
 };
 
 /**
@@ -522,7 +522,7 @@ const this_instance = {
  * @returns {ESTree.VariableDeclaration}
  */
 function let_builder(pattern, init) {
-  return declaration('let', [declarator(pattern, init)]);
+	return declaration('let', [declarator(pattern, init)]);
 }
 
 /**
@@ -531,7 +531,7 @@ function let_builder(pattern, init) {
  * @returns {ESTree.VariableDeclaration}
  */
 function const_builder(pattern, init) {
-  return declaration('const', [declarator(pattern, init)]);
+	return declaration('const', [declarator(pattern, init)]);
 }
 
 /**
@@ -540,7 +540,7 @@ function const_builder(pattern, init) {
  * @returns {ESTree.VariableDeclaration}
  */
 function var_builder(pattern, init) {
-  return declaration('var', [declarator(pattern, init)]);
+	return declaration('var', [declarator(pattern, init)]);
 }
 
 /**
@@ -552,7 +552,7 @@ function var_builder(pattern, init) {
  * @returns {ESTree.ForStatement}
  */
 function for_builder(init, test, update, body) {
-  return { type: 'ForStatement', init, test, update, body };
+	return { type: 'ForStatement', init, test, update, body };
 }
 
 /**
@@ -563,7 +563,7 @@ function for_builder(init, test, update, body) {
  * @returns {ESTree.ForOfStatement}
  */
 export function for_of(left, right, body, await_flag = false) {
-  return { type: 'ForOfStatement', left, right, body, await: await_flag };
+	return { type: 'ForOfStatement', left, right, body, await: await_flag };
 }
 
 /**
@@ -577,14 +577,14 @@ export function for_of(left, right, body, await_flag = false) {
  * @returns {ESTree.MethodDefinition}
  */
 export function method(kind, key, params, body, computed = false, is_static = false) {
-  return {
-    type: 'MethodDefinition',
-    key,
-    kind,
-    value: function_builder(null, params, block(body)),
-    computed,
-    static: is_static,
-  };
+	return {
+		type: 'MethodDefinition',
+		key,
+		kind,
+		value: function_builder(null, params, block(body)),
+		computed,
+		static: is_static,
+	};
 }
 
 /**
@@ -596,15 +596,15 @@ export function method(kind, key, params, body, computed = false, is_static = fa
  * @returns {ESTree.FunctionExpression}
  */
 function function_builder(id, params, body, async = false) {
-  return {
-    type: 'FunctionExpression',
-    id,
-    params,
-    body,
-    generator: false,
-    async,
-    metadata: /** @type {any} */ (null), // should not be used by codegen
-  };
+	return {
+		type: 'FunctionExpression',
+		id,
+		params,
+		body,
+		generator: false,
+		async,
+		metadata: /** @type {any} */ (null), // should not be used by codegen
+	};
 }
 
 /**
@@ -614,7 +614,7 @@ function function_builder(id, params, body, async = false) {
  * @returns {ESTree.IfStatement}
  */
 function if_builder(test, consequent, alternate) {
-  return { type: 'IfStatement', test, consequent, alternate };
+	return { type: 'IfStatement', test, consequent, alternate };
 }
 
 /**
@@ -623,11 +623,11 @@ function if_builder(test, consequent, alternate) {
  * @returns {ESTree.ImportDeclaration}
  */
 export function import_all(as, source) {
-  return {
-    type: 'ImportDeclaration',
-    source: literal(source),
-    specifiers: [import_namespace(as)],
-  };
+	return {
+		type: 'ImportDeclaration',
+		source: literal(source),
+		specifiers: [import_namespace(as)],
+	};
 }
 
 /**
@@ -636,15 +636,15 @@ export function import_all(as, source) {
  * @returns {ESTree.ImportDeclaration}
  */
 export function imports(parts, source) {
-  return {
-    type: 'ImportDeclaration',
-    source: literal(source),
-    specifiers: parts.map((p) => ({
-      type: 'ImportSpecifier',
-      imported: id(p[0]),
-      local: id(p[1]),
-    })),
-  };
+	return {
+		type: 'ImportDeclaration',
+		source: literal(source),
+		specifiers: parts.map((p) => ({
+			type: 'ImportSpecifier',
+			imported: id(p[0]),
+			local: id(p[1]),
+		})),
+	};
 }
 
 /**
@@ -652,7 +652,7 @@ export function imports(parts, source) {
  * @returns {ESTree.ReturnStatement}
  */
 function return_builder(argument = null) {
-  return { type: 'ReturnStatement', argument };
+	return { type: 'ReturnStatement', argument };
 }
 
 /**
@@ -660,10 +660,10 @@ function return_builder(argument = null) {
  * @returns {ESTree.ThrowStatement}
  */
 export function throw_error(str) {
-  return {
-    type: 'ThrowStatement',
-    argument: new_builder('Error', literal(str)),
-  };
+	return {
+		type: 'ThrowStatement',
+		argument: new_builder('Error', literal(str)),
+	};
 }
 
 /**
@@ -673,12 +673,12 @@ export function throw_error(str) {
  * @returns {ESTree.TryStatement}
  */
 export function try_builder(block, handler = null, finalizer = null) {
-  return {
-    type: 'TryStatement',
-    block,
-    handler,
-    finalizer,
-  };
+	return {
+		type: 'TryStatement',
+		block,
+		handler,
+		finalizer,
+	};
 }
 
 /**
@@ -687,11 +687,11 @@ export function try_builder(block, handler = null, finalizer = null) {
  * @returns {ESTree.CatchClause}
  */
 export function catch_clause_builder(param, body) {
-  return {
-    type: 'CatchClause',
-    param,
-    body,
-  };
+	return {
+		type: 'CatchClause',
+		param,
+		body,
+	};
 }
 
 export { catch_clause_builder as catch_clause };
@@ -701,7 +701,7 @@ export { catch_clause_builder as catch_clause };
  * @returns {ESTree.Expression}
  */
 export function key(name) {
-  return regex_is_valid_identifier.test(name) ? id(name) : literal(name);
+	return regex_is_valid_identifier.test(name) ? id(name) : literal(name);
 }
 
 /**
@@ -710,11 +710,11 @@ export function key(name) {
  * @returns {ESTree.JSXAttribute}
  */
 export function jsx_attribute(name, value = null) {
-  return {
-    type: 'JSXAttribute',
-    name,
-    value,
-  };
+	return {
+		type: 'JSXAttribute',
+		name,
+		value,
+	};
 }
 
 /**
@@ -725,32 +725,32 @@ export function jsx_attribute(name, value = null) {
  * @returns {{ element: ESTree.JSXElement, opening_element: ESTree.JSXOpeningElement }}
  */
 export function jsx_element(
-  name,
-  attributes = [],
-  children = [],
-  self_closing = false,
-  closing_name = name,
+	name,
+	attributes = [],
+	children = [],
+	self_closing = false,
+	closing_name = name,
 ) {
-  const opening_element = {
-    type: 'JSXOpeningElement',
-    name,
-    attributes,
-    selfClosing: self_closing,
-  };
+	const opening_element = {
+		type: 'JSXOpeningElement',
+		name,
+		attributes,
+		selfClosing: self_closing,
+	};
 
-  const element = {
-    type: 'JSXElement',
-    openingElement: opening_element,
-    closingElement: self_closing
-      ? null
-      : {
-          type: 'JSXClosingElement',
-          name: closing_name,
-        },
-    children,
-  };
+	const element = {
+		type: 'JSXElement',
+		openingElement: opening_element,
+		closingElement: self_closing
+			? null
+			: {
+					type: 'JSXClosingElement',
+					name: closing_name,
+				},
+		children,
+	};
 
-  return element;
+	return element;
 }
 
 /**
@@ -758,10 +758,10 @@ export function jsx_element(
  * @returns {ESTree.JSXExpressionContainer}
  */
 export function jsx_expression_container(expression) {
-  return {
-    type: 'JSXExpressionContainer',
-    expression,
-  };
+	return {
+		type: 'JSXExpressionContainer',
+		expression,
+	};
 }
 
 /**
@@ -769,10 +769,23 @@ export function jsx_expression_container(expression) {
  * @returns {ESTree.JSXIdentifier}
  */
 export function jsx_id(name) {
-  return {
-    type: 'JSXIdentifier',
-    name,
-  };
+	return {
+		type: 'JSXIdentifier',
+		name,
+	};
+}
+
+/**
+ * @param {ESTree.JSXIdentifier | ESTree.JSXMemberExpression} object
+ * @param {ESTree.JSXIdentifier} property
+ * @returns {ESTree.JSXMemberExpression}
+ */
+export function jsx_member(object, property) {
+	return {
+		type: 'JSXMemberExpression',
+		object,
+		property,
+	};
 }
 
 /**
@@ -780,33 +793,32 @@ export function jsx_id(name) {
  * @returns {ESTree.JSXSpreadAttribute}
  */
 export function jsx_spread_attribute(argument) {
-  return {
-    type: 'JSXSpreadAttribute',
-    argument,
-  };
+	return {
+		type: 'JSXSpreadAttribute',
+		argument,
+	};
 }
-
 
 /**
  * @returns {ESTree.SwitchStatement}
  */
 export function switch_builder(discriminant, cases) {
-  return {
-    type: 'SwitchStatement',
-    discriminant,
-    cases,
-  };
+	return {
+		type: 'SwitchStatement',
+		discriminant,
+		cases,
+	};
 }
 
 /**
  * @returns {ESTree.SwitchCase}
  */
 export function switch_case(test = null, consequent = []) {
-  return {
-    type: 'SwitchCase',
-    test,
-    consequent,
-  };
+	return {
+		type: 'SwitchCase',
+		test,
+		consequent,
+	};
 }
 
 export const void0 = unary('void', literal(0));
@@ -815,27 +827,27 @@ export const void0 = unary('void', literal(0));
  * @returns {ESTree.BreakStatement}
  */
 export const break_statement = {
-  type: 'BreakStatement',
-  label: null,
+	type: 'BreakStatement',
+	label: null,
 };
 
 export {
-  await_builder as await,
-  let_builder as let,
-  const_builder as const,
-  var_builder as var,
-  export_builder as export,
-  true_instance as true,
-  false_instance as false,
-  break_statement as break,
-  for_builder as for,
-  switch_builder as switch,
-  function_builder as function,
-  return_builder as return,
-  if_builder as if,
-  this_instance as this,
-  null_instane as null,
-  debugger_builder as debugger,
-  try_builder as try,
-  new_builder as new,
+	await_builder as await,
+	let_builder as let,
+	const_builder as const,
+	var_builder as var,
+	export_builder as export,
+	true_instance as true,
+	false_instance as false,
+	break_statement as break,
+	for_builder as for,
+	switch_builder as switch,
+	function_builder as function,
+	return_builder as return,
+	if_builder as if,
+	this_instance as this,
+	null_instane as null,
+	debugger_builder as debugger,
+	try_builder as try,
+	new_builder as new,
 };

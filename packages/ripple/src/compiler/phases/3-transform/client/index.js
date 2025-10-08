@@ -1462,23 +1462,28 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		const opening_type = b.jsx_id(type);
+		let tracked_type;
+
+		// Make VSCode happy about tracked components, as they're lowercase in the AST
+		// so VSCode doesn't bother tracking them as components, so this fixes that
+		if (node.id.tracked) {
+			tracked_type = state.scope.generate(type[0].toUpperCase() + type.slice(1));
+			state.init.push(
+				b.const(tracked_type, b.member(node.id, b.literal('#v'), true)),
+			);
+		}
+
+		const opening_type = tracked_type
+			? b.jsx_id(tracked_type)
+			: b.jsx_id(type);
 		opening_type.loc = node.id.loc;
 
 		let closing_type = undefined;
 
 		if (!node.selfClosing) {
-			closing_type = b.jsx_id(type);
-			closing_type.loc = {
-				start: {
-					line: node.loc.end.line,
-					column: node.loc.end.column - type.length - 1,
-				},
-				end: {
-					line: node.loc.end.line,
-					column: node.loc.end.column - 1,
-				},
-			};
+			closing_type = tracked_type
+				? b.jsx_id(tracked_type)
+				: b.jsx_id(type);
 		}
 
 		state.init.push(
