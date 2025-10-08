@@ -30,6 +30,26 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	let sourceIndex = 0;
 	let generatedIndex = 0;
 
+	// Map to track capitalized names: original name -> capitalized name
+	/** @type {Map<string, string>} */
+	const capitalizedNames = new Map();
+	// Reverse map: capitalized name -> original name
+	/** @type {Map<string, string>} */
+	const reverseCapitalizedNames = new Map();
+
+	// Pre-walk to collect capitalized names from JSXElement nodes (transformed AST)
+	// These are identifiers that are used as dynamic components/elements
+	walk(ast, null, {
+		_(node, { next }) {
+			// Check JSXElement nodes with metadata (preserved from Element nodes)
+			if (node.type === 'JSXElement' && node.metadata?.ts_name && node.metadata?.original_name) {
+				capitalizedNames.set(node.metadata.original_name, node.metadata.ts_name);
+				reverseCapitalizedNames.set(node.metadata.ts_name, node.metadata.original_name);
+			}
+			next();
+		}
+	});
+
 	/**
 	 * Check if character is a word boundary (not alphanumeric or underscore)
 	 * @param {string} char
@@ -132,7 +152,8 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	};
 
 	// Collect text tokens from AST nodes
-	/** @type {string[]} */
+	// Tokens can be either strings or objects with source/generated properties
+	/** @type {Array<string | {source: string, generated: string}>} */
 	const tokens = [];
 
 	// We have to visit everything in generated order to maintain correct indices
@@ -142,12 +163,37 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 			// Only collect tokens from nodes with .loc (skip synthesized nodes like children attribute)
 			if (node.type === 'Identifier' && node.name) {
 				if (node.loc) {
-					tokens.push(node.name);
+					// Check if this identifier was capitalized (reverse lookup)
+					const originalName = reverseCapitalizedNames.get(node.name);
+					if (originalName) {
+						// This is a capitalized name in generated code, map to lowercase in source
+						tokens.push({ source: originalName, generated: node.name });
+					} else {
+						// Check if this identifier should be capitalized (forward lookup)
+						const capitalizedName = capitalizedNames.get(node.name);
+						if (capitalizedName) {
+							tokens.push({ source: node.name, generated: capitalizedName });
+						} else {
+							tokens.push(node.name);
+						}
+					}
 				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'JSXIdentifier' && node.name) {
 				if (node.loc) {
-					tokens.push(node.name);
+					// Check if this was capitalized (reverse lookup)
+					const originalName = reverseCapitalizedNames.get(node.name);
+					if (originalName) {
+						tokens.push({ source: originalName, generated: node.name });
+					} else {
+						// Check if this should be capitalized (forward lookup)
+						const capitalizedName = capitalizedNames.get(node.name);
+						if (capitalizedName) {
+							tokens.push({ source: node.name, generated: capitalizedName });
+						} else {
+							tokens.push(node.name);
+						}
+					}
 				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'Literal' && node.raw) {
@@ -252,7 +298,20 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 
 				// 3. Push closing tag name (not visited by AST walker)
 				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
-					tokens.push(node.closingElement.name.name);
+					const closingName = node.closingElement.name.name;
+					// Check if this was capitalized (reverse lookup)
+					const originalName = reverseCapitalizedNames.get(closingName);
+					if (originalName) {
+						tokens.push({ source: originalName, generated: closingName });
+					} else {
+						// Check if this should be capitalized (forward lookup)
+						const capitalizedName = capitalizedNames.get(closingName);
+						if (capitalizedName) {
+							tokens.push({ source: closingName, generated: capitalizedName });
+						} else {
+							tokens.push(closingName);
+						}
+					}
 				}
 
 				return;
@@ -1031,15 +1090,26 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	});
 
 	// Process each token in order
-	for (const text of tokens) {
-		const sourcePos = findInSource(text);
-		const genPos = findInGenerated(text);
+	for (const token of tokens) {
+		let sourceText, generatedText;
+
+		if (typeof token === 'string') {
+			sourceText = token;
+			generatedText = token;
+		} else {
+			// Token with different source and generated names
+			sourceText = token.source;
+			generatedText = token.generated;
+		}
+
+		const sourcePos = findInSource(sourceText);
+		const genPos = findInGenerated(generatedText);
 
 		if (sourcePos !== null && genPos !== null) {
 			mappings.push({
 				sourceOffsets: [sourcePos],
 				generatedOffsets: [genPos],
-				lengths: [text.length],
+				lengths: [sourceText.length],
 				data: mapping_data,
 			});
 		}
