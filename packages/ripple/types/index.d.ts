@@ -73,7 +73,23 @@ declare global {
 
 export declare function createRefKey(): symbol;
 
-export type Tracked<V> = { '#v': V };
+// Base Tracked interface - all tracked values have a '#v' property containing the actual value
+export interface Tracked<V> {	'#v': V; }
+
+// Augment Tracked to be callable when V is a Component
+// This allows <@Something /> to work in JSX when Something is Tracked<Component>
+export interface Tracked<V> {
+	(props: V extends Component<infer P> ? P : never): V extends Component ? void : never;
+}
+
+// Helper type to infer component type from a function that returns a component
+// If T is a function returning a Component, extract the Component type itself, not the return type (void)
+export type InferComponent<T> =
+	T extends () => infer R
+		? R extends Component<any>
+			? R
+			: T
+		: T;
 
 export type Props<K extends PropertyKey = any, V = unknown> = Record<K, V>;
 export type PropsWithExtras<T extends object> = Props & T & Record<string, unknown>;
@@ -90,7 +106,10 @@ type RestKeys<T, K extends readonly (keyof T)[]> = Expand<Omit<T, K[number]>>;
 type SplitResult<T extends Props, K extends readonly (keyof T)[]> =
 	[...PickKeys<T, K>, Tracked<RestKeys<T, K>>];
 
-export declare function track<V>(value?: V | (() => V), get?: (v: V) => V, set?: (next: V, prev: V) => V): Tracked<V>;
+// Overload for function values - infers the return type of the function
+export declare function track<V>(value: () => V, get?: (v: InferComponent<V>) => InferComponent<V>, set?: (next: InferComponent<V>, prev: InferComponent<V>) => InferComponent<V>): Tracked<InferComponent<V>>;
+// Overload for non-function values
+export declare function track<V>(value?: V, get?: (v: V) => V, set?: (next: V, prev: V) => V): Tracked<V>;
 
 export declare function trackSplit<V extends Props, const K extends readonly (keyof V)[]>(
 	value: V,
