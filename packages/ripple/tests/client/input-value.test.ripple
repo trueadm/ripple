@@ -22,11 +22,13 @@ describe('use value()', () => {
 	});
 
 	it('should update value on input', () => {
+		const logs = [];
+
 		component App() {
 			const text = track('');
 
 			effect(() => {
-				console.log('text changed', @text);
+				logs.push('text changed', @text);
 			});
 
 			<input type="text" {ref value(text)} />
@@ -39,6 +41,7 @@ describe('use value()', () => {
 		input.dispatchEvent(new Event('input'));
 		flushSync();
 		expect(input.value).toBe('Hello');
+		expect(logs).toEqual(['text changed', '', 'text changed', 'Hello']);
 	});
 
 	it('should update checked on input', () => {
