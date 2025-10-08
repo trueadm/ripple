@@ -200,3 +200,15 @@ export declare const MediaQuery: {
 };
 
 export function Portal<V = HTMLElement>({ target, children: Component }: { target: V, children?: Component }): void;
+
+/**
+ * @param {Tracked<V>} tracked
+ * @returns {(node: HTMLInputElement | HTMLSelectElement) => void}
+ */
+export declare function bindValue<V>(tracked: Tracked<V>): (node: HTMLInputElement | HTMLSelectElement) => void;
+
+/**
+ * @param {Tracked<V>} tracked
+ * @returns {(node: HTMLInputElement) => void}
+ */
+export declare function bindChecked<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;

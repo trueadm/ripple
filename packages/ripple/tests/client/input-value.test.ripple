@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount, flushSync, track, effect } from 'ripple';
-import { bindValue, bindChecked } from 'ripple/bindings';
+import { bindValue, bindChecked } from 'ripple';
 
 describe('use value()', () => {
 	let container;
