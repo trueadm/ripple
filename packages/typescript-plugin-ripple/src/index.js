@@ -7,28 +7,17 @@ module.exports = createLanguageServicePlugin((ts, info) => {
     setup(language) {
       const languageService = info.languageService;
 			info.languageService = new Proxy(languageService, {
-				get(target, prop) {
-					const value = target[prop];
-
-					if (prop === 'getSyntacticDiagnostics') {
-						return getSyntacticDiagnostics;
+				get(target, prop, receiver) {
+					/** @type {Record<string |symbol, Function>} */
+					const overrides = {
+						getSyntacticDiagnostics,
+						getSemanticDiagnostics,
+						getSuggestionDiagnostics,
+					};
+					if (prop in overrides) {
+						return overrides[prop];
 					}
-					if (prop === 'getSemanticDiagnostics') {
-						return getSemanticDiagnostics;
-					}
-					if (prop === 'getSuggestionDiagnostics') {
-						return getSuggestionDiagnostics;
-					}
-
-					// FIX: Bind all methods to target so `this` remains correct
-					if (typeof value === 'function') {
-						return value.bind(target);
-					}
-					return value;
-				},
-				set(target, prop, value) {
-					target[prop] = value;
-					return true;
+					return Reflect.get(target, prop, receiver);
 				},
 			});
 
