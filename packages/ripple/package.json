@@ -38,6 +38,11 @@
       "require": "./src/compiler/index.js",
       "default": "./src/compiler/index.js"
     },
+    "./bind": {
+      "types": "./src/bind/index.d.ts",
+      "require": "./src/bind/index.js",
+      "default": "./src/bind/index.js"
+    },
     "./validator": {
       "types": "./types/index.d.ts",
       "require": "./validator/index.js",

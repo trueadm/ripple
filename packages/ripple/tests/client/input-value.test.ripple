@@ -1,0 +1,43 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, track, effect } from 'ripple';
+import { value } from 'ripple/bind';
+
+describe('use value()', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container,
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
+	it('should update value on input', () => {
+		component App() {
+			const text = track('');
+
+			effect(() => {
+				console.log('text changed', @text);
+			});
+
+			<input type="text" {ref value(text)} />
+		}
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input');
+		input.value = 'Hello';
+		input.dispatchEvent(new Event('input'));
+		flushSync();
+		expect(input.value).toBe('Hello');
+	});
+});
