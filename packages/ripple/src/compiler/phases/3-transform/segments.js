@@ -139,14 +139,21 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	walk(ast, null, {
 		_(node, { visit }) {
 			// Collect key node types: Identifiers, Literals, and JSX Elements
+			// Only collect tokens from nodes with .loc (skip synthesized nodes like children attribute)
 			if (node.type === 'Identifier' && node.name) {
-				tokens.push(node.name);
+				if (node.loc) {
+					tokens.push(node.name);
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'JSXIdentifier' && node.name) {
-				tokens.push(node.name);
+				if (node.loc) {
+					tokens.push(node.name);
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'Literal' && node.raw) {
-				tokens.push(node.raw);
+				if (node.loc) {
+					tokens.push(node.raw);
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
 				// Visit specifiers in source order
