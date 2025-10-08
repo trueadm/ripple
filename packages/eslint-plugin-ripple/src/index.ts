@@ -4,11 +4,12 @@ import requireComponentExport from './rules/require-component-export.js';
 import preferOnInput from './rules/prefer-oninput.js';
 import noReturnInComponent from './rules/no-return-in-component.js';
 import unboxTrackedValues from './rules/unbox-tracked-values.js';
+import controlFlowJsx from './rules/control-flow-jsx.js';
 
 const plugin = {
   meta: {
     name: 'eslint-plugin-ripple',
-    version: '0.1.0',
+    version: '0.1.2',
   },
   rules: {
     'no-module-scope-track': noModuleScopeTrack,
@@ -16,6 +17,7 @@ const plugin = {
     'prefer-oninput': preferOnInput,
     'no-return-in-component': noReturnInComponent,
     'unbox-tracked-values': unboxTrackedValues,
+    'control-flow-jsx': controlFlowJsx,
   },
   configs: {} as any,
 };
@@ -38,6 +40,7 @@ function createConfig(name: string, files: string[], isStrict = false) {
       'ripple/prefer-oninput': isStrict ? 'error' : 'warn',
       'ripple/no-return-in-component': 'error',
       'ripple/unbox-tracked-values': 'error',
+      'ripple/control-flow-jsx': 'error',
     },
   };
 
