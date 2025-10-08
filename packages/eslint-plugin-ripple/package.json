@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-ripple",
-  "version": "0.1.1",
+  "version": "0.2.112",
   "description": "ESLint plugin for Ripple",
   "type": "module",
   "main": "dist/index.js",
@@ -18,6 +18,15 @@
   ],
   "author": "Dominic Gannaway",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/eslint-plugin-ripple"
+  },
+  "bugs": {
+    "url": "https://github.com/trueadm/ripple/issues"
+  },
+  "homepage": "https://ripplejs.com",
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --target esnext --platform node",
     "test": "vitest run",

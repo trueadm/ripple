@@ -1,9 +1,18 @@
 {
   "name": "eslint-parser-ripple",
-  "version": "0.1.1",
+  "version": "0.2.112",
   "description": "ESLint parser for Ripple (.ripple files)",
   "type": "module",
   "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/eslint-parser-ripple"
+  },
+  "bugs": {
+    "url": "https://github.com/trueadm/ripple/issues"
+  },
+  "homepage": "https://ripplejs.com",
   "exports": {
     ".": "./dist/index.js"
   },
