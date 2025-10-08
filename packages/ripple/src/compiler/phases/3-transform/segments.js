@@ -8,6 +8,9 @@ export const mapping_data = {
 	rename: true,
 	codeActions: false, // set to false to disable auto import when importing yourself
 	formatting: false, // not doing formatting through Volar, using Prettier.
+	// hover: true,
+	// definition: true,
+	// references: true,
 };
 
 /**
@@ -35,6 +38,29 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	};
 
 	/**
+	 * Check if a position is inside a comment
+	 * @param {number} pos - Position to check
+	 * @returns {boolean}
+	 */
+	const isInComment = (pos) => {
+		// Check for single-line comment: find start of line and check if there's // before this position
+		let lineStart = source.lastIndexOf('\n', pos - 1) + 1;
+		const lineBeforePos = source.substring(lineStart, pos);
+		if (lineBeforePos.includes('//')) {
+			return true;
+		}
+		// Check for multi-line comment: look backwards for /* and forwards for */
+		const lastCommentStart = source.lastIndexOf('/*', pos);
+		if (lastCommentStart !== -1) {
+			const commentEnd = source.indexOf('*/', lastCommentStart);
+			if (commentEnd === -1 || commentEnd > pos) {
+				return true; // We're inside an unclosed or open comment
+			}
+		}
+		return false;
+	};
+
+	/**
 	 * Find text in source string, searching character by character from sourceIndex
 	 * @param {string} text - Text to find
 	 * @returns {number|null} - Source position or null
@@ -49,6 +75,11 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				}
 			}
 			if (match) {
+				// Skip if this match is inside a comment
+				if (isInComment(i)) {
+					continue;
+				}
+
 				// Check word boundaries for identifier-like tokens
 				const isIdentifierLike = /^[a-zA-Z_$]/.test(text);
 				if (isIdentifierLike) {
@@ -1015,7 +1046,11 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 			sourceOffsets: [0],
 			generatedOffsets: [0],
 			lengths: [1],
-			data: mapping_data,
+				data: {
+					...mapping_data,
+					codeActions: true, // auto-import
+					rename: false, // avoid rename for a “dummy” mapping
+				}
 		});
 	}
 
