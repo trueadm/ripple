@@ -87,4 +87,7 @@ export {
 	bindContentBoxSize,
 	bindBorderBoxSize,
 	bindDevicePixelContentBoxSize,
+	bindInnerHTML,
+	bindInnerText,
+	bindTextContent,
 } from './internal/client/bindings.js';

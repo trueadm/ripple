@@ -263,3 +263,13 @@ export declare function bindContentRect<V>(tracked: Tracked<V>): (node: HTMLElem
 export declare function bindContentBoxSize<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
 export declare function bindBorderBoxSize<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+
+export declare function bindDevicePixelContentBoxSize<V>(
+	tracked: Tracked<V>,
+): (node: HTMLElement) => void;
+
+export declare function bindInnerHTML<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+
+export declare function bindInnerText<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+
+export declare function bindTextContent<V>(tracked: Tracked<V>): (node: HTMLElement) => void;

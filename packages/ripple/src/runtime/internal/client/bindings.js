@@ -248,7 +248,7 @@ export function bindChecked(maybe_tracked) {
 	}
 
 	const block = /** @type {any} */ (active_block);
-	const tracked = /** @type {Tracked<any>} */ (maybe_tracked);
+	const tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	return (input) => {
 		const clear_event = on(input, 'change', () => {
@@ -377,4 +377,67 @@ export function bindBorderBoxSize(maybe_tracked) {
  */
 export function bindDevicePixelContentBoxSize(maybe_tracked) {
 	return bind_element_rect(maybe_tracked, 'devicePixelContentBoxSize');
+}
+
+/**
+ * @param {unknown} maybe_tracked
+ * @param {'innerHTML' | 'innerText' | 'textContent'} property
+ * @returns {(node: HTMLElement) => void}
+ */
+export function bind_content_editable(maybe_tracked, property) {
+	if (!is_tracked_object(maybe_tracked)) {
+		throw new TypeError(
+			`bind${property.charAt(0).toUpperCase() + property.slice(1)}() argument is not a tracked object`,
+		);
+	}
+
+	const block = /** @type {any} */ (active_block);
+	const tracked = /** @type {Tracked} */ (maybe_tracked);
+
+	return (element) => {
+		const clear_event = on(element, 'input', () => {
+			set(tracked, element[property], block);
+		});
+
+		render(() => {
+			var value = get(tracked);
+
+			if (element[property] !== value) {
+				if (value == null) {
+					// @ts-ignore
+					var non_null_value = element[property];
+					set(tracked, non_null_value, block);
+				} else {
+					// @ts-ignore
+					element[property] = value + '';
+				}
+			}
+		});
+
+		return clear_event;
+	};
+}
+
+/**
+ * @param {unknown} maybe_tracked
+ * @returns {(node: HTMLElement) => void}
+ */
+export function bindInnerHTML(maybe_tracked) {
+	return bind_content_editable(maybe_tracked, 'innerHTML');
+}
+
+/**
+ * @param {unknown} maybe_tracked
+ * @returns {(node: HTMLElement) => void}
+ */
+export function bindInnerText(maybe_tracked) {
+	return bind_content_editable(maybe_tracked, 'innerText');
+}
+
+/**
+ * @param {unknown} maybe_tracked
+ * @returns {(node: HTMLElement) => void}
+ */
+export function bindTextContent(maybe_tracked) {
+	return bind_content_editable(maybe_tracked, 'textContent');
 }
