@@ -63,7 +63,7 @@ jobs:
 
             - name: Build VSIX
               working-directory: ./packages/ripple-vscode-plugin
-              run: pnpx run build-and-package
+              run: pnpm run build-and-package
 
             - name: Upload VSIX
               uses: actions/upload-artifact@v4
