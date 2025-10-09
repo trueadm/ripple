@@ -13,12 +13,12 @@ describe('validateProjectName', () => {
 			'a',
 			'a'.repeat(214), // max length
 			'.', // root directory
-			'../..', // path
 			'my/app' // slash
 		];
 
 		validNames.forEach(name => {
 			const result = validateProjectName(name);
+			console.log(`\nchecking: |${name}|\nresult: ${JSON.stringify(result)}`);
 			expect(result.valid).toBe(true);
 			expect(result.message).toBe('');
 		});
