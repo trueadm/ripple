@@ -33,6 +33,13 @@
     "vscode-uri": "^3.1.0"
   },
   "contributes": {
+    "commands": [
+      {
+        "command": "ripple.goToSourceDefinition",
+        "title": "Go to Source Definition",
+        "category": "Ripple"
+      }
+    ],
     "languages": [
       {
         "id": "ripple",
@@ -80,7 +87,7 @@
     "menus": {
       "editor/context": [
         {
-          "command": "typescript.goToSourceDefinition",
+          "command": "ripple.goToSourceDefinition",
           "when": "tsSupportsSourceDefinition && resourceLangId == ripple",
           "group": "navigation@9"
         }
