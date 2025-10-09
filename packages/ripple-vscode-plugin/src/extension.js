@@ -72,17 +72,25 @@ async function activate(context) {
 				break;
 			case 'alreadyActive':
 				console.warn('[Ripple] TypeScript extension already active - patch skipped');
-				vscode.window
-					.showWarningMessage(
-						'Ripple TypeScript support needs a window reload because the TypeScript extension was already running.',
-						'Reload Window',
-					)
-					.then((selection) => {
-						if (selection === 'Reload Window') {
-							vscode.commands.executeCommand('workbench.action.reloadWindow');
-						}
-					});
-				break;
+				// Check if we've already prompted for reload in this session
+				const hasPromptedReload = context.globalState.get('ripple.hasPromptedReload', false);
+				if (!hasPromptedReload) {
+					// Mark that we've prompted to avoid repeated prompts
+					await context.globalState.update('ripple.hasPromptedReload', true);
+					// Prompt user to restart extension host for full TypeScript integration
+					vscode.window
+						.showInformationMessage(
+							'Ripple extension needs to restart extensions to enable full TypeScript integration.',
+							'Restart Extensions',
+							'Later'
+						)
+						.then((selection) => {
+							if (selection === 'Restart Extensions') {
+								vscode.commands.executeCommand('workbench.action.restartExtensionHost');
+							}
+						});
+			}
+			break;
 			case 'patternMismatch':
 				console.warn('[Ripple] Patch patterns did not match - TypeScript extension internals may have changed.');
 				break;
@@ -93,7 +101,7 @@ async function activate(context) {
 		console.log('[Ripple] Successfully patched TypeScript extension to recognize Ripple files.');
 	}
 
-	const serverModule = vscode.Uri.joinPath(context.extensionUri, 'src/server.js').fsPath;
+	const serverModule = path.join(__dirname, 'server.js');
 
 	if (!fs.existsSync(serverModule)) {
 		const message = `Server module not found at: ${serverModule}`;
