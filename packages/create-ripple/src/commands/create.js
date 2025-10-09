@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { green, cyan, dim, red } from 'kleur/colors';
 import { validateProjectName } from '../lib/validation.js';
@@ -12,6 +12,7 @@ import {
 	promptStylingFramework
 } from '../lib/prompts.js';
 import { createProject } from '../lib/project-creator.js';
+import { isFolderEmpty } from '../lib/is-folder-empty.js';
 
 /**
  * Create command handler
@@ -35,7 +36,16 @@ export async function createCommand(projectName, options) {
 		}
 	}
 
-	// Step 2: Get template
+	// Step 1 results
+	const projectPath = resolve(process.cwd(), projectName);
+
+	// Step 2: Check directory and handle conflicts
+	const isEmpty = isFolderEmpty(projectPath, basename(projectPath));
+	if (!isEmpty) {
+		process.exit(1);
+	}
+
+	// Step 3: Get template
 	let template = options.template;
 	if (!template) {
 		template = await promptTemplate();
@@ -48,20 +58,10 @@ export async function createCommand(projectName, options) {
 		}
 	}
 
-	// Step 3: Get package manager
+	// Step 4: Get package manager
 	let packageManager = options.packageManager || 'npm';
 	if (!options.packageManager && !options.yes) {
 		packageManager = await promptPackageManager();
-	}
-
-	// Step 4: Check directory and handle conflicts
-	const projectPath = resolve(process.cwd(), projectName);
-	if (existsSync(projectPath) && !options.yes) {
-		const shouldOverwrite = await promptOverwrite(projectName);
-		if (!shouldOverwrite) {
-			console.log(red('✖ Operation cancelled'));
-			process.exit(1);
-		}
 	}
 
 	// Step 5: Git initialization preference
@@ -80,7 +80,7 @@ export async function createCommand(projectName, options) {
 		gitInit = await promptGitInit();
 	}
 
-		let stylingFramework = 'vanilla';
+	let stylingFramework = 'vanilla';
 	if (!options.yes) {
 		stylingFramework = await promptStylingFramework();
 	}
