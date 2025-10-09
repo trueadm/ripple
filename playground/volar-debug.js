@@ -13,5 +13,11 @@ for (const filename of await fs.readdir(dir)) {
 		const source = await fs.readFile(path.join(dir, filename), 'utf-8');
 		const result = compile_to_volar_mappings(source, filename);
 		await fs.writeFile(`${output_dir}/${filename.replace('.ripple', '.tsx')}`, result.code);
+
+		// Also output mappings for debugging
+		await fs.writeFile(
+			`${output_dir}/${filename.replace('.ripple', '.mappings.json')}`,
+			JSON.stringify(result.mappings, null, 2)
+		);
 	}
 }

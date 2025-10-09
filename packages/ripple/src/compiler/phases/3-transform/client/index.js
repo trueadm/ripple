@@ -161,6 +161,15 @@ const visitors = {
 		if (is_reference(node, parent)) {
 			if (context.state.to_ts) {
 				if (node.tracked) {
+					// Check if this identifier is used as a dynamic component/element
+					// by checking if it has a capitalized name in metadata
+					const binding = context.state.scope.get(node.name);
+					if (binding?.metadata?.is_dynamic_component) {
+						// Capitalize the identifier for TypeScript
+						const capitalizedName = node.name.charAt(0).toUpperCase() + node.name.slice(1);
+						const capitalizedNode = { ...node, name: capitalizedName };
+						return b.member(capitalizedNode, b.literal('#v'), true);
+					}
 					return b.member(node, b.literal('#v'), true);
 				}
 			} else {
@@ -438,6 +447,22 @@ const visitors = {
 			}
 		}
 
+		return context.next();
+	},
+
+	VariableDeclarator(node, context) {
+		// In TypeScript mode, capitalize identifiers that are used as dynamic components
+		if (context.state.to_ts && node.id.type === 'Identifier') {
+			const binding = context.state.scope.get(node.id.name);
+			if (binding?.metadata?.is_dynamic_component) {
+				const capitalizedName = node.id.name.charAt(0).toUpperCase() + node.id.name.slice(1);
+				return {
+					...node,
+					id: { ...node.id, name: capitalizedName },
+					init: node.init ? context.visit(node.init) : null
+				};
+			}
+		}
 		return context.next();
 	},
 
@@ -1397,7 +1422,8 @@ function transform_ts_child(node, context) {
 		// Do we need to do something special here?
 		state.init.push(b.stmt(visit(node.expression, { ...state })));
 	} else if (node.type === 'Element') {
-		const type = node.id.name;
+		// Use capitalized name for dynamic components/elements in TypeScript output
+		const type = node.metadata?.ts_name || node.id.name;
 		const children = [];
 		let has_children_props = false;
 
@@ -1462,33 +1488,44 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		let tracked_type;
-
-		// Make VSCode happy about tracked components, as they're lowercase in the AST
-		// so VSCode doesn't bother tracking them as components, so this fixes that
-		if (node.id.tracked) {
-			tracked_type = state.scope.generate(type[0].toUpperCase() + type.slice(1));
-			state.init.push(
-				b.const(tracked_type, b.member(node.id, b.literal('#v'), true)),
-			);
-		}
-
-		const opening_type = tracked_type
-			? b.jsx_id(tracked_type)
-			: b.jsx_id(type);
-		opening_type.loc = node.id.loc;
+		const opening_type = b.jsx_id(type);
+		// Use node.id.loc if available, otherwise create a loc based on the element's position
+		opening_type.loc = node.id.loc || {
+			start: {
+				line: node.loc.start.line,
+				column: node.loc.start.column + 2, // After "<@"
+			},
+			end: {
+				line: node.loc.start.line,
+				column: node.loc.start.column + 2 + type.length,
+			},
+		};
 
 		let closing_type = undefined;
 
 		if (!node.selfClosing) {
-			closing_type = tracked_type
-				? b.jsx_id(tracked_type)
-				: b.jsx_id(type);
+			closing_type = b.jsx_id(type);
+			closing_type.loc = {
+				start: {
+					line: node.loc.end.line,
+					column: node.loc.end.column - type.length - 1,
+				},
+				end: {
+					line: node.loc.end.line,
+					column: node.loc.end.column - 1,
+				},
+			};
 		}
 
-		state.init.push(
-			b.stmt(b.jsx_element(opening_type, attributes, children, node.selfClosing, closing_type)),
-		);
+		const jsxElement = b.jsx_element(opening_type, attributes, children, node.selfClosing, closing_type);
+		// Preserve metadata from Element node for mapping purposes
+		if (node.metadata && (node.metadata.ts_name || node.metadata.original_name)) {
+			jsxElement.metadata = {
+				ts_name: node.metadata.ts_name,
+				original_name: node.metadata.original_name
+			};
+		}
+		state.init.push(b.stmt(jsxElement));
 	} else if (node.type === 'IfStatement') {
 		const consequent_scope = context.state.scopes.get(node.consequent);
 		const consequent = b.block(

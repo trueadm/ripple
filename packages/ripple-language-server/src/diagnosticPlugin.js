@@ -28,7 +28,7 @@ function createRippleDiagnosticPlugin() {
 			return {
 				provideDiagnostics(document) {
 					try {
-						log('Providing diagnostics for:', document.uri);
+						log('Providing Ripple diagnostics for:', document.uri);
 
 						const info = getEmbeddedInfo(context, document);
 
@@ -203,4 +203,3 @@ function getEmbeddedInfo(context, document) {
 module.exports = {
 	createRippleDiagnosticPlugin,
 };
-

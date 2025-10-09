@@ -5,6 +5,14 @@ export const mapping_data = {
 	completion: true,
 	semantic: true,
 	navigation: true,
+	rename: true,
+	codeActions: false, // set to false to disable auto import when importing yourself
+	formatting: false, // not doing formatting through Volar, using Prettier.
+	// these 3 below will be true by default
+	// leaving for reference
+	// hover: true,
+	// definition: true,
+	// references: true,
 };
 
 /**
@@ -22,6 +30,26 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	let sourceIndex = 0;
 	let generatedIndex = 0;
 
+	// Map to track capitalized names: original name -> capitalized name
+	/** @type {Map<string, string>} */
+	const capitalizedNames = new Map();
+	// Reverse map: capitalized name -> original name
+	/** @type {Map<string, string>} */
+	const reverseCapitalizedNames = new Map();
+
+	// Pre-walk to collect capitalized names from JSXElement nodes (transformed AST)
+	// These are identifiers that are used as dynamic components/elements
+	walk(ast, null, {
+		_(node, { next }) {
+			// Check JSXElement nodes with metadata (preserved from Element nodes)
+			if (node.type === 'JSXElement' && node.metadata?.ts_name && node.metadata?.original_name) {
+				capitalizedNames.set(node.metadata.original_name, node.metadata.ts_name);
+				reverseCapitalizedNames.set(node.metadata.ts_name, node.metadata.original_name);
+			}
+			next();
+		}
+	});
+
 	/**
 	 * Check if character is a word boundary (not alphanumeric or underscore)
 	 * @param {string} char
@@ -29,6 +57,29 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	 */
 	const isWordBoundary = (char) => {
 		return char === undefined || !/[a-zA-Z0-9_$]/.test(char);
+	};
+
+	/**
+	 * Check if a position is inside a comment
+	 * @param {number} pos - Position to check
+	 * @returns {boolean}
+	 */
+	const isInComment = (pos) => {
+		// Check for single-line comment: find start of line and check if there's // before this position
+		let lineStart = source.lastIndexOf('\n', pos - 1) + 1;
+		const lineBeforePos = source.substring(lineStart, pos);
+		if (lineBeforePos.includes('//')) {
+			return true;
+		}
+		// Check for multi-line comment: look backwards for /* and forwards for */
+		const lastCommentStart = source.lastIndexOf('/*', pos);
+		if (lastCommentStart !== -1) {
+			const commentEnd = source.indexOf('*/', lastCommentStart);
+			if (commentEnd === -1 || commentEnd > pos) {
+				return true; // We're inside an unclosed or open comment
+			}
+		}
+		return false;
 	};
 
 	/**
@@ -46,6 +97,11 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				}
 			}
 			if (match) {
+				// Skip if this match is inside a comment
+				if (isInComment(i)) {
+					continue;
+				}
+
 				// Check word boundaries for identifier-like tokens
 				const isIdentifierLike = /^[a-zA-Z_$]/.test(text);
 				if (isIdentifierLike) {
@@ -96,23 +152,66 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	};
 
 	// Collect text tokens from AST nodes
-	/** @type {string[]} */
+	// Tokens can be either strings or objects with source/generated properties
+	/** @type {Array<string | {source: string, generated: string}>} */
 	const tokens = [];
+
+	// Collect import declarations for full-statement mappings
+	/** @type {Array<{start: number, end: number}>} */
+	const importDeclarations = [];
 
 	// We have to visit everything in generated order to maintain correct indices
 	walk(ast, null, {
 		_(node, { visit }) {
 			// Collect key node types: Identifiers, Literals, and JSX Elements
+			// Only collect tokens from nodes with .loc (skip synthesized nodes like children attribute)
 			if (node.type === 'Identifier' && node.name) {
-				tokens.push(node.name);
+				if (node.loc) {
+					// Check if this identifier was capitalized (reverse lookup)
+					const originalName = reverseCapitalizedNames.get(node.name);
+					if (originalName) {
+						// This is a capitalized name in generated code, map to lowercase in source
+						tokens.push({ source: originalName, generated: node.name });
+					} else {
+						// Check if this identifier should be capitalized (forward lookup)
+						const capitalizedName = capitalizedNames.get(node.name);
+						if (capitalizedName) {
+							tokens.push({ source: node.name, generated: capitalizedName });
+						} else {
+							tokens.push(node.name);
+						}
+					}
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'JSXIdentifier' && node.name) {
-				tokens.push(node.name);
+				if (node.loc) {
+					// Check if this was capitalized (reverse lookup)
+					const originalName = reverseCapitalizedNames.get(node.name);
+					if (originalName) {
+						tokens.push({ source: originalName, generated: node.name });
+					} else {
+						// Check if this should be capitalized (forward lookup)
+						const capitalizedName = capitalizedNames.get(node.name);
+						if (capitalizedName) {
+							tokens.push({ source: node.name, generated: capitalizedName });
+						} else {
+							tokens.push(node.name);
+						}
+					}
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'Literal' && node.raw) {
-				tokens.push(node.raw);
+				if (node.loc) {
+					tokens.push(node.raw);
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
+				// Collect import declaration range for full-statement mapping
+				// TypeScript reports unused imports with diagnostics covering the entire statement
+				if (node.start !== undefined && node.end !== undefined) {
+					importDeclarations.push({ start: node.start, end: node.end });
+				}
+
 				// Visit specifiers in source order
 				if (node.specifiers) {
 					for (const specifier of node.specifiers) {
@@ -209,7 +308,20 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 
 				// 3. Push closing tag name (not visited by AST walker)
 				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
-					tokens.push(node.closingElement.name.name);
+					const closingName = node.closingElement.name.name;
+					// Check if this was capitalized (reverse lookup)
+					const originalName = reverseCapitalizedNames.get(closingName);
+					if (originalName) {
+						tokens.push({ source: originalName, generated: closingName });
+					} else {
+						// Check if this should be capitalized (forward lookup)
+						const capitalizedName = capitalizedNames.get(closingName);
+						if (capitalizedName) {
+							tokens.push({ source: closingName, generated: capitalizedName });
+						} else {
+							tokens.push(closingName);
+						}
+					}
 				}
 
 				return;
@@ -988,22 +1100,64 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	});
 
 	// Process each token in order
-	for (const text of tokens) {
-		const sourcePos = findInSource(text);
-		const genPos = findInGenerated(text);
+	for (const token of tokens) {
+		let sourceText, generatedText;
+
+		if (typeof token === 'string') {
+			sourceText = token;
+			generatedText = token;
+		} else {
+			// Token with different source and generated names
+			sourceText = token.source;
+			generatedText = token.generated;
+		}
+
+		const sourcePos = findInSource(sourceText);
+		const genPos = findInGenerated(generatedText);
 
 		if (sourcePos !== null && genPos !== null) {
 			mappings.push({
 				sourceOffsets: [sourcePos],
 				generatedOffsets: [genPos],
-				lengths: [text.length],
+				lengths: [sourceText.length],
 				data: mapping_data,
 			});
 		}
 	}
 
+	// Add full-statement mappings for import declarations
+	// TypeScript reports unused import diagnostics covering the entire import statement
+	// Use verification-only mapping to avoid duplicate hover/completion
+	for (const importDecl of importDeclarations) {
+		const length = importDecl.end - importDecl.start;
+		mappings.push({
+			sourceOffsets: [importDecl.start],
+			generatedOffsets: [importDecl.start], // Same position in generated code
+			lengths: [length],
+			data: {
+				// only verification (diagnostics) to avoid duplicate hover/completion
+				verification: true
+			},
+		});
+	}
+
 	// Sort mappings by source offset
 	mappings.sort((a, b) => a.sourceOffsets[0] - b.sourceOffsets[0]);
+
+	// Add a mapping for the very beginning of the file to handle import additions
+	// This ensures that code actions adding imports at the top work correctly
+	if (mappings.length > 0 && mappings[0].sourceOffsets[0] > 0) {
+		mappings.unshift({
+			sourceOffsets: [0],
+			generatedOffsets: [0],
+			lengths: [1],
+				data: {
+					...mapping_data,
+					codeActions: true, // auto-import
+					rename: false, // avoid rename for a “dummy” mapping
+				}
+		});
+	}
 
 	return {
 		code: generated_code,
