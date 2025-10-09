@@ -156,6 +156,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	/** @type {Array<string | {source: string, generated: string}>} */
 	const tokens = [];
 
+	// Collect import declarations for full-statement mappings
+	/** @type {Array<{start: number, end: number}>} */
+	const importDeclarations = [];
+
 	// We have to visit everything in generated order to maintain correct indices
 	walk(ast, null, {
 		_(node, { visit }) {
@@ -202,6 +206,12 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
+				// Collect import declaration range for full-statement mapping
+				// TypeScript reports unused imports with diagnostics covering the entire statement
+				if (node.start !== undefined && node.end !== undefined) {
+					importDeclarations.push({ start: node.start, end: node.end });
+				}
+
 				// Visit specifiers in source order
 				if (node.specifiers) {
 					for (const specifier of node.specifiers) {
@@ -1113,6 +1123,22 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				data: mapping_data,
 			});
 		}
+	}
+
+	// Add full-statement mappings for import declarations
+	// TypeScript reports unused import diagnostics covering the entire import statement
+	// Use verification-only mapping to avoid duplicate hover/completion
+	for (const importDecl of importDeclarations) {
+		const length = importDecl.end - importDecl.start;
+		mappings.push({
+			sourceOffsets: [importDecl.start],
+			generatedOffsets: [importDecl.start], // Same position in generated code
+			lengths: [length],
+			data: {
+				// only verification (diagnostics) to avoid duplicate hover/completion
+				verification: true
+			},
+		});
 	}
 
 	// Sort mappings by source offset
