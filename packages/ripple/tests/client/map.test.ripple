@@ -138,4 +138,85 @@ describe('TrackedMap', () => {
 
         expect(container.querySelectorAll('pre')[0].textContent).toBe('[["foo",1],["bar",2]]');
     });
+
+    it('creates empty TrackedMap using #Map() shorthand syntax', () => {
+        component MapTest() {
+            let map = #Map();
+            
+            <button onClick={() => map.set('a', 1)}>{'add'}</button>
+            <pre>{map.size}</pre>
+        }
+
+        render(MapTest);
+
+        expect(container.querySelector('pre').textContent).toBe('0');
+
+        const addButton = container.querySelector('button');
+        addButton.click();
+        flushSync();
+
+        expect(container.querySelector('pre').textContent).toBe('1');
+    });
+    
+
+    it('creates TrackedMap with initial entries using #Map() shorthand syntax', () => {
+        component MapTest() {
+            let map = #Map([['a', 1], ['b', 2], ['c', 3]]);
+            let value = track(() => map.get('b'));
+
+            <button onClick={() => map.set('b', 10)}>{'update'}</button>
+            <pre>{map.size}</pre>
+            <pre>{@value}</pre>
+        }
+
+        render(MapTest);
+
+        expect(container.querySelectorAll('pre')[0].textContent).toBe('3');
+        expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+        const updateButton = container.querySelector('button');
+        updateButton.click();
+        flushSync();
+
+        expect(container.querySelectorAll('pre')[1].textContent).toBe('10');
+    });
+
+    it('handles all operations with #Map() shorthand syntax', () => {
+        component MapTest() {
+            let map = #Map([['x', 100], ['y', 200]]);
+            let keys = track(() => Array.from(map.keys()));
+
+            <button onClick={() => map.set('z', 300)}>{'add'}</button>
+            <button onClick={() => map.delete('x')}>{'delete'}</button>
+            <button onClick={() => map.clear()}>{'clear'}</button>
+
+            <pre>{JSON.stringify(@keys)}</pre>
+            <pre>{map.size}</pre>
+        }
+
+        render(MapTest);
+
+        const [addButton, deleteButton, clearButton] = container.querySelectorAll('button');
+
+        expect(container.querySelectorAll('pre')[0].textContent).toBe('["x","y"]');
+        expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+        addButton.click();
+        flushSync();
+
+        expect(container.querySelectorAll('pre')[0].textContent).toBe('["x","y","z"]');
+        expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+        deleteButton.click();
+        flushSync();
+
+        expect(container.querySelectorAll('pre')[0].textContent).toBe('["y","z"]');
+        expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+        clearButton.click();
+        flushSync();
+
+        expect(container.querySelectorAll('pre')[0].textContent).toBe('[]');
+        expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+    });
 });

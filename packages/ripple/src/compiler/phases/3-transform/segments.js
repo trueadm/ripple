@@ -167,18 +167,23 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 			// Only collect tokens from nodes with .loc (skip synthesized nodes like children attribute)
 			if (node.type === 'Identifier' && node.name) {
 				if (node.loc) {
-					// Check if this identifier was capitalized (reverse lookup)
-					const originalName = reverseCapitalizedNames.get(node.name);
-					if (originalName) {
-						// This is a capitalized name in generated code, map to lowercase in source
-						tokens.push({ source: originalName, generated: node.name });
+					// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
+					if (node.metadata?.tracked_shorthand) {
+						tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name });
 					} else {
-						// Check if this identifier should be capitalized (forward lookup)
-						const capitalizedName = capitalizedNames.get(node.name);
-						if (capitalizedName) {
-							tokens.push({ source: node.name, generated: capitalizedName });
+						// Check if this identifier was capitalized (reverse lookup)
+						const originalName = reverseCapitalizedNames.get(node.name);
+						if (originalName) {
+							// This is a capitalized name in generated code, map to lowercase in source
+							tokens.push({ source: originalName, generated: node.name });
 						} else {
-							tokens.push(node.name);
+							// Check if this identifier should be capitalized (forward lookup)
+							const capitalizedName = capitalizedNames.get(node.name);
+							if (capitalizedName) {
+								tokens.push({ source: node.name, generated: capitalizedName });
+							} else {
+								tokens.push(node.name);
+							}
 						}
 					}
 				}

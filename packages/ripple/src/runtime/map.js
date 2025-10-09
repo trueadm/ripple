@@ -1,5 +1,5 @@
 /** @import { Block, Tracked } from '#client' */
-import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
+import { get, increment, safe_scope, set, tracked, with_scope } from './internal/client/runtime.js';
 
 const introspect_methods = ['entries', 'forEach', 'values', Symbol.iterator];
 
@@ -192,4 +192,14 @@ export class TrackedMap extends Map {
 
     return [...this];
   }
+}
+
+/**
+ * @template K, V
+ * @param {Block} block
+ * @param {...any} args
+ * @returns {TrackedMap<K, V>}
+ */
+export function tracked_map(block, ...args) {
+  return with_scope(block, () => new TrackedMap(...args));
 }

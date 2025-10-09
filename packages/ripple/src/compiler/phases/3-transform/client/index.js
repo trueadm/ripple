@@ -350,11 +350,9 @@ const visitors = {
 				context.state.imports.add(`import { TrackedArray } from 'ripple'`);
 			}
 
-			return b.new(
-				b.call(
-					b.member(b.id('TrackedArray'), b.id('from')),
-					node.elements.map((el) => context.visit(el)),
-				),
+			return b.call(
+				b.member(b.id('TrackedArray'), b.id('from')),
+				...node.elements.map((el) => context.visit(el)),
 			);
 		}
 
@@ -381,6 +379,48 @@ const visitors = {
 			'_$_.tracked_object',
 			b.object(node.properties.map((prop) => context.visit(prop))),
 			b.id('__block'),
+		);
+	},
+
+	TrackedMapExpression(node, context) {
+		if (context.state.to_ts) {
+			if (!context.state.imports.has(`import { TrackedMap } from 'ripple'`)) {
+				context.state.imports.add(`import { TrackedMap } from 'ripple'`);
+			}
+
+			const calleeId = b.id('TrackedMap');
+			// Preserve location from original node for Volar mapping
+			calleeId.loc = node.loc;
+			// Add metadata for Volar mapping - map "TrackedMap" identifier to "#Map" in source
+			calleeId.metadata = { tracked_shorthand: '#Map' };
+			return b.new(calleeId, ...node.arguments.map((arg) => context.visit(arg)));
+		}
+
+		return b.call(
+			'_$_.tracked_map',
+			b.id('__block'),
+			...node.arguments.map((arg) => context.visit(arg)),
+		);
+	},
+
+	TrackedSetExpression(node, context) {
+		if (context.state.to_ts) {
+			if (!context.state.imports.has(`import { TrackedSet } from 'ripple'`)) {
+				context.state.imports.add(`import { TrackedSet } from 'ripple'`);
+			}
+
+			const calleeId = b.id('TrackedSet');
+			// Preserve location from original node for Volar mapping
+			calleeId.loc = node.loc;
+			// Add metadata for Volar mapping - map "TrackedSet" identifier to "#Set" in source
+			calleeId.metadata = { tracked_shorthand: '#Set' };
+			return b.new(calleeId, ...node.arguments.map((arg) => context.visit(arg)));
+		}
+
+		return b.call(
+			'_$_.tracked_set',
+			b.id('__block'),
+			...node.arguments.map((arg) => context.visit(arg)),
 		);
 	},
 
@@ -459,7 +499,7 @@ const visitors = {
 				return {
 					...node,
 					id: { ...node.id, name: capitalizedName },
-					init: node.init ? context.visit(node.init) : null
+					init: node.init ? context.visit(node.init) : null,
 				};
 			}
 		}
@@ -1517,12 +1557,18 @@ function transform_ts_child(node, context) {
 			};
 		}
 
-		const jsxElement = b.jsx_element(opening_type, attributes, children, node.selfClosing, closing_type);
+		const jsxElement = b.jsx_element(
+			opening_type,
+			attributes,
+			children,
+			node.selfClosing,
+			closing_type,
+		);
 		// Preserve metadata from Element node for mapping purposes
 		if (node.metadata && (node.metadata.ts_name || node.metadata.original_name)) {
 			jsxElement.metadata = {
 				ts_name: node.metadata.ts_name,
-				original_name: node.metadata.original_name
+				original_name: node.metadata.original_name,
 			};
 		}
 		state.init.push(b.stmt(jsxElement));

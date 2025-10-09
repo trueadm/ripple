@@ -419,6 +419,28 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'TrackedMapExpression': {
+			// Format: #Map(arg1, arg2, ...)
+			if (!node.arguments || node.arguments.length === 0) {
+				nodeContent = '#Map()';
+			} else {
+				const args = path.map(print, 'arguments');
+				nodeContent = concat(['#Map(', join(concat([',', line]), args), ')']);
+			}
+			break;
+		}
+
+		case 'TrackedSetExpression': {
+			// Format: #Set(arg1, arg2, ...)
+			if (!node.arguments || node.arguments.length === 0) {
+				nodeContent = '#Set()';
+			} else {
+				const args = path.map(print, 'arguments');
+				nodeContent = concat(['#Set(', join(concat([',', line]), args), ')']);
+			}
+			break;
+		}
+
 		case 'UnaryExpression':
 			nodeContent = printUnaryExpression(node, path, options, print);
 			break;
