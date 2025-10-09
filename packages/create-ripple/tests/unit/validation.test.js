@@ -35,7 +35,6 @@ describe('validateProjectName', () => {
 
 		invalidCases.forEach(({ name, expectedMessage }) => {
 			const result = validateProjectName(name);
-			console.log(`Testing: |${name}|\nresult: ${JSON.stringify(result)}\nExpected: ${expectedMessage}\n`);
 			expect(result.valid).toBe(false);
 			expect(result.message).toBe(expectedMessage);
 		});
