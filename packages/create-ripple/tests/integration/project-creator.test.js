@@ -227,6 +227,7 @@ describe('createProject integration tests', () => {
 		expect(existsSync(join(projectPath, 'package.json'))).toBe(true);
 		expect(existsSync(join(projectPath, 'existing-file.txt'))).toBe(true);
 	});
+	
 	it('should configure Tailwind CSS correctly', async () => {
 			writeFileSync(join(templatePath, 'src', 'index.ts'), 'console.log("Hello, World!");');
 			await createProject({
