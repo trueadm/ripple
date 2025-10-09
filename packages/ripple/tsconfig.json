@@ -10,7 +10,7 @@
 		"noErrorTruncation": true,
 		"allowSyntheticDefaultImports": true,
 		"verbatimModuleSyntax": true,
-		"types": ["node"],
+		"types": ["node", "vitest/globals"],
 		"jsx": "preserve",
 		"jsxImportSource": "ripple",
 		"strict": true,
@@ -23,6 +23,8 @@
 	"include": [
 		"./*.js",
 		"./src/",
-		"./tests/*/test.ripple",
+		"./tests/**/*.test.ripple",
+		"./tests/**/*.d.ts",
+		"./tests/**/*.js"
 	]
 }

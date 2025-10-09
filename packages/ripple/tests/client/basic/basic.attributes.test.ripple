@@ -1,0 +1,474 @@
+import { describe, it, expect } from 'vitest';
+import { track, flushSync } from 'ripple';
+
+describe('basic client > attribute rendering', () => {
+	it('render static attributes', () => {
+		component Basic() {
+			<div class='foo' id='bar' style='color: red;'>{'Hello World'}</div>
+		}
+
+		render(Basic);
+
+		expect(container).toMatchSnapshot();
+	});
+
+	it('render dynamic class attribute', () => {
+		component Basic() {
+			let active = track(false);
+
+			<button onClick={() => { @active = !@active }}>{'Toggle'}</button>
+			<div class={@active ? 'active' : 'inactive'}>{'Dynamic Class'}</div>
+
+			<style>
+				.active {
+					color: green;
+				}
+			</style>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(div.classList.contains('inactive')).toBe(true);
+
+		button.click();
+		flushSync();
+		expect(div.classList.contains('active')).toBe(true);
+
+		button.click();
+		flushSync();
+
+		expect(div.classList.contains('inactive')).toBe(true);
+	});
+
+	it('render class attribute with array, nested array, nested object', () => {
+		component Basic() {
+			<div class={[
+				'foo',
+				'bar',
+				true && 'baz',
+				false && 'aaa',
+				null && 'bbb',
+				[
+					'ccc',
+					'ddd',
+					{ eee: true, fff: false }
+				]
+			]}>
+				{'Class Array'}
+			</div>
+
+			<style>
+				.foo {
+				  color: red;
+				}
+			</style>
+		}
+
+		render(Basic);
+
+		const div = container.querySelector('div');
+
+		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(div.classList.contains('foo')).toBe(true);
+		expect(div.classList.contains('bar')).toBe(true);
+		expect(div.classList.contains('baz')).toBe(true);
+		expect(div.classList.contains('aaa')).toBe(false);
+		expect(div.classList.contains('bbb')).toBe(false);
+		expect(div.classList.contains('ccc')).toBe(true);
+		expect(div.classList.contains('ddd')).toBe(true);
+		expect(div.classList.contains('eee')).toBe(true);
+		expect(div.classList.contains('fff')).toBe(false);
+	});
+
+	it('render dynamic class object', () => {
+		component Basic() {
+			let active = track(false);
+
+			<button onClick={() => { @active = !@active }}>{'Toggle'}</button>
+			<div class={{ active: @active, inactive: !@active }}>{'Dynamic Class'}</div>
+
+			<style>
+				.active {
+					color: green;
+				}
+			</style>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(div.classList.contains('inactive')).toBe(true);
+		expect(div.classList.contains('active')).toBe(false);
+
+		button.click();
+		flushSync();
+		expect(div.classList.contains('inactive')).toBe(false);
+		expect(div.classList.contains('active')).toBe(true);
+
+		button.click();
+		flushSync();
+
+		expect(div.classList.contains('inactive')).toBe(true);
+		expect(div.classList.contains('active')).toBe(false);
+	});
+
+	it('render dynamic id attribute', () => {
+		component Basic() {
+			let count = track(0);
+
+			<button onClick={() => { @count++ }}>{'Increment'}</button>
+			<div id={`item-${@count}`}>{'Dynamic ID'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.id).toBe('item-0');
+
+		button.click();
+		flushSync();
+
+		expect(div.id).toBe('item-1');
+
+		button.click();
+		flushSync();
+
+		expect(div.id).toBe('item-2');
+	});
+
+	it('render dynamic style attribute', () => {
+		component Basic() {
+			let color = track('red');
+
+			<button onClick={() => { @color = @color === 'red' ? 'blue' : 'red' }}>{'Change Color'}</button>
+			<div style={`color: ${@color}; font-weight: bold;`}>{'Dynamic Style'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		button.click();
+		flushSync();
+
+		expect(div.style.color).toBe('blue');
+		expect(div.style.fontWeight).toBe('bold');
+	});
+
+	it('render style attribute as dynamic object', () => {
+		component Basic() {
+			let color = track('red');
+
+			<button onClick={() => { @color = @color === 'red' ? 'blue' : 'red' }}>{'Change Color'}</button>
+			<div style={{
+				color: @color,
+				fontWeight: 'bold',
+			}}>{'Dynamic Style'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		button.click();
+		flushSync();
+
+		expect(div.style.color).toBe('blue');
+		expect(div.style.fontWeight).toBe('bold');
+	});
+
+	it('render tracked variable as style attribute', () => {
+		component Basic() {
+			let style = track({ color: 'red', fontWeight: 'bold' });
+
+			function toggleColor() {
+				@style = { ...@style, color: @style.color === 'red' ? 'blue' : 'red' };
+			}
+
+			<button onClick={toggleColor}>{'Change Color'}</button>
+			<div style={@style}>{'Dynamic Style'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		button.click();
+		flushSync();
+
+		expect(div.style.color).toBe('blue');
+		expect(div.style.fontWeight).toBe('bold');
+	});
+
+	it('render tracked object as style attribute', () => {
+		component Basic() {
+			let style = #{ color: 'red', fontWeight: 'bold' };
+
+			function toggleColor() {
+				@style.color = @style.color === 'red' ? 'blue' : 'red';
+			}
+
+			<button onClick={toggleColor}>{'Change Color'}</button>
+			<div style={{ ...@style }}>{'Dynamic Style'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		button.click();
+		flushSync();
+
+		expect(div.style.color).toBe('blue');
+		expect(div.style.fontWeight).toBe('bold');
+	});
+
+	it('render spread attributes with style and class', () => {
+		component Basic() {
+			const attributes = {
+				style: { color: 'red', fontWeight: 'bold' },
+				class: ['foo', false && 'bar'],
+			};
+
+			<div {...attributes}>{'Attributes with style and class'}</div>
+		}
+
+		render(Basic);
+
+		const div = container.querySelector('div');
+
+		expect(div.style.color).toBe('red');
+		expect(div.style.fontWeight).toBe('bold');
+
+		expect(div.classList.contains('foo')).toBe(true);
+		expect(div.classList.contains('bar')).toBe(false);
+	});
+
+	it('render spread props without duplication', () => {
+		component App() {
+			const checkBoxProp = {name:'car'}
+
+			<div>
+				<input {...checkBoxProp} type="checkbox" id="vehicle1" value="Bike" />
+			</div>
+		}
+
+		render(App);
+
+		const input = container.querySelector('input');
+		const html = container.innerHTML;
+
+		expect(input.getAttribute('name')).toBe('car');
+		expect(input.getAttribute('type')).toBe('checkbox');
+		expect(input.getAttribute('id')).toBe('vehicle1');
+		expect(input.getAttribute('value')).toBe('Bike');
+
+		expect(html).not.toContain('type="checkbox"type="checkbox"');
+		expect(html).not.toContain('value="Bike"value="Bike"');
+
+		expect(container).toMatchSnapshot();
+	});
+
+	it('render dynamic boolean attributes', () => {
+		component Basic() {
+			let disabled = track(false);
+			let checked = track(false);
+
+			<button onClick={() => {
+				@disabled = !@disabled;
+				@checked = !@checked;
+			}}>{'Toggle'}</button>
+			<input type='checkbox' disabled={@disabled} checked={@checked} />
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const input = container.querySelector('input');
+
+		expect(input.disabled).toBe(false);
+		expect(input.checked).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(input.disabled).toBe(true);
+		expect(input.checked).toBe(true);
+	});
+
+	it('render multiple dynamic attributes', () => {
+		component Basic() {
+			let theme = track('light');
+			let size = track('medium');
+
+			<button
+				onClick={() => {
+				@theme = @theme === 'light' ? 'dark' : 'light';
+				@size = @size === 'medium' ? 'large' : 'medium';
+			}}
+			>{'Toggle Theme & Size'}</button>
+			<div class={`theme-${@theme} size-${@size}`} data-theme={@theme} data-size={@size}>{'Multiple Dynamic Attributes'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.className).toBe('theme-light size-medium');
+		expect(div.getAttribute('data-theme')).toBe('light');
+		expect(div.getAttribute('data-size')).toBe('medium');
+
+		button.click();
+		flushSync();
+
+		expect(div.className).toBe('theme-dark size-large');
+		expect(div.getAttribute('data-theme')).toBe('dark');
+		expect(div.getAttribute('data-size')).toBe('large');
+	});
+
+	it('render conditional attributes', () => {
+		component Basic() {
+			let showTitle = track(false);
+			let showAria = track(false);
+
+			<button onClick={() => {
+				@showTitle = !@showTitle;
+				@showAria = !@showAria;
+			}}>{'Toggle Attributes'}</button>
+			<div
+				title={@showTitle ? 'This is a title' : null}
+				aria-label={@showAria ? 'Accessible label' : null}
+			>{'Conditional Attributes'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.hasAttribute('title')).toBe(false);
+		expect(div.hasAttribute('aria-label')).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(div.getAttribute('title')).toBe('This is a title');
+		expect(div.getAttribute('aria-label')).toBe('Accessible label');
+
+		button.click();
+		flushSync();
+
+		expect(div.hasAttribute('title')).toBe(false);
+		expect(div.hasAttribute('aria-label')).toBe(false);
+	});
+
+	it('render spread attributes', () => {
+		component Basic() {
+			let attrs = track({
+				class: 'initial',
+				id: 'test-1'
+			});
+
+			<button
+				onClick={() => {
+				@attrs = {
+					class: 'updated',
+					id: 'test-2',
+					'data-extra': 'value'
+				};
+			}}
+			>{'Update Attributes'}</button>
+			<div {...@attrs}>{'Spread Attributes'}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const div = container.querySelector('div');
+
+		expect(div.className).toBe('initial');
+		expect(div.id).toBe('test-1');
+		expect(div.hasAttribute('data-extra')).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(div.className).toBe('updated');
+		expect(div.id).toBe('test-2');
+		expect(div.getAttribute('data-extra')).toBe('value');
+	});
+
+	it('renders with reactive attributes with nested reactive attributes', () => {
+		component App() {
+			let value = track('parent-class');
+
+			<p class={@value}>{'Colored parent value'}</p>
+
+			<div>
+				let nested = track('nested-class');
+
+				<p class={@nested}>{'Colored nested value'}</p>
+			</div>
+		}
+
+		render(App);
+
+		const paragraphs = container.querySelectorAll('p');
+
+		expect(paragraphs[0].className).toBe('parent-class');
+		expect(paragraphs[1].className).toBe('nested-class');
+	});
+
+	it('handles boolean attributes with no prop value provides', () => {
+		component App() {
+			<div class="container">
+				<button onClick={() => console.log("clicked!")} disabled>{"Button"}</button>
+				<input type="checkbox" checked />
+			</div>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
+
+	it('handles boolean props correctly', () => {
+		component App() {
+			<div data-disabled />
+
+			<Child isDisabled />
+		}
+
+		component Child({ isDisabled }) {
+			<input disabled={isDisabled} />
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
+});

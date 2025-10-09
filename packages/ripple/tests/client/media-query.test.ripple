@@ -1,25 +1,26 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mount, flushSync, MediaQuery, track } from 'ripple';
+import { flushSync, MediaQuery, track } from 'ripple';
+
+type Callback = (event: MediaQueryListEvent) => void;
 
 function setupMatchMedia() {
-  let listeners = new Set();
+  let listeners = new Set<Callback>();
 
   // A mock implementation of matchMedia
   const mockMatchMedia = vi.fn().mockImplementation(query => {
     return {
       media: query,
       matches: false, // default value
-      addEventListener: (type, cb) => {
+      addEventListener: (type: string, cb: Callback) => {
         if (type === 'change') listeners.add(cb);
       },
-      removeEventListener: (type, cb) => {
+      removeEventListener: (type: string, cb: Callback) => {
         if (type === 'change') listeners.delete(cb);
       },
       /** @param {function(MediaQueryListEvent): void} cb */
-      addListener: (cb) => listeners.add(cb),
+      addListener: (cb: Callback) => listeners.add(cb),
       /** @param {function(MediaQueryListEvent): void} cb */
-      removeListener: (cb) => listeners.delete(cb),
-      dispatch: (event) => {
+      removeListener: (cb: Callback) => listeners.delete(cb),
+      dispatch: (event: MediaQueryListEvent) => {
         listeners.forEach((cb) => cb(event));
       },
 			listenersCount: () => listeners.size,
@@ -35,24 +36,10 @@ function setupMatchMedia() {
 }
 
 describe('MediaQuery', () => {
-	let container;
-	let mm;
-
-	function render(component) {
-			mount(component, {
-					target: container
-			});
-	}
+	let mm: ReturnType<typeof setupMatchMedia>;
 
 	beforeEach(() => {
 			mm = setupMatchMedia();
-			container = document.createElement('div');
-			document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-			document.body.removeChild(container);
-			container = null;
 	});
 
 	it('should be reactive if matchMedia changes', () => {

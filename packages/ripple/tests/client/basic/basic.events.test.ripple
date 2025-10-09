@@ -1,0 +1,222 @@
+import { describe, it, expect } from 'vitest';
+import { track, flushSync } from 'ripple';
+
+describe('basic client > events', () => {
+	it('renders with different event types', () => {
+		component Basic() {
+			let focusCount = track(0);
+			let clickCount = track(0);
+
+			<button
+				onFocus={() => { @focusCount++ }}
+				onClick={() => { @clickCount++ }}
+			>{'Test Button'}</button>
+			<div class='focus-count'>{@focusCount}</div>
+			<div class='click-count'>{@clickCount}</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const focusDiv = container.querySelector('.focus-count');
+		const clickDiv = container.querySelector('.click-count');
+
+		button.dispatchEvent(new Event('focus'));
+		flushSync();
+		expect(focusDiv.textContent).toBe('1');
+
+		button.click();
+		flushSync();
+		expect(clickDiv.textContent).toBe('1');
+	});
+
+	it('renders with capture events', () => {
+		component Basic() {
+			let captureClicks = track(0);
+			let bubbleClicks = track(0);
+
+			<div onClickCapture={() => { @captureClicks++ }}>
+				<button onClick={() => { @bubbleClicks++ }}>{'Click me'}</button>
+				<div class='capture-count'>{@captureClicks}</div>
+				<div class='bubble-count'>{@bubbleClicks}</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const captureDiv = container.querySelector('.capture-count');
+		const bubbleDiv = container.querySelector('.bubble-count');
+
+		button.click();
+		flushSync();
+
+		expect(captureDiv.textContent).toBe('1');
+		expect(bubbleDiv.textContent).toBe('1');
+	});
+
+	it('renders with event listeners in spread props', () => {
+		component Basic() {
+			let count = track(0);
+
+			const minus = {
+				onClick() {
+					@count--
+				}
+			}
+
+			const plus = {
+				onClick() {
+					@count++
+				}
+			}
+
+			<div>
+				<button {...minus} class='minus'>{'-'}</button>
+				<span class='count'>{@count}</span>
+				<button {...plus} class='plus'>{'+'}</button>
+			</div>
+		}
+
+		render(Basic);
+
+		const minusButton = container.querySelector('.minus');
+		const plusButton = container.querySelector('.plus');
+		const countSpan = container.querySelector('.count');
+
+		expect(countSpan.textContent).toBe('0');
+
+		// Test that the buttons don't have string onclick attributes
+		expect(minusButton.getAttribute('onclick')).toBe(null);
+		expect(plusButton.getAttribute('onclick')).toBe(null);
+
+		// Test that the event handlers work
+		minusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('-1');
+
+		plusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('0');
+
+		plusButton.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('1');
+	});
+
+	it('handles both delegated and non-delegated events in spread props', () => {
+		component Basic() {
+			let clickCount = track(0);
+			let focusCount = track(0);
+
+			const mixedHandler = {
+				onClick() {  // Delegated event
+					@clickCount++
+				},
+				onFocus() { // Non-delegated event
+					@focusCount++
+				}
+			}
+
+			<div>
+				<button {...mixedHandler} class='mixed-button'>{'Test'}</button>
+				<span class='click-count'>{@clickCount}</span>
+				<span class='focus-count'>{@focusCount}</span>
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('.mixed-button');
+		const clickSpan = container.querySelector('.click-count');
+		const focusSpan = container.querySelector('.focus-count');
+
+		expect(clickSpan.textContent).toBe('0');
+		expect(focusSpan.textContent).toBe('0');
+
+		// Test delegated event (click)
+		button.click();
+		flushSync();
+		expect(clickSpan.textContent).toBe('1');
+
+		// Test non-delegated event (focus)
+		button.dispatchEvent(new Event('focus'));
+		flushSync();
+		expect(focusSpan.textContent).toBe('1');
+	});
+
+	it('renders with complex event handling and state updates', () => {
+		component Basic() {
+			let counter = track(0);
+			let history = track<string[]>([]);
+			let isEven = track(true);
+
+			const handleIncrement = () => {
+				@counter++;
+				@history = [...@history, `Inc to ${@counter}`];
+				@isEven = @counter % 2 === 0;
+			};
+
+			const handleDecrement = () => {
+				@counter--;
+				@history = [...@history, `Dec to ${@counter}`];
+				@isEven = @counter % 2 === 0;
+			};
+
+			const handleReset = () => {
+				@counter = 0;
+				@history = [...@history, 'Reset'];
+				@isEven = true;
+			};
+
+			<div class='counter'>{@counter}</div>
+			<div class='parity'>{@isEven ? 'Even' : 'Odd'}</div>
+			<div class='history-count'>{@history.length}</div>
+
+			<button class='inc-btn' onClick={handleIncrement}>{'+'}</button>
+			<button class='dec-btn' onClick={handleDecrement}>{'-'}</button>
+			<button class='reset-btn' onClick={handleReset}>{'Reset'}</button>
+		}
+
+		render(Basic);
+
+		const counterDiv = container.querySelector('.counter');
+		const parityDiv = container.querySelector('.parity');
+		const historyDiv = container.querySelector('.history-count');
+		const incBtn = container.querySelector('.inc-btn');
+		const decBtn = container.querySelector('.dec-btn');
+		const resetBtn = container.querySelector('.reset-btn');
+
+		expect(counterDiv.textContent).toBe('0');
+		expect(parityDiv.textContent).toBe('Even');
+		expect(historyDiv.textContent).toBe('0');
+
+		incBtn.click();
+		flushSync();
+
+		expect(counterDiv.textContent).toBe('1');
+		expect(parityDiv.textContent).toBe('Odd');
+		expect(historyDiv.textContent).toBe('1');
+
+		incBtn.click();
+		flushSync();
+
+		expect(counterDiv.textContent).toBe('2');
+		expect(parityDiv.textContent).toBe('Even');
+		expect(historyDiv.textContent).toBe('2');
+
+		decBtn.click();
+		flushSync();
+
+		expect(counterDiv.textContent).toBe('1');
+		expect(parityDiv.textContent).toBe('Odd');
+		expect(historyDiv.textContent).toBe('3');
+
+		resetBtn.click();
+		flushSync();
+
+		expect(counterDiv.textContent).toBe('0');
+		expect(parityDiv.textContent).toBe('Even');
+		expect(historyDiv.textContent).toBe('4');
+	});
+});

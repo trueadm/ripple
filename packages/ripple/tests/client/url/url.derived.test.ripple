@@ -1,0 +1,83 @@
+import { track, flushSync, TrackedURL } from 'ripple';
+
+describe('TrackedURL > derived', () => {
+	it('handles reactive computed properties based on URL', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/users/123?tab=profile');
+			let userId = track(() => url.pathname.split('/').pop());
+			let activeTab = track(() => url.searchParams.get('tab'));
+
+			<button onClick={() => url.pathname = '/users/456'}>{'Change User'}</button>
+			<button onClick={() => url.searchParams.set('tab', 'settings')}>{'Change Tab'}</button>
+			<pre>{`User ID: ${@userId}`}</pre>
+			<pre>{`Active Tab: ${@activeTab}`}</pre>
+		}
+
+		render(URLTest);
+
+		const changeUserBtn = container.querySelectorAll('button')[0];
+		const changeTabBtn = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('User ID: 123');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('Active Tab: profile');
+
+		// Change user
+		changeUserBtn.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('User ID: 456');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('Active Tab: profile');
+
+		// Change tab
+		changeTabBtn.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('User ID: 456');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('Active Tab: settings');
+	});
+
+	it('maintains reactivity across multiple components', () => {
+		component ParentTest() {
+			const url = new TrackedURL('https://example.com/path?count=0');
+
+			<ChildA url={url} />
+			<ChildB url={url} />
+		}
+
+		component ChildA({ url }: { url: TrackedURL }) {
+			<button onClick={() => {
+				const current = parseInt(url.searchParams.get('count') || '0', 10);
+				url.searchParams.set('count', String(current + 1));
+			}}>{'Increment Count'}</button>
+		}
+
+		component ChildB({ url }: { url: TrackedURL }) {
+			let count = track(() => url.searchParams.get('count'));
+
+			<pre>{url.href}</pre>
+			<pre>{@count}</pre>
+		}
+
+		render(ParentTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?count=0');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+
+		// Increment from child
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?count=1');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?count=2');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+	});
+});

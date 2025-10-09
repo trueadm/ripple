@@ -1,25 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, TrackedSet, track } from 'ripple';
+import { track } from 'ripple';
 
 describe('TrackedExpression tests', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
-	});
-
 	it('should handle the syntax correctly', () => {
 		component App() {
       let count = track(0);

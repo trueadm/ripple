@@ -1,0 +1,63 @@
+import { compile } from 'ripple/compiler';
+
+describe('basic client > styling', () => {
+	it('renders with styling scoped to component', () => {
+		component Basic() {
+			<div class='styled-container'>
+				<h1>{'Styled heading'}</h1>
+				<p class='text'>{'Styled paragraph'}</p>
+			</div>
+
+			<style>
+				.styled-container {
+					background-color: rgb(0, 0, 255);
+					padding: 16px;
+				}
+
+				h1 {
+					color: rgb(255, 255, 255);
+					font-size: 32px;
+				}
+
+				.text {
+					color: rgb(200, 200, 200);
+					font-size: 14px;
+				}
+			</style>
+		}
+
+		render(Basic);
+
+		const styledContainer = container.querySelector('.styled-container');
+		const heading = styledContainer.querySelector('h1');
+		const paragraph = styledContainer.querySelector('.text');
+
+		expect(styledContainer).toBeTruthy();
+		expect(heading.textContent).toBe('Styled heading');
+		expect(paragraph.textContent).toBe('Styled paragraph');
+	});
+
+	it('renders with keyframes in styling scoped to component', () => {
+		const source = `export component Basic() {
+			<div>
+				<p>{'Styled paragraph'}</p>
+			</div>
+
+			<style>
+				div {
+					animation-name: anim;
+				}
+
+				@keyframes anim {}
+
+				p {
+					animation-name: anim;
+				}
+			</style>
+		}`;
+
+		const { css } = compile(source, 'test.ripple');
+		const name = css.match(/@keyframes\s+([a-zA-Z0-9_-]+)\s*\{/)[1];
+		expect(css.match(new RegExp(name, 'g'))?.length).toEqual(3);
+	});
+});

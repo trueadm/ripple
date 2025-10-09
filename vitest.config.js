@@ -11,6 +11,8 @@ export default defineConfig({
 				test: {
 					include: ['packages/ripple/tests/client/**/*.test.ripple'],
 					environment: 'jsdom',
+					setupFiles: ['packages/ripple/tests/setup-client.js'],
+					globals: true,
 				},
 				plugins: [ripple()],
 				resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,

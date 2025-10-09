@@ -1,0 +1,126 @@
+import { track, flushSync, untrack } from 'ripple';
+import { compile } from 'ripple/compiler';
+
+describe('basic client > errors', () => {
+	it('renders with error handling simulation', () => {
+		component Basic() {
+			let hasError = track(false);
+			let errorMessage = track('');
+
+			const triggerError = () => {
+				try {
+					throw new Error('Test error');
+				} catch (e) {
+					@hasError = true;
+					@errorMessage = (e as Error).message;
+				}
+			};
+
+			<div>
+				<button onClick={triggerError}>{'Trigger Error'}</button>
+				if (@hasError) {
+					<div class='error'>{'Error caught: ' + @errorMessage}</div>
+				} else {
+					<div class='success'>{'No error'}</div>
+				}
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('button');
+		const successDiv = container.querySelector('.success');
+
+		expect(successDiv).toBeTruthy();
+		expect(successDiv.textContent).toBe('No error');
+
+		button.click();
+		flushSync();
+
+		const errorDiv = container.querySelector('.error');
+		expect(errorDiv).toBeTruthy();
+		expect(errorDiv.textContent).toBe('Error caught: Test error');
+	});
+
+	it('should throw error for unclosed tag', () => {
+		const malformedCode = `export default component Example() {
+	<div></span>
+}`;
+		expect(() => {
+			compile(malformedCode, 'test.ripple');
+		}).toThrow('Expected closing tag to match opening tag');
+	});
+
+	it('should throw error for completely unclosed tag', () => {
+		const malformedCode = `export default component Example() {
+	<div>content
+}`;
+
+		expect(() => {
+			compile(malformedCode, 'test.ripple');
+		}).toThrow('Unclosed tag');
+	});
+
+	it('errors on mutating tracked value inside computed track() evaluation', () => {
+		component Basic() {
+			let count = track(0);
+
+			const doubled = track(() => {
+				try {
+					@count *= 2;
+				} catch (e) {
+					error = (e as Error).message;
+				}
+			});
+
+			<p>{@doubled}</p>
+		}
+
+		render(Basic);
+
+		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+	});
+
+	it('errors on mutating tracked value inside untrack() in computed track() evaluation', () => {
+		component Basic() {
+			let count = track(0);
+
+			const doubled = track(() => {
+				try {
+					untrack(() => {
+						@count *= 2;
+					});
+				} catch (e) {
+					error = (e as Error).message;
+				}
+			});
+
+			<p>{@doubled}</p>
+		}
+
+		render(Basic);
+
+		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+	});
+
+	it("errors on mutating a tracked variable in track() getter", () => {
+		component Basic() {
+			let count = track(0);
+
+			const doubled = track(0, (value) => {
+				try {
+					@count += 1;
+				} catch (e) {
+					error = (e as Error).message;
+				}
+				return value;
+			});
+
+			<p>{@doubled}</p>
+		}
+
+		render(Basic);
+
+		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+	});
+});

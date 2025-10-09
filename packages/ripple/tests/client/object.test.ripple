@@ -1,29 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, TrackedObject, track } from 'ripple';
+import { flushSync, TrackedObject } from 'ripple';
 import { TRACKED_OBJECT } from '../../src/runtime/internal/client/constants.js';
 
 describe('TrackedObject', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-		  target: container
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
-	});
-
   it('makes new properties reactive', () => {
     component ObjectTest() {
-      const obj = new TrackedObject({});
+      const obj = new TrackedObject<{ a: number; }>({});
 
       obj.a = 0;
 
@@ -67,7 +48,7 @@ describe('TrackedObject', () => {
 
   it('checks if property exists via the has trap', () => {
     component ObjectTest() {
-      const obj = new TrackedObject({b: 1});
+      const obj = new TrackedObject<{ a: number; b: number; }>({b: 1});
 
       obj.a = 0;
 
@@ -83,7 +64,7 @@ describe('TrackedObject', () => {
 
   it('deletes properties via the delete trap', () => {
     component ObjectTest() {
-      const obj = new TrackedObject({a: 0, b: 1});
+      const obj = new TrackedObject<{ a?: number; b: number; }>({a: 0, b: 1});
 
       <pre>{String(obj.a)}</pre>
       <button onClick={() => { delete obj.a; }}>{'Delete A'}</button>
@@ -104,7 +85,7 @@ describe('TrackedObject', () => {
 
   it('checks if non-existent property is reactive when added later', () => {
     component ObjectTest() {
-      const obj = new TrackedObject({});
+      const obj = new TrackedObject<{ a?: number; }>({});
 
       <pre>{String(obj.a)}  </pre>
       <button onClick={() => { obj.a = 1; }}>{'Add A'}</button>

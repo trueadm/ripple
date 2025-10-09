@@ -1,26 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, track } from 'ripple';
+import { flushSync, track } from 'ripple';
 
 describe('head elements', () => {
-	let container;
-	let originalTitle;
-
-	function render(component) {
-		mount(component, {
-			target: container
-		});
-	}
+	let originalTitle: string;
 
 	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
 		// Store original title to restore later
 		originalTitle = document.title;
 	});
 
 	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
 		// Restore original title
 		document.title = originalTitle;
 	});
@@ -34,7 +22,7 @@ describe('head elements', () => {
 		}
 
 		render(App);
-		
+
 		expect(document.title).toBe('Static Test Title');
 		expect(container.querySelector('div').textContent).toBe('Content');
 	});
@@ -53,7 +41,7 @@ describe('head elements', () => {
 		}
 
 		render(App);
-		
+
 		expect(document.title).toBe('Initial Title');
 		expect(container.querySelector('span').textContent).toBe('Initial Title');
 
@@ -78,7 +66,7 @@ describe('head elements', () => {
 		}
 
 		render(App);
-		
+
 		expect(document.title).toBe('Hello World!');
 
 		const button = container.querySelector('button');
@@ -103,7 +91,7 @@ describe('head elements', () => {
 		}
 
 		render(App);
-		
+
 		expect(document.title).toBe('Count: 0');
 
 		const button = container.querySelector('button');
@@ -127,11 +115,11 @@ describe('head elements', () => {
 		}
 
 		render(App);
-		
+
 		expect(document.title).toBe('Step 1 of 3');
 
 		const button = container.querySelector('button');
-		
+
 		button.click();
 		flushSync();
 		expect(document.title).toBe('Step 2 of 3');
@@ -154,7 +142,7 @@ describe('head elements', () => {
 		}
 
 		render(App);
-		
+
 		expect(document.title).toBe('');
 	});
 
@@ -173,11 +161,11 @@ describe('head elements', () => {
 		}
 
 		render(App);
-		
+
 		expect(document.title).toBe('App - Main Page');
 
 		const buttons = container.querySelectorAll('button');
-		
+
 		// Toggle prefix off
 		buttons[0].click();
 		flushSync();

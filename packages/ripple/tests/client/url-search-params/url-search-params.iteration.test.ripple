@@ -1,0 +1,153 @@
+import { flushSync, track, TrackedURLSearchParams } from 'ripple';
+
+describe('TrackedURLSearchParams > iteration', () => {
+	it('handles keys method with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&baz=qux');
+			let keys = track(() => Array.from(params.keys()));
+
+			<button onClick={() => params.append('new', 'value')}>{'add param'}</button>
+			<pre>{JSON.stringify(@keys)}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('["foo","baz"]');
+
+		// Test add
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('["foo","baz","new"]');
+	});
+
+	it('handles values method with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&baz=qux');
+			let values = track(() => Array.from(params.values()));
+
+			<button onClick={() => params.set('foo', 'updated')}>{'update foo'}</button>
+			<pre>{JSON.stringify(@values)}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('["bar","qux"]');
+
+		// Test update
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('["updated","qux"]');
+	});
+
+	it('handles entries method with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&baz=qux');
+			let entries = track(() => Array.from(params.entries()));
+
+			<button onClick={() => params.append('new', 'value')}>{'add param'}</button>
+			<pre>{JSON.stringify(@entries)}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('[["foo","bar"],["baz","qux"]]');
+
+		// Test add
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('[["foo","bar"],["baz","qux"],["new","value"]]');
+	});
+
+	it('handles Symbol.iterator with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&baz=qux');
+			let entries = track(() => Array.from(params));
+
+			<button onClick={() => params.delete('foo')}>{'delete foo'}</button>
+			<pre>{JSON.stringify(@entries)}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('[["foo","bar"],["baz","qux"]]');
+
+		// Test delete
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('[["baz","qux"]]');
+	});
+
+	it('handles iteration with for...of', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&baz=qux');
+
+			<button onClick={() => params.append('new', 'value')}>{'add param'}</button>
+
+			for (const [key, value] of params) {
+				<pre>{`${key}=${value}`}</pre>
+			}
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('baz=qux');
+
+		// Test add
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('baz=qux');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('new=value');
+	});
+
+	it('handles forEach iteration', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('a=1&b=2&c=3');
+			let sum = track(() => {
+				let total = 0;
+				// Access the params reactively through entries
+				for (const [key, value] of params.entries()) {
+					total += parseInt(value, 10);
+				}
+				return total;
+			});
+
+			<button onClick={() => params.append('d', '4')}>{'add d=4'}</button>
+			<pre>{@sum}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state: 1 + 2 + 3 = 6
+		expect(container.querySelector('pre').textContent).toBe('6');
+
+		// Add d=4, sum should be 10
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('10');
+	});
+});

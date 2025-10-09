@@ -9,7 +9,7 @@ export declare function tick(): Promise<void>;
 
 export declare function untrack<T>(fn: () => T): T;
 
-export declare function flushSync<T>(fn: () => T): T;
+export declare function flushSync<T>(fn?: () => T): T;
 
 export declare function effect(fn: (() => void) | (() => () => void)): void;
 
