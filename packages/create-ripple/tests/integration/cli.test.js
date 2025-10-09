@@ -154,21 +154,22 @@ describe('CLI Integration Tests', () => {
 		expect(result.stdout).toContain('yarn dev');
 	});
 
-	it('should handle project directory that already exists (with --yes)', async () => {
-		const projectName = 'existing-project';
+	it('Should abort if the target directory is not empty', async () => {
+		const projectName = 'non-empty-project';
 		const projectPath = join(testDir, projectName);
 
 		mkdirSync(projectPath, { recursive: true });
-		writeFileSync(join(projectPath, 'existing-file.txt'), 'test');
+		writeFileSync(join(projectPath, 'conflict-file.txt'), 'conflict');
 
 		const result = await runCLI([
 			projectName,
-			'--template', 'basic',
 			'--yes'
 		]);
 
-		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('Project created successfully');
+		expect(result.code).toBe(1);
+		expect(result.stdout).toContain(`The directory ${projectName} contains files that could conflict:`);
+		expect(result.stdout).toContain('conflict-file.txt');
+		expect(result.stdout).toContain('Either try using a new directory name, or remove the files listed above.');
 	});
 
 	it('should validate all required dependencies are available', async () => {

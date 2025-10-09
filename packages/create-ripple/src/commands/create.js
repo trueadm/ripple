@@ -6,7 +6,6 @@ import { validateTemplate, getTemplateNames } from '../lib/templates.js';
 import {
 	promptProjectName,
 	promptTemplate,
-	promptOverwrite,
 	promptPackageManager,
 	promptGitInit,
 	promptStylingFramework
@@ -40,8 +39,8 @@ export async function createCommand(projectName, options) {
 	const projectPath = resolve(process.cwd(), projectName);
 
 	// Step 2: Check directory and handle conflicts
-	const isEmpty = isFolderEmpty(projectPath, basename(projectPath));
-	if (!isEmpty) {
+	// Only if the directory exists already
+	if (existsSync(projectPath) && !isFolderEmpty(projectPath, basename(projectPath))) {
 		process.exit(1);
 	}
 

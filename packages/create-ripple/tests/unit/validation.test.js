@@ -11,7 +11,10 @@ describe('validateProjectName', () => {
 			'my-awesome-app',
 			'app123',
 			'a',
-			'a'.repeat(214) // max length
+			'a'.repeat(214), // max length
+			'.', // root directory
+			'../..', // path
+			'my/app' // slash
 		];
 
 		validNames.forEach(name => {
@@ -33,6 +36,7 @@ describe('validateProjectName', () => {
 
 		invalidCases.forEach(({ name, expectedMessage }) => {
 			const result = validateProjectName(name);
+			console.log(`Testing: |${name}|\nresult: ${JSON.stringify(result)}\nExpected: ${expectedMessage}\n`);
 			expect(result.valid).toBe(false);
 			expect(result.message).toBe(expectedMessage);
 		});
@@ -43,8 +47,6 @@ describe('validateProjectName', () => {
 			'My-App', // uppercase
 			'my app', // space
 			'my@app', // special character
-			'my/app', // slash
-			'my\\app', // backslash
 			'my:app', // colon
 			'my*app', // asterisk
 			'my?app', // question mark

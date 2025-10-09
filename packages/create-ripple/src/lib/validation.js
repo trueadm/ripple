@@ -18,14 +18,14 @@ export function validateProjectName(inputName) {
 		};
 	}
 
-	const name = basename(resolve(process.cwd(), inputName));
-
-	if (name.length === 0) {
+	if (typeof inputName === 'string' && inputName.trim().length === 0) {
 		return {
 			valid: false,
 			message: 'Project name cannot be empty'
 		};
 	}
+
+	const name = basename(resolve(process.cwd(), inputName.trim()));
 
 	// Check length (npm package names have a 214 character limit)
 	if (name.length > 214) {
