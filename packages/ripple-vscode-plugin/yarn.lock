@@ -91,6 +91,16 @@ request-light@^0.7.0:
   resolved "https://registry.yarnpkg.com/request-light/-/request-light-0.7.0.tgz#885628bb2f8040c26401ebf258ec51c4ae98ac2a"
   integrity sha512-lMbBMrDoxgsyO+yB3sDcrDuX85yYt7sS8BfQd11jtbW/z5ZWgLZRcEGLsLoYw7I0WSUGQBs8CC8ScIxkTX1+6Q==
 
+"ripple-language-server@workspace:*":
+  version "0.2.115"
+  resolved "https://registry.yarnpkg.com/ripple-language-server/-/ripple-language-server-0.2.115.tgz#aee45382bd01b38f08f49660fc3d98789597e890"
+  integrity sha512-hgSey4w0X77EauAWbe/eieYoe8tDcvPVcUFvnZma95ZgAB9qwilPPdsNy5ISbzmDi/W4RVY6iI48I5aHkIm6gA==
+  dependencies:
+    "@volar/language-server" "~2.4.23"
+    typescript-plugin-ripple "0.2.115"
+    volar-service-typescript "0.0.65"
+    vscode-uri "^3.1.0"
+
 semver@^7.3.7, semver@^7.3.8, semver@^7.6.2:
   version "7.7.2"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.7.2.tgz#67d99fdcd35cec21e6f8b87a7fd515a33f982b58"
@@ -103,8 +113,17 @@ typescript-auto-import-cache@^0.3.5:
   dependencies:
     semver "^7.3.8"
 
+typescript-plugin-ripple@0.2.115:
+  version "0.2.115"
+  resolved "https://registry.yarnpkg.com/typescript-plugin-ripple/-/typescript-plugin-ripple-0.2.115.tgz#a42013a838a10de1e9cf00a0cc03fb9c8c8761be"
+  integrity sha512-bqrb6pvWVRd+x03y6ONK7AQOKOQWxOxlW3Mvq1RCpGLpPeLXyeWgooV2lUo4EC7a2tjLcI8xrtrz74nUtJICzQ==
+  dependencies:
+    "@jridgewell/sourcemap-codec" "^1.5.5"
+    "@volar/language-core" "~2.4.23"
+    "@volar/typescript" "~2.4.23"
+
 "typescript-plugin-ripple@workspace:*":
-  version "0.2.111"
+  version "0.2.103"
   resolved "https://registry.yarnpkg.com/typescript-plugin-ripple/-/typescript-plugin-ripple-0.2.103.tgz#58486abffd7b0ecd5fa386bee952a2ffde94fd03"
   integrity sha512-Bo5moiivSvuDC3TfnmuPawSpf0Qz6DTxx8VvkrZqo/DtKtDsQ45C8l8bI2A5hwzi7lwLD8IQ3eQTef9tqaE8iA==
   dependencies:
