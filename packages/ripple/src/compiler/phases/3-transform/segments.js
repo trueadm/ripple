@@ -5,6 +5,14 @@ export const mapping_data = {
 	completion: true,
 	semantic: true,
 	navigation: true,
+	rename: true,
+	codeActions: false, // set to false to disable auto import when importing yourself
+	formatting: false, // not doing formatting through Volar, using Prettier.
+	// these 3 below will be true by default
+	// leaving for reference
+	// hover: true,
+	// definition: true,
+	// references: true,
 };
 
 /**
@@ -12,23 +20,67 @@ export const mapping_data = {
  * @param {any} ast - The transformed AST
  * @param {string} source - Original source code
  * @param {string} generated_code - Generated code from esrap
+ * @param {Map<string, {start: number, end: number}>} [source_import_map] - Map of __volar_id strings to source positions
  * @returns {object}
  */
-export function convert_source_map_to_mappings(ast, source, generated_code) {
+export function convert_source_map_to_mappings(ast, source, generated_code, source_import_map) {
 	/** @type {Array<{sourceOffsets: number[], generatedOffsets: number[], lengths: number[], data: any}>} */
 	const mappings = [];
 
 	// Maintain indices that walk through source and generated code
-	let sourceIndex = 0;
-	let generatedIndex = 0;
+	let source_index = 0;
+	let generated_index = 0;
+
+	// Map to track capitalized names: original name -> capitalized name
+	/** @type {Map<string, string>} */
+	const capitalized_names = new Map();
+	// Reverse map: capitalized name -> original name
+	/** @type {Map<string, string>} */
+	const reverse_capitalized_names = new Map();
+
+	// Pre-walk to collect capitalized names from JSXElement nodes (transformed AST)
+	// These are identifiers that are used as dynamic components/elements
+	walk(ast, null, {
+		_(node, { next }) {
+			// Check JSXElement nodes with metadata (preserved from Element nodes)
+			if (node.type === 'JSXElement' && node.metadata?.ts_name && node.metadata?.original_name) {
+				capitalized_names.set(node.metadata.original_name, node.metadata.ts_name);
+				reverse_capitalized_names.set(node.metadata.ts_name, node.metadata.original_name);
+			}
+			next();
+		}
+	});
 
 	/**
 	 * Check if character is a word boundary (not alphanumeric or underscore)
 	 * @param {string} char
 	 * @returns {boolean}
 	 */
-	const isWordBoundary = (char) => {
+	const is_word_boundary = (char) => {
 		return char === undefined || !/[a-zA-Z0-9_$]/.test(char);
+	};
+
+	/**
+	 * Check if a position is inside a comment
+	 * @param {number} pos - Position to check
+	 * @returns {boolean}
+	 */
+	const is_in_comment = (pos) => {
+		// Check for single-line comment: find start of line and check if there's // before this position
+		let lineStart = source.lastIndexOf('\n', pos - 1) + 1;
+		const lineBeforePos = source.substring(lineStart, pos);
+		if (lineBeforePos.includes('//')) {
+			return true;
+		}
+		// Check for multi-line comment: look backwards for /* and forwards for */
+		const lastCommentStart = source.lastIndexOf('/*', pos);
+		if (lastCommentStart !== -1) {
+			const commentEnd = source.indexOf('*/', lastCommentStart);
+			if (commentEnd === -1 || commentEnd > pos) {
+				return true; // We're inside an unclosed or open comment
+			}
+		}
+		return false;
 	};
 
 	/**
@@ -36,8 +88,8 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	 * @param {string} text - Text to find
 	 * @returns {number|null} - Source position or null
 	 */
-	const findInSource = (text) => {
-		for (let i = sourceIndex; i <= source.length - text.length; i++) {
+	const find_in_source = (text) => {
+		for (let i = source_index; i <= source.length - text.length; i++) {
 			let match = true;
 			for (let j = 0; j < text.length; j++) {
 				if (source[i + j] !== text[j]) {
@@ -46,17 +98,22 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				}
 			}
 			if (match) {
+				// Skip if this match is inside a comment
+				if (is_in_comment(i)) {
+					continue;
+				}
+
 				// Check word boundaries for identifier-like tokens
 				const isIdentifierLike = /^[a-zA-Z_$]/.test(text);
 				if (isIdentifierLike) {
 					const charBefore = source[i - 1];
 					const charAfter = source[i + text.length];
-					if (!isWordBoundary(charBefore) || !isWordBoundary(charAfter)) {
+					if (!is_word_boundary(charBefore) || !is_word_boundary(charAfter)) {
 						continue; // Not a whole word match, keep searching
 					}
 				}
 
-				sourceIndex = i + text.length;
+				source_index = i + text.length;
 				return i;
 			}
 		}
@@ -64,12 +121,12 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	};
 
 	/**
-	 * Find text in generated code, searching character by character from generatedIndex
+	 * Find text in generated code, searching character by character from generated_index
 	 * @param {string} text - Text to find
 	 * @returns {number|null} - Generated position or null
 	 */
-	const findInGenerated = (text) => {
-		for (let i = generatedIndex; i <= generated_code.length - text.length; i++) {
+	const find_in_generated = (text) => {
+		for (let i = generated_index; i <= generated_code.length - text.length; i++) {
 			let match = true;
 			for (let j = 0; j < text.length; j++) {
 				if (generated_code[i + j] !== text[j]) {
@@ -83,12 +140,12 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 				if (isIdentifierLike) {
 					const charBefore = generated_code[i - 1];
 					const charAfter = generated_code[i + text.length];
-					if (!isWordBoundary(charBefore) || !isWordBoundary(charAfter)) {
+					if (!is_word_boundary(charBefore) || !is_word_boundary(charAfter)) {
 						continue; // Not a whole word match, keep searching
 					}
 				}
 
-				generatedIndex = i + text.length;
+				generated_index = i + text.length;
 				return i;
 			}
 		}
@@ -96,23 +153,83 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	};
 
 	// Collect text tokens from AST nodes
-	/** @type {string[]} */
+	// Tokens can be either strings or objects with source/generated properties
+	/** @type {Array<string | {source: string, generated: string}>} */
 	const tokens = [];
+
+	// Collect import declarations for full-statement mappings
+	/** @type {Array<{id: string, node: any}>} */
+	const import_declarations = [];
 
 	// We have to visit everything in generated order to maintain correct indices
 	walk(ast, null, {
 		_(node, { visit }) {
 			// Collect key node types: Identifiers, Literals, and JSX Elements
+			// Only collect tokens from nodes with .loc (skip synthesized nodes like children attribute)
 			if (node.type === 'Identifier' && node.name) {
-				tokens.push(node.name);
+				if (node.loc) {
+					// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
+					if (node.metadata?.tracked_shorthand) {
+						tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name });
+					} else {
+						// Check if this identifier was capitalized (reverse lookup)
+						const original_name = reverse_capitalized_names.get(node.name);
+						if (original_name) {
+							// This is a capitalized name in generated code, map to lowercase in source
+							tokens.push({ source: original_name, generated: node.name });
+						} else {
+							// Check if this identifier should be capitalized (forward lookup)
+							const cap_name = capitalized_names.get(node.name);
+							if (cap_name) {
+								tokens.push({ source: node.name, generated: cap_name });
+							} else {
+								// Check if this identifier should be capitalized (forward lookup)
+								const cap_name = capitalized_names.get(node.name);
+								if (cap_name) {
+									tokens.push({ source: node.name, generated: cap_name });
+								} else {
+									tokens.push(node.name);
+								}
+							}
+						}
+					}
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'JSXIdentifier' && node.name) {
-				tokens.push(node.name);
+				if (node.loc) {
+					// Check if this was capitalized (reverse lookup)
+					const originalName = reverse_capitalized_names.get(node.name);
+					if (originalName) {
+						tokens.push({ source: originalName, generated: node.name });
+					} else {
+						// Check if this should be capitalized (forward lookup)
+						const capitalizedName = capitalized_names.get(node.name);
+						if (capitalizedName) {
+							tokens.push({ source: node.name, generated: capitalizedName });
+						} else {
+							tokens.push(node.name);
+						}
+					}
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'Literal' && node.raw) {
-				tokens.push(node.raw);
+				if (node.loc) {
+					tokens.push(node.raw);
+				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
+				// Collect import declaration for full-statement mapping
+				// TypeScript reports unused imports with diagnostics covering the entire statement
+				// Store the __volar_id - we'll find the generated position later by searching
+				const volar_id = /** @type {any} */ (node).__volar_id;
+				if (volar_id) {
+					import_declarations.push({
+						id: volar_id,
+						// We'll calculate genStart/genEnd later by searching in generated code
+						node: node
+					});
+				}
+
 				// Visit specifiers in source order
 				if (node.specifiers) {
 					for (const specifier of node.specifiers) {
@@ -209,7 +326,20 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 
 				// 3. Push closing tag name (not visited by AST walker)
 				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
-					tokens.push(node.closingElement.name.name);
+					const closingName = node.closingElement.name.name;
+					// Check if this was capitalized (reverse lookup)
+					const originalName = reverse_capitalized_names.get(closingName);
+					if (originalName) {
+						tokens.push({ source: originalName, generated: closingName });
+					} else {
+						// Check if this should be capitalized (forward lookup)
+						const capitalizedName = capitalized_names.get(closingName);
+						if (capitalizedName) {
+							tokens.push({ source: closingName, generated: capitalizedName });
+						} else {
+							tokens.push(closingName);
+						}
+					}
 				}
 
 				return;
@@ -988,22 +1118,93 @@ export function convert_source_map_to_mappings(ast, source, generated_code) {
 	});
 
 	// Process each token in order
-	for (const text of tokens) {
-		const sourcePos = findInSource(text);
-		const genPos = findInGenerated(text);
+	for (const token of tokens) {
+		let source_text, generated_text;
 
-		if (sourcePos !== null && genPos !== null) {
+		if (typeof token === 'string') {
+			source_text = token;
+			generated_text = token;
+		} else {
+			// Token with different source and generated names
+			source_text = token.source;
+			generated_text = token.generated;
+		}
+
+		const source_pos = find_in_source(source_text);
+		const gen_pos = find_in_generated(generated_text);
+
+		if (source_pos !== null && gen_pos !== null) {
 			mappings.push({
-				sourceOffsets: [sourcePos],
-				generatedOffsets: [genPos],
-				lengths: [text.length],
+				sourceOffsets: [source_pos],
+				generatedOffsets: [gen_pos],
+				lengths: [source_text.length],
 				data: mapping_data,
+			});
+		}
+	}
+
+	// Add full-statement mappings for import declarations
+	// TypeScript reports unused import diagnostics covering the entire import statement
+	// Use verification-only mapping to avoid duplicate hover/completion
+
+	// Use the source import map from the original AST (before transformation)
+	// The __volar_id property is preserved through transformation via object spread
+	if (source_import_map && import_declarations.length > 0) {
+		// We need to find where each import appears in the generated code
+		// Search for "import" keywords and match them to our collected imports
+		let gen_search_index = 0;
+
+		for (const import_decl of import_declarations) {
+			// Look up the source position using the __volar_id
+			const source_range = source_import_map.get(import_decl.id);
+			if (!source_range) continue; // Skip if we don't have source info for this ID
+
+			// Find this import statement in the generated code
+			// Search for "import " starting from our last position
+			const import_keyword_index = generated_code.indexOf('import ', gen_search_index);
+			if (import_keyword_index === -1) continue; // Couldn't find it
+
+			// Find the semicolon or end of line for this import
+			let gen_end = generated_code.indexOf(';', import_keyword_index);
+			if (gen_end === -1) gen_end = generated_code.indexOf('\n', import_keyword_index);
+			if (gen_end === -1) gen_end = generated_code.length;
+			else gen_end += 1; // Include the semicolon
+
+			const get_start = import_keyword_index;
+			gen_search_index = gen_end; // Next search starts after this import
+
+			const source_length = source_range.end - source_range.start;
+			const get_length = gen_end - get_start;
+
+			mappings.push({
+				sourceOffsets: [source_range.start],
+				generatedOffsets: [get_start],
+				lengths: [Math.min(source_length, get_length)],
+				data: {
+					// only verification (diagnostics) to avoid duplicate hover/completion
+					verification: true
+				},
 			});
 		}
 	}
 
 	// Sort mappings by source offset
 	mappings.sort((a, b) => a.sourceOffsets[0] - b.sourceOffsets[0]);
+
+	// Add a mapping for the very beginning of the file to handle import additions
+	// This ensures that code actions adding imports at the top work correctly
+	if (mappings.length > 0 && mappings[0].sourceOffsets[0] > 0) {
+		mappings.unshift({
+			sourceOffsets: [0],
+			generatedOffsets: [0],
+			lengths: [1],
+				data: {
+					...mapping_data,
+					codeActions: true, // auto-import
+					rename: false, // avoid rename for a “dummy” mapping
+				}
+		});
+	}
 
 	return {
 		code: generated_code,

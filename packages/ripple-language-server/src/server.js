@@ -25,6 +25,11 @@ function createRippleLanguageServer() {
 
 	connection.listen();
 
+	// Create language plugin instance once and reuse it
+	// This prevents creating multiple instances if the callback is called multiple times
+	const rippleLanguagePlugin = getRippleLanguagePlugin();
+	log('Language plugin instance created');
+
 	connection.onInitialize(async (params) => {
 		try {
 			log('Initializing Ripple language server...');
@@ -39,7 +44,7 @@ function createRippleLanguageServer() {
 					undefined,
 					() => {
 						return {
-							languagePlugins: [getRippleLanguagePlugin()],
+							languagePlugins: [rippleLanguagePlugin],
 						};
 					}
 				),

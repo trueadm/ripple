@@ -41,9 +41,28 @@ export function compile(source, filename, options = {}) {
 export function compile_to_volar_mappings(source, filename) {
   // Parse and transform
   const ast = parse_module(source);
+
+  // Add unique IDs to import declarations before transformation
+  // This allows us to match source imports with generated imports reliably
+	// This strategy can potentially be used for other node types in the future
+  let gen_id = 0;
+  const source_import_map = new Map();
+  for (const node of ast.body) {
+    if (node.type === 'ImportDeclaration') {
+      const start = /** @type {any} */ (node).start;
+      const end = /** @type {any} */ (node).end;
+      if (start !== undefined && end !== undefined) {
+        // Add a unique ID as a string property that will be copied during transformation
+        const id = `__volar_import_${gen_id++}__`;
+        /** @type {any} */ (node).__volar_id = id;
+        source_import_map.set(id, { start, end });
+      }
+    }
+  }
+
   const analysis = analyze(ast, filename);
   const transformed = transform_client(filename, source, analysis, true);
 
   // Create volar mappings directly from the AST instead of relying on esrap's sourcemap
-  return convert_source_map_to_mappings(transformed.ast, source, transformed.js.code);
+  return convert_source_map_to_mappings(transformed.ast, source, transformed.js.code, source_import_map);
 }

@@ -59,7 +59,7 @@ function getRippleLanguagePlugin() {
 						};
 					}
 				}
-				return null;
+				return undefined;
 			},
 		},
 	};
