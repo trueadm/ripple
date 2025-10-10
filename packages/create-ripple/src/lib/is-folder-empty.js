@@ -48,6 +48,7 @@ export function isFolderEmpty(root, name) {
   const conflicts = readdirSync(root).filter(
     (file) =>
       !validFiles.includes(file) &&
+      // Support IntelliJ IDEA-based editors
       !/\.iml$/.test(file)
   )
 
