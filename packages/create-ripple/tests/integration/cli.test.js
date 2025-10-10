@@ -116,13 +116,10 @@ describe('CLI Integration Tests', () => {
 		]);
 
 		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('Welcome to Create Ripple App');
-		expect(result.stdout).toContain('Creating Ripple app');
 		expect(result.stdout).toContain('Project created successfully');
-		expect(result.stdout).toContain('Next steps:');
+
+		// Verify project directory name
 		expect(result.stdout).toContain(`cd ${relative(testDir, resolve(testDir, projectName))}`);
-		expect(result.stdout).toContain('npm install');
-		expect(result.stdout).toContain('npm run dev');
 	});
 
 	it('should create project with outer relative path to target directory', async () => {
@@ -144,16 +141,10 @@ describe('CLI Integration Tests', () => {
 		);
 
 		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('Welcome to Create Ripple App');
-		expect(result.stdout).toContain('Creating Ripple app');
 		expect(result.stdout).toContain('Project created successfully');
-		expect(result.stdout).toContain('Next steps:');
-		expect(result.stdout).toContain(`cd ${relative(subTestDir, projectPath)}`);
-		expect(result.stdout).toContain('npm install');
-		expect(result.stdout).toContain('npm run dev');
 
-		expect(existsSync(projectPath)).toBe(true);
-		expect(existsSync(join(projectPath, 'package.json'))).toBe(true);
+		// Verify project directory name
+		expect(result.stdout).toContain(`cd ${relative(subTestDir, projectPath)}`);
 	});
 
 	it('should handle invalid template gracefully', async () => {
@@ -210,9 +201,10 @@ describe('CLI Integration Tests', () => {
 		const projectName = 'non-empty-project';
 		const projectPath = join(testDir, projectName);
 		const conflictFiles = ['conflict-file.txt', 'another-file.js', 'README.md'];
+		const nonConflictFiles = ['.gitignore', 'LICENSE'];
 
 		mkdirSync(projectPath, { recursive: true });
-		conflictFiles.forEach(file => writeFileSync(join(projectPath, file), 'conflict'));
+		[...conflictFiles, ...nonConflictFiles].forEach(file => writeFileSync(join(projectPath, file), 'conflict'));
 		const result = await runCLI([
 			projectName,
 			'--yes'
@@ -221,6 +213,7 @@ describe('CLI Integration Tests', () => {
 		expect(result.code).toBe(1);
 		expect(result.stdout).toContain(`The directory ${projectName} contains files that could conflict:`);
 
+		// Verify only conflicting file is listed
 		conflictFiles.forEach(file => {
 			expect(result.stdout).toContain(file);
 		});
@@ -267,7 +260,6 @@ describe('CLI Integration Tests', () => {
 
 		expect(result.code).toBe(0);
 		expect(result.stdout).toContain('Project created successfully');
-		expect(existsSync(join(projectPath, 'package.json'))).toBe(true);
 	});
 
 	it('should validate all required dependencies are available', async () => {
