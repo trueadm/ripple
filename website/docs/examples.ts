@@ -235,6 +235,28 @@ export default component App() {
 `,
 	},
 	{
+		title: 'Switch Statements',
+		code: `import { track } from 'ripple';
+
+export default component App() {
+	let count = track(1);
+
+	<button onClick={() => @count++}>{'Increment'}</button>
+
+	switch (@count) {
+		case 1:
+			<div>{'Count is 1'}</div>
+			break;
+		case 2:
+			<div>{'Count is 2'}</div>
+			break;
+		default:
+			<div>{'Count is other'}</div>
+	}
+}
+`,
+	},
+	{
 		title: 'For Loops',
 		code: `component List({ items }) {
 	<ul>

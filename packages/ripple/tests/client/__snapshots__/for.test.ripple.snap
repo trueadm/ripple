@@ -198,7 +198,7 @@ exports[`for statements > correctly handles the index in a for...of loop 3`] = `
 </div>
 `;
 
-exports[`for statements > handles reversing an array manually 1`] = `
+exports[`for statements > handles updating with new objects with same key 1`] = `
 <div>
   <!---->
   <div>
@@ -218,17 +218,17 @@ exports[`for statements > handles reversing an array manually 1`] = `
 </div>
 `;
 
-exports[`for statements > handles reversing an array manually 2`] = `
+exports[`for statements > handles updating with new objects with same key 2`] = `
 <div>
   <!---->
   <div>
-    0:Item 3
+    0:Item 1!
   </div>
   <div>
-    1:Item 2
+    1:Item 2!
   </div>
   <div>
-    2:Item 1
+    2:Item 3!
   </div>
   <!---->
   <button>

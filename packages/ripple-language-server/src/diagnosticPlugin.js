@@ -28,7 +28,7 @@ function createRippleDiagnosticPlugin() {
 			return {
 				provideDiagnostics(document) {
 					try {
-						log('Providing diagnostics for:', document.uri);
+						log('Providing Ripple diagnostics for:', document.uri);
 
 						const info = getEmbeddedInfo(context, document);
 
@@ -122,11 +122,10 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 
 			// Convert 1-based line/column to 0-based for VS Code
 			const zeroBasedLine = Math.max(0, line - 1);
-			const zeroBasedColumn = Math.max(0, column - 1);
+			const actualColumn = Math.max(0, column - 1);
 
 			// Use the original error coordinates from the Ripple compiler
 			// Just use the compiler's position as-is, with a simple 1-character highlight
-			let actualColumn = zeroBasedColumn;
 			let length = Math.min(1, sourceText.split('\n')[zeroBasedLine]?.length - actualColumn || 1);
 
 			return {

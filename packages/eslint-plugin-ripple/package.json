@@ -1,0 +1,53 @@
+{
+  "name": "eslint-plugin-ripple",
+  "version": "0.2.116",
+  "description": "ESLint plugin for Ripple",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "ripple"
+  ],
+  "author": "Dominic Gannaway",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/eslint-plugin-ripple"
+  },
+  "bugs": {
+    "url": "https://github.com/trueadm/ripple/issues"
+  },
+  "homepage": "https://ripplejs.com",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --target esnext --platform node",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "eslint": ">=9.0.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint-parser-ripple": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/eslint": "^9.6.1",
+    "@types/estree": "^1.0.6",
+    "@types/node": "^24.3.0",
+    "eslint": "^9.0.0",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

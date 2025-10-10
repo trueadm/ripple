@@ -145,12 +145,12 @@ describe('for statements', () => {
 		expect(container).toMatchSnapshot();
 	});
 
-	it('handles reversing an array manually', () => {
+	it('handles updating with new objects with same key', () => {
 		component App() {
 			let items = track([
-				#{ id: 1, text: 'Item 1' },
-				#{ id: 2, text: 'Item 2' },
-				#{ id: 3, text: 'Item 3' },
+				{ id: 1, text: 'Item 1' },
+				{ id: 2, text: 'Item 2' },
+				{ id: 3, text: 'Item 3' },
 			]);
 
 			for (let item of @items; index i; key item.id) {
@@ -163,9 +163,9 @@ describe('for statements', () => {
 				@items[2].id = 1;
 
 				@items = [
-					@items[0],
-					@items[1],
-					@items[2],
+					{...@items[0], text: 'Item 1!'},
+					{...@items[1], text: 'Item 2!'},
+					{...@items[2], text: 'Item 3!'},
 				];
 			}}>{"Reverse"}</button>
 		}

@@ -495,4 +495,47 @@ effect(() => {
 		const effectMatch = result.js.code.match(/effect\(\(\) => \{([\s\S]+?)\n\t\}\)\)/);
 		expect(effectMatch[1].trim()).toMatchSnapshot();
 	});
+
+	it('compiles TSInstantiationExpression', () => {
+		const source =
+`function makeBox<T>(value: T) {
+	return { value };
+}
+const makeStringBox = makeBox<string>;
+const stringBox = makeStringBox('abc');
+const ErrorMap = Map<string, Error>;
+const errorMap = new ErrorMap();`;
+
+		const result = compile(source, 'test.ripple', { mode: 'client' });
+
+		expect(result.js.code).toMatchSnapshot();
+	});
+
+	it('removes type assertions from function parameters and leaves default values', () => {
+		const source = `
+function getString(e: string = 'test') {
+	return e;
+}`;
+
+		const result = compile(source, 'test.ripple', { mode: 'client' });
+
+		expect(result.js.code).toMatchSnapshot();
+	});
+
+	it('compiles without needing semicolons between statements and JSX', () => {
+		const source = `export component App() {
+	<div>const code4 = 4
+
+	const code3 = 3
+		<div>
+			<div>
+				const code = 1
+			</div>
+			const code2 = 2
+		</div>
+	</div>
+}`;
+
+		const result = compile(source, 'test.ripple', { mode: 'client' });
+	});
 });

@@ -3,7 +3,7 @@
   "displayName": "Ripple for VS Code",
   "publisher": "ripplejs",
   "description": "Ripple JavaScript/TypeScript language support",
-  "version": "0.0.22",
+  "version": "0.0.25",
   "author": "Dominic Gannaway",
   "license": "MIT",
   "engines": {
@@ -13,27 +13,45 @@
   "categories": [
     "Programming Languages"
   ],
-  "main": "src/extension.js",
+  "main": "dist/extension.js",
   "icon": "icons/logo.png",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trueadm/ripple.git",
     "directory": "ripple-vscode-plugin"
   },
+	"scripts": {
+		"build-extension": "esbuild src/extension.js --bundle --platform=node --target=node20 --outfile=dist/extension.js --external:vscode",
+		"build-server": "esbuild src/server.js --bundle --platform=node --target=node20 --outfile=dist/server.js",
+		"package": "vsce package --no-dependencies --out=ripple-vscode-plugin.vsix",
+		"install-package": "code --install-extension ripple-vscode-plugin.vsix",
+		"build-and-package": "pnpm build-extension && pnpm build-server && pnpm package",
+		"build-package-and-install": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package",
+		"build-package-install-and-run": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package && code"
+	},
   "dependencies": {
     "@jridgewell/sourcemap-codec": "^1.5.5",
     "@volar/language-core": "~2.4.23",
     "@volar/language-server": "~2.4.23",
     "@volar/typescript": "~2.4.23",
     "@volar/vscode": "~2.4.23",
+    "ripple-language-server": "workspace:*",
     "typescript-plugin-ripple": "workspace:*",
     "volar-service-typescript": "0.0.65",
     "vscode-languageclient": "^9.0.1",
     "vscode-uri": "^3.1.0"
   },
+	"devDependencies": {
+		"esbuild": "^0.25.10",
+		"@vscode/vsce": "^3.6.2"
+	},
   "contributes": {
-    "activationEvents": [
-      "onLanguage"
+    "commands": [
+      {
+        "command": "ripple.goToSourceDefinition",
+        "title": "Go to Source Definition",
+        "category": "Ripple"
+      }
     ],
     "languages": [
       {
@@ -79,20 +97,10 @@
         }
       }
     ],
-    "typescriptServerPlugins": [
-      {
-        "name": "typescript-plugin-ripple",
-        "enableForWorkspaceTypeScriptVersions": true,
-        "configNamespace": "typescript",
-        "languages": [
-          "ripple"
-        ]
-      }
-    ],
     "menus": {
       "editor/context": [
         {
-          "command": "typescript.goToSourceDefinition",
+          "command": "ripple.goToSourceDefinition",
           "when": "tsSupportsSourceDefinition && resourceLangId == ripple",
           "group": "navigation@9"
         }

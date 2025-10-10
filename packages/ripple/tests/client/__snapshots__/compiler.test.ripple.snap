@@ -1,5 +1,18 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`compiler success tests > compiles TSInstantiationExpression 1`] = `
+"import * as _$_ from 'ripple/internal/client';
+
+function makeBox(value) {
+	return { value };
+}
+
+const makeStringBox = (makeBox);
+const stringBox = makeStringBox('abc');
+const ErrorMap = (Map);
+const errorMap = new ErrorMap();"
+`;
+
 exports[`compiler success tests > compiles tracked values in effect with assignment expression 1`] = `"state.count = _$_.get(count);"`;
 
 exports[`compiler success tests > compiles tracked values in effect with update expressions 1`] = `
@@ -9,4 +22,12 @@ exports[`compiler success tests > compiles tracked values in effect with update 
 			state.preDecrement = _$_.update_pre(count, __block, -1);
 			state.postDecrement = _$_.update(count, __block, -1);
 		}));"
+`;
+
+exports[`compiler success tests > removes type assertions from function parameters and leaves default values 1`] = `
+"import * as _$_ from 'ripple/internal/client';
+
+function getString(e = 'test') {
+	return e;
+}"
 `;

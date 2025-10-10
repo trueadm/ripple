@@ -59,7 +59,7 @@ function getRippleLanguagePlugin() {
 						};
 					}
 				}
-				return null;
+				return undefined;
 			},
 		},
 	};
@@ -143,17 +143,18 @@ class RippleVirtualCode {
 				getChangeRange: () => undefined,
 			};
 		} else {
-			// When compilation fails, use the original code as-is
-			// This way positions match exactly and we can provide diagnostics on raw text
-			log('Compilation failed, using original code for diagnostics');
+			// When compilation fails, show where it failed and disable all
+			// TypeScript diagnostics until the compilation error is fixed
+			log('Compilation failed, only display where the compilation error occurred.');
 
-			this.generatedCode = this.originalCode;
+			// Produce minimal valid TypeScript code to avoid cascading errors.
+			this.generatedCode = `export {};\n`;
 			this.isErrorMode = true; // Flag to indicate we're in diagnostic-only mode
 
 			// Create 1:1 mappings for the entire content
 			this.mappings = [
 				{
-					sourceOffsets: [0],
+					sourceOffsets: [this.errors[0]?.pos ?? 0],
 					generatedOffsets: [0],
 					lengths: [this.originalCode.length],
 					data: {
