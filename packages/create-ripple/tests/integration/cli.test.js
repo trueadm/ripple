@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
+import { resolve, relative } from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,10 +27,10 @@ describe('CLI Integration Tests', () => {
 	});
 
 	// Helper function to run CLI commands
-	const runCLI = (args = [], input = '', timeout = 10000) => {
+	const runCLI = (args = [], input = '', timeout = 10000, cwd = testDir) => {
 		return new Promise((resolve, reject) => {
 			const child = spawn('node', [CLI_PATH, ...args], {
-				cwd: testDir,
+				cwd,
 				stdio: 'pipe'
 			});
 
@@ -104,6 +105,57 @@ describe('CLI Integration Tests', () => {
 		expect(existsSync(join(testDir, projectName, 'package.json'))).toBe(true);
 	});
 
+	it('should create project with relative path to target directory', async () => {
+		const projectName = './relative/test-cli-project';
+		const result = await runCLI([
+			projectName,
+			'--template', 'basic',
+			'--package-manager', 'npm',
+			'--no-git',
+			'--yes'
+		]);
+
+		expect(result.code).toBe(0);
+		expect(result.stdout).toContain('Welcome to Create Ripple App');
+		expect(result.stdout).toContain('Creating Ripple app');
+		expect(result.stdout).toContain('Project created successfully');
+		expect(result.stdout).toContain('Next steps:');
+		expect(result.stdout).toContain(`cd ${relative(testDir, resolve(testDir, projectName))}`);
+		expect(result.stdout).toContain('npm install');
+		expect(result.stdout).toContain('npm run dev');
+	});
+
+	it('should create project with outer relative path to target directory', async () => {
+		// Create a subdirectory inside the testDir and use that as the current working directory
+		const subTestDir = join(testDir, 'subdir');
+		mkdirSync(subTestDir, { recursive: true });
+
+		const projectName = '../test-outer-cli-project';
+		const projectPath = resolve(subTestDir, projectName);
+		const result = await runCLI([
+			projectName,
+			'--template', 'basic',
+			'--package-manager', 'npm',
+			'--no-git',
+			'--yes'
+		], '',
+			10000,
+			subTestDir
+		);
+
+		expect(result.code).toBe(0);
+		expect(result.stdout).toContain('Welcome to Create Ripple App');
+		expect(result.stdout).toContain('Creating Ripple app');
+		expect(result.stdout).toContain('Project created successfully');
+		expect(result.stdout).toContain('Next steps:');
+		expect(result.stdout).toContain(`cd ${relative(subTestDir, projectPath)}`);
+		expect(result.stdout).toContain('npm install');
+		expect(result.stdout).toContain('npm run dev');
+
+		expect(existsSync(projectPath)).toBe(true);
+		expect(existsSync(join(projectPath, 'package.json'))).toBe(true);
+	});
+
 	it('should handle invalid template gracefully', async () => {
 		const result = await runCLI([
 			'test-project',
@@ -154,13 +206,13 @@ describe('CLI Integration Tests', () => {
 		expect(result.stdout).toContain('yarn dev');
 	});
 
-	it('Should abort if the target directory is not empty', async () => {
+	it('Should abort if the target directory is containing any conflicting files', async () => {
 		const projectName = 'non-empty-project';
 		const projectPath = join(testDir, projectName);
+		const conflictFiles = ['conflict-file.txt', 'another-file.js', 'README.md'];
 
 		mkdirSync(projectPath, { recursive: true });
-		writeFileSync(join(projectPath, 'conflict-file.txt'), 'conflict');
-
+		conflictFiles.forEach(file => writeFileSync(join(projectPath, file), 'conflict'));
 		const result = await runCLI([
 			projectName,
 			'--yes'
@@ -168,8 +220,54 @@ describe('CLI Integration Tests', () => {
 
 		expect(result.code).toBe(1);
 		expect(result.stdout).toContain(`The directory ${projectName} contains files that could conflict:`);
-		expect(result.stdout).toContain('conflict-file.txt');
+
+		conflictFiles.forEach(file => {
+			expect(result.stdout).toContain(file);
+		});
+
 		expect(result.stdout).toContain('Either try using a new directory name, or remove the files listed above.');
+	});
+
+	it('should create a project with non-conflicting files in target directory', async () => {
+		const projectName = 'non-conflicting-project';
+		const projectPath = join(testDir, projectName);
+		const nonConflictFiles = [
+			'.DS_Store',
+			'.git',
+			'.gitattributes',
+			'.gitignore',
+			'.gitlab-ci.yml',
+			'.hg',
+			'.hgcheck',
+			'.hgignore',
+			'.idea',
+			'.npmignore',
+			'.travis.yml',
+			'LICENSE',
+			'Thumbs.db',
+			'docs',
+			'mkdocs.yml',
+			'npm-debug.log',
+			'yarn-debug.log',
+			'yarn-error.log',
+			'yarnrc.yml',
+			'.yarn',
+			'project.iml', // IntelliJ IDEA-based editor files
+		];
+
+		mkdirSync(projectPath, { recursive: true });
+		nonConflictFiles.forEach(file => writeFileSync(join(projectPath, file), 'no conflict'));
+		const result = await runCLI([
+			projectName,
+			'--template', 'basic',
+			'--package-manager', 'npm',
+			'--no-git',
+			'--yes'
+		]);
+
+		expect(result.code).toBe(0);
+		expect(result.stdout).toContain('Project created successfully');
+		expect(existsSync(join(projectPath, 'package.json'))).toBe(true);
 	});
 
 	it('should validate all required dependencies are available', async () => {
