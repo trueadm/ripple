@@ -105,6 +105,10 @@ type SplitResult<T extends Props, K extends readonly (keyof T)[]> = [
 	Tracked<RestKeys<T, K>>,
 ];
 
+export declare function get<V>(tracked: Tracked<V>): V;
+
+export declare function set<V>(tracked: Tracked<V>, value: V): void;
+
 // Overload for function values - infers the return type of the function
 export declare function track<V>(
 	value: () => V,
