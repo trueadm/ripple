@@ -435,6 +435,126 @@ export component Test({ a, b }: Props) {}`;
 			const result = await format(input, { singleQuote: true, semi: true });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should break up attributes on new lines if line length exceeds printWidth', async () => {
+			const expected = `component One() {
+  <button
+    class="some-class another-class yet-another-class class-with-a-long-name"
+    id="this-is-a-button"
+  >
+    {'this is a button'}
+  </button>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 40 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should handle bracketSameLine correctly', async () => {
+			const input = `component One() {
+  <button
+    class="some-class another-class yet-another-class class-with-a-long-name"
+    id="this-is-a-button"
+  >
+    {'this is a button'}
+  </button>
+}`;
+
+			const expected = `component One() {
+  <button
+    class="some-class another-class yet-another-class class-with-a-long-name"
+    id="this-is-a-button">
+    {'this is a button'}
+  </button>
+}`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 40, bracketSameLine: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should respect singleAttributePerLine set to true setting', async () => {
+			const input = `component One() {
+  <button
+    class="some-class" something="should" not="go" wrong="at all"
+    id="this-is-a-button"
+  >
+    {'this is a button'}
+  </button>
+}`;
+
+			const expected = `component One() {
+  <button
+    class="some-class"
+    something="should"
+    not="go"
+    wrong="at all"
+    id="this-is-a-button"
+  >
+    {'this is a button'}
+  </button>
+}`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 100, singleAttributePerLine: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should respect singleAttributePerLine set to false setting', async () => {
+			const input = `component One() {
+  <button
+    class="some-class"
+    something="should"
+    not="go"
+    wrong="at all"
+    id="this-is-a-button"
+  >
+    {'this is a button'}
+  </button>
+}`;
+
+		const expected = `component One() {
+  <button class="some-class" something="should" not="go" wrong="at all" id="this-is-a-button">
+    {'this is a button'}
+  </button>
+}`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 100, singleAttributePerLine: false });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should not format function parameter spread', async () => {
+			const expected = `component Two({ arg1, ...rest }) {}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should break up long function parameter spread on new lines if line length exceeds printWidth', async () => {
+			const input = `component Three({ argumentOne, argumentTwo, ArgumentThree, ArgumentFour, ArgumentFive, ArgumentSix, ArgumentSeven }) {}`;
+			const expected = `component Three({
+  argumentOne,
+  argumentTwo,
+  ArgumentThree,
+  ArgumentFour,
+  ArgumentFive,
+  ArgumentSix,
+  ArgumentSeven,
+}) {}`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 60 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should not strip @ from dynamic @tag', async () => {
+			const expected = `export component Four() {
+  let tag = track('div');
+
+  <@tag {href} {...props}>
+    <@children />
+  </@tag>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
@@ -588,9 +708,8 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
   />
 }`;
 
-		const expected = `export component Test() {
-  <div stringProp="hello" numberProp={42} booleanProp={true} falseProp={false} nullProp={null} expression={x + 1} />
-}`;
+		// The element exceeds default printWidth (80), so it should stay broken
+		const expected = input;
 
 		const result = await format(input);
 		expect(result).toBeWithNewline(expected);
