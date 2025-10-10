@@ -13,6 +13,30 @@ export function effect() {
 var empty_get_set = { get: undefined, set: undefined };
 
 /**
+ * @param {Derived | Tracked} tracked
+ * @returns {any}
+ */
+export function get(tracked) {
+	if (!is_tracked_object(tracked)) {
+		return tracked;
+	}
+
+	var g = tracked.a.get;
+
+	return g ? g(tracked.v) : tracked.v;
+}
+
+/**
+ * @param {Tracked} tracked
+ * @param {any} value
+ */
+export function set(tracked, value) {
+	var s = tracked.a.set;
+
+	tracked.v = s ? s(value, tracked.v) : value;
+}
+
+/**
  *
  * @param {any} v
  * @param {Function} [get]

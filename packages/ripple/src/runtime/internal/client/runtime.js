@@ -769,6 +769,16 @@ export function get_tracked(tracked) {
 }
 
 /**
+ * Exposed version of `set` to avoid internal bugs
+ * since block is required on the internal `set`
+ * @param {Derived | Tracked} tracked
+ * @param {any} value
+ */
+export function public_set(tracked, value) {
+	set(tracked, value, safe_scope());
+}
+
+/**
  * @param {Derived | Tracked} tracked
  * @param {any} value
  * @param {Block} block
