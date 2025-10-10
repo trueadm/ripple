@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { green, dim } from 'kleur/colors';
@@ -161,7 +161,7 @@ function updatePackageJson(projectPath, projectName, packageManager, stylingFram
 	const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
 
 	// Update package name
-	packageJson.name = projectName;
+	packageJson.name = basename(projectName);
 
 	// Remove version if it exists (since this is a new project)
 	if (packageJson.version === '0.0.0') {
