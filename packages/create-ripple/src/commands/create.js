@@ -1,4 +1,4 @@
-import { basename, resolve } from 'node:path';
+import { basename, resolve, relative } from 'node:path';
 import { existsSync } from 'node:fs';
 import { green, cyan, dim, red } from 'kleur/colors';
 import { validateProjectName } from '../lib/validation.js';
@@ -100,7 +100,7 @@ export async function createCommand(projectName, options) {
 			stylingFramework
 		});
 
-		showNextSteps(projectName, packageManager);
+		showNextSteps(projectPath, packageManager);
 		process.exit(0);
 	} catch (error) {
 		console.error(red('✖ Failed to create project:'));
@@ -114,7 +114,7 @@ export async function createCommand(projectName, options) {
  * @param {string} projectName - The created project name
  * @param {string} packageManager - Package manager used
  */
-function showNextSteps(projectName, packageManager) {
+function showNextSteps(projectPath, packageManager) {
 	const installCommand = getInstallCommand(packageManager);
 	const devCommand = getDevCommand(packageManager);
 
@@ -122,7 +122,7 @@ function showNextSteps(projectName, packageManager) {
 	console.log(green('🎉 Success! Your Ripple app is ready to go.'));
 	console.log();
 	console.log('Next steps:');
-	console.log(`  ${dim('cd')} ${projectName}`);
+	console.log(`  ${dim('cd')} ${relative(process.cwd(), projectPath)}`);
 	console.log(`  ${dim(installCommand)}`);
 	console.log(`  ${dim(devCommand)}`);
 	console.log();
