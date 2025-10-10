@@ -1,0 +1,165 @@
+import { flushSync, TrackedURL } from 'ripple';
+
+describe('TrackedURL > parsing', () => {
+	it('creates URL from string with reactivity', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com:8080/path?foo=bar#section');
+
+			<pre>{url.href}</pre>
+			<pre>{url.protocol}</pre>
+			<pre>{url.hostname}</pre>
+			<pre>{url.port}</pre>
+			<pre>{url.pathname}</pre>
+			<pre>{url.search}</pre>
+			<pre>{url.hash}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com:8080/path?foo=bar#section');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('https:');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('example.com');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('8080');
+		expect(container.querySelectorAll('pre')[4].textContent).toBe('/path');
+		expect(container.querySelectorAll('pre')[5].textContent).toBe('?foo=bar');
+		expect(container.querySelectorAll('pre')[6].textContent).toBe('#section');
+	});
+
+	it('creates URL from string with base URL', () => {
+		component URLTest() {
+			const url = new TrackedURL('/path?query=value', 'https://example.com');
+
+			<pre>{url.href}</pre>
+			<pre>{url.origin}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?query=value');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com');
+	});
+
+	it('handles URL encoding correctly', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/path with spaces?key=value with spaces');
+
+			<pre>{url.pathname}</pre>
+			<pre>{url.search}</pre>
+			<pre>{url.href}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('/path%20with%20spaces');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('?key=value%20with%20spaces');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('https://example.com/path%20with%20spaces?key=value%20with%20spaces');
+	});
+
+	it('handles URL with file protocol', () => {
+		component URLTest() {
+			const url = new TrackedURL('file:///Users/username/documents/file.txt');
+
+			<pre>{url.protocol}</pre>
+			<pre>{url.pathname}</pre>
+			<pre>{url.href}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('file:');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('/Users/username/documents/file.txt');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('file:///Users/username/documents/file.txt');
+	});
+
+	it('handles URL with IPv4 address', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://192.168.1.1:8080/path');
+
+			<button onClick={() => url.hostname = '10.0.0.1'}>{'Change IP'}</button>
+			<pre>{url.href}</pre>
+			<pre>{url.hostname}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://192.168.1.1:8080/path');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('192.168.1.1');
+
+		// Change IP
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://10.0.0.1:8080/path');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('10.0.0.1');
+	});
+
+	it('handles URL with localhost', () => {
+		component URLTest() {
+			const url = new TrackedURL('http://localhost:3000/api/data');
+
+			<button onClick={() => url.port = '8080'}>{'Change Port'}</button>
+			<pre>{url.href}</pre>
+			<pre>{url.hostname}</pre>
+			<pre>{url.port}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('http://localhost:3000/api/data');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('localhost');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3000');
+
+		// Change port
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('http://localhost:8080/api/data');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('localhost');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('8080');
+	});
+
+	it('handles URL with multiple path segments', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/api/v1/users/123/profile');
+
+			<button onClick={() => url.pathname = '/api/v2/users/456/settings'}>{'Change Path'}</button>
+			<pre>{url.pathname}</pre>
+			<pre>{url.href}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('/api/v1/users/123/profile');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com/api/v1/users/123/profile');
+
+		// Change path
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('/api/v2/users/456/settings');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com/api/v2/users/456/settings');
+	});
+
+	it('handles relative URL paths correctly', () => {
+		component URLTest() {
+			const url = new TrackedURL('../sibling/path', 'https://example.com/parent/current');
+
+			<pre>{url.href}</pre>
+			<pre>{url.pathname}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/sibling/path');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('/sibling/path');
+	});
+});

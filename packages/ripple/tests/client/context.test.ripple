@@ -1,26 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, Context, flushSync, track } from 'ripple';
+import { describe, it, expect } from 'vitest';
+import { Context, flushSync } from 'ripple';
 
 describe('context', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-		document.body.removeChild(container);
-	});
-
 	it('creates a reactive ref with initial value', () => {
-		const MyContext = new Context(null);
+		const MyContext = new Context<string | null>(null);
 
 		component Child() {
 			const value = MyContext.get();
@@ -43,10 +26,10 @@ describe('context', () => {
 
 	it('handles context captured inside a computed tracked', () => {
 
-		const MyContext = new Context(null)
+		const MyContext = new Context<number | null>(null)
 
 		const doubleContext = () => {
-			const value = MyContext.get()
+			const value = MyContext.get() as number
 			return value * 2
 		}
 

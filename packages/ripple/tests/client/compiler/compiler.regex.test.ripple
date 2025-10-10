@@ -1,0 +1,87 @@
+describe('compiler > regex', () => {
+	it('renders without crashing using regex literals in method calls', () => {
+		component App() {
+			let text = 'Hello <span>world</span> and <div>content</div>';
+
+			// Test various regex patterns in method calls that previously failed
+			let matchResult = text.match(/<span>/);
+			let replaceResult = text.replace(/<div>/g, '[DIV]');
+			let searchResult = text.search(/<span>/);
+
+			// Test regex literals in variable assignments (should work)
+			let spanRegex = /<span>/g;
+			let divRegex = /<div.*?>/;
+
+			// Test more complex regex patterns
+			let complexMatch = text.match(/<[^>]*>/g);
+			let htmlTags = text.replace(/<(\/*)(\w+)[^>]*>/g, '[$1$2]');
+
+			// Test edge cases with multiple angle brackets
+			let multiAngle = '<<test>> <span>content</span>'.match(/<span>/);
+
+			<div>
+				<span>{String(matchResult)}</span>
+				<span>{replaceResult}</span>
+				<span>{String(searchResult)}</span>
+				<span>{String(spanRegex)}</span>
+				<span>{String(divRegex)}</span>
+				<span>{String(complexMatch)}</span>
+				<span>{htmlTags}</span>
+				<span>{String(multiAngle)}</span>
+			</div>
+		}
+
+		render(App);
+
+		const matchResult = container.querySelectorAll('span')[0];
+		const replaceResult = container.querySelectorAll('span')[1];
+		const searchResult = container.querySelectorAll('span')[2];
+		const spanRegex = container.querySelectorAll('span')[3];
+		const divRegex = container.querySelectorAll('span')[4];
+		const complexMatch = container.querySelectorAll('span')[5];
+		const htmlTags = container.querySelectorAll('span')[6];
+		const multiAngle = container.querySelectorAll('span')[7];
+
+		expect(matchResult.textContent).toBe('<span>');
+		expect(replaceResult.textContent).toBe('Hello <span>world</span> and [DIV]content</div>');
+		expect(searchResult.textContent).toBe('6');
+		expect(spanRegex.textContent).toBe('/<span>/g');
+		expect(divRegex.textContent).toBe('/<div.*?>/');
+		expect(complexMatch.textContent).toBe('<span>,</span>,<div>,</div>');
+		expect(htmlTags.textContent).toBe('Hello [span]world[/span] and [div]content[/div]');
+		expect(multiAngle.textContent).toBe('<span>');
+	});
+
+	it('renders without crashing mixing regex and JSX syntax', () => {
+		component App() {
+			let htmlString = '<p>Paragraph</p><div>Content</div>';
+
+			// Mix of regex parsing and legitimate JSX
+			let paragraphs = htmlString.match(/<p[^>]*>.*?<\/p>/g);
+			let cleaned = htmlString.replace(/<\/?[^>]+>/g, '');
+			let splitArray = htmlString.split(/<\/?\w+>/g).filter(s => s.trim());
+
+			<div class='container'>
+				<span class='result'>{String(paragraphs)}</span>
+				<span class='cleaned'>{cleaned}</span>
+				<p>{'This is real JSX'}</p>
+				<div><span>
+					{'Split result: '}
+					{splitArray.join(', ')}
+				</span></div>
+			</div>
+		}
+
+		render(App);
+
+		const result = container.querySelector('.result');
+		const cleaned = container.querySelector('.cleaned');
+		const jsxParagraph = container.querySelector('p');
+		const splitResult = container.querySelector('.container > div > span');
+
+		expect(result.textContent).toBe('<p>Paragraph</p>');
+		expect(cleaned.textContent).toBe('ParagraphContent');
+		expect(jsxParagraph.textContent).toBe('This is real JSX');
+		expect(splitResult.textContent).toBe('Split result: Paragraph, Content');
+	});
+});

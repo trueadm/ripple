@@ -1,25 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount } from 'ripple';
-
 describe('generic patterns', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
-	});
-
 	it('tests simple generic function', () => {
 		component App() {
 			const e = new Map<string, Promise<number>>();

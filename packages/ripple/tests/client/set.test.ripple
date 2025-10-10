@@ -1,25 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, TrackedSet, track } from 'ripple';
+import { flushSync, TrackedSet, track } from 'ripple';
 
 describe('TrackedSet', () => {
-  let container;
-
-  function render(component) {
-    mount(component, {
-      target: container
-    });
-  }
-
-  beforeEach(() => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-  });
-
-  afterEach(() => {
-    document.body.removeChild(container);
-    container = null;
-  });
-
   it('handles add and delete operations', () => {
     component SetTest() {
       let items = new TrackedSet([1, 2, 3]);
@@ -29,7 +10,7 @@ describe('TrackedSet', () => {
       <Child items={items} />
     }
 
-    component Child({ items }) {
+    component Child({ items }: { items: TrackedSet<number> }) {
       <pre>{JSON.stringify(items)}</pre>
       <pre>{items.size}</pre>
     }
@@ -60,7 +41,7 @@ describe('TrackedSet', () => {
       <Child items={items} />
     }
 
-    component Child({ items }) {
+    component Child({ items }: { items: TrackedSet<number> }) {
       <pre>{JSON.stringify(items)}</pre>
       <pre>{items.size}</pre>
     }

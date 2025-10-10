@@ -1,25 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, effect, track } from 'ripple';
+import { flushSync, effect, track } from 'ripple';
 
 describe('passing reactivity between boundaries tests', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
-	});
-
   it('can pass reactivity between functions with simple arrays and destructuring', () => {
     let log: string[] = [];
 
@@ -66,7 +47,7 @@ describe('passing reactivity between boundaries tests', () => {
   it('can pass reactivity between functions with simple objects and destructuring', () => {
     let log: string[] = [];
 
-    function createDouble({ count }) {
+    function createDouble({ count }: { count: Tracked<number> }) {
       const double = track(() => @count * 2);
 
       effect(() => {

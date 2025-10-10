@@ -1,0 +1,60 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`basic client > attribute rendering > handles boolean attributes with no prop value provides 1`] = `
+<div>
+  <div
+    class="container"
+  >
+    <button
+      disabled=""
+    >
+      Button
+    </button>
+    <input
+      checked=""
+      type="checkbox"
+    />
+  </div>
+  
+</div>
+`;
+
+exports[`basic client > attribute rendering > handles boolean props correctly 1`] = `
+<div>
+  <div
+    data-disabled=""
+  />
+  <input
+    disabled=""
+  />
+  <!---->
+  
+</div>
+`;
+
+exports[`basic client > attribute rendering > render spread props without duplication 1`] = `
+<div>
+  <div>
+    <input
+      id="vehicle1"
+      name="car"
+      type="checkbox"
+      value="Bike"
+    />
+  </div>
+  
+</div>
+`;
+
+exports[`basic client > attribute rendering > render static attributes 1`] = `
+<div>
+  <div
+    class="foo"
+    id="bar"
+    style="color: red;"
+  >
+    Hello World
+  </div>
+  
+</div>
+`;

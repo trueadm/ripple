@@ -1,0 +1,198 @@
+import { flushSync, TrackedURL } from 'ripple';
+
+describe('TrackedURL > partials/removal', () => {
+	it('handles URL with no port specified', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/path');
+
+			<pre>{url.port}</pre>
+			<pre>{url.host}</pre>
+			<button onClick={() => url.port = '8080'}>{'Add Port'}</button>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state - default ports are empty strings
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('example.com');
+
+		// Add port
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('8080');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('example.com:8080');
+	});
+
+	it('handles URL with no search params', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/path');
+
+			<pre>{url.search}</pre>
+			<pre>{url.searchParams.size}</pre>
+			<button onClick={() => url.searchParams.append('foo', 'bar')}>{'Add Param'}</button>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+
+		// Add param
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('?foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+	});
+
+	it('handles URL with no hash', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/path');
+
+			<pre>{url.hash}</pre>
+			<button onClick={() => url.hash = '#section'}>{'Add Hash'}</button>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('');
+
+		// Add hash
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('#section');
+	});
+
+	it('handles removing port by setting empty string', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com:8080/path');
+
+			<button onClick={() => url.port = ''}>{'Remove Port'}</button>
+			<pre>{url.href}</pre>
+			<pre>{url.port}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com:8080/path');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('8080');
+
+		// Remove port
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('');
+	});
+
+	it('handles removing hash by setting empty string', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/path#section');
+
+			<button onClick={() => url.hash = ''}>{'Remove Hash'}</button>
+			<pre>{url.href}</pre>
+			<pre>{url.hash}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path#section');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('#section');
+
+		// Remove hash
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('');
+	});
+
+	it('handles removing search by setting empty string', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/path?foo=bar');
+
+			<button onClick={() => url.search = ''}>{'Remove Search'}</button>
+			<pre>{url.href}</pre>
+			<pre>{url.search}</pre>
+			<pre>{url.searchParams.size}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('?foo=bar');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('1');
+
+		// Remove search
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('0');
+	});
+
+	it('handles hash without leading # character', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/path');
+
+			<button onClick={() => url.hash = 'section'}>{'Set Hash'}</button>
+			<pre>{url.hash}</pre>
+			<pre>{url.href}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('');
+
+		// Set hash
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('#section');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com/path#section');
+	});
+
+	it('handles search without leading ? character', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com/path');
+
+			<button onClick={() => url.search = 'foo=bar'}>{'Set Search'}</button>
+			<pre>{url.search}</pre>
+			<pre>{url.href}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Set search
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com/path?foo=bar');
+	});
+});

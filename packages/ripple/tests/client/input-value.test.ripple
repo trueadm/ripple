@@ -1,28 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, track, effect } from 'ripple';
-import { bindValue, bindChecked } from 'ripple';
+import { flushSync, track, effect, bindValue, bindChecked } from 'ripple';
 
 describe('use value()', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container,
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
-	});
-
 	it('should update value on input', () => {
-		const logs = [];
+		const logs: string[] = [];
 
 		component App() {
 			const text = track('');
@@ -36,7 +16,7 @@ describe('use value()', () => {
 		render(App);
 		flushSync();
 
-		const input = container.querySelector('input');
+		const input = container.querySelector('input') as HTMLInputElement;
 		input.value = 'Hello';
 		input.dispatchEvent(new Event('input'));
 		flushSync();
@@ -45,7 +25,7 @@ describe('use value()', () => {
 	});
 
 		it('should update value on input with a predefined value', () => {
-		const logs = [];
+		const logs: string[] = [];
 
 		component App() {
 			const text = track('foo');
@@ -59,8 +39,8 @@ describe('use value()', () => {
 		render(App);
 		flushSync();
 
-		expect(container.querySelector('input').value).toBe('foo');
-		const input = container.querySelector('input');
+		const input = container.querySelector('input') as HTMLInputElement;
+		expect(input.value).toBe('foo');
 		input.value = 'Hello';
 		input.dispatchEvent(new Event('input'));
 		flushSync();
@@ -69,7 +49,7 @@ describe('use value()', () => {
 	});
 
 	it('should update checked on input', () => {
-		const logs = [];
+		const logs: string[] = [];
 
 		component App() {
 			const value = track(false);
@@ -83,17 +63,17 @@ describe('use value()', () => {
 		render(App);
 		flushSync();
 
-		const input = container.querySelector('input');
+		const input = container.querySelector('input') as HTMLInputElement;
 		input.checked = true;
 		input.dispatchEvent(new Event('change'));
 		flushSync();
-		
+
 		expect(input.checked).toBe(true);
 		expect(logs).toEqual(['checked changed', false, 'checked changed', true]);
 	});
 
 	it('should update select value on change', () => {
-		const logs = [];
+		const logs: string[] = [];
 
 		component App() {
 			const select = track('2');
@@ -112,7 +92,7 @@ describe('use value()', () => {
 		render(App);
 		flushSync();
 
-		const select = container.querySelector('select');
+		const select = container.querySelector('select') as HTMLSelectElement;
 		select.value = '3';
 		select.dispatchEvent(new Event('change'));
 		flushSync();

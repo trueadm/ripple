@@ -1,0 +1,120 @@
+import { track, flushSync, TrackedArray } from 'ripple';
+
+describe('TrackedArray copyWithin', () => {
+	it('handles copyWithin operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3, 4, 5);
+			let firstItem = track(() => items[0]);
+			let thirdItem = track(() => items[2]);
+			let fourthItem = track(() => items[3]);
+
+			<button onClick={() => items.copyWithin(0, 3)}>{'copy end to start'}</button>
+			<button onClick={() => items.copyWithin(2, 0, 2)}>{'copy start to middle'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{@firstItem}</pre>
+			<pre>{@thirdItem}</pre>
+			<pre>{@fourthItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const copyEndToStartButton = container.querySelectorAll('button')[0];
+		const copyStartToMiddleButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('4');
+
+		// Test copyWithin from end to start
+		copyEndToStartButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[4,5,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('4');
+
+		// Test copyWithin from start to middle
+		copyStartToMiddleButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[4,5,4,5,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('5');
+	});
+
+	it('handles copyWithin with negative indexes and reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3, 4, 5);
+			let secondItem = track(() => items[1]);
+			let thirdItem = track(() => items[2]);
+
+			<button onClick={() => items.copyWithin(-4, -2)}>{'copy with negative indexes'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{@secondItem}</pre>
+			<pre>{@thirdItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const copyButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+		// Test copyWithin with negative indexes
+		copyButton.click();
+		flushSync();
+
+		// copyWithin(-4, -2) should copy [4,5] to positions [1,2]
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,4,5,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('5');
+	});
+
+	it('handles copyWithin with overlapping ranges', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3, 4, 5);
+			let entries = track(() => Array.from(items.entries()));
+
+			<button onClick={() => items.copyWithin(2, 1, 4)}>{'copy with overlap'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+
+			for (const [i, value] of @entries) {
+				<pre>{`items[${i}]: ${value}`}</pre>
+			}
+		}
+
+		render(ArrayTest);
+
+		const copyButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+
+		// Test values from reactive bindings
+		for (let i = 0; i < 5; i++) {
+			expect(container.querySelectorAll('pre')[i + 1].textContent).toBe(`items[${i}]: ${i + 1}`);
+		}
+
+		// Test copyWithin with overlapping ranges
+		copyButton.click();
+		flushSync();
+
+		// copyWithin(2, 1, 4) should copy [2,3,4] to positions [2,3,4]
+		// resulting in [1,2,2,3,4]
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,2,3,4]');
+
+		// Test that reactive bindings updated
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('items[0]: 1');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('items[1]: 2');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('items[2]: 2');
+		expect(container.querySelectorAll('pre')[4].textContent).toBe('items[3]: 3');
+		expect(container.querySelectorAll('pre')[5].textContent).toBe('items[4]: 4');
+	});
+});

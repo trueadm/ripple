@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`basic client > text rendering > basic operations 1`] = `
+<div>
+  <div>
+    0
+  </div>
+  <div>
+    2
+  </div>
+  <div>
+    5
+  </div>
+  <div>
+    2
+  </div>
+  
+</div>
+`;
+
+exports[`basic client > text rendering > renders semi-dynamic text 1`] = `
+<div>
+  <div>
+    Hello World
+  </div>
+  
+</div>
+`;
+
+exports[`basic client > text rendering > renders simple JS expression logic correctly 1`] = `
+<div>
+  <div>
+    {"0":"Test"}
+  </div>
+  <div>
+    1
+  </div>
+  
+</div>
+`;
+
+exports[`basic client > text rendering > renders static text 1`] = `
+<div>
+  <div>
+    Hello World
+  </div>
+  
+</div>
+`;
