@@ -12,8 +12,11 @@ describe('validateProjectName', () => {
 			'app123',
 			'a',
 			'a'.repeat(214), // max length
-			'.', // root directory
-			'my/app' // nested directory
+			'.',
+			'my/app',
+			'./my-app',
+			'../my-app',
+			'path/to/my-app'
 		];
 
 		validNames.forEach(name => {
