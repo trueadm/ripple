@@ -775,7 +775,7 @@ export function get_tracked(tracked) {
  * @param {any} value
  */
 export function public_set(tracked, value) {
-	set(tracked, value, /** @type {Block} */ (active_scope));
+	set(tracked, value, safe_scope());
 }
 
 /**
