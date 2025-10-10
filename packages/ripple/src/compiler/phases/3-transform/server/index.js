@@ -525,18 +525,28 @@ const visitors = {
 			return;
 		}
 
-		// TODO: alternative (else if / else)
-		context.state.init.push(
-			b.if(
-				context.visit(node.test),
-				b.block(
-					transform_body(node.consequent.body, {
-						...context,
-						state: { ...context.state, scope: context.state.scopes.get(node.consequent) },
-					}),
-				),
-			),
+		const consequent = b.block(
+			transform_body(node.consequent.body, {
+				...context,
+				state: { ...context.state, scope: context.state.scopes.get(node.consequent) },
+			}),
 		);
+
+		let alternate = null;
+		if (node.alternate) {
+			const alternate_scope = context.state.scopes.get(node.alternate) || context.state.scope;
+			const alternate_body_nodes =
+				node.alternate.type === 'IfStatement' ? [node.alternate] : node.alternate.body;
+
+			alternate = b.block(
+				transform_body(alternate_body_nodes, {
+					...context,
+					state: { ...context.state, scope: alternate_scope },
+				}),
+			);
+		}
+
+		context.state.init.push(b.if(context.visit(node.test), consequent, alternate));
 	},
 
 	Identifier(node, context) {
