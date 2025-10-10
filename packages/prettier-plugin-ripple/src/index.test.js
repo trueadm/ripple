@@ -708,10 +708,11 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
   />
 }`;
 
-		// The element exceeds default printWidth (80), so it should stay broken
-		const expected = input;
+		const expected = `export component Test() {
+  <div stringProp="hello" numberProp={42} booleanProp={true} falseProp={false} nullProp={null} expression={x + 1} />
+}`;
 
-		const result = await format(input);
+		const result = await format(input, { singleQuote: true, printWidth: 120 });
 		expect(result).toBeWithNewline(expected);
 	});
 
