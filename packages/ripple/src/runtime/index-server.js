@@ -6,8 +6,12 @@ import { active_component } from './internal/server/index.js';
 
 export { Context } from './internal/server/context.js';
 
-export function effect() {
-	// NO-OP
+/**
+ * 
+ * @param {Function} cbfn 
+ */
+export function effect(cbfn) {
+	cbfn();
 }
 
 var empty_get_set = { get: undefined, set: undefined };
