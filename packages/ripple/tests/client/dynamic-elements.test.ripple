@@ -1,24 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, track, createRefKey } from 'ripple';
+import { flushSync, track, createRefKey } from 'ripple';
 
 describe('dynamic DOM elements', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container,
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-	
-	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
-	});
 
 	it('renders static dynamic element', () => {
 		component App() {
