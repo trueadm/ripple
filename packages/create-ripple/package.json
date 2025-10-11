@@ -1,6 +1,6 @@
 {
   "name": "create-ripple",
-  "version": "0.2.112",
+  "version": "0.2.116",
   "description": "Interactive CLI tool for creating Ripple applications",
   "type": "module",
   "license": "MIT",
@@ -28,7 +28,7 @@
     "create-ripple": "./dist/index.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsdown",
