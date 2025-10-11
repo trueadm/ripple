@@ -5,6 +5,13 @@
   "description": "",
   "author": "Dominic Gannaway",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.18.2",
+    "npm": ">=11.6.2"
+  },
+  "engineStrict": true,
+  "packageManager": "pnpm@10.18.2",
   "scripts": {
     "test": "vitest run",
     "format": "prettier --write .",
