@@ -250,6 +250,10 @@ importers:
         version: 5.9.2
 
   packages/eslint-plugin-ripple:
+    dependencies:
+      eslint-parser-ripple:
+        specifier: workspace:*
+        version: link:../eslint-parser-ripple
     devDependencies:
       '@types/eslint':
         specifier: catalog:default
