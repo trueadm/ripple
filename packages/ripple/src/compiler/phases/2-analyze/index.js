@@ -349,13 +349,14 @@ const visitors = {
 			node.metadata = {
 				...node.metadata,
 				has_template: false,
+				has_await: false,
 			};
 
 			context.visit(switch_case, context.state);
 
-			if (!node.metadata.has_template) {
+			if (!node.metadata.has_template && !node.metadata.has_await) {
 				error(
-					'Component switch statements must contain a template in each of their cases. Move the switch statement into an effect if it does not render anything.',
+					'Component switch statements must contain a template or an await expression in each of their cases. Move the switch statement into an effect if it does not render anything.',
 					context.state.analysis.module.filename,
 					node,
 				);
@@ -416,15 +417,16 @@ const visitors = {
 		node.metadata = {
 			...node.metadata,
 			has_template: false,
+			has_await: false,
 		};
 		context.next();
 
-		if (!node.metadata.has_template) {
+		if (!node.metadata.has_template && !node.metadata.has_await) {
 			error(
-				'Component for...of loops must contain a template in their body. Move the for loop into an effect if it does not render anything.',
-				context.state.analysis.module.filename,
-				node,
-			);
+					'Component for...of loops must contain a template or an await expression in their body. Move the for loop into an effect if it does not render anything.',
+					context.state.analysis.module.filename,
+					node,
+				);
 		}
 	},
 
@@ -462,35 +464,39 @@ const visitors = {
 		node.metadata = {
 			...node.metadata,
 			has_template: false,
+			has_await: false,
 		};
 
 		context.visit(node.consequent, context.state);
 
-		if (!node.metadata.has_template) {
+		if (!node.metadata.has_template && !node.metadata.has_await) {
 			error(
-				'Component if statements must contain a template in their "then" body. Move the if statement into an effect if it does not render anything.',
-				context.state.analysis.module.filename,
-				node,
-			);
-		}
-
-		if (node.alternate) {
-			node.metadata = {
-				...node.metadata,
-				has_template: false,
-			};
-			context.visit(node.alternate, context.state);
-
-			if (!node.metadata.has_template) {
-				error(
-					'Component if statements must contain a template in their "else" body. Move the if statement into an effect if it does not render anything.',
+					'Component if statements must contain a template or an await expression in their "then" body. Move the if statement into an effect if it does not render anything.',
 					context.state.analysis.module.filename,
 					node,
 				);
+		}
+
+		if (node.alternate) {
+			node.metadata.has_template = false;
+			node.metadata.has_await = false;
+			context.visit(node.alternate, context.state);
+
+			if (!node.metadata.has_template && !node.metadata.has_await) {
+				error(
+						'Component if statements must contain a template or an await expression in their "else" body. Move the if statement into an effect if it does not render anything.',
+						context.state.analysis.module.filename,
+						node,
+					);
 			}
 		}
 	},
-
+	/**
+	 * 
+	 * @param {any} node 
+	 * @param {any} context 
+	 * @returns 
+	 */
 	TryStatement(node, context) {
 		if (!is_inside_component(context)) {
 			return context.next();
@@ -736,7 +742,12 @@ const visitors = {
 		mark_control_flow_has_template(context.path);
 		context.next();
 	},
-
+	
+ /**
+	* 
+	* @param {any} node 
+	* @param {any} context 
+	*/
 	AwaitExpression(node, context) {
 		if (is_inside_component(context)) {
 			if (context.state.metadata?.await === false) {
@@ -745,15 +756,13 @@ const visitors = {
 		}
 		const parent_block = get_parent_block_node(context);
 
-		// Note: Currently, bypassed just in try block, for SSR being async. Later, will add support for all blocks
-		if (parent_block !== null && parent_block.type !== 'Component' && parent_block.type !== 'TryStatement') {
-			error(
-				'`await` expressions can only currently be used at the top-level of a component body. Support for using them in control flow statements will be added in the future.',
-				context.state.analysis.module.filename,
-				node,
-			);
+		if (parent_block) {
+			if (!parent_block.metadata) {
+				parent_block.metadata = {};
+			}
+			parent_block.metadata.has_await = true;
 		}
-
+		
 		context.next();
 	},
 };
