@@ -169,6 +169,14 @@ export function create_scopes(ast, root, parent) {
 			next({ scope });
 		},
 
+		ServerBlock(node, { state, next }) {
+			const scope = state.scope.child();
+			scope.server_block = true;
+			scopes.set(node, scope);
+
+			next({ scope });
+		},
+
 		FunctionExpression(node, { state, next }) {
 			const scope = state.scope.child();
 			scopes.set(node, scope);
@@ -328,6 +336,12 @@ export class Scope {
 	tracing = null;
 
 	/**
+	 * Is this scope a top-level server block scope
+	 * @type {boolean}
+	 */
+	server_block = false;
+
+	/**
 	 *
 	 * @param {ScopeRoot} root
 	 * @param {Scope | null} parent
@@ -353,7 +367,7 @@ export class Scope {
 				return this.parent.declare(node, kind, declaration_kind);
 			}
 
-			if (declaration_kind === 'import') {
+			if (declaration_kind === 'import' && !this.parent.server_block) {
 				return this.parent.declare(node, kind, declaration_kind, initial);
 			}
 		}
