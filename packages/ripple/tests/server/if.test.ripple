@@ -63,4 +63,24 @@ describe('if statements in SSR', () => {
 		const { body } = await render(App);
 		expect(body).toBe('<div>Default Case</div>');
 	});
+
+	it('renders nested if-else blocks correctly', async () => {
+		component App() {
+			let outer = true;
+			let inner = false;
+
+			if (outer) {
+				if (inner) {
+					<div>{'Outer true, Inner true'}</div>
+				} else {
+					<div>{'Outer true, Inner false'}</div>
+				}
+			} else {
+				<div>{'Outer false'}</div>
+			}
+		}
+
+		const { body } = await render(App);
+		expect(body).toBe('<div>Outer true, Inner false</div>');
+	});
 });

@@ -1,0 +1,44 @@
+import { describe, it, expect } from 'vitest';
+import { render } from 'ripple/server';
+
+describe('for statements in SSR', () => {
+	it('renders a simple static array', async () => {
+		component App() {
+			const items = ['Item 1', 'Item 2', 'Item 3'];
+
+			for (const item of items) {
+				<div class={item}>{item}</div>
+			}
+		}
+
+		const { body } = await render(App);
+		expect(body).toBe('<div class="Item 1">Item 1</div><div class="Item 2">Item 2</div><div class="Item 3">Item 3</div>');
+	});
+
+	it('renders nested for...of loops', async () => {
+		component App() {
+			const groups = [
+				{
+					name: 'Group 1',
+					items: ['Item 1.1', 'Item 1.2']
+				},
+				{
+					name: 'Group 2',
+					items: ['Item 2.1', 'Item 2.2']
+				}
+			];
+
+			for (const group of groups) {
+				<h1>{group.name}</h1>
+				<ul>
+					for (const item of group.items) {
+						<li>{item}</li>
+					}
+				</ul>
+			}
+		}
+
+		const { body } = await render(App);
+		expect(body).toBe('<h1>Group 1</h1><ul><li>Item 1.1</li><li>Item 1.2</li></ul><h1>Group 2</h1><ul><li>Item 2.1</li><li>Item 2.2</li></ul>');
+	});
+});
