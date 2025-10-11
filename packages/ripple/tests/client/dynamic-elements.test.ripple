@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { flushSync, track, createRefKey } from 'ripple';
 
 describe('dynamic DOM elements', () => {
