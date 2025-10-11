@@ -32,6 +32,7 @@
   },
   "scripts": {
     "build": "tsdown",
+    "prepack": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -50,5 +51,9 @@
     "prompts": "catalog:default",
     "tsdown": "catalog:default",
     "vitest": "catalog:default"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
   }
 }
