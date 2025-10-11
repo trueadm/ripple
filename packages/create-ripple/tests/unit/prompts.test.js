@@ -25,7 +25,6 @@ global.console = { ...console, log: mockConsoleLog };
 import {
 	promptProjectName,
 	promptTemplate,
-	promptOverwrite,
 	promptPackageManager,
 	promptTypeScript,
 	promptGitInit,
@@ -110,28 +109,6 @@ describe('Prompts', () => {
 			await promptTemplate();
 			expect(mockExit).toHaveBeenCalledWith(1);
 			expect(mockConsoleLog).toHaveBeenCalledWith('✖ Operation cancelled');
-		});
-	});
-
-	describe('promptOverwrite', () => {
-		it('should return overwrite decision', async () => {
-			prompts.default.mockResolvedValue({ overwrite: true });
-
-			const result = await promptOverwrite('test-project');
-			expect(result).toBe(true);
-			expect(prompts.default).toHaveBeenCalledWith({
-				type: 'confirm',
-				name: 'overwrite',
-				message: 'Directory "test-project" already exists. Continue anyway?',
-				initial: false
-			});
-		});
-
-		it('should exit when user cancels', async () => {
-			prompts.default.mockResolvedValue({});
-
-			await promptOverwrite('test-project');
-			expect(mockExit).toHaveBeenCalledWith(1);
 		});
 	});
 

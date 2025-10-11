@@ -1,3 +1,5 @@
+import { basename, resolve } from 'node:path';
+
 /**
  * Validation utilities for project creation
  */
@@ -7,22 +9,23 @@
  * @param {string} name - The project name to validate
  * @returns {object} - Object with valid boolean and message string
  */
-export function validateProjectName(name) {
-	if (typeof name !== 'string' || name === null || name === undefined) {
+export function validateProjectName(inputName) {
+
+	if (typeof inputName !== 'string' || inputName === null || inputName === undefined) {
 		return {
 			valid: false,
 			message: 'Project name is required'
 		};
 	}
 
-	name = name.trim();
-
-	if (name.length === 0) {
+	if (typeof inputName === 'string' && inputName.trim().length === 0) {
 		return {
 			valid: false,
 			message: 'Project name cannot be empty'
 		};
 	}
+
+	const name = basename(resolve(process.cwd(), inputName.trim()));
 
 	// Check length (npm package names have a 214 character limit)
 	if (name.length > 214) {

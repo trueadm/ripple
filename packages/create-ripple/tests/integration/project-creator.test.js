@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createProject, updatePackageJson, configureStyling } from '../../src/lib/project-creator.js';
 import { getLocalTemplatePath, isLocalDevelopment, validateTemplate } from '../../src/lib/templates.js';
@@ -47,14 +47,14 @@ describe('createProject integration tests', () => {
 		// Create a temporary test directory
 		testDir = join(tmpdir(), `create-ripple-test-${Date.now()}`);
 		mkdirSync(testDir, { recursive: true });
-		
+
 		projectPath = join(testDir, 'test-project');
 		templatePath = join(testDir, 'template');
 
 		// Create a mock template directory structure
 		mkdirSync(templatePath, { recursive: true });
 		mkdirSync(join(templatePath, 'src'), { recursive: true });
-		
+
 		// Create mock template files
 		writeFileSync(
 			join(templatePath, 'package.json'),
@@ -120,6 +120,50 @@ describe('createProject integration tests', () => {
 		expect(packageJson.version).toBe('1.0.0');
 	});
 
+	it('should create a project with relative path to target directory', async () => {
+		const projectName = './relative/test-project';
+		const projectPath = resolve(testDir, projectName);
+		await createProject({
+			projectName: projectName,
+			projectPath,
+			template: 'basic',
+			packageManager: 'npm',
+			typescript: true,
+			gitInit: false
+		});
+
+		// verify project directory was created
+		expect(existsSync(projectPath)).toBe(true);
+
+		// Verify creation success
+		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+		expect(packageJson.name).toBe(basename(projectPath));
+	});
+
+	it('should create a project with outer relative path to target directory', async () => {
+		const subTestDir = join(testDir, 'subdir');
+		mkdirSync(subTestDir, { recursive: true });
+
+		const projectName = '../test-project';
+		const projectPath = resolve(subTestDir, projectName);
+		await createProject({
+			projectName: projectName,
+			projectPath,
+			template: 'basic',
+			packageManager: 'npm',
+			typescript: true,
+			gitInit: false
+		});
+
+		// verify project directory was created
+		expect(existsSync(projectPath)).toBe(true);
+
+		// Verify creation success
+		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+		expect(packageJson.name).toBe(basename(projectPath));
+
+	});
+
 	it('should update package.json with correct package manager', async () => {
 		await createProject({
 			projectName: 'test-pnpm-project',
@@ -165,7 +209,7 @@ describe('createProject integration tests', () => {
 
 	it('should handle missing template directory', async () => {
 		const invalidTemplatePath = join(testDir, 'non-existent-template');
-		
+
 		// Override the mock for this specific test
 		vi.mocked(getLocalTemplatePath).mockReturnValue(invalidTemplatePath);
 
@@ -227,27 +271,28 @@ describe('createProject integration tests', () => {
 		expect(existsSync(join(projectPath, 'package.json'))).toBe(true);
 		expect(existsSync(join(projectPath, 'existing-file.txt'))).toBe(true);
 	});
+
 	it('should configure Tailwind CSS correctly', async () => {
-			writeFileSync(join(templatePath, 'src', 'index.ts'), 'console.log("Hello, World!");');
-			await createProject({
-				projectName: 'test-tailwind-project',
-				projectPath,
-				template: 'basic',
-				packageManager: 'npm',
-				typescript: true,
-				gitInit: false,
-				stylingFramework: 'tailwind'
-			});
-
-			const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
-			expect(packageJson.devDependencies).toHaveProperty('tailwindcss');
-			expect(packageJson.devDependencies).toHaveProperty('@tailwindcss/vite');
-
-			expect(existsSync(join(projectPath, 'tailwind.config.ts'))).toBe(true);
-			expect(readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8')).toContain("import './index.css';\n");
-			expect(existsSync(join(projectPath, 'src', 'index.css'))).toBe(true);
-			expect(readFileSync(join(projectPath, 'src', 'index.css'), 'utf-8')).toContain('@import "tailwindcss"');
+		writeFileSync(join(templatePath, 'src', 'index.ts'), 'console.log("Hello, World!");');
+		await createProject({
+			projectName: 'test-tailwind-project',
+			projectPath,
+			template: 'basic',
+			packageManager: 'npm',
+			typescript: true,
+			gitInit: false,
+			stylingFramework: 'tailwind'
 		});
+
+		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
+		expect(packageJson.devDependencies).toHaveProperty('tailwindcss');
+		expect(packageJson.devDependencies).toHaveProperty('@tailwindcss/vite');
+
+		expect(existsSync(join(projectPath, 'tailwind.config.ts'))).toBe(true);
+		expect(readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8')).toContain("import './index.css';\n");
+		expect(existsSync(join(projectPath, 'src', 'index.css'))).toBe(true);
+		expect(readFileSync(join(projectPath, 'src', 'index.css'), 'utf-8')).toContain('@import "tailwindcss"');
+	});
 
 	it('should configure Bootstrap correctly', async () => {
 		writeFileSync(join(templatePath, 'src', 'index.ts'), 'console.log("Hello, World!");');

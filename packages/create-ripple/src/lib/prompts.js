@@ -50,27 +50,6 @@ export async function promptTemplate() {
 }
 
 /**
- * Prompt for directory overwrite confirmation
- * @param {string} projectName - The project name
- * @returns {Promise<boolean>} - Whether to overwrite
- */
-export async function promptOverwrite(projectName) {
-	const response = await prompts({
-		type: 'confirm',
-		name: 'overwrite',
-		message: `Directory "${projectName}" already exists. Continue anyway?`,
-		initial: false
-	});
-
-	if (response.overwrite === undefined) {
-		console.log(red('✖ Operation cancelled'));
-		process.exit(1);
-	}
-
-	return response.overwrite;
-}
-
-/**
  * Prompt for package manager selection
  * @returns {Promise<string>} - Selected package manager
  */
