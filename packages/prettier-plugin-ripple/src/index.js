@@ -2199,6 +2199,10 @@ function shouldAddBlankLine(currentNode, nextNode) {
 
 function printObjectPattern(node, path, options, print) {
 	const propList = path.map(print, 'properties');
+	const allowTrailingComma =
+		node.properties &&
+		node.properties.length > 0 &&
+		node.properties[node.properties.length - 1].type !== 'RestElement';
 
 	const content = group(
 		concat([
@@ -2207,7 +2211,7 @@ function printObjectPattern(node, path, options, print) {
 				concat([
 					line,
 					join(concat([',', line]), propList),
-					ifBreak(',', ''),
+					allowTrailingComma && options.trailingComma !== 'none' ? ifBreak(',', '') : '',
 				]),
 			),
 			line,
