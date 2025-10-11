@@ -257,8 +257,7 @@ describe('basic client > get/set functions', () => {
 		expect(p.textContent).toBe('2');
 	});
 
-	{/* TODO Should it throw? Right now it doesn't. */}
-	it.skip('throws on trying to get a value outside Ripple component', () => {
+	it("get isn't reactive when declared outside Ripple context", () => {
 		let count = store();
 
 		component Test() {
