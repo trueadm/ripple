@@ -3,7 +3,7 @@
   "displayName": "Ripple for VS Code",
   "publisher": "ripplejs",
   "description": "Ripple JavaScript/TypeScript language support",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "author": "Dominic Gannaway",
   "license": "MIT",
   "engines": {
@@ -20,17 +20,17 @@
     "url": "git+https://github.com/trueadm/ripple.git",
     "directory": "ripple-vscode-plugin"
   },
-	"scripts": {
-		"build-extension": "esbuild src/extension.js --bundle --platform=node --target=node20 --outfile=dist/extension.js --external:vscode",
-		"build-server": "esbuild src/server.js --bundle --platform=node --target=node20 --outfile=dist/server.js",
-		"dist": "perl -pi -e 's/\"main\": \"src\\/extension.js\"/\"main\": \"dist\\/extension.js\"/' package.json",
-		"src": "perl -pi -e 's/\"main\": \"dist\\/extension.js\"/\"main\": \"src\\/extension.js\"/' package.json",
-		"package": "pnpm dist && vsce package --no-dependencies --out=ripple-vscode-plugin.vsix; pnpm src",
-		"install-package": "code --install-extension ripple-vscode-plugin.vsix",
-		"build-and-package": "pnpm build-extension && pnpm build-server && pnpm package",
-		"build-package-and-install": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package",
-		"build-package-install-and-run": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package && code"
-	},
+  "scripts": {
+    "build-extension": "esbuild src/extension.js --bundle --platform=node --target=node20 --outfile=dist/extension.js --external:vscode",
+    "build-server": "esbuild src/server.js --bundle --platform=node --target=node20 --outfile=dist/server.js",
+    "dist": "perl -pi -e 's/\"main\": \"src\\/extension.js\"/\"main\": \"dist\\/extension.js\"/' package.json",
+    "src": "perl -pi -e 's/\"main\": \"dist\\/extension.js\"/\"main\": \"src\\/extension.js\"/' package.json",
+    "package": "pnpm dist && vsce package --no-dependencies --out=ripple-vscode-plugin.vsix; pnpm src",
+    "install-package": "code --install-extension ripple-vscode-plugin.vsix",
+    "build-and-package": "pnpm build-extension && pnpm build-server && pnpm package",
+    "build-package-and-install": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package",
+    "build-package-install-and-run": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package && code"
+  },
   "dependencies": {
     "@volar/language-core": "catalog:default",
     "@volar/language-server": "catalog:default",
@@ -42,10 +42,10 @@
     "vscode-languageclient": "catalog:default",
     "vscode-uri": "catalog:default"
   },
-	"devDependencies": {
-		"esbuild": "catalog:default",
-		"@vscode/vsce": "catalog:default"
-	},
+  "devDependencies": {
+    "esbuild": "catalog:default",
+    "@vscode/vsce": "catalog:default"
+  },
   "contributes": {
     "commands": [
       {
