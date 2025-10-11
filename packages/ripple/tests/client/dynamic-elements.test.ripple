@@ -1,6 +1,25 @@
-import { flushSync, track, createRefKey } from 'ripple';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync, track, createRefKey } from 'ripple';
 
 describe('dynamic DOM elements', () => {
+	let container;
+
+	function render(component) {
+		mount(component, {
+			target: container,
+		});
+	}
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+	
+	afterEach(() => {
+		document.body.removeChild(container);
+		container = null;
+	});
+
 	it('renders static dynamic element', () => {
 		component App() {
 			let tag = track('div');
@@ -24,14 +43,17 @@ describe('dynamic DOM elements', () => {
 			<@tag id="dynamic">{'Hello World'}</@tag>
 		}
 		render(App);
+		
 		// Initially should be a div
 		let dynamicElement = container.querySelector('#dynamic');
 		expect(dynamicElement.tagName).toBe('DIV');
 		expect(dynamicElement.textContent).toBe('Hello World');
+		
 		// Click button to change tag
 		const button = container.querySelector('button');
 		button.click();
 		flushSync();
+		
 		// Should now be a span
 		dynamicElement = container.querySelector('#dynamic');
 		expect(dynamicElement.tagName).toBe('SPAN');
@@ -46,7 +68,7 @@ describe('dynamic DOM elements', () => {
 		}
 		render(App);
 
-		const element = container.querySelector('input') as HTMLInputElement;
+		const element = container.querySelector('input');
 		expect(element).toBeTruthy();
 		expect(element.type).toBe('text');
 		expect(element.value).toBe('test');
@@ -109,8 +131,8 @@ describe('dynamic DOM elements', () => {
 		component App() {
 			let tag = track('span');
 
-			<@tag style={{
-				color: 'red',
+			<@tag style={{ 
+				color: 'red', 
 				fontSize: '16px',
 				fontWeight: 'bold'
 			}}>
@@ -150,17 +172,18 @@ describe('dynamic DOM elements', () => {
 	});
 
 	it('handles dynamic element with ref', () => {
-		let capturedElement: HTMLArticleElement | undefined;
+		let capturedElement = null;
 
 		component App() {
 			let tag = track('article');
 
-			<@tag {ref (node: HTMLArticleElement) => { capturedElement = node; }} id="ref-test">
+			<@tag {ref (node) => { capturedElement = node; }} id="ref-test">
 				{'Element with ref'}
 			</@tag>
 		}
 		render(App);
 		flushSync();
+		
 		expect(capturedElement).toBeTruthy();
 		expect(capturedElement.tagName).toBe('ARTICLE');
 		expect(capturedElement.id).toBe('ref-test');
@@ -171,7 +194,7 @@ describe('dynamic DOM elements', () => {
 		component App() {
 			let tag = track('header');
 
-			function elementRef(node: HTMLHeaderElement) {
+			function elementRef(node) {
 				// Set an attribute on the element to prove ref was called
 				node.setAttribute('data-spread-ref-called', 'true');
 				node.setAttribute('data-spread-ref-tag', node.tagName.toLowerCase());
@@ -195,5 +218,144 @@ describe('dynamic DOM elements', () => {
 		expect(element.getAttribute('data-spread-ref-tag')).toBe('header');
 		expect(element.id).toBe('spread-ref-test');
 		expect(element.className).toBe('ref-element');
+	});
+
+	it('has reactive attributes on dynamic elements', () => {
+		component App() {
+			let tag = track('div');
+			let count = track(0);
+			
+			<button onClick={() => { @count++; }}>{'Increment'}</button>
+			<@tag 
+				id={@count % 2 ? 'even' : 'odd'}
+				class={@count % 2 ? 'even-class' : 'odd-class'}
+				data-count={@count}
+			>
+				{'Count: '}{@count}
+			</@tag>
+		}
+
+		render(App);
+		
+		const button = container.querySelector('button');
+		const element = container.querySelector('div');
+		
+		// Initial state
+		expect(element.id).toBe('odd');
+		expect(element.className).toBe('odd-class');
+		expect(element.getAttribute('data-count')).toBe('0');
+		expect(element.textContent).toBe('Count: 0');
+		
+		// Click to increment
+		button.click();
+		flushSync();
+		
+		// Attributes should be reactive and update
+		expect(element.id).toBe('even');
+		expect(element.className).toBe('even-class');
+		expect(element.getAttribute('data-count')).toBe('1');
+		expect(element.textContent).toBe('Count: 1');
+		
+		// Click again
+		button.click();
+		flushSync();
+		
+		// Should toggle back
+		expect(element.id).toBe('odd');
+		expect(element.className).toBe('odd-class');
+		expect(element.getAttribute('data-count')).toBe('2');
+		expect(element.textContent).toBe('Count: 2');
+	});
+
+	it('applies scoped CSS to dynamic elements', () => {
+		component App() {
+			let tag = track('div');
+			
+			<@tag class="test-class">{'Dynamic element'}</@tag>
+			
+			<style>
+				.test-class {
+					color: red;
+				}
+			</style>
+		}
+
+		render(App);
+		
+		const element = container.querySelector('div');
+		expect(element).toBeTruthy();
+		expect(element.classList.contains('test-class')).toBe(true);
+		
+		// Check if scoped CSS class is present - THIS MIGHT FAIL if CSS pruning issue exists
+		const classes = Array.from(element.classList);
+		const hasScopedClass = classes.some(cls => cls.startsWith('ripple-'));
+		expect(hasScopedClass).toBe(true);
+	});
+
+	it('applies scoped CSS to dynamic elements with reactive classes', () => {
+		component App() {
+			let tag = track('button');
+			let count = track(0);
+			
+			<@tag 
+				class={@count % 2 ? 'even' : 'odd'}
+				id={@count % 2 ? 'even' : 'odd'}
+				onClick={() => { @count++; }}
+			>
+				{'Count: '}{@count}
+			</@tag>
+			
+			<style>
+				.even {
+					background-color: green;
+					color: white;
+				}
+				.odd {
+					background-color: red;
+					color: white;
+				}
+			</style>
+		}
+
+		render(App);
+		
+		const button = container.querySelector('button');
+		expect(button).toBeTruthy();
+		
+		// Initial state: should be odd (count=0, 0%2=false)
+		expect(button.classList.contains('odd')).toBe(true);
+		expect(button.classList.contains('even')).toBe(false);
+		expect(button.id).toBe('odd');
+		expect(button.textContent).toBe('Count: 0');
+		
+		// Check if scoped CSS hash is applied to dynamic element
+		const classes = Array.from(button.classList);
+		const hasScopedClass = classes.some(cls => cls.startsWith('ripple-'));
+		expect(hasScopedClass).toBe(true);
+		
+		// Click to increment
+		button.click();
+		flushSync();
+		
+		// Should now be even (count=1, 1%2=true)  
+		expect(button.classList.contains('even')).toBe(true);
+		expect(button.classList.contains('odd')).toBe(false);
+		expect(button.id).toBe('even');
+		expect(button.textContent).toBe('Count: 1');
+		
+		// Scoped CSS class should still be present
+		const newClasses = Array.from(button.classList);
+		const stillHasScopedClass = newClasses.some(cls => cls.startsWith('ripple-'));
+		expect(stillHasScopedClass).toBe(true);
+		
+		// Click again
+		button.click();
+		flushSync();
+		
+		// Should toggle back to odd (count=2, 2%2=false)
+		expect(button.classList.contains('odd')).toBe(true);
+		expect(button.classList.contains('even')).toBe(false);
+		expect(button.id).toBe('odd');
+		expect(button.textContent).toBe('Count: 2');
 	});
 });

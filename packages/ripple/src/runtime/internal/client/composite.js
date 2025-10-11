@@ -1,8 +1,7 @@
 /** @import { Block, Component } from '#client' */
 
-import { branch, destroy_block, render } from './blocks.js';
+import { branch, destroy_block, render, render_spread } from './blocks.js';
 import { COMPOSITE_BLOCK } from './constants.js';
-import { apply_element_spread } from './render';
 import { active_block } from './runtime.js';
 
 /**
@@ -48,8 +47,8 @@ export function composite(get_component, node, props) {
 					};
 				}
 
-				const spread_fn = apply_element_spread(element, () => props || {});
-				spread_fn();
+				// Use render_spread to make attributes reactive (like regular DOM elements)
+				render_spread(element, () => props || {});
 
 				if (typeof props?.children === 'function') {
 					var child_anchor = document.createComment('');
