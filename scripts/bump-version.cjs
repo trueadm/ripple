@@ -251,10 +251,11 @@ function publishPackage(pkg, newVersion) {
       writePackage(pkg);
     }
 
-    const changedPaths = packages.map((pkg) => path.relative(repoRoot, pkg.packageJsonPath));
-    execSafe("git", ["add", ...changedPaths]);
+  const changedPaths = packages.map((pkg) => path.relative(repoRoot, pkg.packageJsonPath));
+  execSafe("git", ["add", ...changedPaths]);
 
-    const commitMessage = `chore: bump packages to v${newVersion}`;
+  const scopeLabel = scope;
+  const commitMessage = `chore: bump ${scopeLabel} to v${newVersion}`;
     try {
       execSafe("git", ["commit", "-m", commitMessage], { stdio: "inherit" });
     } catch (error) {
