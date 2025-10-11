@@ -24,11 +24,15 @@ const replacements = {
 	]),
 };
 
+export let active_output = null;
+
 class Output {
 	head = '';
 	body = '';
 	/** @type {Set<string>} */
 	css = new Set();
+	/** @type {Promise<any>[]} */
+	promises = [];
 	/** @type {Output | null} */
 	#parent = null;
 
@@ -62,16 +66,25 @@ class Output {
  */
 export async function render(component) {
 	const output = new Output(null);
+	active_output = output;
 
-	if (component.async) {
-		await component(output, {});
-	} else {
-		component(output, {});
+	try {
+		if (component.async) {
+			await component(output, {});
+		} else {
+			component(output, {});
+		}
+
+		if (output.promises.length > 0) {
+			await Promise.all(output.promises);
+		}
+
+		const { head, body, css } = output;
+
+		return { head, body, css };
+	} finally {
+		active_output = null;
 	}
-
-	const { head, body, css } = output;
-
-	return { head, body, css };
 }
 
 /**

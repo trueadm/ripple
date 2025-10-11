@@ -549,14 +549,21 @@ const visitors = {
 		context.state.init.push(b.if(context.visit(node.test), consequent, alternate));
 	},
 
-	Identifier(node, context) {
-		const parent = /** @type {Node} */ (context.path.at(-1));
+	    AssignmentExpression(node, context) {
+			const left = node.left;
+	
+			if (left.type === 'Identifier' && left.tracked) {
+				return b.call(
+					'set',
+					context.visit(left, { ...context.state, metadata: { tracking: false } }),
+					context.visit(node.right)
+				);
+			}
+	
+			return context.next();
+		},
+	
 
-		if (is_reference(node, parent) && node.tracked) {
-			add_ripple_internal_import(context);
-			return b.call('_$_.get', build_getter(node, context));
-		}
-	},
 
 	ServerIdentifier(node, context) {
 		return b.id('_$_server_$_');
