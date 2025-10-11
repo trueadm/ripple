@@ -679,10 +679,8 @@ const visitors = {
 		const parent = context.path.at(-1);
 
 		if (node.tracked || (node.property.type === 'Identifier' && node.property.tracked)) {
-			add_ripple_internal_import(context);
-
 			return b.call(
-				'_$_.get',
+				'get',
 				b.member(
 					context.visit(node.object),
 					node.computed ? context.visit(node.property) : node.property,
@@ -695,15 +693,17 @@ const visitors = {
 		return context.next();
 	},
 
-	Text(node, { visit, state }) {
+Text(node, { visit, state }) {
 		const metadata = { await: false };
-		const expression = visit(node.expression, { ...state, metadata });
+		let expression = visit(node.expression, { ...state, metadata });
+
+		if (expression.type === 'Identifier' && expression.tracked) {
+			expression = b.call('get', expression);
+		}
 
 		if (expression.type === 'Literal') {
 			state.init.push(
-				b.stmt(
-					b.call(b.member(b.id('__output'), b.id('push')), b.literal(escape(expression.value))),
-				),
+				b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(escape(expression.value)) )),
 			);
 		} else {
 			state.init.push(

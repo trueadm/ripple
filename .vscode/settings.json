@@ -1,7 +1,7 @@
 {
 	"prettier.documentSelectors": ["**/*.ripple"],
 	"[ripple]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
+		"editor.defaultFormatter": "ripplejs.ripple-vscode-plugin"
 	},
 	"editor.tabSize": 2,
 	"editor.defaultFormatter": "esbenp.prettier-vscode",

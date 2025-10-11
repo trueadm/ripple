@@ -745,7 +745,8 @@ const visitors = {
 		}
 		const parent_block = get_parent_block_node(context);
 
-		if (parent_block !== null && parent_block.type !== 'Component') {
+		// Note: Currently, bypassed just in try block, for SSR being async. Later, will add support for all blocks
+		if (parent_block !== null && parent_block.type !== 'Component' && parent_block.type !== 'TryStatement') {
 			error(
 				'`await` expressions can only currently be used at the top-level of a component body. Support for using them in control flow statements will be added in the future.',
 				context.state.analysis.module.filename,

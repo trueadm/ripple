@@ -77,6 +77,14 @@ export async function render(component) {
 
 		if (output.promises.length > 0) {
 			await Promise.all(output.promises);
+			// Re-execute component after promises are resolved
+			output.body = '';
+			output.css = new Set();
+			if (component.async) {
+				await component(output, {});
+			} else {
+				component(output, {});
+			}
 		}
 
 		const { head, body, css } = output;
