@@ -4,17 +4,23 @@
 	createTypeScriptProject,
 } = require('@volar/language-server/node');
 const { createRippleDiagnosticPlugin } = require('./diagnosticPlugin.js');
-const { getRippleLanguagePlugin } = require('typescript-plugin-ripple/src/language.js');
+const { getRippleLanguagePlugin, resolveConfig } = require('typescript-plugin-ripple/src/language.js');
 const { create: createTypeScriptServices } = require('volar-service-typescript');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
+/**
+ * @param {...unknown} args
+ */
 function log(...args) {
 	if (DEBUG) {
 		console.log('[Ripple Server]', ...args);
 	}
 }
 
+/**
+ * @param {...unknown} args
+ */
 function logError(...args) {
 	console.error('[Ripple Server ERROR]', ...args);
 }
@@ -42,11 +48,10 @@ function createRippleLanguageServer() {
 				createTypeScriptProject(
 					ts,
 					undefined,
-					() => {
-						return {
-							languagePlugins: [rippleLanguagePlugin],
-						};
-					}
+					() => ({
+						languagePlugins: [rippleLanguagePlugin],
+						resolveConfig,
+					}),
 				),
 				[
 					createRippleDiagnosticPlugin(),

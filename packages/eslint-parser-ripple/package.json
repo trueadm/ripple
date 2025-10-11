@@ -30,22 +30,22 @@
     "build": "tsup src/index.ts --format esm --dts --clean"
   },
   "peerDependencies": {
-    "eslint": ">=9.0.0",
-    "ripple": "*"
+    "eslint": "catalog:peer",
+    "ripple": "catalog:peer"
   },
   "dependencies": {
-    "acorn": "^8.14.0",
-    "acorn-typescript": "^1.4.13"
+    "acorn": "catalog:default",
+    "acorn-typescript": "catalog:default"
   },
   "devDependencies": {
-    "@types/eslint": "^9.6.1",
-    "@types/estree": "^1.0.6",
-    "@types/node": "^24.3.0",
+    "@types/eslint": "catalog:default",
+    "@types/estree": "catalog:default",
+    "@types/node": "catalog:default",
     "ripple": "workspace:*",
-    "tsup": "catalog:",
-    "typescript": "catalog:"
+    "tsup": "catalog:default",
+    "typescript": "catalog:default"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

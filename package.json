@@ -11,15 +11,15 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "jsdom": "catalog:",
-    "prettier": "catalog:",
+    "jsdom": "catalog:default",
+    "prettier": "catalog:default",
     "prettier-plugin-ripple": "workspace:*",
     "vite-plugin-ripple": "workspace:*",
     "eslint-plugin-ripple": "workspace:*",
-    "eslint": "catalog:",
-    "vitest": "catalog:"
+    "eslint": "catalog:default",
+    "vitest": "catalog:default"
   },
   "dependencies": {
-    "@types/eslint": "^8.56.12"
+    "@types/eslint": "catalog:default"
   }
 }

@@ -13,7 +13,7 @@
   "categories": [
     "Programming Languages"
   ],
-  "main": "dist/extension.js",
+  "main": "src/extension.js",
   "icon": "icons/logo.png",
   "repository": {
     "type": "git",
@@ -23,27 +23,28 @@
 	"scripts": {
 		"build-extension": "esbuild src/extension.js --bundle --platform=node --target=node20 --outfile=dist/extension.js --external:vscode",
 		"build-server": "esbuild src/server.js --bundle --platform=node --target=node20 --outfile=dist/server.js",
-		"package": "vsce package --no-dependencies --out=ripple-vscode-plugin.vsix",
+		"dist": "perl -pi -e 's/\"main\": \"src\\/extension.js\"/\"main\": \"dist\\/extension.js\"/' package.json",
+		"src": "perl -pi -e 's/\"main\": \"dist\\/extension.js\"/\"main\": \"src\\/extension.js\"/' package.json",
+		"package": "pnpm dist && vsce package --no-dependencies --out=ripple-vscode-plugin.vsix; pnpm src",
 		"install-package": "code --install-extension ripple-vscode-plugin.vsix",
 		"build-and-package": "pnpm build-extension && pnpm build-server && pnpm package",
 		"build-package-and-install": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package",
 		"build-package-install-and-run": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package && code"
 	},
   "dependencies": {
-    "@jridgewell/sourcemap-codec": "^1.5.5",
-    "@volar/language-core": "~2.4.23",
-    "@volar/language-server": "~2.4.23",
-    "@volar/typescript": "~2.4.23",
-    "@volar/vscode": "~2.4.23",
+    "@volar/language-core": "catalog:default",
+    "@volar/language-server": "catalog:default",
+    "@volar/typescript": "catalog:default",
+    "@volar/vscode": "catalog:default",
     "ripple-language-server": "workspace:*",
     "typescript-plugin-ripple": "workspace:*",
-    "volar-service-typescript": "0.0.65",
-    "vscode-languageclient": "^9.0.1",
-    "vscode-uri": "^3.1.0"
+    "volar-service-typescript": "catalog:default",
+    "vscode-languageclient": "catalog:default",
+    "vscode-uri": "catalog:default"
   },
 	"devDependencies": {
-		"esbuild": "^0.25.10",
-		"@vscode/vsce": "^3.6.2"
+		"esbuild": "catalog:default",
+		"@vscode/vsce": "catalog:default"
 	},
   "contributes": {
     "commands": [

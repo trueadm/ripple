@@ -14,12 +14,13 @@
     "directory": "packages/ripple-language-server"
   },
   "dependencies": {
-    "@volar/language-server": "~2.4.23",
+    "@volar/language-server": "catalog:default",
     "typescript-plugin-ripple": "workspace:*",
-    "volar-service-typescript": "0.0.65",
-    "vscode-uri": "^3.1.0"
+    "volar-service-typescript": "catalog:default",
+    "vscode-languageserver-textdocument": "catalog:default",
+    "vscode-uri": "catalog:default"
   },
   "peerDependencies": {
-    "typescript": ">=5.0.0"
+    "typescript": "catalog:peer"
   }
 }

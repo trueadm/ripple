@@ -1,18 +1,36 @@
 const { RippleVirtualCode } = require('typescript-plugin-ripple/src/language.js');
 const { URI } = require('vscode-uri');
 
+/**
+ * @typedef {import('@volar/language-server').LanguageServicePlugin} LanguageServicePlugin
+ * @typedef {import('@volar/language-server').LanguageServiceContext} LanguageServiceContext
+ * @typedef {import('@volar/language-server').Diagnostic} Diagnostic
+ * @typedef {import('@volar/language-server').DiagnosticSeverity} DiagnosticSeverity
+ * @typedef {import('@volar/language-server').Position} Position
+ * @typedef {import('vscode-languageserver-textdocument').TextDocument} TextDocument
+ */
+
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
+/**
+ * @param {...unknown} args
+ */
 function log(...args) {
 	if (DEBUG) {
 		console.log('[Ripple Language]', ...args);
 	}
 }
 
+/**
+ * @param {...unknown} args
+ */
 function logError(...args) {
 	console.error('[Ripple Language ERROR]', ...args);
 }
 
+/**
+ * @returns {LanguageServicePlugin}
+ */
 function createRippleDiagnosticPlugin() {
 	log('Creating Ripple diagnostic plugin...');
 
@@ -24,9 +42,14 @@ function createRippleDiagnosticPlugin() {
 				workspaceDiagnostics: false,
 			},
 		},
-		create(context) {
+		create(/** @type {LanguageServiceContext} */ context) {
 			return {
-				provideDiagnostics(document) {
+				/**
+				 * @param {TextDocument} document
+				 * @param {import('@volar/language-server').CancellationToken} _token
+				 * @returns {import('@volar/language-server').NullableProviderResult<Diagnostic[]>}
+				 */
+				provideDiagnostics(document, _token) {
 					try {
 						log('Providing Ripple diagnostics for:', document.uri);
 
@@ -74,8 +97,16 @@ function createRippleDiagnosticPlugin() {
 }
 
 // Helper function to parse compilation errors using document.positionAt (Glint style)
+/**
+ * @param {unknown} error
+ * @param {string} fallbackFileName
+ * @param {string} sourceText
+ * @param {TextDocument} document
+ * @returns {Diagnostic}
+ */
 function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, document) {
-	const message = error.message || String(error);
+	const errorObject = /** @type {{ message?: string }} */ (error);
+	const message = errorObject.message || String(error);
 
 	try {
 		// First check if there's a GitHub-style range in the error
@@ -158,7 +189,7 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 		logError('Error parsing compilation error:', parseError);
 
 		return {
-			serverity: 1,
+			severity: 1,
 			range: {
 				start: { line: 0, character: 0 },
 				end: { line: 0, character: 1 },
@@ -170,6 +201,10 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 	}
 }
 
+/**
+ * @param {LanguageServiceContext} context
+ * @param {TextDocument} document
+ */
 function getEmbeddedInfo(context, document) {
 	try {
 		const uri = URI.parse(document.uri);

@@ -40,15 +40,15 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.9",
-    "commander": "^12.1.0",
-    "degit": "^2.8.4",
-    "jsdom": "catalog:",
-    "kleur": "^4.1.5",
-    "ora": "^8.1.0",
-    "prettier": "^3.6.2",
-    "prompts": "^2.4.2",
-    "tsdown": "^0.15.4",
-    "vitest": "catalog:"
+    "@types/prompts": "catalog:default",
+    "commander": "catalog:default",
+    "degit": "catalog:default",
+    "jsdom": "catalog:default",
+    "kleur": "catalog:default",
+    "ora": "catalog:default",
+    "prettier": "catalog:default",
+    "prompts": "catalog:default",
+    "tsdown": "catalog:default",
+    "vitest": "catalog:default"
   }
 }

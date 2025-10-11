@@ -15,8 +15,10 @@
     "url": "https://github.com/trueadm/ripple/issues"
   },
   "dependencies": {
-    "@jridgewell/sourcemap-codec": "^1.5.5",
-    "@volar/language-core": "~2.4.23",
-    "@volar/typescript": "~2.4.23"
+    "@volar/language-core": "catalog:default",
+    "@volar/typescript": "catalog:default"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:peer"
   }
 }
