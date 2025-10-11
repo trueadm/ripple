@@ -212,7 +212,7 @@ function publishPackage(pkg, newVersion) {
   if (pkg.json.publishConfig?.access === "public" || pkg.json.name.startsWith("@")) {
     args.push("--access", "public");
   }
-  execSafe("npm", args, { cwd: pkg.dir, stdio: "inherit" });
+  execSafe("pnpm", args, { cwd: pkg.dir, stdio: "inherit" });
 }
 
 (function main() {
