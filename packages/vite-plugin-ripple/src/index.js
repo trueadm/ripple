@@ -62,6 +62,8 @@ export function ripple(inlineOptions) {
             mode: ssr ? 'server' : 'client',
           });
 
+
+
           if (css !== '') {
             const cssId = createVirtualImportId(filename, root, 'style');
             cssCache.set(cssId, css);

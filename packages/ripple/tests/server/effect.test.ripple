@@ -22,7 +22,7 @@ describe('server-side effect', () => {
 		component AsyncSSRComponent() {
 			let data = track('loading');
 
-			effect(() => {
+			const promise = effect(() => {
 				return new Promise(resolve => {
 					setTimeout(() => {
 						@data = 'loaded';
@@ -30,6 +30,7 @@ describe('server-side effect', () => {
 					}, 10);
 				});
 			});
+			await promise;
 
 			<div>{@data}</div>
 		}
