@@ -3,7 +3,7 @@
   "description": "Rollup plugin for Ripple",
   "license": "MIT",
   "author": "Dominic Gannaway",
-  "version": "0.2.116",
+  "version": "0.2.117",
   "type": "module",
   "main": "index.js",
   "homepage": "https://ripplejs.com",
@@ -16,8 +16,8 @@
     "url": "https://github.com/trueadm/ripple/issues"
   },
   "dependencies": {
-		"@rollup/pluginutils": "^4.1.0"
-	},
+    "@rollup/pluginutils": "^4.1.0"
+  },
   "devDependencies": {
     "ripple": "workspace:*",
     "rollup": "^2.33.3",
