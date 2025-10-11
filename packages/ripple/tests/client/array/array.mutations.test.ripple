@@ -1,0 +1,385 @@
+import { flushSync, track, TrackedArray } from 'ripple';
+
+describe('TrackedArray > mutations', () => {
+	it('handles direct assignment and length tracking', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3);
+
+			<button onClick={() => items[items.length] = items.length + 1}>{'increment'}</button>
+
+			<Child items={items} />
+		}
+
+		component Child({ items }: { items: TrackedArray<number> }) {
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.length}</pre>
+		}
+
+			render(ArrayTest);
+
+			const button = container.querySelector('button');
+
+			button.click();
+			flushSync();
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+
+			button.click();
+			flushSync();
+
+			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+			expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+	});
+
+	it('handles push and pop operations with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3);
+			let lastItem = track(() => items[items.length - 1]);
+
+			<button onClick={() => items.push(4)}>{'push'}</button>
+			<button onClick={() => items.pop()}>{'pop'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.length}</pre>
+			<pre>{@lastItem}</pre>
+		}
+
+    	render(ArrayTest);
+
+		const pushButton = container.querySelectorAll('button')[0];
+		const popButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+		// Test push operation
+		pushButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('4');
+
+		// Test pop operation
+		popButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+  });
+
+	it('handles shift and unshift operations with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(2, 3, 4);
+			let firstItem = track(() => items[0]);
+
+			<button onClick={() => items.unshift(1)}>{'unshift'}</button>
+			<button onClick={() => items.shift()}>{'shift'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.length}</pre>
+			<pre>{@firstItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const unshiftButton = container.querySelectorAll('button')[0];
+		const shiftButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('2');
+
+		// Test unshift operation
+		unshiftButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('1');
+
+		// Test shift operation
+		shiftButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('2');
+	});
+
+	it('handles splice operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray<number | string>(1, 2, 3, 4, 5);
+			let middleItem = track(() => items[2]);
+
+			<button onClick={() => items.splice(1, 2, 'a', 'b')}>{'splice'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.length}</pre>
+			<pre>{@middleItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const spliceButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+		// Test splice operation
+		spliceButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,"a","b",4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('b');
+	});
+
+	it('handles fill operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3, 4, 5);
+			let secondItem = track(() => items[1]);
+
+			<button onClick={() => items.fill(0, 1, 4)}>{'fill'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{@secondItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const fillButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+		// Test fill operation
+		fillButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,0,0,0,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+	});
+
+	it('handles reverse operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3, 4, 5);
+			let firstItem = track(() => items[0]);
+			let lastItem = track(() => items[4]);
+
+			<button onClick={() => items.reverse()}>{'reverse'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{@firstItem}</pre>
+			<pre>{@lastItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const reverseButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('5');
+
+		// Test reverse operation
+		reverseButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[5,4,3,2,1]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('1');
+	});
+
+	it('handles sort operation with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(5, 3, 1, 4, 2);
+			let secondItem = track(() => items[1]);
+
+			<button onClick={() => items.sort()}>{'sort ascending'}</button>
+			<button onClick={() => items.sort((a, b) => b - a)}>{'sort descending'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{@secondItem}</pre>
+		}
+
+		render(ArrayTest);
+
+		const sortAscButton = container.querySelectorAll('button')[0];
+		const sortDescButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[5,3,1,4,2]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+		// Test sort ascending
+		sortAscButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+		// Test sort descending
+		sortDescButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[5,4,3,2,1]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+	});
+
+	it('handles array modification through forEach()', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3);
+
+			<button onClick={() => items.forEach((item, i) => items[i] = item * 2)}>{'double all'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const doubleButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('[1,2,3]');
+
+		// Test iteration with side effects
+		doubleButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('[2,4,6]');
+	});
+
+	it('handles array modification through iterator', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3);
+
+			<button onClick={() => items.forEach((item, i) => items[i] = item * 2)}>{'double all'}</button>
+
+			for (const item of items) {
+				<pre>{item}</pre>
+			}
+		}
+
+		render(ArrayTest);
+
+		const doubleButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('1');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
+
+		// Test iteration with side effects
+		doubleButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('2');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('6');
+	});
+
+	it('handles array index access with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(10, 20, 30);
+			let firstItem = track(() => items[0]);
+			let secondItem = track(() => items[1]);
+
+			<button onClick={() => items[0] = 100}>{'change first'}</button>
+			<pre>{@firstItem}</pre>
+			<pre>{@secondItem}</pre>
+			<pre>{items[0]}</pre>
+			<pre>{items[1]}</pre>
+		}
+
+		render(ArrayTest);
+
+		const changeButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('10');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('20');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('10');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('20');
+
+		// Test changing array element directly
+		changeButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('100');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('20');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('100');
+		expect(container.querySelectorAll('pre')[3].textContent).toBe('20');
+	});
+
+	it('handles length property for reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3);
+			let length = track(() => items.length);
+
+			<button onClick={() => items.length = 5}>{'expand'}</button>
+			<button onClick={() => items.length = 2}>{'shrink'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{@length}</pre>
+		}
+
+		render(ArrayTest);
+
+		const expandButton = container.querySelectorAll('button')[0];
+		const shrinkButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+		// Test expand
+		expandButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,null,null]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+
+		// Test shrink
+		shrinkButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+	});
+
+	it('handles setting length property and resizing the array', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3, 4, 5);
+
+			<button onClick={() => items.length = 3}>{'truncate'}</button>
+			<button onClick={() => items.length = 7}>{'expand'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{items.length}</pre>
+		}
+
+		render(ArrayTest);
+
+		const truncateButton = container.querySelectorAll('button')[0];
+		const expandButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+
+		// Test truncating
+		truncateButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+		// Test expanding
+		expandButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,null,null,null,null]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('7');
+	});
+});

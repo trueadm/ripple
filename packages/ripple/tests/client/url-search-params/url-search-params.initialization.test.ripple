@@ -1,0 +1,61 @@
+import { TrackedURLSearchParams } from 'ripple';
+
+describe('TrackedURLSearchParams > initialization', () => {
+	it('creates empty URLSearchParams with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams();
+
+			<pre>{params.toString()}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+	});
+
+	it('creates URLSearchParams from string with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&baz=qux');
+
+			<pre>{params.toString()}</pre>
+			<pre>{params.size}</pre>
+			<pre>{params.get('foo')}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar&baz=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('bar');
+	});
+
+	it('creates URLSearchParams from object with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams({ foo: 'bar', baz: 'qux' });
+
+			<pre>{params.toString()}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar&baz=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+	});
+
+	it('handles URL-encoded characters correctly', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('name=John+Doe&email=john%40example.com');
+
+			<pre>{params.get('name')}</pre>
+			<pre>{params.get('email')}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('John Doe');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('john@example.com');
+	});
+});

@@ -1,0 +1,343 @@
+import { flushSync, track, TrackedURL, TrackedURLSearchParams } from 'ripple';
+
+describe('TrackedURLSearchParams > mutation', () => {
+	it('handles append operation with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+
+			<button onClick={() => params.append('baz', 'qux')}>{'append'}</button>
+			<pre>{params.toString()}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+
+		// Test append
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar&baz=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+	});
+
+	it('handles append with multiple values for same key', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+			let allFoo = track(() => params.getAll('foo'));
+
+			<button onClick={() => params.append('foo', 'baz')}>{'append foo'}</button>
+			<pre>{params.toString()}</pre>
+			<pre>{JSON.stringify(@allFoo)}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('["bar"]');
+
+		// Test append
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar&foo=baz');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('["bar","baz"]');
+	});
+
+	it('handles delete operation with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&baz=qux');
+
+			<button onClick={() => params.delete('foo')}>{'delete foo'}</button>
+			<pre>{params.toString()}</pre>
+			<pre>{params.size}</pre>
+			<pre>{params.has('foo').toString()}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar&baz=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('true');
+
+		// Test delete
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('baz=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe('false');
+	});
+
+	it('handles delete with specific value', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&foo=baz&foo=qux');
+
+			<button onClick={() => params.delete('foo', 'baz')}>{'delete foo=baz'}</button>
+			<pre>{params.toString()}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar&foo=baz&foo=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+
+		// Test delete specific value
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar&foo=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+	});
+
+	it('handles delete when key does not exist', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+			let reactiveSize = track(() => params.size);
+
+			<button onClick={() => params.delete('nonexistent')}>{'delete nonexistent'}</button>
+			<pre>{params.toString()}</pre>
+			<pre>{@reactiveSize}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+
+		// Test delete nonexistent - should not trigger reactivity
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+	});
+
+	it('handles set operation with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+
+			<button onClick={() => params.set('foo', 'updated')}>{'update foo'}</button>
+			<button onClick={() => params.set('baz', 'qux')}>{'add baz'}</button>
+			<pre>{params.toString()}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		const updateButton = container.querySelectorAll('button')[0];
+		const addButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+
+		// Test update
+		updateButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=updated');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+
+		// Test add new key
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=updated&baz=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+	});
+
+	it('handles set with multiple existing values', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&foo=baz&foo=qux');
+			let allFoo = track(() => params.getAll('foo'));
+
+			<button onClick={() => params.set('foo', 'single')}>{'set foo'}</button>
+			<pre>{params.toString()}</pre>
+			<pre>{JSON.stringify(@allFoo)}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar&foo=baz&foo=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('["bar","baz","qux"]');
+
+		// Test set - should replace all values
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=single');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('["single"]');
+	});
+
+	it('handles set when value is the same', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+			let reactiveString = track(() => params.toString());
+
+			<button onClick={() => params.set('foo', 'bar')}>{'set same value'}</button>
+			<pre>{@reactiveString}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Test set same value - should not trigger reactivity changes
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+	});
+
+	it('handles sort operation with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('z=last&a=first&m=middle');
+
+			<button onClick={() => params.sort()}>{'sort'}</button>
+			<pre>{params.toString()}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('z=last&a=first&m=middle');
+
+		// Test sort
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('a=first&m=middle&z=last');
+	});
+
+	it('handles clearing all params via delete', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com?foo=bar&baz=qux');
+			const params = url.searchParams;
+
+			<button onClick={() => {
+				params.delete('foo');
+				params.delete('baz');
+			}}>{'clear all'}</button>
+			<pre>{url.href}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/?foo=bar&baz=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+		// Test clear all
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+	});
+
+	it('handles multiple operations in sequence', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams();
+
+			<button onClick={() => {
+				params.append('a', '1');
+				params.append('b', '2');
+				params.set('a', '10');
+				params.delete('b');
+				params.append('c', '3');
+				params.sort();
+			}}>{'complex operations'}</button>
+			<pre>{params.toString()}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+
+		// Test complex operations
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('a=10&c=3');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+	});
+
+	it('handles duplicate keys with different values', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams();
+			let tags = track(() => params.getAll('tag'));
+
+			<button onClick={() => params.append('tag', 'javascript')}>{'add js'}</button>
+			<button onClick={() => params.append('tag', 'typescript')}>{'add ts'}</button>
+			<button onClick={() => params.append('tag', 'ripple')}>{'add ripple'}</button>
+			<pre>{JSON.stringify(@tags)}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		const jsButton = container.querySelectorAll('button')[0];
+		const tsButton = container.querySelectorAll('button')[1];
+		const rippleButton = container.querySelectorAll('button')[2];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+
+		// Add tags sequentially
+		jsButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["javascript"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+
+		tsButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["javascript","typescript"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
+
+		rippleButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["javascript","typescript","ripple"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
+	});
+});

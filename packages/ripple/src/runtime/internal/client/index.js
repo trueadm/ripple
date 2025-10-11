@@ -65,6 +65,10 @@ export { tracked_array } from '../../array.js';
 
 export { tracked_object } from '../../object.js';
 
+export { tracked_map } from '../../map.js';
+
+export { tracked_set } from '../../set.js';
+
 export { head } from './head.js';
 
 export { script } from './script.js';

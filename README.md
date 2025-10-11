@@ -28,11 +28,12 @@ TypeScript and JSX, but with a few interesting touches. In my experience, this h
 - **Reactive Primitives**: Built-in reactivity with `track` and `@` reactive syntax on primitives
 - **Reactive Objects**: You can create fully reactive arrays/objects using shorthand syntax `#[]` `#{}`
 - **Component-Based Architecture**: Clean, reusable components with props and children
-- **JSX-like Syntax**: Familiar templating with Ripple-specific enhancements
+- **Template Syntax**: Familiar templating with Ripple-specific enhancements
 - **Performance**: Fine-grain rendering, with industry-leading performance, bundle-size and memory usage
 - **TypeScript Support**: Full TypeScript integration with type checking
 - **VSCode Integration**: Rich editor support with diagnostics, syntax highlighting, and IntelliSense
 - **Prettier Support**: Full Prettier formatting support for `.ripple` modules
+- **ESLint Support**: Full ESLint integration for `.ripple` modules
 
 ## Missing Features
 
@@ -57,7 +58,6 @@ or use create-ripple interactive CLI tool for creating new Ripple applications w
 
 ```
 npx create-ripple  # or yarn create ripple or pnpm create ripple
-
 ```
 
 If you want to install the RippleJS package directly, it is `ripple` on npm:
@@ -102,8 +102,7 @@ mount(App, {
 ### Components
 
 Define reusable components with the `component` keyword. These are similar to functions in that they have `props`, but crucially,
-they allow for a JSX-like syntax to be defined alongside standard TypeScript. That means you do not _return JSX_ like in other frameworks,
-but you instead use it like a JavaScript statement, as shown:
+they allow for a JSX-like syntax to be defined alongside standard TypeScript. That means you do not _return JSX_ like in other frameworks, but you instead use it like a JavaScript statement, as shown:
 
 ```jsx
 component Button(props: { text: string, onClick: () => void }) {
@@ -604,6 +603,55 @@ component Truthy({ x }) {
       <span>{'x is falsy'}</span>
     }
   </div>
+}
+```
+
+### Switch statements
+
+Switch statements let you conditionally render content based on a value. They work with both static and reactive values.
+
+```ripple
+component StatusIndicator({ status }) {
+  switch (status) {
+    case 'loading':
+      <p>{'Loading...'}</p>
+      break;
+    case 'success':
+      <p>{'Success!'}</p>
+      break;
+    case 'error':
+      <p>{'Error!'}</p>
+      break;
+    default:
+      <p>{'Unknown status'}</p>
+  }  
+}
+```
+
+You can also use reactive values with switch statements:
+
+```ripple
+import { track } from 'ripple';
+
+component InteractiveStatus() {
+  let status = track('loading');
+
+  <button onClick={() => @status = 'success'}>{'Success'}</button>
+  <button onClick={() => @status = 'error'}>{'Error'}</button>
+
+  switch (@status) {
+    case 'loading':
+      <p>{'Loading...'}</p>
+      break;
+    case 'success':
+      <p>{'Success!'}</p>
+      break;
+    case 'error':
+      <p>{'Error!'}</p>
+      break;
+    default:
+      <p>{'Unknown status'}</p>
+  }
 }
 ```
 

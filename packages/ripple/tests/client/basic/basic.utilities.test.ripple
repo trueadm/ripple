@@ -1,0 +1,25 @@
+import { track, effect, untrack, tick } from 'ripple';
+
+describe('basic client > utilities', () => {
+	it('tick function', async () => {
+		let resolve: () => void;
+		const promise = new Promise<void>((res) => (resolve = res));
+
+		component Basic() {
+			let value = track(0);
+			effect(() => {
+				untrack(() => {
+					@value++;
+					tick().then(() => resolve());
+				});
+			});
+			<p>{@value}</p>
+		}
+		render(Basic);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+		await promise;
+		expect(p.textContent).toBe('1');
+	});
+});

@@ -359,6 +359,12 @@
 					"include": "#record-literal"
 				},
 				{
+					"include": "#tracked-map-literal"
+				},
+				{
+					"include": "#tracked-set-literal"
+				},
+				{
 					"include": "#expression-operators"
 				},
 				{
@@ -4027,6 +4033,12 @@
 					"include": "#record-literal"
 				},
 				{
+					"include": "#tracked-map-literal"
+				},
+				{
+					"include": "#tracked-set-literal"
+				},
+				{
 					"include": "#this-literal"
 				},
 				{
@@ -4103,6 +4115,64 @@
 			"patterns": [
 				{
 					"include": "#object-member"
+				}
+			]
+		},
+		"tracked-map-literal": {
+			"name": "meta.tracked.map.literal.js",
+			"begin": "(#)(Map)(\\()",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.tracked.js"
+				},
+				"2": {
+					"name": "entity.name.type.js"
+				},
+				"3": {
+					"name": "meta.brace.round.js"
+				}
+			},
+			"end": "\\)",
+			"endCaptures": {
+				"0": {
+					"name": "meta.brace.round.js"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#expression"
+				},
+				{
+					"include": "#punctuation-comma"
+				}
+			]
+		},
+		"tracked-set-literal": {
+			"name": "meta.tracked.set.literal.js",
+			"begin": "(#)(Set)(\\()",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.tracked.js"
+				},
+				"2": {
+					"name": "entity.name.type.js"
+				},
+				"3": {
+					"name": "meta.brace.round.js"
+				}
+			},
+			"end": "\\)",
+			"endCaptures": {
+				"0": {
+					"name": "meta.brace.round.js"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#expression"
+				},
+				{
+					"include": "#punctuation-comma"
 				}
 			]
 		},

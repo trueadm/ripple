@@ -1,24 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, Portal, track, flushSync } from 'ripple';
+import { Portal, track, flushSync } from 'ripple';
 
 describe('Portal', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container,
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
 	afterEach(() => {
-		// Remove container
-		document.body.removeChild(container);
-
 		// Clean up any leftover portal content from document.body
 		const portals = document.body.querySelectorAll('.test-portal');
 		portals.forEach(el => el.remove());

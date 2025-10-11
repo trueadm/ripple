@@ -1,0 +1,5 @@
+// This file is for tests that don't fit anywhere else
+
+describe('etc', () => {
+	it.skip('this is here so the empty test suite does not fail');
+});

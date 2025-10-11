@@ -9,18 +9,22 @@
     "build": "vite build --outDir dist/client",
     "test": "vitest run",
     "debug-volar": "node volar-debug.js",
-    "debug-ssr": "node ssr-debug.js"
+    "debug-ssr": "node ssr-debug.js",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.12",
-    "polka": "^1.0.0-next.25",
+    "@tailwindcss/vite": "catalog:default",
+    "@typescript-eslint/parser": "catalog:default",
+    "eslint": "catalog:default",
+    "eslint-plugin-ripple": "workspace:*",
+    "polka": "catalog:default",
     "ripple": "workspace:*",
-    "typescript": "catalog:",
-    "vite": "catalog:",
+    "typescript": "catalog:default",
+    "vite": "catalog:default",
     "vite-plugin-ripple": "workspace:*",
-    "vitest": "catalog:"
+    "vitest": "catalog:default"
   },
   "dependencies": {
-    "tailwindcss": "^4.1.12"
+    "tailwindcss": "catalog:peer"
   }
 }

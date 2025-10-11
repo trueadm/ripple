@@ -1,0 +1,84 @@
+import { track, flushSync, TrackedArray } from 'ripple';
+
+describe('composite > render', () => {
+	it('renders composite components', () => {
+		component Button({ count }: { count: number }) {
+			<div>{count}</div>
+		}
+
+		component App() {
+			let count = track(0);
+
+			<button onClick={() => @count++}>{'Increment'}</button>
+			<Button {@count} />
+		}
+
+		render(App);
+
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('div').textContent).toBe('1');
+
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('div').textContent).toBe('2');
+	});
+
+	it('correct handles passing through component props and children', () => {
+		component Button({ A, B, children }: { A: () => void; B: () => void; children: () => void }) {
+			<div>
+				<A />
+				<children />
+				<B />
+			</div>
+		}
+
+		component App() {
+			<Button>
+				component A() {
+					<div>{"I am A"}</div>
+				}
+				<div>{"other text"}</div>
+				component B() {
+					<div>{"I am B"}</div>
+				}
+			</Button>
+		}
+
+		render(App);
+
+		expect(container).toMatchSnapshot();
+	});
+
+	it('render simple text as children', () => {
+		component App() {
+			let name = 'Click Me';
+
+			<Child
+				class="my-button"
+			>{name}</Child>;
+		}
+
+		component Child({children, ...rest}: {children: string; class: string}) {
+			<button {...rest}><children /></button>
+		}
+
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
+
+	it('handles generics', () => {
+		component ArrayTest() {
+			let items = new TrackedArray<number>();
+			items.push.apply(items, [1, 2, 3, 4, 5]);
+
+			<pre>{items ? JSON.stringify(items) : 'Loading...'}</pre>
+		}
+
+		render(ArrayTest);
+	});
+});

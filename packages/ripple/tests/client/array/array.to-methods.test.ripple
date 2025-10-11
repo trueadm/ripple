@@ -1,0 +1,93 @@
+import { track, flushSync, TrackedArray } from 'ripple';
+
+describe('TrackedArray > to* methods', () => {
+	it('handles toReversed method with reactivity', (context) => {
+		if (!('toReversed' in Array.prototype)) {
+			context.skip();
+		}
+
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3, 4);
+			let reversed = track(() => items.toReversed());
+
+			<button onClick={() => items.push(5)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify(@reversed)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[4,3,2,1]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[5,4,3,2,1]');
+	});
+
+	it('handles toSorted method with reactivity', (context) => {
+		if (!('toSorted' in Array.prototype)) {
+			context.skip();
+		}
+
+		component ArrayTest() {
+			let items = new TrackedArray(3, 1, 4, 2);
+			let sorted = track(() => items.toSorted());
+
+			<button onClick={() => items.push(0)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify(@sorted)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[3,1,4,2]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,2,3,4]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[3,1,4,2,0]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[0,1,2,3,4]');
+	});
+
+	it('handles toSpliced method with reactivity', (context) => {
+		if (!('toSpliced' in Array.prototype)) {
+			context.skip();
+		}
+
+		component ArrayTest() {
+			let items = new TrackedArray<string | number>(1, 2, 3, 4, 5);
+			let spliced = track(() => items.toSpliced(1, 2, 'a', 'b'));
+
+			<button onClick={() => items[2] = 30}>{'change item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify(@spliced)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const changeButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,"a","b",4,5]');
+
+		// Test changing an item
+		changeButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,30,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[1,"a","b",4,5]');
+	});
+});

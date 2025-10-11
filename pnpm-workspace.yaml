@@ -1,11 +1,58 @@
+catalogs:
+  default:
+    '@jridgewell/sourcemap-codec': ^1.5.5
+    '@sveltejs/acorn-typescript': ^1.0.6
+    '@tailwindcss/vite': ^4.1.12
+    '@types/eslint': ^9.6.1
+    '@types/estree': ^1.0.8
+    '@types/node': ^24.3.0
+    '@types/prompts': ^2.4.9
+    '@typescript-eslint/parser': ^8.20.0
+    '@volar/language-core': ~2.4.23
+    '@volar/language-server': ~2.4.23
+    '@volar/typescript': ~2.4.23
+    '@volar/vscode': ~2.4.23
+    '@vscode/vsce': ^3.6.2
+    acorn: ^8.15.0
+    acorn-typescript: ^1.4.13
+    clsx: ^2.1.1
+    commander: ^12.1.0
+    degit: ^2.8.4
+    devalue: ^5.3.2
+    esbuild: ^0.25.10
+    eslint: ^9.0.0
+    esm-env: ^1.2.2
+    esrap: ^2.1.0
+    is-reference: ^3.0.3
+    jsdom: ^26.1.0
+    kleur: ^4.1.5
+    livecodes: 0.12.0
+    magic-string: ^0.30.18
+    muggle-string: ^0.4.1
+    ora: ^8.1.0
+    polka: ^1.0.0-next.25
+    prettier: ^3.6.2
+    prompts: ^2.4.2
+    tsdown: ^0.15.4
+    tsup: ^8.3.5
+    typescript: ^5.9.2
+    vite: ^7.1.4
+    vitepress: 2.0.0-alpha.12
+    vitepress-plugin-npm-commands: ^0.8.1
+    vitepress-plugin-tabs: ^0.7.1
+    vitest: ^3.2.4
+    volar-service-typescript: 0.0.65
+    vscode-languageclient: ^9.0.1
+    vscode-languageserver-textdocument: ^1.0.12
+    vscode-uri: ^3.1.0
+    zimmerframe: ^1.1.2
+  peer:
+    eslint: '>=9.0.0'
+    prettier: '>=2.0.0'
+    ripple: '*'
+    tailwindcss: ^4.1.12
+    typescript: '>=5.0.0'
 packages:
   - packages/*
   - playground
   - website
-
-catalog:
-  jsdom: ^26.1.0
-  prettier: ^3.6.2
-  typescript: ^5.9.2
-  vite: ^7.1.4
-  vitest: ^3.2.4

@@ -3,7 +3,7 @@
   "description": "Ripple is an elegant TypeScript UI framework",
   "license": "MIT",
   "author": "Dominic Gannaway",
-  "version": "0.2.111",
+  "version": "0.2.118",
   "type": "module",
   "module": "src/runtime/index-client.js",
   "main": "src/runtime/index-client.js",
@@ -63,20 +63,21 @@
     "#public": "./types/index.d.ts"
   },
   "dependencies": {
-    "@jridgewell/sourcemap-codec": "^1.5.5",
-    "@sveltejs/acorn-typescript": "^1.0.6",
-    "acorn": "^8.15.0",
-    "clsx": "^2.1.1",
-    "esm-env": "^1.2.2",
-    "esrap": "^2.1.0",
-    "is-reference": "^3.0.3",
-    "magic-string": "^0.30.18",
-    "muggle-string": "^0.4.1",
-    "zimmerframe": "^1.1.2"
+    "@jridgewell/sourcemap-codec": "catalog:default",
+    "@sveltejs/acorn-typescript": "catalog:default",
+    "acorn": "catalog:default",
+    "clsx": "catalog:default",
+    "devalue": "catalog:default",
+    "esm-env": "catalog:default",
+    "esrap": "catalog:default",
+    "is-reference": "catalog:default",
+    "magic-string": "catalog:default",
+    "muggle-string": "catalog:default",
+    "zimmerframe": "catalog:default"
   },
   "devDependencies": {
-    "@types/estree": "^1.0.8",
-    "@types/node": "^24.3.0",
-    "typescript": "catalog:"
+    "@types/estree": "catalog:default",
+    "@types/node": "catalog:default",
+    "typescript": "catalog:default"
   }
 }

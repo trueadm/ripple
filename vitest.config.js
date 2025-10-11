@@ -11,6 +11,8 @@ export default defineConfig({
 				test: {
 					include: ['packages/ripple/tests/client/**/*.test.ripple'],
 					environment: 'jsdom',
+					setupFiles: ['packages/ripple/tests/setup-client.js'],
+					globals: true,
 				},
 				plugins: [ripple()],
 				resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
@@ -29,6 +31,24 @@ export default defineConfig({
 				test: {
 					include: ['packages/prettier-plugin-ripple/src/*.test.js'],
 					environment: 'jsdom',
+				},
+				plugins: [ripple()],
+			},
+			{
+				name: 'eslint-plugin',
+				test: {
+					include: ['packages/eslint-plugin-ripple/tests/**/*.test.ts'],
+					environment: 'jsdom',
+					globals: true,
+				},
+				plugins: [ripple()],
+			},
+			{
+				name: 'eslint-parser',
+				test: {
+					include: ['packages/eslint-parser-ripple/tests/**/*.test.ts'],
+					environment: 'jsdom',
+					globals: true,
 				},
 				plugins: [ripple()],
 			},

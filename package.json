@@ -8,13 +8,24 @@
   "scripts": {
     "test": "vitest run",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "bump:major": "node scripts/bump-version.cjs major",
+    "bump:minor": "node scripts/bump-version.cjs minor",
+    "bump:patch": "node scripts/bump-version.cjs patch",
+    "bump:vscode:major": "node scripts/bump-version.cjs major vscode",
+    "bump:vscode:minor": "node scripts/bump-version.cjs minor vscode",
+    "bump:vscode:patch": "node scripts/bump-version.cjs patch vscode"
   },
   "devDependencies": {
-    "jsdom": "catalog:",
-    "prettier": "catalog:",
-    "vite-plugin-ripple": "workspace:*",
+    "jsdom": "catalog:default",
+    "prettier": "catalog:default",
     "prettier-plugin-ripple": "workspace:*",
-    "vitest": "catalog:"
+    "vite-plugin-ripple": "workspace:*",
+    "eslint-plugin-ripple": "workspace:*",
+    "eslint": "catalog:default",
+    "vitest": "catalog:default"
+  },
+  "dependencies": {
+    "@types/eslint": "catalog:default"
   }
 }

@@ -1,9 +1,9 @@
-/** @import { Block, Derived, Tracked } from '#client' */
+/** @import { Block } from '#client' */
 
 import { destroy_block, root } from './internal/client/blocks.js';
 import { handle_root_events } from './internal/client/events.js';
 import { init_operations } from './internal/client/operations.js';
-import { active_block, tracked, derived } from './internal/client/runtime.js';
+import { active_block } from './internal/client/runtime.js';
 import { create_anchor } from './internal/client/utils.js';
 import { remove_ssr_css } from './internal/client/css.js';
 
@@ -74,6 +74,20 @@ export { user_effect as effect } from './internal/client/blocks.js';
 
 export { Portal } from './internal/client/portal.js';
 
-export { ref_prop as createRefKey } from './internal/client/runtime.js';
+export { ref_prop as createRefKey, get, public_set as set } from './internal/client/runtime.js';
 
 export { on } from './internal/client/events.js';
+
+export {
+	bindValue,
+	bindChecked,
+	bindClientWidth,
+	bindClientHeight,
+	bindContentRect,
+	bindContentBoxSize,
+	bindBorderBoxSize,
+	bindDevicePixelContentBoxSize,
+	bindInnerHTML,
+	bindInnerText,
+	bindTextContent,
+} from './internal/client/bindings.js';

@@ -1,0 +1,225 @@
+import { track, flushSync } from 'ripple';
+
+describe('basic client > components & composition', () => {
+	it('renders with component composition and children', () => {
+		component Card(props) {
+			<div class='card'>
+				<props.children />
+			</div>
+		}
+
+		component Basic() {
+			<Card>
+				component children() {
+					<p>{'Card content here'}</p>
+				}
+			</Card>
+		}
+
+		render(Basic);
+
+		const card = container.querySelector('.card');
+		const paragraph = card.querySelector('p');
+
+		expect(card).toBeTruthy();
+		expect(paragraph.textContent).toBe('Card content here');
+	});
+
+	it('renders with nested components and prop passing', () => {
+		component Button(props) {
+			<button class={props.variant} onClick={props.onClick}>
+				{props.label}
+			</button>
+		}
+
+		component Card(props) {
+			<div class='card'>
+				<h3>{props.title}</h3>
+				<p>{props.content}</p>
+				<Button variant='primary' label={props.buttonText} onClick={props.onAction} />
+			</div>
+		}
+
+		component Basic() {
+			let clicked = track(false);
+
+			<Card
+				title='Test Card'
+				content='This is a test card'
+				buttonText='Click me'
+				onAction={() => @clicked = true}
+			/>
+			<div class='status'>{@clicked ? 'Clicked' : 'Not clicked'}</div>
+		}
+
+		render(Basic);
+
+		const card = container.querySelector('.card');
+		const title = card.querySelector('h3');
+		const content = card.querySelector('p');
+		const button = card.querySelector('button');
+		const status = container.querySelector('.status');
+
+		expect(title.textContent).toBe('Test Card');
+		expect(content.textContent).toBe('This is a test card');
+		expect(button.textContent).toBe('Click me');
+		expect(button.className).toBe('primary');
+		expect(status.textContent).toBe('Not clicked');
+
+		button.click();
+		flushSync();
+
+		expect(status.textContent).toBe('Clicked');
+	});
+
+	it('renders with reactive component props', () => {
+		component ChildComponent(props) {
+			<div class='child-content'>{props.@text}</div>
+			<div class='child-count'>{props.@count}</div>
+		}
+
+		component Basic() {
+			let message = track('Hello');
+			let number = track(1);
+
+			<ChildComponent text={message} count={number} />
+			<button onClick={() => {
+				@message = @message === 'Hello' ? 'Goodbye' : 'Hello';
+				@number++;
+			}}>{'Update Props'}</button>
+		}
+
+		render(Basic);
+
+		const contentDiv = container.querySelector('.child-content');
+		const countDiv = container.querySelector('.child-count');
+		const button = container.querySelector('button');
+
+		expect(contentDiv.textContent).toBe('Hello');
+		expect(countDiv.textContent).toBe('1');
+
+		button.click();
+		flushSync();
+
+		expect(contentDiv.textContent).toBe('Goodbye');
+		expect(countDiv.textContent).toBe('2');
+
+		button.click();
+		flushSync();
+
+		expect(contentDiv.textContent).toBe('Hello');
+		expect(countDiv.textContent).toBe('3');
+	});
+
+	it('it retains this context with bracketed prop functions and keeps original chaining', () => {
+		component App() {
+			const SYMBOL_PROP = Symbol();
+			let hasError = track(false);
+			const obj = {
+				count: track(0),
+				increment() {
+					this.@count++;
+				},
+				[SYMBOL_PROP]() {
+					this.@count++;
+				},
+				arr: [() => obj.@count++, () => obj.@count--],
+			};
+
+			const obj2 = null;
+
+			<button onClick={() => obj['increment']()}>{'Increment'}</button>
+			<button onClick={() => obj[SYMBOL_PROP]()}>{'Increment'}</button>
+			<button
+				onClick={() => {
+					@hasError = false;
+					try {
+						obj['nonexistent']();
+					} catch {
+						@hasError = true;
+					}
+				}}
+			>{'Nonexistent'}</button>
+			<button
+				onClick={() => {
+					@hasError = false;
+					try {
+						obj['nonexistent']?.();
+					} catch {
+						@hasError = true;
+					}
+				}}
+			>{'Nonexistent chaining'}</button>
+			<button
+				onClick={() => {
+					@hasError = false;
+					try {
+						obj2['nonexistent']();
+					} catch {
+						@hasError = true;
+					}
+				}}
+			>{'Object null'}</button>
+			<button
+				onClick={() => {
+					@hasError = false;
+					try {
+						obj2?.['nonexistent']?.();
+					} catch {
+						@hasError = true;
+					}
+				}}
+			>{'Object null chained'}</button>
+			<button onClick={() => obj.arr[obj.arr.length - 1]()}>{'BinaryExpression prop'}</button>
+
+			<span>{obj.@count}</span>
+			<span>{@hasError}</span>
+		}
+
+		render(App);
+
+		const button1 = container.querySelectorAll('button')[0];
+		const button2 = container.querySelectorAll('button')[1];
+		const button3 = container.querySelectorAll('button')[2];
+		const button4 = container.querySelectorAll('button')[3];
+		const button5 = container.querySelectorAll('button')[4];
+		const button6 = container.querySelectorAll('button')[5];
+		const button7 = container.querySelectorAll('button')[6];
+
+		const countSpan = container.querySelectorAll('span')[0];
+		const errorSpan = container.querySelectorAll('span')[1];
+
+		expect(countSpan.textContent).toBe('0');
+		expect(errorSpan.textContent).toBe('false');
+
+		button1.click();
+		flushSync();
+
+		expect(countSpan.textContent).toBe('1');
+
+		button2.click();
+		flushSync();
+
+		expect(countSpan.textContent).toBe('2');
+
+		button3.click();
+		flushSync();
+		expect(errorSpan.textContent).toBe('true');
+
+		button4.click();
+		flushSync();
+		expect(errorSpan.textContent).toBe('false');
+
+		button5.click();
+		flushSync();
+		expect(errorSpan.textContent).toBe('true');
+
+		button6.click();
+		flushSync();
+		expect(errorSpan.textContent).toBe('false');
+
+		button7.click();
+		flushSync();
+		expect(countSpan.textContent).toBe('1');
+	});
+});

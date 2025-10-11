@@ -57,13 +57,13 @@ jobs:
                   node-version: 24
                   cache: "pnpm"
 
-            - name: Install deps w/ yarn
+            - name: Install deps w/ pnpm
               working-directory: ./packages/ripple-vscode-plugin
-              run: yarn install
+              run: pnpm install
 
             - name: Build VSIX
               working-directory: ./packages/ripple-vscode-plugin
-              run: pnpx @vscode/vsce package
+              run: pnpm run build-and-package
 
             - name: Upload VSIX
               uses: actions/upload-artifact@v4

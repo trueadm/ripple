@@ -1,0 +1,115 @@
+import { flushSync, track, effect, untrack, TrackedArray } from 'ripple';
+
+describe('TrackedArray > iteration', () => {
+	it('handles entries method with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray('a', 'b', 'c');
+			let entries = track(() => Array.from(items.entries()));
+
+			<button onClick={() => items.push('d')}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify(@entries)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[[0,"a"],[1,"b"],[2,"c"]]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c","d"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[[0,"a"],[1,"b"],[2,"c"],[3,"d"]]');
+	});
+
+	it('handles keys method with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray('a', 'b', 'c');
+			let keys = track(() => Array.from(items.keys()));
+
+			<button onClick={() => items.push('d')}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify(@keys)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[0,1,2]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c","d"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('[0,1,2,3]');
+	});
+
+	it('handles values method with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray('a', 'b', 'c');
+			let values = track(() => Array.from(items.values()));
+
+			<button onClick={() => items.push('d')}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{JSON.stringify(@values)}</pre>
+		}
+
+		render(ArrayTest);
+
+		const addButton = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('["a","b","c"]');
+
+		// Test adding an item
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c","d"]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('["a","b","c","d"]');
+	});
+
+	it('handles Symbol.iterator with reactivity', () => {
+		component ArrayTest() {
+			let items = new TrackedArray(1, 2, 3);
+			let sum = track(0);
+
+			effect(() => {
+				@sum = 0;
+				for (const item of items) {
+					untrack(() => {
+						@sum += item;
+					});
+				}
+			});
+
+			<button onClick={() => items.push(4)}>{'add item'}</button>
+			<pre>{JSON.stringify(items)}</pre>
+			<pre>{@sum}</pre>
+		}
+
+		render(ArrayTest);
+		flushSync();
+
+		const addButton = container.querySelectorAll('button')[0];
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('6');
+
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('10');
+	});
+});
