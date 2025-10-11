@@ -1,3 +1,7 @@
+packages:
+  - packages/*
+  - playground
+  - website
 catalogs:
   default:
     '@jridgewell/sourcemap-codec': ^1.5.5
@@ -52,7 +56,3 @@ catalogs:
     ripple: '*'
     tailwindcss: ^4.1.12
     typescript: '>=5.0.0'
-packages:
-  - packages/*
-  - playground
-  - website
