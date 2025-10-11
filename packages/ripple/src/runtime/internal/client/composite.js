@@ -47,7 +47,6 @@ export function composite(get_component, node, props) {
 					};
 				}
 
-				// Use render_spread to make attributes reactive (like regular DOM elements)
 				render_spread(element, () => props || {});
 
 				if (typeof props?.children === 'function') {
