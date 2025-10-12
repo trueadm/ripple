@@ -622,6 +622,72 @@ const [obj1, obj2] = arrayOfObjects;`;
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should keep a new line between elements or component if provided', async () => {
+			const expected = `<Something>
+  <div>{'Hello'}</div>
+</Something>
+
+<Child class="test" />`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep proper formatting between css declarations', async () => {
+			const expected = `export component App() {
+  <style>
+    div {
+      background-color: red;
+    }
+    .even-class {
+      color: green;
+    }
+    .odd-class {
+      color: blue;
+    }
+  </style>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it.skip('should keep one new line between css declarations if one or more is provided', async () => {
+			const input = `export component App() {
+  <style>
+    div {
+      background-color: red;
+    }
+
+    .even-class {
+      color: green;
+    }
+
+
+    .odd-class {
+      color: blue;
+    }
+  </style>
+}`;
+
+			const expected = `export component App() {
+  <style>
+    div {
+      background-color: red;
+    }
+
+    .even-class {
+      color: green;
+    }
+
+    .odd-class {
+      color: blue;
+    }
+  </style>
+}`;
+			const result = await format(input, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {

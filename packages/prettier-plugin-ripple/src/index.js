@@ -2150,6 +2150,11 @@ function shouldAddBlankLine(currentNode, nextNode) {
 		}
 	}
 
+	// Preserve author-provided blank lines between sibling elements
+	if (originalBlankLines > 0 && currentNode.type === 'Element' && nextNode.type === 'Element') {
+		return true;
+	}
+
 	// Add blank line after variable declarations when followed by elements or control flow statements
 	// Only if there was originally a blank line
 	if (originalBlankLines > 0 && currentNode.type === 'VariableDeclaration') {
@@ -2589,14 +2594,7 @@ function printStyleSheet(node, path, options, print) {
 
 		// Structure the CSS with proper indentation and spacing
 		// CSS rules need exactly 3 more spaces beyond the <style> element's indentation
-		return concat([
-			hardline,
-			indent([
-				'  ', // 2 spaces (indent gives 3, we need 5 total = +2)
-				join(concat([hardline, '  ']), cssItems), // 2 spaces for all CSS lines
-			]),
-			hardline,
-		]);
+		return join(hardline, cssItems);
 	}
 
 	// If no body, return empty string
@@ -2725,7 +2723,7 @@ function shouldInlineSingleChild(parentNode, firstChild, childDoc) {
 		return childDoc.length <= 20 && !childDoc.includes('\n');
 	}
 
-	if (firstChild.type === 'Text' || firstChild.type === 'Html' || firstChild.type === 'StyleSheet') {
+	if (firstChild.type === 'Text' || firstChild.type === 'Html') {
 		return true;
 	}
 
