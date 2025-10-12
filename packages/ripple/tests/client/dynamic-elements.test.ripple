@@ -1,4 +1,4 @@
-import { flushSync, track, createRefKey } from 'ripple';
+import { flushSync, track, createRefKey, trackSplit } from 'ripple';
 
 describe('dynamic DOM elements', () => {
 
@@ -247,5 +247,155 @@ describe('dynamic DOM elements', () => {
 		expect(element.className).toBe('odd-class');
 		expect(element.getAttribute('data-count')).toBe('2');
 		expect(element.textContent).toBe('Count: 2');
+	});
+
+	it('applies scoped CSS to dynamic elements', () => {
+		component App() {
+			let tag = track('div');
+			
+			<@tag class="test-class">{'Dynamic element'}</@tag>
+			
+			<style>
+				.test-class {
+					color: red;
+				}
+			</style>
+		}
+
+		render(App);
+		
+		const element = container.querySelector('div');
+		expect(element).toBeTruthy();
+		console.log(element);
+		expect(element.classList.contains('test-class')).toBe(true);
+		
+		// Check if scoped CSS class is present - THIS MIGHT FAIL if CSS pruning issue exists
+		const classes = Array.from(element.classList);
+		const hasScopedClass = classes.some(cls => cls.startsWith('ripple-'));
+		expect(hasScopedClass).toBe(true);
+	});
+
+	it('applies scoped CSS to dynamic elements with reactive classes', () => {
+		component App() {
+			let tag = track('button');
+			let count = track(0);
+			
+			<@tag 
+				class={@count % 2 ? 'even' : 'odd'}
+				id={@count % 2 ? 'even' : 'odd'}
+				onClick={() => { @count++; }}
+			>
+				{'Count: '}{@count}
+			</@tag>
+			
+			<style>
+				.even {
+					background-color: green;
+					color: white;
+				}
+				.odd {
+					background-color: red;
+					color: white;
+				}
+			</style>
+		}
+
+		render(App);
+		
+		const button = container.querySelector('button');
+		expect(button).toBeTruthy();
+		
+		// Initial state: should be odd (count=0, 0%2=false)
+		expect(button.classList.contains('odd')).toBe(true);
+		expect(button.classList.contains('even')).toBe(false);
+		expect(button.id).toBe('odd');
+		expect(button.textContent).toBe('Count: 0');
+		
+		// Check if scoped CSS hash is applied to dynamic element
+		const classes = Array.from(button.classList);
+		const hasScopedClass = classes.some(cls => cls.startsWith('ripple-'));
+		expect(hasScopedClass).toBe(true);
+		
+		// Click to increment
+		button.click();
+		flushSync();
+		
+		// Should now be even (count=1, 1%2=true)  
+		expect(button.classList.contains('even')).toBe(true);
+		expect(button.classList.contains('odd')).toBe(false);
+		expect(button.id).toBe('even');
+		expect(button.textContent).toBe('Count: 1');
+		
+		// Scoped CSS class should still be present
+		const newClasses = Array.from(button.classList);
+		const stillHasScopedClass = newClasses.some(cls => cls.startsWith('ripple-'));
+		expect(stillHasScopedClass).toBe(true);
+		
+		// Click again
+		button.click();
+		flushSync();
+		
+		// Should toggle back to odd (count=2, 2%2=false)
+		expect(button.classList.contains('odd')).toBe(true);
+		expect(button.classList.contains('even')).toBe(false);
+		expect(button.id).toBe('odd');
+		expect(button.textContent).toBe('Count: 2');
+	});
+
+	it('handles spread attributes with class and CSS scoping ', () => {
+		component DyanamicButton(props) {
+			const tag = track('button');
+			const [children, rest] = trackSplit(props, ['children']);
+			<@tag {...@rest}>{@rest.class}</@tag>
+			
+			<style>
+				.even {
+					background-color: green;
+				}
+				.odd {
+					background-color: red;
+				}
+			</style>
+		}
+
+		component App() {
+			const count = track(0);
+			<DyanamicButton
+				class={@count % 2 ? 'even' : 'odd'}
+				id={@count % 2 ? 'even' : 'odd'}
+				onClick={() => { @count++; }}
+			/>
+		}
+
+		render(App);
+		
+		const button = container.querySelector('button');
+		expect(button).toBeTruthy();
+		
+		
+		// Initial state: should be odd (count=0, 0%2=false)
+		expect(button.classList.contains('odd')).toBe(true);
+		expect(button.classList.contains('even')).toBe(false);
+		expect(button.id).toBe('odd');
+		
+		// Check if scoped CSS hash is applied (this is the critical test)
+		const classes = Array.from(button.classList);
+		const hasScopedClass = classes.some(cls => cls.startsWith('ripple-'));
+		expect(hasScopedClass).toBe(true);
+		
+		// Click to increment
+		button.click();
+		flushSync();
+		
+		// Should now be even (count=1, 1%2=true)  
+		expect(button.classList.contains('even')).toBe(true);
+		expect(button.classList.contains('odd')).toBe(false);
+		expect(button.id).toBe('even');
+		
+		// Both classes should still be present
+		const newClasses = Array.from(button.classList);
+		const stillHasScopedClass = newClasses.some(cls => cls.startsWith('ripple-'));
+		expect(stillHasScopedClass).toBe(true);
+		expect(newClasses.includes('even')).toBe(true);
 	});
 });
