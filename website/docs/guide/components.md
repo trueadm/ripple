@@ -49,6 +49,28 @@ export component App() {
 }
 ```
 
+::: info Note
+When defining an explicit component as a child, it must be named `children`. 
+:::
+
+These components can also accept props like any other component:
+
+```ripple
+component Card({ children }) {
+	<div class="card">
+		<children name="Abraham" />
+	</div>
+}
+
+export component App() {
+	<Card>
+		component children({ name }) {
+			<p>{"Hello, " + name + "!"}</p>
+		}
+	</Card>
+}
+```
+
 ### Named Children
 
 If you need to pass more than one child to a component, you can either pass the

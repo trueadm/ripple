@@ -759,6 +759,26 @@ component Card(props: { children: Component }) {
 </Card>
 ```
 
+> **Note**: When defining an explicit component as a child, it must be named `children`. 
+
+These components can also accept props like any other component:
+
+```jsx
+component Card({ children }) {
+  <div class="card">
+    <children name="Abraham" />
+  </div>
+}
+
+export component App() {
+  <Card>
+    component children({ name }) {
+      <p>{"Hello, " + name + "!"}</p>
+    }
+  </Card>
+}
+```
+
 ### Refs
 
 Ripple provides a consistent way to capture the underlying DOM element – refs. Specifically, using
