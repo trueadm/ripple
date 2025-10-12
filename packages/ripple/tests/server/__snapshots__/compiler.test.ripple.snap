@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`compiler success tests > compiles TSInstantiationExpression 1`] = `
+"import * as _$_ from 'ripple/internal/client';
+
+function makeBox(value) {
+	return { value };
+}
+
+const makeStringBox = (makeBox);
+const stringBox = makeStringBox('abc');
+const ErrorMap = (Map);
+const errorMap = new ErrorMap();"
+`;
+
+exports[`compiler success tests > compiles imported component with conditional async in SSR 1`] = `
+"import * as _$_ from 'ripple/internal/server';
+
+import { ChildComponent } from './Child.ripple';
+
+export async function App(__output) {
+	return _$_.async(async () => {
+		_$_.push_component();
+		__output.push('<div');
+		__output.push('>');
+
+		if (ChildComponent.async) {
+			await ChildComponent(__output, { message: "hello" });
+		} else {
+			ChildComponent(__output, { message: "hello" });
+		}
+
+		__output.push('</div>');
+		_$_.pop_component();
+	});
+}"
+`;
+
+exports[`compiler success tests > removes type assertions from function parameters and leaves default values 1`] = `
+"import * as _$_ from 'ripple/internal/client';
+
+function getString(e = 'test') {
+	return e;
+}"
+`;

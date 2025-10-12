@@ -224,6 +224,7 @@ export component App() {
     }
   );
 }
+```
 
 > Note: If no value is returned from either `get` or `set`, `undefined` is either exposed (for get) or stored (for set). Also, if only supplying the `set`, the `get` parameter must be set to `undefined`.
 
@@ -372,6 +373,83 @@ component Conditional({ isVisible }) {
 }
 ```
 
+#### Switch Statements
+Switch statements in Ripple provide a powerful way to conditionally render content based on the value of an expression. They are fully reactive and integrate seamlessly with Ripple's templating syntax.
+
+**Key Features:**
+- **Reactivity:** Works with both static and reactive (`Tracked`) values.
+- **Strict Control Flow:** Requires explicit `break` statements to prevent fall-through.
+- **Template Integration:** `case` blocks can contain any valid Ripple template content, including other components, elements, and logic.
+
+**Basic Usage:**
+The `switch` statement evaluates an expression and matches its value against a series of `case` clauses.
+
+```ripple
+component StatusIndicator({ status }) {
+  // The switch statement evaluates the 'status' prop
+  switch (status) {
+    case 'loading':
+      <p>{'Loading...'}</p>
+      break; // break is mandatory
+    case 'success':
+      <p>{'Success!'}</p>
+      break; 
+    case 'error':
+      <p>{'Error!'}</p>
+      break;
+    default:
+      <p>{'Unknown status'}</p>
+      // No break needed for default
+  }
+}
+```
+
+`switch` statements can also react to changes in `Tracked` variables. When the tracked variable changes, the `switch` statement will re-evaluate and render the appropriate `case`.
+
+```ripple
+import { track } from 'ripple';
+
+component InteractiveStatus() {
+  let status = track('loading'); // Reactive state
+
+  <button onClick={() => @status = 'success'}>{'Set to Success'}</button>
+  <button onClick={() => @status = 'error'}>{'Set to Error'}</button>
+
+  // This switch block will update automatically when '@status' changes
+  switch (@status) {
+    case 'loading':
+      <p>{'Status: Loading...'}</p>
+      break;
+    case 'success':
+      <p>{'Status: Success!'}</p>
+      break;
+    case 'error':
+      <p>{'Status: Error!'}</p>
+      break;
+    default:
+      <p>{'Status: Unknown'}</p>
+  }
+}
+```
+
+**⚠️ Critical: Mandatory `break`**
+
+- **`break` is required:** You **must** include a `break` statement at the end of each `case` block (except for `default`).
+- **Compilation Error:** If you omit the `break` statement, the Ripple compiler will throw an error.
+
+```ripple
+// ❌ WRONG - Missing 'break' will cause a compilation error
+switch (value) {
+  case 1:
+    <p>{'Case 1'}</p>
+  case 2:
+    <p>{'Case 2'}</p>
+    break;
+}
+```
+
+This strict requirement ensures that control flow is always explicit and predictable.
+
 #### For Loops
 ```ripple
 component List({ items }) {
@@ -404,6 +482,16 @@ component ListView({ title, items }) {
       <li>{item.text}{' at index '}{i}</li>
     }
   </ul>
+}
+```
+
+#### Dynamic Elements
+```ripple
+export component App() {
+  let tag = track('div');
+
+  <@tag class="dynamic">{'Hello World'}</@tag>
+  <button onClick={() => @tag = @tag === 'div' ? 'span' : 'div'}>{'Toggle Element'}</button>
 }
 ```
 

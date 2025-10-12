@@ -17,12 +17,12 @@ export type Dependency = {
 	n: null | Dependency;
 };
 
-export type Tracked = {
+export type Tracked<V = any> = {
 	a: { get?: Function, set?: Function };
 	b: Block;
 	c: number;
 	f: number;
-	v: any;
+	v: V;
 };
 
 export type Derived = {

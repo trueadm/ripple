@@ -1,0 +1,199 @@
+import { flushSync, track, createRefKey } from 'ripple';
+
+describe('dynamic DOM elements', () => {
+	it('renders static dynamic element', () => {
+		component App() {
+			let tag = track('div');
+
+			<@tag>{'Hello World'}</@tag>
+		}
+		render(App);
+
+		const element = container.querySelector('div');
+		expect(element).toBeTruthy();
+		expect(element.textContent).toBe('Hello World');
+	});
+
+	it('renders reactive dynamic element', () => {
+		component App() {
+			let tag = track('div');
+
+			<button onClick={() => {
+					@tag = 'span';
+				}}>{'Change Tag'}</button>
+			<@tag id="dynamic">{'Hello World'}</@tag>
+		}
+		render(App);
+		// Initially should be a div
+		let dynamicElement = container.querySelector('#dynamic');
+		expect(dynamicElement.tagName).toBe('DIV');
+		expect(dynamicElement.textContent).toBe('Hello World');
+		// Click button to change tag
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+		// Should now be a span
+		dynamicElement = container.querySelector('#dynamic');
+		expect(dynamicElement.tagName).toBe('SPAN');
+		expect(dynamicElement.textContent).toBe('Hello World');
+	});
+
+	it('renders self-closing dynamic element', () => {
+		component App() {
+			let tag = track('input');
+
+			<@tag type="text" value="test" />
+		}
+		render(App);
+
+		const element = container.querySelector('input') as HTMLInputElement;
+		expect(element).toBeTruthy();
+		expect(element.type).toBe('text');
+		expect(element.value).toBe('test');
+	});
+
+	it('handles dynamic element with attributes', () => {
+		component App() {
+			let tag = track('div');
+			let className = track('test-class');
+
+			<@tag class={@className} id="test" data-testid="dynamic-element">{'Content'}</@tag>
+		}
+		render(App);
+
+		const element = container.querySelector('#test');
+		expect(element.tagName).toBe('DIV');
+		expect(element.className).toBe('test-class');
+		expect(element.getAttribute('data-testid')).toBe('dynamic-element');
+		expect(element.textContent).toBe('Content');
+	});
+
+	it('handles nested dynamic elements', () => {
+		component App() {
+			let outerTag = track('div');
+			let innerTag = track('span');
+
+			<@outerTag class="outer">
+				<@innerTag class="inner">{'Nested content'}</@innerTag>
+			</@outerTag>
+		}
+		render(App);
+
+		const outer = container.querySelector('.outer');
+		const inner = container.querySelector('.inner');
+
+		expect(outer.tagName).toBe('DIV');
+		expect(inner.tagName).toBe('SPAN');
+		expect(inner.textContent).toBe('Nested content');
+		expect(outer.contains(inner)).toBe(true);
+	});
+
+	it('handles dynamic element with class object', () => {
+		component App() {
+			let tag = track('div');
+			let active = track(true);
+
+			<@tag class={{ active: @active, 'dynamic-element': true }}>
+				{'Element with class object'}
+			</@tag>
+		}
+		render(App);
+
+		const element = container.querySelector('div');
+		expect(element).toBeTruthy();
+		expect(element.classList.contains('active')).toBe(true);
+		expect(element.classList.contains('dynamic-element')).toBe(true);
+	});
+
+	it('handles dynamic element with style object', () => {
+		component App() {
+			let tag = track('span');
+
+			<@tag style={{
+				color: 'red',
+				fontSize: '16px',
+				fontWeight: 'bold'
+			}}>
+				{'Styled dynamic element'}
+			</@tag>
+		}
+		render(App);
+
+		const element = container.querySelector('span');
+		expect(element).toBeTruthy();
+		expect(element.style.color).toBe('red');
+		expect(element.style.fontSize).toBe('16px');
+		expect(element.style.fontWeight).toBe('bold');
+	});
+
+	it('handles dynamic element with spread attributes', () => {
+		component App() {
+			let tag = track('section');
+			const attrs = {
+				id: 'spread-section',
+				'data-testid': 'spread-test',
+				class: 'spread-class',
+			};
+
+			<@tag {...attrs} data-extra="additional">
+				{'Element with spread attributes'}
+			</@tag>
+		}
+		render(App);
+
+		const element = container.querySelector('section');
+		expect(element).toBeTruthy();
+		expect(element.id).toBe('spread-section');
+		expect(element.getAttribute('data-testid')).toBe('spread-test');
+		expect(element.className).toBe('spread-class');
+		expect(element.getAttribute('data-extra')).toBe('additional');
+	});
+
+	it('handles dynamic element with ref', () => {
+		let capturedElement: HTMLArticleElement | undefined;
+
+		component App() {
+			let tag = track('article');
+
+			<@tag {ref (node: HTMLArticleElement) => { capturedElement = node; }} id="ref-test">
+				{'Element with ref'}
+			</@tag>
+		}
+		render(App);
+		flushSync();
+		expect(capturedElement).toBeTruthy();
+		expect(capturedElement.tagName).toBe('ARTICLE');
+		expect(capturedElement.id).toBe('ref-test');
+		expect(capturedElement.textContent).toBe('Element with ref');
+	});
+
+	it('handles dynamic element with createRefKey in spread', () => {
+		component App() {
+			let tag = track('header');
+
+			function elementRef(node: HTMLHeaderElement) {
+				// Set an attribute on the element to prove ref was called
+				node.setAttribute('data-spread-ref-called', 'true');
+				node.setAttribute('data-spread-ref-tag', node.tagName.toLowerCase());
+			}
+
+			const dynamicProps = {
+				id: 'spread-ref-test',
+				class: 'ref-element',
+				[createRefKey()]: elementRef
+			};
+
+			<@tag {...dynamicProps}>{'Element with spread ref'}</@tag>
+		}
+		render(App);
+		flushSync();
+
+		// Check that the spread ref was called by verifying attributes were set
+		const element = container.querySelector('header');
+		expect(element).toBeTruthy();
+		expect(element.getAttribute('data-spread-ref-called')).toBe('true');
+		expect(element.getAttribute('data-spread-ref-tag')).toBe('header');
+		expect(element.id).toBe('spread-ref-test');
+		expect(element.className).toBe('ref-element');
+	});
+});

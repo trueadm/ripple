@@ -1,0 +1,160 @@
+import { flushSync, track, TrackedURLSearchParams } from 'ripple';
+
+describe('TrackedURLSearchParams > retrieval', () => {
+	it('handles get operation with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&baz=qux');
+			let foo = track(() => params.get('foo'));
+			let baz = track(() => params.get('baz'));
+
+			<button onClick={() => params.set('foo', 'updated')}>{'update foo'}</button>
+			<pre>{@foo}</pre>
+			<pre>{@baz}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('qux');
+
+		// Test update
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('updated');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('qux');
+	});
+
+	it('handles get for nonexistent key', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+			let nonexistent = track(() => params.get('nonexistent'));
+
+			<pre>{String(@nonexistent)}</pre>
+		}
+
+		render(URLTest);
+
+		expect(container.querySelector('pre').textContent).toBe('null');
+	});
+
+	it('handles getAll operation with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&foo=baz');
+			let allFoo = track(() => params.getAll('foo'));
+
+			<button onClick={() => params.append('foo', 'qux')}>{'append foo'}</button>
+			<pre>{JSON.stringify(@allFoo)}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('["bar","baz"]');
+
+		// Test append
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('["bar","baz","qux"]');
+	});
+
+	it('handles has operation with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+			let hasFoo = track(() => params.has('foo'));
+			let hasBaz = track(() => params.has('baz'));
+
+			<button onClick={() => params.append('baz', 'qux')}>{'add baz'}</button>
+			<button onClick={() => params.delete('foo')}>{'delete foo'}</button>
+			<pre>{@hasFoo.toString()}</pre>
+			<pre>{@hasBaz.toString()}</pre>
+		}
+
+		render(URLTest);
+
+		const addButton = container.querySelectorAll('button')[0];
+		const deleteButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('true');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('false');
+
+		// Test add
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('true');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('true');
+
+		// Test delete
+		deleteButton.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('false');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('true');
+	});
+
+	it('handles has with specific value', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar&foo=baz');
+			let hasBarValue = track(() => params.has('foo', 'bar'));
+			let hasQuxValue = track(() => params.has('foo', 'qux'));
+
+			<button onClick={() => params.append('foo', 'qux')}>{'add qux'}</button>
+			<pre>{@hasBarValue.toString()}</pre>
+			<pre>{@hasQuxValue.toString()}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('true');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('false');
+
+		// Test add
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('true');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('true');
+	});
+
+	it('handles size property with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+			let size = track(() => params.size);
+
+			<button onClick={() => params.append('baz', 'qux')}>{'add'}</button>
+			<button onClick={() => params.delete('foo')}>{'delete'}</button>
+			<pre>{@size}</pre>
+		}
+
+		render(URLTest);
+
+		const addButton = container.querySelectorAll('button')[0];
+		const deleteButton = container.querySelectorAll('button')[1];
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('1');
+
+		// Test add
+		addButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('2');
+
+		// Test delete
+		deleteButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('1');
+	});
+});

@@ -1,4 +1,4 @@
-/** @import {Expression, FunctionExpression, Pattern, Node, Program} from 'estree' */
+/** @import {Expression, FunctionExpression, Node, Program} from 'estree' */
 
 import { walk } from 'zimmerframe';
 import path from 'node:path';
@@ -37,6 +37,7 @@ import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
 import { render_stylesheets } from '../stylesheet.js';
 import { is_event_attribute, is_passive_event } from '../../../../utils/events.js';
+import { createHash } from 'node:crypto';
 
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
@@ -54,9 +55,14 @@ function visit_function(node, context) {
 	const state = context.state;
 
 	delete node.returnType;
+	delete node.typeParameters;
 
 	for (const param of node.params) {
 		delete param.typeAnnotation;
+		// Handle AssignmentPattern (parameters with default values)
+		if (param.type === 'AssignmentPattern' && param.left) {
+			delete param.left.typeAnnotation;
+		}
 	}
 
 	if (metadata?.hoisted === true) {
@@ -155,6 +161,15 @@ const visitors = {
 		if (is_reference(node, parent)) {
 			if (context.state.to_ts) {
 				if (node.tracked) {
+					// Check if this identifier is used as a dynamic component/element
+					// by checking if it has a capitalized name in metadata
+					const binding = context.state.scope.get(node.name);
+					if (binding?.metadata?.is_dynamic_component) {
+						// Capitalize the identifier for TypeScript
+						const capitalizedName = node.name.charAt(0).toUpperCase() + node.name.slice(1);
+						const capitalizedNode = { ...node, name: capitalizedName };
+						return b.member(capitalizedNode, b.literal('#v'), true);
+					}
 					return b.member(node, b.literal('#v'), true);
 				}
 			} else {
@@ -168,7 +183,8 @@ const visitors = {
 					(node.tracked ||
 						binding?.kind === 'prop' ||
 						binding?.kind === 'index' ||
-						binding?.kind === 'prop_fallback') &&
+						binding?.kind === 'prop_fallback' ||
+						binding?.kind === 'for_pattern') &&
 					binding?.node !== node
 				) {
 					if (context.state.metadata?.tracking === false) {
@@ -178,12 +194,15 @@ const visitors = {
 						add_ripple_internal_import(context);
 						return b.call('_$_.get', build_getter(node, context));
 					}
-
-					add_ripple_internal_import(context);
-					return build_getter(node, context);
 				}
+				add_ripple_internal_import(context);
+				return build_getter(node, context);
 			}
 		}
+	},
+
+	ServerIdentifier(node, context) {
+		return b.id('_$_server_$_');
 	},
 
 	ImportDeclaration(node, context) {
@@ -194,7 +213,7 @@ const visitors = {
 		return {
 			...node,
 			specifiers: node.specifiers
-				.filter((spec) => spec.importKind !== 'type')
+				.filter((spec) => context.state.to_ts || spec.importKind !== 'type')
 				.map((spec) => context.visit(spec)),
 		};
 	},
@@ -331,11 +350,9 @@ const visitors = {
 				context.state.imports.add(`import { TrackedArray } from 'ripple'`);
 			}
 
-			return b.new(
-				b.call(
-					b.member(b.id('TrackedArray'), b.id('from')),
-					node.elements.map((el) => context.visit(el)),
-				),
+			return b.call(
+				b.member(b.id('TrackedArray'), b.id('from')),
+				...node.elements.map((el) => context.visit(el)),
 			);
 		}
 
@@ -362,6 +379,48 @@ const visitors = {
 			'_$_.tracked_object',
 			b.object(node.properties.map((prop) => context.visit(prop))),
 			b.id('__block'),
+		);
+	},
+
+	TrackedMapExpression(node, context) {
+		if (context.state.to_ts) {
+			if (!context.state.imports.has(`import { TrackedMap } from 'ripple'`)) {
+				context.state.imports.add(`import { TrackedMap } from 'ripple'`);
+			}
+
+			const calleeId = b.id('TrackedMap');
+			// Preserve location from original node for Volar mapping
+			calleeId.loc = node.loc;
+			// Add metadata for Volar mapping - map "TrackedMap" identifier to "#Map" in source
+			calleeId.metadata = { tracked_shorthand: '#Map' };
+			return b.new(calleeId, ...node.arguments.map((arg) => context.visit(arg)));
+		}
+
+		return b.call(
+			'_$_.tracked_map',
+			b.id('__block'),
+			...node.arguments.map((arg) => context.visit(arg)),
+		);
+	},
+
+	TrackedSetExpression(node, context) {
+		if (context.state.to_ts) {
+			if (!context.state.imports.has(`import { TrackedSet } from 'ripple'`)) {
+				context.state.imports.add(`import { TrackedSet } from 'ripple'`);
+			}
+
+			const calleeId = b.id('TrackedSet');
+			// Preserve location from original node for Volar mapping
+			calleeId.loc = node.loc;
+			// Add metadata for Volar mapping - map "TrackedSet" identifier to "#Set" in source
+			calleeId.metadata = { tracked_shorthand: '#Set' };
+			return b.new(calleeId, ...node.arguments.map((arg) => context.visit(arg)));
+		}
+
+		return b.call(
+			'_$_.tracked_set',
+			b.id('__block'),
+			...node.arguments.map((arg) => context.visit(arg)),
 		);
 	},
 
@@ -428,6 +487,22 @@ const visitors = {
 			}
 		}
 
+		return context.next();
+	},
+
+	VariableDeclarator(node, context) {
+		// In TypeScript mode, capitalize identifiers that are used as dynamic components
+		if (context.state.to_ts && node.id.type === 'Identifier') {
+			const binding = context.state.scope.get(node.id.name);
+			if (binding?.metadata?.is_dynamic_component) {
+				const capitalizedName = node.id.name.charAt(0).toUpperCase() + node.id.name.slice(1);
+				return {
+					...node,
+					id: { ...node.id, name: capitalizedName },
+					init: node.init ? context.visit(node.init) : null,
+				};
+			}
+		}
 		return context.next();
 	},
 
@@ -1200,6 +1275,14 @@ const visitors = {
 		return context.next();
 	},
 
+	TSInstantiationExpression(node, context) {
+		if (!context.state.to_ts) {
+			// In JavaScript, just return the expression wrapped in parentheses
+			return b.sequence([context.visit(node.expression)]);
+		}
+		return context.next();
+	},
+
 	ExportNamedDeclaration(node, context) {
 		if (!context.state.to_ts && node.exportKind === 'type') {
 			return b.empty;
@@ -1282,8 +1365,34 @@ const visitors = {
 		return b.block(statements);
 	},
 
-	ServerBlock() {
-		return b.empty;
+	ServerBlock(node, context) {
+		const exports = node.metadata.exports;
+
+		if (exports.length === 0) {
+			return b.empty;
+		}
+		const file_path = context.state.filename;
+
+		return b.const(
+			'_$_server_$_',
+			b.object(
+				exports.map((name) => {
+					const func_path = file_path + '#' + name;
+					// needs to be a sha256 hash of func_path, to avoid leaking file structure
+					const hash = createHash('sha256').update(func_path).digest('hex').slice(0, 8);
+
+					return b.prop(
+						'init',
+						b.id(name),
+						b.function(
+							null,
+							[b.rest(b.id('args'))],
+							b.block([b.return(b.call('_$_.rpc', b.literal(hash), b.id('args')))]),
+						),
+					);
+				}),
+			),
+		);
 	},
 
 	Program(node, context) {
@@ -1353,7 +1462,8 @@ function transform_ts_child(node, context) {
 		// Do we need to do something special here?
 		state.init.push(b.stmt(visit(node.expression, { ...state })));
 	} else if (node.type === 'Element') {
-		const type = node.id.name;
+		// Use capitalized name for dynamic components/elements in TypeScript output
+		const type = node.metadata?.ts_name || node.id.name;
 		const children = [];
 		let has_children_props = false;
 
@@ -1419,7 +1529,17 @@ function transform_ts_child(node, context) {
 		}
 
 		const opening_type = b.jsx_id(type);
-		opening_type.loc = node.id.loc;
+		// Use node.id.loc if available, otherwise create a loc based on the element's position
+		opening_type.loc = node.id.loc || {
+			start: {
+				line: node.loc.start.line,
+				column: node.loc.start.column + 2, // After "<@"
+			},
+			end: {
+				line: node.loc.start.line,
+				column: node.loc.start.column + 2 + type.length,
+			},
+		};
 
 		let closing_type = undefined;
 
@@ -1437,9 +1557,21 @@ function transform_ts_child(node, context) {
 			};
 		}
 
-		state.init.push(
-			b.stmt(b.jsx_element(opening_type, attributes, children, node.selfClosing, closing_type)),
+		const jsxElement = b.jsx_element(
+			opening_type,
+			attributes,
+			children,
+			node.selfClosing,
+			closing_type,
 		);
+		// Preserve metadata from Element node for mapping purposes
+		if (node.metadata && (node.metadata.ts_name || node.metadata.original_name)) {
+			jsxElement.metadata = {
+				ts_name: node.metadata.ts_name,
+				original_name: node.metadata.original_name,
+			};
+		}
+		state.init.push(b.stmt(jsxElement));
 	} else if (node.type === 'IfStatement') {
 		const consequent_scope = context.state.scopes.get(node.consequent);
 		const consequent = b.block(
@@ -1792,6 +1924,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 		scopes: analysis.scopes,
 		stylesheets: [],
 		to_ts,
+		filename,
 	};
 
 	const program = /** @type {Program} */ (

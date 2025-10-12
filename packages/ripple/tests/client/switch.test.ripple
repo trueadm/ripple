@@ -1,0 +1,133 @@
+import { flushSync, track } from 'ripple';
+
+describe('switch statements', () => {
+	it('renders simple switch with literal cases', () => {
+		component App() {
+			let value = track('b');
+
+			<button onClick={() => @value = 'c'}>{'Change to C'}</button>
+			<button onClick={() => @value = 'a'}>{'Change to A'}</button>
+
+			switch (@value) {
+				case 'a':
+					<div>{'Case A'}</div>
+					break;
+				case 'b':
+					<div>{'Case B'}</div>
+					break;
+				case 'c':
+					<div>{'Case C'}</div>
+					break;
+				default:
+					<div>{'Default Case'}</div>
+			}
+		}
+
+		render(App);
+		expect(container.textContent).toBe('Change to CChange to ACase B');
+
+		container.querySelectorAll('button')[0].click(); // Change to C
+		flushSync();
+		expect(container.textContent).toBe('Change to CChange to ACase C');
+
+		container.querySelectorAll('button')[1].click(); // Change to A
+		flushSync();
+		expect(container.textContent).toBe('Change to CChange to ACase A');
+	});
+
+	it('renders switch with reactive discriminant', () => {
+		component App() {
+			let count = track(1);
+
+			<button onClick={() => @count++}>{'Increment'}</button>
+
+			switch (@count) {
+				case 1:
+					<div>{'Count is 1'}</div>
+					break;
+				case 2:
+					<div>{'Count is 2'}</div>
+					break;
+				default:
+					<div>{'Count is other'}</div>
+			}
+		}
+
+		render(App);
+		expect(container.textContent).toBe('IncrementCount is 1');
+
+		container.querySelector('button').click();
+		flushSync();
+		expect(container.textContent).toBe('IncrementCount is 2');
+
+		container.querySelector('button').click();
+		flushSync();
+		expect(container.textContent).toBe('IncrementCount is other');
+	});
+
+	it('renders switch with default clause only', () => {
+		component App() {
+			let value = track('x');
+
+			<button onClick={() => @value = 'y'}>{'Change Value'}</button>
+
+			switch (@value) {
+				default:
+					<div>{'Default for ' + @value}</div>
+			}
+		}
+
+		render(App);
+		expect(container.textContent).toBe('Change ValueDefault for x');
+
+		container.querySelector('button').click();
+		flushSync();
+		expect(container.textContent).toBe('Change ValueDefault for y');
+	});
+
+	it('renders switch with template content and JS logic', () => {
+		component App() {
+			let status = track('active');
+			let message = track('');
+
+			<button onClick={() => @status = 'pending'}>{'Pending'}</button>
+			<button onClick={() => @status = 'completed'}>{'Completed'}</button>
+			<button onClick={() => @status = 'error'}>{'Error'}</button>
+
+			switch (@status) {
+				case 'active':
+					@message = 'Currently active.';
+					<div>{'Status: ' + @message}</div>
+					break;
+				case 'pending':
+					@message = 'Waiting for completion.';
+					<div>{'Status: ' + @message}</div>
+					break;
+				case 'completed':
+					@message = 'Task finished!';
+					<div class="success">{'Status: ' + @message}</div>
+					break;
+				default:
+					@message = 'An error occurred.';
+					<div class="error">{'Status: ' + @message}</div>
+			}
+		}
+
+		render(App);
+		expect(container.textContent).toBe('PendingCompletedErrorStatus: Currently active.');
+
+		container.querySelectorAll('button')[0].click(); // Pending
+		flushSync();
+		expect(container.textContent).toBe('PendingCompletedErrorStatus: Waiting for completion.');
+
+		container.querySelectorAll('button')[1].click(); // Completed
+		flushSync();
+		expect(container.textContent).toBe('PendingCompletedErrorStatus: Task finished!');
+		expect(container.querySelector('.success')).toBeTruthy();
+
+		container.querySelectorAll('button')[2].click(); // Error
+		flushSync();
+		expect(container.textContent).toBe('PendingCompletedErrorStatus: An error occurred.');
+		expect(container.querySelector('.error')).toBeTruthy();
+	});
+});

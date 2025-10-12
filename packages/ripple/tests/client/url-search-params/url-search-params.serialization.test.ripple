@@ -1,0 +1,53 @@
+import { flushSync, track, TrackedURLSearchParams } from 'ripple';
+
+describe('TrackedURLSearchParams > serialization', () => {
+	it('handles toString method with reactivity', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams('foo=bar');
+			let string = track(() => params.toString());
+
+			<button onClick={() => params.append('baz', 'qux')}>{'add'}</button>
+			<pre>{@string}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelector('pre').textContent).toBe('foo=bar');
+
+		// Test add
+		button.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('foo=bar&baz=qux');
+	});
+
+	it('handles special characters encoding', () => {
+		component URLTest() {
+			const params = new TrackedURLSearchParams();
+
+			<button onClick={() => params.set('key', 'value with spaces')}>{'add spaces'}</button>
+			<button onClick={() => params.set('special', '!@#$%^&*()')}>{'add special'}</button>
+			<pre>{params.toString()}</pre>
+		}
+
+		render(URLTest);
+
+		const spacesButton = container.querySelectorAll('button')[0];
+		const specialButton = container.querySelectorAll('button')[1];
+
+		// Test spaces
+		spacesButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toBe('key=value+with+spaces');
+
+		// Test special characters
+		specialButton.click();
+		flushSync();
+
+		expect(container.querySelector('pre').textContent).toContain('special');
+	});
+});

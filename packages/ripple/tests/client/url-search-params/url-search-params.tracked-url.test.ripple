@@ -1,0 +1,55 @@
+import { flushSync, TrackedURL } from 'ripple';
+
+describe('TrackedURLSearchParams > TrackedURL integration', () => {
+	it('integrates with TrackedURL', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com?foo=bar');
+			const params = url.searchParams;
+
+			<button onClick={() => params.append('baz', 'qux')}>{'add param'}</button>
+			<pre>{url.href}</pre>
+			<pre>{params.toString()}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/?foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('foo=bar');
+
+		// Test add param - should update URL
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/?foo=bar&baz=qux');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('foo=bar&baz=qux');
+	});
+
+	it('handles empty search string in URL', () => {
+		component URLTest() {
+			const url = new TrackedURL('https://example.com');
+			const params = url.searchParams;
+
+			<button onClick={() => params.append('foo', 'bar')}>{'add first param'}</button>
+			<pre>{url.href}</pre>
+			<pre>{params.size}</pre>
+		}
+
+		render(URLTest);
+
+		const button = container.querySelector('button');
+
+		// Initial state - no search params
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
+
+		// Test add first param
+		button.click();
+		flushSync();
+
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/?foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
+	});
+});

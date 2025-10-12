@@ -1,25 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync } from 'ripple';
-
 describe('SVG namespace handling', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
-	});
-
 	it('should render static SVG elements with correct namespace', () => {
 		component App() {
 			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor">
@@ -143,7 +122,7 @@ describe('SVG namespace handling', () => {
 		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
 		expect(g.namespaceURI).toBe('http://www.w3.org/2000/svg');
 		expect(rects.length).toBe(2);
-		
+
 		rects.forEach(rect => {
 			expect(rect.namespaceURI).toBe('http://www.w3.org/2000/svg');
 		});

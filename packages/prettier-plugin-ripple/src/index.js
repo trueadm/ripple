@@ -1,7 +1,7 @@
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
-const { concat, join, line, hardline, group, indent, dedent, ifBreak } = doc.builders;
+const { concat, join, line, softline, hardline, group, indent, dedent, ifBreak } = doc.builders;
 
 // Embed function - not needed for now
 export function embed(path, options) {
@@ -84,6 +84,11 @@ function createIndent(options, level = 1) {
 	} else {
 		return ' '.repeat((options.tabWidth || 2) * level);
 	}
+}
+
+// Helper function to add semicolons based on options.semi setting
+function semi(options) {
+	return options.semi !== false ? ';' : '';
 }
 
 function printRippleNode(node, path, options, print, args) {
@@ -414,6 +419,28 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'TrackedMapExpression': {
+			// Format: #Map(arg1, arg2, ...)
+			if (!node.arguments || node.arguments.length === 0) {
+				nodeContent = '#Map()';
+			} else {
+				const args = path.map(print, 'arguments');
+				nodeContent = concat(['#Map(', join(concat([',', line]), args), ')']);
+			}
+			break;
+		}
+
+		case 'TrackedSetExpression': {
+			// Format: #Set(arg1, arg2, ...)
+			if (!node.arguments || node.arguments.length === 0) {
+				nodeContent = '#Set()';
+			} else {
+				const args = path.map(print, 'arguments');
+				nodeContent = concat(['#Set(', join(concat([',', line]), args), ')']);
+			}
+			break;
+		}
+
 		case 'UnaryExpression':
 			nodeContent = printUnaryExpression(node, path, options, print);
 			break;
@@ -467,28 +494,16 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSTypeParameterInstantiation(node, path, options, print);
 			break;
 
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
-
-		case 'TSBooleanKeyword':
-			nodeContent = 'boolean';
-			break;
-
-		case 'TSUndefinedKeyword':
-			nodeContent = 'undefined';
-			break;
-
 		case 'TSSymbolKeyword':
 			nodeContent = 'symbol';
 			break;
 
-		case 'TSBigIntKeyword':
-			nodeContent = 'bigint';
-			break;
-
 		case 'TSAnyKeyword':
 			nodeContent = 'any';
+			break;
+
+		case 'TSUnknownKeyword':
+			nodeContent = 'unknown';
 			break;
 
 		case 'TSNeverKeyword':
@@ -497,6 +512,38 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSVoidKeyword':
 			nodeContent = 'void';
+			break;
+
+		case 'TSUndefinedKeyword':
+			nodeContent = 'undefined';
+			break;
+
+		case 'TSNullKeyword':
+			nodeContent = 'null';
+			break;
+
+		case 'TSNumberKeyword':
+			nodeContent = 'number';
+			break;
+
+		case 'TSBigIntKeyword':
+			nodeContent = 'bigint';
+			break;
+
+		case 'TSObjectKeyword':
+			nodeContent = 'object';
+			break
+
+		case 'TSBooleanKeyword':
+			nodeContent = 'boolean';
+			break;
+
+		case 'TSStringKeyword':
+			nodeContent = 'string';
+			break;
+
+		case 'EmptyStatement':
+			nodeContent = '';
 			break;
 
 		case 'TSInterfaceBody':
@@ -532,20 +579,18 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = concat(parts);
 			break;
 		}
-
-		case 'EmptyStatement':
-			nodeContent = '';
+		case 'RestElement': {
+			const parts = ['...', path.call(print, 'argument')];
+			nodeContent = concat(parts);
 			break;
-
+		}
 		case 'VariableDeclaration':
 			nodeContent = printVariableDeclaration(node, path, options, print);
 			break;
 
-		case 'ExpressionStatement':
-			nodeContent = concat([path.call(print, 'expression'), ';']);
-			break;
-
-		case 'RefAttribute':
+	case 'ExpressionStatement':
+		nodeContent = concat([path.call(print, 'expression'), semi(options)]);
+		break;		case 'RefAttribute':
 			nodeContent = concat(['{ref ', path.call(print, 'argument'), '}']);
 			break;
 
@@ -553,7 +598,9 @@ function printRippleNode(node, path, options, print, args) {
 			const parts = ['{...', path.call(print, 'argument'), '}'];
 			nodeContent = concat(parts);
 			break;
-		} case 'Identifier': {
+		}
+
+		case 'Identifier': {
 			// Simple case - just return the name directly like Prettier core
 			const trackedPrefix = node.tracked ? "@" : "";
 			if (node.typeAnnotation) {
@@ -636,7 +683,7 @@ function printRippleNode(node, path, options, print, args) {
 				parts.push(' ');
 				parts.push(path.call(print, 'argument'));
 			}
-			parts.push(';');
+			parts.push(semi(options));
 			nodeContent = concat(parts);
 			break;
 		}
@@ -672,10 +719,6 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = concat(parts);
 			break;
 		}
-
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
 
 		case 'MemberExpression':
 			nodeContent = printMemberExpression(node, path, options, print);
@@ -714,22 +757,6 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSPropertySignature(node, path, options, print);
 			break;
 
-		case 'TSStringKeyword':
-			nodeContent = 'string';
-			break;
-
-		case 'TSNumberKeyword':
-			nodeContent = 'number';
-			break;
-
-		case 'TSNullKeyword':
-			nodeContent = 'null';
-			break;
-
-		case 'TSUnknownKeyword':
-			nodeContent = 'unknown';
-			break;
-
 		case 'TSLiteralType':
 			nodeContent = path.call(print, 'literal');
 			break;
@@ -759,7 +786,7 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSTypeQuery': {
 			const expr = path.call(print, 'exprName');
-			nodeContent = `typeof ${expr}`;
+			nodeContent = concat(['typeof ', expr]);
 			break;
 		}
 
@@ -768,8 +795,8 @@ function printRippleNode(node, path, options, print, args) {
 
 			// Handle parameters
 			parts.push('(');
-			if (node.params && node.params.length > 0) {
-				const params = path.map(print, 'params');
+			if (node.parameters && node.parameters.length > 0) {
+				const params = path.map(print, 'parameters');
 				for (let i = 0; i < params.length; i++) {
 					if (i > 0) parts.push(', ');
 					parts.push(params[i]);
@@ -988,10 +1015,12 @@ function printImportDeclaration(node, path, options, print) {
 			if (spec.type === 'ImportDefaultSpecifier') {
 				defaultImports.push(spec.local.name);
 			} else if (spec.type === 'ImportSpecifier') {
+				// Handle inline type imports: import { type Component } from 'ripple'
+				const typePrefix = spec.importKind === 'type' ? 'type ' : '';
 				const importName =
 					spec.imported.name === spec.local.name
-						? spec.local.name
-						: spec.imported.name + ' as ' + spec.local.name;
+						? typePrefix + spec.local.name
+						: typePrefix + spec.imported.name + ' as ' + spec.local.name;
 				namedImports.push(importName);
 			} else if (spec.type === 'ImportNamespaceSpecifier') {
 				namespaceImports.push('* as ' + spec.local.name);
@@ -1013,7 +1042,7 @@ function printImportDeclaration(node, path, options, print) {
 		parts.push(' ' + importParts.join(', ') + ' from');
 	}
 
-	parts.push(' ' + formatStringLiteral(node.source.value, options) + ';');
+	parts.push(' ' + formatStringLiteral(node.source.value, options) + semi(options));
 
 	// Return as single string for proper cursor tracking
 	return parts;
@@ -1045,7 +1074,7 @@ function printExportNamedDeclaration(node, path, options, print) {
 			parts.push(' from ');
 			parts.push(formatStringLiteral(node.source.value, options));
 		}
-		parts.push(';');
+		parts.push(semi(options));
 
 		return parts;
 	}
@@ -1069,16 +1098,26 @@ function printComponent(node, path, options, print) {
 
 	// Always add parentheses, even if no parameters
 	if (node.params && node.params.length > 0) {
-		signatureParts.push('(');
 		const paramList = path.map(print, 'params');
+
+		// Use Prettier doc builders to allow proper line breaking based on printWidth
+		const params = [];
 		for (let i = 0; i < paramList.length; i++) {
-			if (i > 0) signatureParts.push(', ');
+			if (i > 0) {
+				params.push(',');
+				params.push(line);
+			}
 			if (Array.isArray(paramList[i])) {
-				signatureParts.push(...paramList[i]);
+				params.push(...paramList[i]);
 			} else {
-				signatureParts.push(paramList[i]);
+				params.push(paramList[i]);
 			}
 		}
+
+		// Use group to allow Prettier to decide whether to break or not
+		// For ObjectPattern, the opening ( goes before the {
+		signatureParts.push('(');
+		signatureParts.push(group(concat(params)));
 		signatureParts.push(')');
 	} else {
 		signatureParts.push('()');
@@ -1191,7 +1230,7 @@ function printVariableDeclaration(node, path, options, print) {
 	const declarationParts = join(', ', declarations);
 
 	if (!hasForLoopParent) {
-		return concat([kind, ' ', declarationParts, ';']);
+		return concat([kind, ' ', declarationParts, semi(options)]);
 	}
 
 	return concat([kind, ' ', declarationParts]);
@@ -1609,7 +1648,7 @@ function printPropertyDefinition(node, path, options, print) {
 		parts.push(path.call(print, 'value'));
 	}
 
-	parts.push(';');
+	parts.push(semi(options));
 
 	return concat(parts);
 }
@@ -1775,7 +1814,7 @@ function printThrowStatement(node, path, options, print) {
 	const parts = [];
 	parts.push('throw ');
 	parts.push(path.call(print, 'argument'));
-	parts.push(';');
+	parts.push(semi(options));
 	return parts;
 }
 
@@ -1802,7 +1841,7 @@ function printTSInterfaceBody(node, path, options, print) {
 	const members = path.map(print, 'body');
 
 	// Add semicolons to all members
-	const membersWithSemicolons = members.map((member) => concat([member, ';']));
+	const membersWithSemicolons = members.map((member) => concat([member, semi(options)]));
 
 	return group(['{', indent([hardline, join(hardline, membersWithSemicolons)]), hardline, '}']);
 }
@@ -1818,7 +1857,7 @@ function printTSTypeAliasDeclaration(node, path, options, print) {
 
 	parts.push(' = ');
 	parts.push(path.call(print, 'typeAnnotation'));
-	parts.push(';');
+	parts.push(semi(options));
 
 	return parts;
 }
@@ -1921,7 +1960,7 @@ function printBreakStatement(node, path, options, print) {
 		parts.push(' ');
 		parts.push(path.call(print, 'label'));
 	}
-	parts.push(';');
+	parts.push(semi(options));
 	return parts;
 }
 
@@ -1932,12 +1971,12 @@ function printContinueStatement(node, path, options, print) {
 		parts.push(' ');
 		parts.push(path.call(print, 'label'));
 	}
-	parts.push(';');
+	parts.push(semi(options));
 	return parts;
 }
 
 function printDebuggerStatement(node, path, options, print) {
-	return 'debugger;';
+	return 'debugger' + semi(options);
 }
 
 function printSequenceExpression(node, path, options, print) {
@@ -2159,21 +2198,32 @@ function shouldAddBlankLine(currentNode, nextNode) {
 }
 
 function printObjectPattern(node, path, options, print) {
-	const parts = [];
-	parts.push('{ ');
 	const propList = path.map(print, 'properties');
-	for (let i = 0; i < propList.length; i++) {
-		if (i > 0) parts.push(', ');
-		parts.push(propList[i]);
-	}
-	parts.push(' }');
+	const allowTrailingComma =
+		node.properties &&
+		node.properties.length > 0 &&
+		node.properties[node.properties.length - 1].type !== 'RestElement';
+
+	const content = group(
+		concat([
+			'{',
+			indent(
+				concat([
+					line,
+					join(concat([',', line]), propList),
+					allowTrailingComma && options.trailingComma !== 'none' ? ifBreak(',', '') : '',
+				]),
+			),
+			line,
+			'}',
+		]),
+	);
 
 	if (node.typeAnnotation) {
-		parts.push(': ');
-		parts.push(path.call(print, 'typeAnnotation'));
+		return concat([content, ': ', path.call(print, 'typeAnnotation')]);
 	}
 
-	return concat(parts);
+	return content;
 }
 
 function printArrayPattern(node, path, options, print) {
@@ -2556,7 +2606,7 @@ function printCSSBlock(node, path, options, print) {
 }
 
 function printElement(node, path, options, print) {
-	const tagName = node.id.name;
+	const tagName = (node.id.tracked ? '@' : '') + node.id.name;
 
 	// Check if any children have leading comments that are actually at the element's level
 	// (i.e., comments that appear before the element in the source code)
@@ -2712,17 +2762,28 @@ function printElement(node, path, options, print) {
 		return elementOutput;
 	}
 
+	// Determine the line break type for attributes
+	// When singleAttributePerLine is true, force each attribute on its own line with hardline
+	// Otherwise, use line to allow collapsing when it fits
+	const attrLineBreak = options.singleAttributePerLine ? hardline : line;
+
 	const openingTag = group([
 		'<',
 		tagName,
 		indent(
-			group([
+			concat([
 				...path.map((attrPath) => {
-					return concat([' ', print(attrPath)]);
+					return concat([attrLineBreak, print(attrPath)]);
 				}, 'attributes'),
 			]),
 		),
-		node.selfClosing || !node.children || node.children.length === 0 ? ' />' : '>',
+		// Add line break opportunity before > or />
+		// Use line for self-closing (keeps space), softline for non-self-closing when attributes present
+		// When bracketSameLine is true, don't add line break for non-self-closing elements
+		node.selfClosing || !node.children || node.children.length === 0
+			? (node.attributes && node.attributes.length > 0 ? line : '')
+			: (node.attributes && node.attributes.length > 0 && !options.bracketSameLine ? softline : ''),
+		node.selfClosing || !node.children || node.children.length === 0 ? '/>' : '>',
 	]);
 
 	if (node.selfClosing || !node.children || node.children.length === 0) {
@@ -2798,13 +2859,23 @@ function printElement(node, path, options, print) {
 		// But DON'T inline if child is a non-self-closing Element or JSXElement
 		const isNonSelfClosingElement = firstChild && (firstChild.type === 'Element' || firstChild.type === 'JSXElement') && !firstChild.selfClosing;
 
+		// Check if child is any kind of Element/JSXElement (including self-closing)
+		const isElementChild = firstChild && (firstChild.type === 'Element' || firstChild.type === 'JSXElement');
+
+		// If parent has attributes and child is an element, always break to multiple lines
+		const hasAttributes = node.attributes && node.attributes.length > 0;
+
 		if (typeof child === 'string' && child.length < 20) {
 			// Single line with short text
 			elementOutput = group([openingTag, child, closingTag]);
 		} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
-			// For simple JSX expressions (Text, Html nodes), try single line
-			// But not for nested elements
-			elementOutput = group([openingTag, child, closingTag]);
+			// For self-closing elements with parent having attributes, force multi-line
+			if (isElementChild && hasAttributes) {
+				elementOutput = concat([openingTag, indent(concat([hardline, child])), hardline, closingTag]);
+			} else {
+				// For simple JSX expressions (Text, Html nodes), use softline to collapse without spaces
+				elementOutput = group([openingTag, indent(concat([softline, child])), softline, closingTag]);
+			}
 		} else {
 			// Multi-line for nested elements
 			elementOutput = concat([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);

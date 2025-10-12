@@ -106,7 +106,11 @@ function RipplePlugin(config) {
 					if (inComponent) {
 						// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
 						// At component top-level (scopeStack.length <= 4), apply JSX detection logic
-						if (this.scopeStack.length >= 5) {
+						// BUT: if the < is followed by /, it's a closing JSX tag, not a less-than operator
+						const nextChar = this.pos + 1 < this.input.length ? this.input.charCodeAt(this.pos + 1) : -1;
+						const isClosingTag = nextChar === 47; // '/'
+
+						if (this.scopeStack.length >= 5 && !isClosingTag) {
 							// Inside function - treat as TypeScript generic, not JSX
 							++this.pos;
 							return this.finishToken(tt.relational, '<');
@@ -163,22 +167,60 @@ function RipplePlugin(config) {
 							}
 						}
 
+						// Check if this is #Map or #Set
+						if (this.input.slice(this.pos, this.pos + 4) === '#Map') {
+							const charAfter = this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
+							if (charAfter === 40) { // ( character
+								this.pos += 4; // consume '#Map'
+								return this.finishToken(tt.name, '#Map');
+							}
+						}
+						if (this.input.slice(this.pos, this.pos + 4) === '#Set') {
+							const charAfter = this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
+							if (charAfter === 40) { // ( character
+								this.pos += 4; // consume '#Set'
+								return this.finishToken(tt.name, '#Set');
+							}
+						}
+
 						// Check if this is #server
 						if (this.input.slice(this.pos, this.pos + 7) === '#server') {
-							// Check that next char after 'server' is whitespace or {
+							// Check that next char after 'server' is whitespace, {, . (dot), or EOF
 							const charAfter =
 								this.pos + 7 < this.input.length ? this.input.charCodeAt(this.pos + 7) : -1;
 							if (
-								charAfter === 123 ||
-								charAfter === 32 ||
-								charAfter === 9 ||
-								charAfter === 10 ||
-								charAfter === 13 ||
-								charAfter === -1
+								charAfter === 123 || // {
+								charAfter === 46 || // . (dot)
+								charAfter === 32 || // space
+								charAfter === 9 || // tab
+								charAfter === 10 || // newline
+								charAfter === 13 || // carriage return
+								charAfter === -1 // EOF
 							) {
-								// { or whitespace or EOF
+								// { or . or whitespace or EOF
 								this.pos += 7; // consume '#server'
 								return this.finishToken(tt.name, '#server');
+							}
+						}
+
+						// Check if this is an invalid #Identifier pattern
+						// Valid patterns: #[, #{, #Map(, #Set(, #server
+						// If we see # followed by an uppercase letter that isn't Map or Set, it's an error
+						if (nextChar >= 65 && nextChar <= 90) { // A-Z
+							// Extract the identifier name
+							let identEnd = this.pos + 1;
+							while (identEnd < this.input.length) {
+								const ch = this.input.charCodeAt(identEnd);
+								if ((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122) || (ch >= 48 && ch <= 57) || ch === 95) {
+									// A-Z, a-z, 0-9, _
+									identEnd++;
+								} else {
+									break;
+								}
+							}
+							const identName = this.input.slice(this.pos + 1, identEnd);
+							if (identName !== 'Map' && identName !== 'Set') {
+								this.raise(this.pos, `Invalid tracked syntax '#${identName}'. Only #Map and #Set are currently supported using shorthand tracked syntax.`);
 							}
 						}
 					}
@@ -379,6 +421,19 @@ function RipplePlugin(config) {
 					return this.parseTrackedExpression();
 				}
 
+				// Check if this is #server identifier for server function calls
+				if (this.type === tt.name && this.value === '#server') {
+					const node = this.startNode();
+					this.next();
+					return this.finishNode(node, 'ServerIdentifier');
+				}
+
+				// Check if this is #Map( or #Set(
+				if (this.type === tt.name && (this.value === '#Map' || this.value === '#Set')) {
+					const type = this.value === '#Map' ? 'TrackedMapExpression' : 'TrackedSetExpression';
+					return this.parseTrackedCollectionExpression(type);
+				}
+
 				// Check if this is a tuple literal starting with #[
 				if (this.type === tt.bracketL && this.value === '#[') {
 					return this.parseTrackedArrayExpression();
@@ -388,7 +443,6 @@ function RipplePlugin(config) {
 
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
 			}
-
 			/**
 			 * Parse `@(expression)` syntax for unboxing tracked values
 			 * Creates a TrackedExpression node with the argument property
@@ -419,9 +473,59 @@ function RipplePlugin(config) {
 			parseServerBlock() {
 				const node = this.startNode();
 				this.next();
-				node.body = this.parseBlock();
+
+				const body = this.startNode();
+				node.body = body;
+				body.body = [];
+
+				this.expect(tt.braceL);
+				this.enterScope(0);
+				while (this.type !== tt.braceR) {
+					var stmt = this.parseStatement(null, true);
+					body.body.push(stmt);
+				}
+				this.next();
+				this.exitScope();
+				this.finishNode(body, 'BlockStatement');
+
 				this.awaitPos = 0;
 				return this.finishNode(node, 'ServerBlock');
+			}
+
+			/**
+			 * Parse `#Map(...)` or `#Set(...)` syntax for tracked collections
+			 * Creates a TrackedMap or TrackedSet node with the arguments property
+			 * @param {string} type - Either 'TrackedMap' or 'TrackedSet'
+			 * @returns {any} TrackedMap or TrackedSet node
+			 */
+			parseTrackedCollectionExpression(type) {
+				const node = this.startNode();
+				this.next(); // consume '#Map' or '#Set'
+				this.expect(tt.parenL); // expect '('
+
+				node.arguments = [];
+
+				// Parse arguments similar to function call arguments
+				let first = true;
+				while (!this.eat(tt.parenR)) {
+					if (!first) {
+						this.expect(tt.comma);
+						if (this.afterTrailingComma(tt.parenR)) break;
+					} else {
+						first = false;
+					}
+
+					if (this.type === tt.ellipsis) {
+						// Spread argument
+						const arg = this.parseSpread();
+						node.arguments.push(arg);
+					} else {
+						// Regular argument
+						node.arguments.push(this.parseMaybeAssign(false));
+					}
+				}
+
+				return this.finishNode(node, type);
 			}
 
 			parseTrackedArrayExpression() {
@@ -1281,6 +1385,7 @@ function RipplePlugin(config) {
 				}
 
 				if (this.value === 'component') {
+					this.awaitPos = 0;
 					const node = this.startNode();
 					node.type = 'Component';
 					node.css = null;

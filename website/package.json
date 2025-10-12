@@ -12,12 +12,12 @@
 	"license": "MIT",
 	"packageManager": "pnpm@10.14.0",
 	"dependencies": {
-		"livecodes": "0.12.0"
+		"livecodes": "catalog:default"
 	},
 	"devDependencies": {
-		"vitepress": "2.0.0-alpha.12",
-		"vitepress-plugin-npm-commands": "^0.8.1",
-		"vitepress-plugin-tabs": "^0.7.1"
+		"vitepress": "catalog:default",
+		"vitepress-plugin-npm-commands": "catalog:default",
+		"vitepress-plugin-tabs": "catalog:default"
 	},
 	"prettier": {
 		"singleQuote": true,

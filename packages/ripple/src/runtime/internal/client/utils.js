@@ -36,14 +36,6 @@ export function create_anchor() {
 }
 
 /**
- * @param {any} value
- * @returns {boolean}
- */
-export function is_positive_integer(value) {
-	return Number.isInteger(value) && /**@type {number} */ (value) >= 0;
-}
-
-/**
  * Checks if an object is a tracked object (has a numeric 'f' property).
  * @param {any} v - The object to check.
  * @returns {boolean}

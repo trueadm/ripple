@@ -1,25 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync, track, TrackedArray, TrackedMap, effect } from 'ripple';
+import { flushSync, track } from 'ripple';
 
 describe('computed tracked properties', () => {
-	let container;
-
-	function render(component) {
-		mount(component, {
-			target: container
-		});
-	}
-
-	beforeEach(() => {
-		container = document.createElement('div');
-		document.body.appendChild(container);
-	});
-
-	afterEach(() => {
-		document.body.removeChild(container);
-		container = null;
-	});
-
   it('should update a property using assignment', () => {
     component App() {
       let obj = {

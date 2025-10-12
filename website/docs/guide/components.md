@@ -59,24 +59,28 @@ scope of the parent.
 The child you pass in MUST be a component, not just templates!
 :::
 
+<Code>
+
 ```ripple
 component Composite({ PropComp, InlineComp }) {
 	<PropComp />
 	<InlineComp />
 }
 
-component Seperate() {
-	<p>{`I'm a seperate component.`}</p>
+component Separate() {
+	<p>{`I'm a separate component.`}</p>
 }
 
 export component App() {
-	<Composite PropComp={Seperate}>
+	<Composite PropComp={Separate}>
 		component InlineComp() {
 			<p>{`I'm an inline component.`}</p>
 		}
 	</Composite>
 }
 ```
+
+</Code>
 
 ## Example: Card Component Using Child Composition
 
@@ -85,6 +89,8 @@ an optional header and footer.
 
 This is a common pattern you'll see achieved with "slots" from Vue/Web
 Components, "render props" from React, and "snippets" from Svelte.
+
+<Code>
 
 ```ripple
 component Card({ children, Header, Footer }) {
@@ -111,6 +117,8 @@ export component App() {
 	</Card>
 }
 ```
+
+</Code>
 
 ## Reactive Props
 

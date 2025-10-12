@@ -269,16 +269,16 @@ var empty_get_set = { get: undefined, set: undefined };
 /**
  *
  * @param {any} v
- * @param {Block} b
+ * @param {Block} block
  * @param {(value: any) => any} [get]
  * @param {(next: any, prev: any) => any} [set]
  * @returns {Tracked}
  */
-export function tracked(v, b, get, set) {
+export function tracked(v, block, get, set) {
 	// TODO: now we expose tracked, we should likely block access in DEV somehow
 	return {
 		a: get || set ? { get, set } : empty_get_set,
-		b,
+		b: block || active_block,
 		c: 0,
 		f: TRACKED,
 		v,
@@ -295,7 +295,7 @@ export function tracked(v, b, get, set) {
 export function derived(fn, block, get, set) {
 	return {
 		a: get || set ? { get, set } : empty_get_set,
-		b: block,
+		b: block || active_block,
 		blocks: null,
 		c: 0,
 		co: active_component,
@@ -766,6 +766,16 @@ export function get_tracked(tracked) {
 		value = trigger_track_get(get, value);
 	}
 	return value;
+}
+
+/**
+ * Exposed version of `set` to avoid internal bugs
+ * since block is required on the internal `set`
+ * @param {Derived | Tracked} tracked
+ * @param {any} value
+ */
+export function public_set(tracked, value) {
+	set(tracked, value, safe_scope());
 }
 
 /**

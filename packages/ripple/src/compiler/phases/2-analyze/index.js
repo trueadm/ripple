@@ -96,11 +96,46 @@ const visitors = {
 		return context.next({ ...context.state, function_depth: 0, expression: null });
 	},
 
+	ServerBlock(node, context) {
+		node.metadata = {
+			...node.metadata,
+			exports: [],
+		};
+		context.visit(node.body, { ...context.state, inside_server_block: true });
+	},
+
 	Identifier(node, context) {
 		const binding = context.state.scope.get(node.name);
 		const parent = context.path.at(-1);
 
-		if (binding?.kind === 'prop' || binding?.kind === 'prop_fallback') {
+		if (
+			is_reference(node, /** @type {Node} */ (parent)) &&
+			binding &&
+			context.state.inside_server_block
+		) {
+			let current_scope = binding.scope;
+
+			while (current_scope !== null) {
+				if (current_scope.server_block) {
+					break;
+				}
+				const parent_scope = current_scope.parent;
+				if (parent_scope === null) {
+					error(
+						`Cannot reference client-side variable "${node.name}" from a server block`,
+						context.state.analysis.module.filename,
+						node,
+					);
+				}
+				current_scope = parent_scope;
+			}
+		}
+
+		if (
+			binding?.kind === 'prop' ||
+			binding?.kind === 'prop_fallback' ||
+			binding?.kind === 'for_pattern'
+		) {
 			mark_as_tracked(context.path);
 			if (context.state.metadata?.tracking === false) {
 				context.state.metadata.tracking = true;
@@ -312,6 +347,7 @@ const visitors = {
 			}
 
 			node.metadata = {
+				...node.metadata,
 				has_template: false,
 			};
 
@@ -347,7 +383,38 @@ const visitors = {
 			}
 		}
 
+		if (node.key) {
+			const state = context.state;
+			const pattern = node.left.declarations[0].id;
+			const paths = extract_paths(pattern);
+			const scope = state.scopes.get(node);
+			const pattern_id = b.id(scope.generate('pattern'));
+
+			node.left.declarations[0].id = pattern_id;
+
+			for (const path of paths) {
+				const name = path.node.name;
+				const binding = context.state.scope.get(name);
+
+				binding.kind = 'for_pattern';
+				if (!binding.metadata) {
+					binding.metadata = {
+						pattern: pattern_id,
+					};
+				}
+
+				if (binding !== null) {
+					binding.transform = {
+						read: () => {
+							return path.expression(b.call('_$_.get', pattern_id));
+						},
+					};
+				}
+			}
+		}
+
 		node.metadata = {
+			...node.metadata,
 			has_template: false,
 		};
 		context.next();
@@ -359,6 +426,23 @@ const visitors = {
 				node,
 			);
 		}
+	},
+
+	ExportNamedDeclaration(node, context) {
+		if (!context.state.inside_server_block) {
+			return context.next();
+		}
+		const server_block = context.path.find((n) => n.type === 'ServerBlock');
+		const declaration = node.declaration;
+
+		if (declaration && declaration.type === 'FunctionDeclaration') {
+			server_block.metadata.exports.push(declaration.id.name);
+		} else {
+			// TODO
+			throw new Error('Not implemented');
+		}
+
+		return context.next();
 	},
 
 	TSTypeReference(node, context) {
@@ -376,6 +460,7 @@ const visitors = {
 		}
 
 		node.metadata = {
+			...node.metadata,
 			has_template: false,
 		};
 
@@ -391,6 +476,7 @@ const visitors = {
 
 		if (node.alternate) {
 			node.metadata = {
+				...node.metadata,
 				has_template: false,
 			};
 			context.visit(node.alternate, context.state);
@@ -417,6 +503,7 @@ const visitors = {
 			}
 
 			node.metadata = {
+				...node.metadata,
 				has_template: false,
 			};
 
@@ -431,6 +518,7 @@ const visitors = {
 			}
 
 			node.metadata = {
+				...node.metadata,
 				has_template: false,
 			};
 
@@ -478,6 +566,23 @@ const visitors = {
 		const attribute_names = new Set();
 
 		mark_control_flow_has_template(path);
+
+		// Store capitalized name for dynamic components/elements
+		if (node.id.tracked) {
+			const original_name = node.id.name;
+			const capitalized_name = original_name.charAt(0).toUpperCase() + original_name.slice(1);
+			node.metadata.ts_name = capitalized_name;
+			node.metadata.original_name = original_name;
+
+			// Mark the binding as a dynamic component so we can capitalize it everywhere
+			const binding = context.state.scope.get(original_name);
+			if (binding) {
+				if (!binding.metadata) {
+					binding.metadata = {};
+				}
+				binding.metadata.is_dynamic_component = true;
+			}
+		}
 
 		if (is_dom_element) {
 			if (node.id.name === 'head') {
@@ -672,6 +777,7 @@ export function analyze(ast, filename) {
 			scopes,
 			analysis,
 			inside_head: false,
+			inside_server_block: false,
 		},
 		visitors,
 	);

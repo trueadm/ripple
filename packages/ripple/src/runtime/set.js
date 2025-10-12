@@ -1,5 +1,5 @@
 /** @import { Block, Tracked } from '#client' */
-import { get, increment, safe_scope, set, tracked } from './internal/client/runtime.js';
+import { get, increment, safe_scope, set, tracked, with_scope } from './internal/client/runtime.js';
 
 const introspect_methods = ['entries', 'forEach', 'keys', 'values', Symbol.iterator];
 
@@ -192,4 +192,14 @@ export class TrackedSet extends Set {
 
     return [...this];
   }
+}
+
+/**
+ * @template V
+ * @param {Block} block
+ * @param {...any} args
+ * @returns {TrackedSet<V>}
+ */
+export function tracked_set(block, ...args) {
+  return with_scope(block, () => new TrackedSet(...args));
 }

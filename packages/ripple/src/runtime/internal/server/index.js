@@ -2,7 +2,7 @@
 import { DERIVED, UNINITIALIZED } from '../client/constants.js';
 import { is_tracked_object } from '../client/utils.js';
 import { escape } from '../../../utils/escaping.js';
-import { is_boolean_attribute } from '../../../compiler/utils';
+import { is_boolean_attribute } from '../../../compiler/utils.js';
 import { clsx } from 'clsx';
 
 export { escape };

@@ -1,0 +1,106 @@
+import { track, effect, flushSync } from 'ripple';
+
+describe('composite > props', () => {
+	it('correctly handles default prop values', () => {
+		component Child({ foo = 456 }) {
+			<div>{foo}</div>
+		}
+
+		component App() {
+			let foo = track(123);
+
+			<Child />
+			<Child {@foo} />
+		}
+
+		render(App);
+
+		expect(container.querySelectorAll('div')[0].textContent).toBe('456');
+		expect(container.querySelectorAll('div')[1].textContent).toBe('123');
+	});
+
+	it('correctly handles default prop values #2', () => {
+		component Child({ foo = 456 }) {
+			<div>{foo}</div>
+		}
+
+		component App() {
+			let foo = 123;
+
+			<Child />
+			<Child {foo} />
+		}
+
+		render(App);
+
+		expect(container.querySelectorAll('div')[0].textContent).toBe('456');
+		expect(container.querySelectorAll('div')[1].textContent).toBe('123');
+	});
+
+	it('correctly handles no props', () => {
+		component Child(props: { foo?: Tracked<number> }) {
+			<div>{props.@foo}</div>
+		}
+
+		component App() {
+			let foo = track(123);
+
+			<Child />
+			<Child {foo} />
+		}
+
+		render(App);
+
+		expect(container.querySelectorAll('div')[0].textContent).toBe('');
+		expect(container.querySelectorAll('div')[1].textContent).toBe('123');
+	});
+
+	it('correctly handles no props #2', () => {
+		component Child({ foo }) {
+			<div>{foo}</div>
+		}
+
+		component App() {
+			let foo = track(123);
+
+			<Child />
+			<Child {@foo} />
+		}
+
+		render(App);
+
+		expect(container.querySelectorAll('div')[0].textContent).toBe('');
+		expect(container.querySelectorAll('div')[1].textContent).toBe('123');
+	});
+
+	it('mutating a tracked value prop should work as intended', () => {
+		const logs: number[] = [];
+
+		component Counter({count}) {
+			effect(() => {
+				logs.push(@count);
+			});
+
+			<button onClick={() => @count = @count + 1}>{'+'}</button>
+		}
+
+		component App() {
+			const count = track(0);
+
+			<div>
+				<Counter count={count} />
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		expect(logs).toEqual([0]);
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(logs).toEqual([0, 1]);
+	})
+});

@@ -26,6 +26,67 @@ component Truthy({ x }) {
 
 </Code>
 
+## Switch statements
+
+Switch statements let you conditionally render content based on a value. They work with both static and reactive values.
+
+<Code>
+
+```ripple
+component StatusIndicator({ status }) {
+  <div>
+    switch (status) {
+      case 'loading':
+        <p>{'Loading...'}</p>
+        break;
+      case 'success':
+        <p>{'Success!'}</p>
+        break;
+      case 'error':
+        <p>{'Error!'}</p>
+        break;
+      default:
+        <p>{'Unknown status'}</p>
+    }
+  </div>
+}
+```
+
+</Code>
+
+You can also use reactive values with switch statements.
+
+<Code>
+
+```ripple
+import { track } from 'ripple';
+
+component InteractiveStatus() {
+  let status = track('loading');
+
+  <button onClick={() => @status = 'success'}>{'Success'}</button>
+  <button onClick={() => @status = 'error'}>{'Error'}</button>
+
+  <div>
+    switch (@status) {
+      case 'loading':
+        <p>{'Loading...'}</p>
+        break;
+      case 'success':
+        <p>{'Success!'}</p>
+        break;
+      case 'error':
+        <p>{'Error!'}</p>
+        break;
+      default:
+        <p>{'Unknown status'}</p>
+    }
+  </div>
+}
+```
+
+</Code>
+
 ## For statements
 
 You can render collections using a `for...of` loop.
@@ -121,6 +182,19 @@ component ErrorBoundary() {
       <div>{'An error occurred! ' + e.message}</div>
     }
   </div>
+}
+```
+
+## Dynamic Elements
+
+You can render dynamic HTML elements by storing the tag name in a tracked variable and using the `<@tagName>` syntax:
+
+```ripple
+export component App() {
+	let tag = track('div');
+
+	<@tag class="dynamic">{'Hello World'}</@tag>
+	<button onClick={() => @tag = @tag === 'div' ? 'span' : 'div'}>{'Toggle Element'}</button>
 }
 ```
 

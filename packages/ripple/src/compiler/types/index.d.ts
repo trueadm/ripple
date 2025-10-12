@@ -79,6 +79,22 @@ export interface TrackedObjectExpression extends Omit<ObjectExpression, 'type'> 
 }
 
 /**
+ * Tracked Map expression node
+ */
+export interface TrackedMapExpression extends Omit<Node, 'type'> {
+	type: 'TrackedMapExpression';
+	arguments: (Expression | SpreadElement)[];
+}
+
+/**
+ * Tracked Set expression node
+ */
+export interface TrackedSetExpression extends Omit<Node, 'type'> {
+	type: 'TrackedSetExpression';
+	arguments: (Expression | SpreadElement)[];
+}
+
+/**
  * Ripple component node
  */
 export interface Component extends Omit<Node, 'type'> {
@@ -151,7 +167,7 @@ export type DeclarationKind =
 /**
  * Binding kinds
  */
-export type BindingKind = 'normal' | 'each' | 'rest_prop' | 'prop' | 'prop_fallback';
+export type BindingKind = 'normal' | 'for_pattern' | 'rest_prop' | 'prop' | 'prop_fallback';
 
 /**
  * A variable binding in a scope
