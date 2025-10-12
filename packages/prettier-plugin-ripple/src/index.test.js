@@ -571,6 +571,28 @@ export component Test({ a, b }: Props) {}`;
 			const result = await format(expected, { singleQuote: true, printWidth: 60 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('keeps a new line between comments above and code if one is present', async () => {
+			const expected = `// comment
+
+import { useCount, incrementCount } from './useCount';
+import { effect, track } from 'ripple';`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format properly an array of objects', async () => {
+			const expected = `obj = {
+  test: [
+    { a: 1, b: 2, c: 3, d: 4 },
+    { a: 1, b: 2 },
+    { c: 3, d: 4 },
+  ],
+};`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
