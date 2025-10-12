@@ -463,9 +463,17 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = 'this';
 			break;
 
+		case 'ChainExpression':
+			nodeContent = path.call(print, 'expression');
+			break;
+
 		case 'CallExpression': {
 			const parts = [];
 			parts.push(path.call(print, 'callee'));
+
+			if (node.optional) {
+				parts.push('?.');
+			}
 
 			// Add TypeScript generics if present
 			if (node.typeArguments) {
@@ -1817,9 +1825,11 @@ function printMemberExpression(node, path, options, print) {
 	const propertyPart = path.call(print, 'property');
 
 	if (node.computed) {
-		return concat([objectPart, '[', propertyPart, ']']);
+		const openBracket = node.optional ? '?.[' : '[';
+		return concat([objectPart, openBracket, propertyPart, ']']);
 	} else {
-		return concat([objectPart, '.', propertyPart]);
+		const separator = node.optional ? '?.' : '.';
+		return concat([objectPart, separator, propertyPart]);
 	}
 }
 

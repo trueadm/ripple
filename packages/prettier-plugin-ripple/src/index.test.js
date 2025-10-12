@@ -593,6 +593,12 @@ import { effect, track } from 'ripple';`;
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should keep chained expression intact', async () => {
+			const expected = `const doc = getRootNode?.()?.ownerDocument ?? document;`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
