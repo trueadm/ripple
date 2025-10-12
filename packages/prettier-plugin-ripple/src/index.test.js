@@ -652,7 +652,7 @@ const [obj1, obj2] = arrayOfObjects;`;
 			expect(result).toBeWithNewline(expected);
 		});
 
-		it.skip('should keep one new line between css declarations if one or more is provided', async () => {
+		it('should keep one new line between css declarations if one or more is provided', async () => {
 			const input = `export component App() {
   <style>
     div {

@@ -2593,8 +2593,33 @@ function printStyleSheet(node, path, options, print) {
 		}
 
 		// Structure the CSS with proper indentation and spacing
-		// CSS rules need exactly 3 more spaces beyond the <style> element's indentation
-		return join(hardline, cssItems);
+		// Check for blank lines between CSS items and preserve them
+		const result = [];
+		for (let i = 0; i < cssItems.length; i++) {
+			result.push(cssItems[i]);
+			if (i < cssItems.length - 1) {
+				// Check if there are blank lines between current and next item
+				const currentItem = node.body[i];
+				const nextItem = node.body[i + 1];
+
+				// Check for blank lines in the original CSS source between rules
+				let hasBlankLine = false;
+				if (node.source && typeof currentItem.end === 'number' && typeof nextItem.start === 'number') {
+					const textBetween = node.source.substring(currentItem.end, nextItem.start);
+					// Count newlines in the text between the rules
+					const newlineCount = (textBetween.match(/\n/g) || []).length;
+					// If there are 2 or more newlines, there's at least one blank line
+					hasBlankLine = newlineCount >= 2;
+				}				if (hasBlankLine) {
+					// If there are blank lines, add an extra hardline (to create a blank line)
+					result.push(hardline, hardline);
+				} else {
+					result.push(hardline);
+				}
+			}
+		}
+
+		return concat(result);
 	}
 
 	// If no body, return empty string
