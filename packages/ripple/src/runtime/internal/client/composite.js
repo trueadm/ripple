@@ -2,7 +2,7 @@
 
 import { branch, destroy_block, render } from './blocks.js';
 import { COMPOSITE_BLOCK } from './constants.js';
-import { apply_element_spread } from './render';
+import { apply_element_spread } from './render.js';
 import { active_block } from './runtime.js';
 
 /**
