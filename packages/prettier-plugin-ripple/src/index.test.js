@@ -599,6 +599,29 @@ import { effect, track } from 'ripple';`;
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('does not add spaces around inlined array elements in destructured arguments', async () => {
+			const expected = `for (const [key, value] of Object.entries(attributes).filter(([_key, value]) => value !== '')) {}
+const [obj1, obj2] = arrayOfObjects;`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('properly formats for of loops where the parent has no attributes', async () => {
+			const expected = `<tbody>
+  for (const [key, value] of Object.entries(attributes).filter(([_key, value]) => value !== '')) {
+    <tr class="not-last:border-b border-border/50">
+      <td class="py-2 font-mono w-48">
+        <Kbd>{key}</Kbd>
+      </td>
+      <td class="py-2">{value}</td>
+    </tr>
+  }
+</tbody>`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
@@ -780,7 +803,7 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 		const input = `for (const [i = 0, item] of items.entries()) {}
 for (const {i = 0, item} of items.entries()) {}`;
 
-		const expected = `for (const [ i = 0, item ] of items.entries()) {}
+		const expected = `for (const [i = 0, item] of items.entries()) {}
 for (const { i = 0, item } of items.entries()) {}`;
 
 		const result = await format(input);

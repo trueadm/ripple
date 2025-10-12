@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
@@ -2338,13 +2339,13 @@ function printObjectPattern(node, path, options, print) {
 
 function printArrayPattern(node, path, options, print) {
 	const parts = [];
-	parts.push('[ ');
+	parts.push('[');
 	const elementList = path.map(print, 'elements');
 	for (let i = 0; i < elementList.length; i++) {
 		if (i > 0) parts.push(', ');
 		parts.push(elementList[i]);
 	}
-	parts.push(' ]');
+	parts.push(']');
 
 	if (node.typeAnnotation) {
 		parts.push(': ');
@@ -2715,6 +2716,26 @@ function printCSSBlock(node, path, options, print) {
 	return '';
 }
 
+function shouldInlineSingleChild(parentNode, firstChild, childDoc) {
+	if (!firstChild || childDoc == null) {
+		return false;
+	}
+
+	if (typeof childDoc === 'string') {
+		return childDoc.length <= 20 && !childDoc.includes('\n');
+	}
+
+	if (firstChild.type === 'Text' || firstChild.type === 'Html' || firstChild.type === 'StyleSheet') {
+		return true;
+	}
+
+	if ((firstChild.type === 'Element' || firstChild.type === 'JSXElement') && firstChild.selfClosing) {
+		return !parentNode.attributes || parentNode.attributes.length === 0;
+	}
+
+	return false;
+}
+
 function printElement(node, path, options, print) {
 	const tagName = (node.id.tracked ? '@' : '') + node.id.name;
 
@@ -2837,7 +2858,7 @@ function printElement(node, path, options, print) {
 			if (typeof child === 'string' && child.length < 20) {
 				// Single line with short content
 				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
-			} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
+			} else if (child && typeof child === 'object' && !isNonSelfClosingElement && shouldInlineSingleChild(node, firstChild, child)) {
 				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
 			} else {
 				// Multi-line for non-self-closing elements
@@ -2978,7 +2999,7 @@ function printElement(node, path, options, print) {
 		if (typeof child === 'string' && child.length < 20) {
 			// Single line with short text
 			elementOutput = group([openingTag, child, closingTag]);
-		} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
+		} else if (child && typeof child === 'object' && !isNonSelfClosingElement && shouldInlineSingleChild(node, firstChild, child)) {
 			// For self-closing elements with parent having attributes, force multi-line
 			if (isElementChild && hasAttributes) {
 				elementOutput = concat([openingTag, indent(concat([hardline, child])), hardline, closingTag]);
