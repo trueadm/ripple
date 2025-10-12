@@ -154,6 +154,10 @@ catalogs:
     typescript:
       specifier: '>=5.0.0'
       version: 5.9.2
+  vscode:
+    typescript:
+      specifier: ^5.9.2
+      version: 5.9.2
 
 importers:
 
@@ -370,6 +374,9 @@ importers:
       ripple-language-server:
         specifier: workspace:*
         version: link:../ripple-language-server
+      typescript:
+        specifier: catalog:vscode
+        version: 5.9.2
       typescript-plugin-ripple:
         specifier: workspace:*
         version: link:../typescript-plugin-ripple
