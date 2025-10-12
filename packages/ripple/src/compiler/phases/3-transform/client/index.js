@@ -840,6 +840,14 @@ const visitors = {
 						let property =
 							attr.value === null ? b.literal(true) : visit(attr.value, { ...state, metadata });
 
+						if (attr.name.name === 'class' && node.metadata.scoped && state.component.css) {
+							if (property.type === 'Literal') {
+								property = b.literal(`${state.component.css.hash} ${property.value}`);
+							} else {
+								property = b.array([property, b.literal(state.component.css.hash)]);
+							}
+						}
+
 						if (metadata.tracking || attr.name.tracked) {
 							if (attr.name.name === 'children') {
 								children_prop = b.thunk(property);
@@ -871,6 +879,17 @@ const visitors = {
 					throw new Error('TODO');
 				}
 			}
+
+		if (node.metadata.scoped && state.component.css) {
+			const hasClassAttr = node.attributes.some(attr => 
+				attr.type === 'Attribute' && attr.name.type === 'Identifier' && attr.name.name === 'class'
+			);
+			if (!hasClassAttr) {
+				const name = is_spreading ? '#class' : 'class';
+				const value = state.component.css.hash;
+				props.push(b.prop('init', b.key(name), b.literal(value)));
+			}
+		}
 
 			const children_filtered = [];
 
