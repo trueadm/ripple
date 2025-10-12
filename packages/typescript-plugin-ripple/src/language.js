@@ -269,14 +269,33 @@ const resolveConfig = (config) => {
 		options.target = ts.ScriptTarget.ESNext;
 	}
 
-	// Default libs: derive from the host's default lib until TypeScript resolves them.
-	if (!options.lib || options.lib.length === 0) {
+	/** @param {string} libName */
+	const normalizeLibName = (libName) => {
+		if (typeof libName !== 'string' || libName.length === 0) {
+			return undefined;
+		}
+		const trimmed = libName.trim();
+		if (trimmed.startsWith('lib.')) {
+			return trimmed.toLowerCase();
+		}
+		return `lib.${trimmed.toLowerCase().replace(/\s+/g, '').replace(/_/g, '.')}\.d.ts`;
+	};
+
+	const normalizedLibs = new Set(
+		(options.lib ?? [])
+			.map(normalizeLibName)
+			.filter((lib) => typeof lib === 'string'),
+	);
+
+	if (normalizedLibs.size === 0) {
 		const host = ts.createCompilerHost(options);
-		const defaultLibFileName = host.getDefaultLibFileName(options);
-		const match = defaultLibFileName.match(/^lib(?:\.(.*))?\.d\.ts$/);
-		const extractedLib = match?.[1] ?? 'esnext';
-		options.lib = [extractedLib];
+		const defaultLibFileName = host.getDefaultLibFileName(options).toLowerCase();
+		normalizedLibs.add(defaultLibFileName);
+		normalizedLibs.add('lib.dom.d.ts');
+		normalizedLibs.add('lib.dom.iterable.d.ts');
 	}
+
+	options.lib = [...normalizedLibs];
 
 	// Default typeRoots: automatically discover @types like tsserver.
 	if (!options.types) {

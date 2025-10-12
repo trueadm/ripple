@@ -39,8 +39,8 @@ catalogs:
     prompts: ^2.4.2
     tsdown: ^0.15.4
     tsup: ^8.3.5
-    typescript: ^5.9.2
-    vite: ^7.1.4
+    typescript: &ts_common ^5.9.2
+    vite: ^7.1.9
     vitepress: 2.0.0-alpha.12
     vitepress-plugin-npm-commands: ^0.8.1
     vitepress-plugin-tabs: ^0.7.1
@@ -56,3 +56,5 @@ catalogs:
     ripple: '*'
     tailwindcss: ^4.1.12
     typescript: '>=5.0.0'
+  vscode:
+    typescript: *ts_common

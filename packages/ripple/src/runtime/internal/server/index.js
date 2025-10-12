@@ -1,4 +1,5 @@
 /** @import { Component, Derived } from '#server' */
+/** @import { render } from 'ripple/server'*/
 import { DERIVED, UNINITIALIZED } from '../client/constants.js';
 import { is_tracked_object } from '../client/utils.js';
 import { escape } from '../../../utils/escaping.js';
@@ -56,10 +57,7 @@ class Output {
 	}
 }
 
-/**
- * @param {((output: Output, props: Record<string, any>) => void | Promise<void>) & { async?: boolean }} component
- * @returns {Promise<{head: string, body: string, css: Set<string>}>}
- */
+/** @type {render} */
 export async function render(component) {
 	const output = new Output(null);
 

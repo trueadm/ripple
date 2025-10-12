@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
@@ -91,6 +92,68 @@ function semi(options) {
 	return options.semi !== false ? ';' : '';
 }
 
+function hasBlankLineBeforeComment(comment, options) {
+	if (!comment || !options || typeof comment.start !== 'number' || !options.originalText) {
+		return false;
+	}
+
+	const text = options.originalText;
+	let index = comment.start - 1;
+	let newlineCount = 0;
+
+	while (index >= 0) {
+		const char = text[index];
+		if (char === '\n') {
+			newlineCount++;
+			if (newlineCount >= 2) {
+				return true;
+			}
+		} else if (char === '\r') {
+			// Ignore carriage returns, handle \r\n gracefully
+		} else if (char === ' ' || char === '\t') {
+			// continue scanning backwards through whitespace
+		} else {
+			break;
+		}
+
+		index--;
+	}
+
+	return false;
+}
+
+function wasOriginallySingleLine(node, options) {
+	if (!node || !node.loc || !node.loc.start || !node.loc.end) {
+		return false;
+	}
+
+	if (node.loc.start.line !== node.loc.end.line) {
+		return false;
+	}
+
+	if (
+		options &&
+		options.originalText &&
+		typeof node.loc.start.index === 'number' &&
+		typeof node.loc.end.index === 'number'
+	) {
+		const snippet = options.originalText.slice(node.loc.start.index, node.loc.end.index);
+		if (/\n/.test(snippet)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function isSingleLineObjectExpression(node, options) {
+	if (!node || node.type !== 'ObjectExpression') {
+		return false;
+	}
+
+	return wasOriginallySingleLine(node, options);
+}
+
 function printRippleNode(node, path, options, print, args) {
 	if (!node || typeof node !== 'object') {
 		return String(node || '');
@@ -118,10 +181,10 @@ function printRippleNode(node, path, options, print, args) {
 						parts.push(hardline);
 					}
 				} else if (isLastComment) {
-					// Check if there should be a blank line between the last comment and the node
-					// Only add if there are 2+ blank lines (indicating intentional separation)
+					// Preserve a blank line between the last comment and the node when it existed in source,
+					// unless the comment was already visually separated from previous code by a blank line.
 					const blankLinesBetween = getWhitespaceLinesBetween(comment, node);
-					if (blankLinesBetween > 1) {
+					if (blankLinesBetween > 0 && !hasBlankLineBeforeComment(comment, options)) {
 						parts.push(hardline);
 					}
 				}
@@ -137,10 +200,10 @@ function printRippleNode(node, path, options, print, args) {
 							parts.push(hardline);
 						}
 					} else if (isLastComment) {
-						// Check if there should be a blank line between the last comment and the node
-						// Only add if there are 2+ blank lines (indicating intentional separation)
+						// Preserve a blank line between the last comment and the node when it existed in source,
+						// unless the comment was already visually separated from previous code by a blank line.
 						const blankLinesBetween = getWhitespaceLinesBetween(comment, node);
-						if (blankLinesBetween > 1) {
+						if (blankLinesBetween > 0 && !hasBlankLineBeforeComment(comment, options)) {
 							parts.push(hardline);
 						}
 					}
@@ -260,45 +323,71 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			// Check if any element is an object expression
-			const hasObjectElements = node.elements.some(el => el && el.type === 'ObjectExpression');
+			let hasObjectElements = false;
+			for (let i = 0; i < node.elements.length; i++) {
+				const element = node.elements[i];
+				if (element && element.type === 'ObjectExpression') {
+					hasObjectElements = true;
+					break;
+				}
+			}
+			let shouldInlineObjects = false;
 
 			// Check if this array is inside an attribute
 			const isInAttribute = args && args.isInAttribute;
 
 			// For arrays of simple objects with only a few properties, try to keep compact
 			if (hasObjectElements) {
-				// Check if all objects are simple (2 properties or less)
-				const allSimpleObjects = node.elements.every(el => {
-					if (!el || el.type !== 'ObjectExpression') return false;
-					return el.properties && el.properties.length <= 2;
-				});
-
-				// If all are simple objects, try single-line format
-				if (allSimpleObjects && node.elements.length <= 3) {
-					// Print with appropriate context - isInAttribute takes precedence over isInArray
-					const elements = path.map((elPath) => {
-						return print(elPath, isInAttribute ? { isInAttribute: true } : { isInArray: true });
-					}, 'elements');
-
-					const parts = [prefix + '['];
-					for (let i = 0; i < elements.length; i++) {
-						if (i > 0) parts.push(', ');
-						parts.push(elements[i]);
+				shouldInlineObjects = true;
+				for (let i = 0; i < node.elements.length; i++) {
+					const element = node.elements[i];
+					if (element && element.type === 'ObjectExpression') {
+						if (!isSingleLineObjectExpression(element, options)) {
+							shouldInlineObjects = false;
+							break;
+						}
 					}
-					parts.push(']');
-					nodeContent = concat(parts);
-					break;
 				}
 			}
 
 			// Default printing - pass isInArray or isInAttribute context
-			const elements = path.map((elPath) => {
-				if (isInAttribute) {
-					return print(elPath, { isInAttribute: true });
-				} else {
+			const arrayWasSingleLine = wasOriginallySingleLine(node, options);
+			const shouldUseTrailingComma = options.trailingComma !== 'none';
+			const elements = path.map(
+				/**
+				 * @param {any} elPath
+				 * @param {number} index
+				 */
+				(elPath, index) => {
+					const childNode = node.elements[index];
+					if (isInAttribute) {
+						return print(elPath, { isInAttribute: true });
+					}
+
+					if (
+						hasObjectElements &&
+						childNode &&
+						childNode.type === 'ObjectExpression' &&
+						shouldInlineObjects
+					) {
+						return print(elPath, { isInArray: true, allowInlineObject: true });
+					}
+
 					return print(elPath, { isInArray: hasObjectElements });
 				}
-			}, 'elements');
+			, 'elements');
+
+			if (hasObjectElements && shouldInlineObjects && arrayWasSingleLine) {
+				const separator = concat([',', line]);
+				const trailing = shouldUseTrailingComma ? ifBreak(',', '') : '';
+				nodeContent = group(concat([
+					prefix + '[',
+					indent(concat([softline, join(separator, elements), trailing])),
+					softline,
+					']',
+				]));
+				break;
+			}
 
 			// Simple single-line for short arrays without object elements
 			if (elements.length <= 3 && !hasObjectElements) {
@@ -313,7 +402,6 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			// Multi-line for longer arrays or complex arrays with objects
-			const shouldUseTrailingComma = options.trailingComma !== 'none';
 			const parts = [prefix + '['];
 			const contentParts = [];
 
@@ -376,9 +464,17 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = 'this';
 			break;
 
+		case 'ChainExpression':
+			nodeContent = path.call(print, 'expression');
+			break;
+
 		case 'CallExpression': {
 			const parts = [];
 			parts.push(path.call(print, 'callee'));
+
+			if (node.optional) {
+				parts.push('?.');
+			}
 
 			// Add TypeScript generics if present
 			if (node.typeArguments) {
@@ -1500,20 +1596,33 @@ function printObjectExpression(node, path, options, print, args) {
 		}
 	}
 
+	if (args && args.allowInlineObject) {
+		const separator = concat([',', line]);
+		const propertyDoc = join(separator, properties);
+		const spacing = options.bracketSpacing === false ? softline : line;
+		const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
+
+		return group(concat([
+			'{',
+			indent(concat([spacing, propertyDoc, trailingDoc])),
+			spacing,
+			'}',
+		]));
+	}
+
 	let content = [hardline];
 	if (properties.length > 0) {
 		content.push(join([',', hardline], properties));
 		if (shouldUseTrailingComma) {
 			content.push(',');
 		}
-		// Always add hardline after properties for consistent formatting
 		content.push(hardline);
 	}
 
 	return group([
 		'{',
-		indent(content.slice(0, -1)), // Indent the content but not the final hardline
-		content[content.length - 1], // Add the final hardline without indentation
+		indent(content.slice(0, -1)),
+		content[content.length - 1],
 		'}',
 	]);
 }
@@ -1717,9 +1826,11 @@ function printMemberExpression(node, path, options, print) {
 	const propertyPart = path.call(print, 'property');
 
 	if (node.computed) {
-		return concat([objectPart, '[', propertyPart, ']']);
+		const openBracket = node.optional ? '?.[' : '[';
+		return concat([objectPart, openBracket, propertyPart, ']']);
 	} else {
-		return concat([objectPart, '.', propertyPart]);
+		const separator = node.optional ? '?.' : '.';
+		return concat([objectPart, separator, propertyPart]);
 	}
 }
 
@@ -2228,13 +2339,13 @@ function printObjectPattern(node, path, options, print) {
 
 function printArrayPattern(node, path, options, print) {
 	const parts = [];
-	parts.push('[ ');
+	parts.push('[');
 	const elementList = path.map(print, 'elements');
 	for (let i = 0; i < elementList.length; i++) {
 		if (i > 0) parts.push(', ');
 		parts.push(elementList[i]);
 	}
-	parts.push(' ]');
+	parts.push(']');
 
 	if (node.typeAnnotation) {
 		parts.push(': ');
@@ -2605,6 +2716,26 @@ function printCSSBlock(node, path, options, print) {
 	return '';
 }
 
+function shouldInlineSingleChild(parentNode, firstChild, childDoc) {
+	if (!firstChild || childDoc == null) {
+		return false;
+	}
+
+	if (typeof childDoc === 'string') {
+		return childDoc.length <= 20 && !childDoc.includes('\n');
+	}
+
+	if (firstChild.type === 'Text' || firstChild.type === 'Html' || firstChild.type === 'StyleSheet') {
+		return true;
+	}
+
+	if ((firstChild.type === 'Element' || firstChild.type === 'JSXElement') && firstChild.selfClosing) {
+		return !parentNode.attributes || parentNode.attributes.length === 0;
+	}
+
+	return false;
+}
+
 function printElement(node, path, options, print) {
 	const tagName = (node.id.tracked ? '@' : '') + node.id.name;
 
@@ -2727,7 +2858,7 @@ function printElement(node, path, options, print) {
 			if (typeof child === 'string' && child.length < 20) {
 				// Single line with short content
 				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
-			} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
+			} else if (child && typeof child === 'object' && !isNonSelfClosingElement && shouldInlineSingleChild(node, firstChild, child)) {
 				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
 			} else {
 				// Multi-line for non-self-closing elements
@@ -2868,7 +2999,7 @@ function printElement(node, path, options, print) {
 		if (typeof child === 'string' && child.length < 20) {
 			// Single line with short text
 			elementOutput = group([openingTag, child, closingTag]);
-		} else if (child && typeof child === 'object' && !isNonSelfClosingElement) {
+		} else if (child && typeof child === 'object' && !isNonSelfClosingElement && shouldInlineSingleChild(node, firstChild, child)) {
 			// For self-closing elements with parent having attributes, force multi-line
 			if (isElementChild && hasAttributes) {
 				elementOutput = concat([openingTag, indent(concat([hardline, child])), hardline, closingTag]);

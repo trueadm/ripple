@@ -1,0 +1,291 @@
+import { track, flushSync, get, set, effect, untrack } from 'ripple';
+
+describe('basic client > get/set functions', () => {
+	it('gets tracked value', () => {
+		component Test() {
+			let count = track(0);
+
+			<div>{get(count)}</div>
+		}
+
+		render(Test);
+
+		const div = container.querySelector('div');
+		expect(div.textContent).toBe('0');
+	});
+
+	it('gets tracked value after mutation', () => {
+		component Test() {
+			let count = track(0);
+
+			<p>{get(count)}</p>
+			<button onClick={() => @count++}>{'increment'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('1');
+	});
+
+	it('gets tracked value after multiple mutations', () => {
+		component Test() {
+			let count = track(0);
+
+			<p>{get(count)}</p>
+			<button onClick={() => {
+				@count++;
+				@count++;
+				@count++;
+			}}>{'increment'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('3');
+	});
+
+	it('sets tracked value', () => {
+		component Test() {
+			let count = track(0);
+
+			<p>{get(count)}</p>
+			<button onClick={() => set(count, 10)}>{'set to 10'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('10');
+	});
+
+	it('sets tracked value multiple times', () => {
+		component Test() {
+			let count = track(0);
+
+			<p>{get(count)}</p>
+			<button onClick={() => {
+				set(count, 5);
+				set(count, 15);
+				set(count, 25);
+			}}>{'set multiple times'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('25');
+	});
+
+	it('sets tracked value based on previous value', () => {
+		component Test() {
+			let count = track(0);
+
+			<p>{get(count)}</p>
+			<button onClick={() => set(count, get(count) + 10)}>{'add 10'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('10');
+
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('20');
+	});
+
+	it('sets tracked value multiple times based on previous value', () => {
+		component Test() {
+			let count = track(0);
+
+			<p>{get(count)}</p>
+			<button onClick={() => {
+				set(count, get(count) + 5);
+				set(count, get(count) + 15);
+				set(count, get(count) + 25);
+			}}>{'add multiple times'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('45');
+
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('90');
+	});
+
+	function store() {
+		return track(0);
+	}
+
+	it('gets value declared outside Ripple component', () => {
+		component Test() {
+			let count = store();
+			<p>{get(count)}</p>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+	});
+
+	it('sets value declared outside Ripple component', () => {
+		component Test() {
+			let count = store();
+
+			<p>{get(count)}</p>
+			<button onClick={() => set(count, 50)}>{'set to 50'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('50');
+	});
+
+	it('works with effects', () => {
+		component Test() {
+			let count = track(0);
+			let double = track(0);
+
+			effect(() => {
+				set(double, get(count) * 2);
+			});
+
+			<p>{get(double)}</p>
+			<button onClick={() => set(count, get(count) + 1)}>{'increment'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('2');
+
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('4');
+	});
+
+	it('works with effects and untrack', () => {
+		component Test() {
+			let count = track(0);
+			let double = track(0);
+
+			effect(() => {
+				untrack(() => {
+					set(double, get(count) * 2);
+				});
+			});
+
+			<p>{get(double)}</p>
+			<button onClick={() => set(count, get(count) + 1)}>{'increment'}</button>
+		}
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+
+		const button = container.querySelector('button');
+
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('2');
+
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('2');
+	});
+
+	it("get isn't reactive when declared outside Ripple context", () => {
+		let count = store();
+
+		component Test() {
+			<p>{get(count)}</p>
+			<button onClick={() => { set(count, get(count) + 1) }}>{'increment'}</button>
+		}
+
+		expect(get(count)).toBe(0);
+
+		render(Test);
+
+		const p = container.querySelector('p');
+		expect(p.textContent).toBe('0');
+		expect(get(count)).toBe(0);
+
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
+
+		expect(p.textContent).toBe('0');
+		expect(get(count)).toBe(1);
+	});
+
+	it('throws on trying to set a value outside Ripple component', () => {
+		let count = store();
+
+		expect(get(count)).toBe(0);
+		expect(() => set(count, 1)).toThrow();
+		expect(get(count)).toBe(0);
+	});
+});
