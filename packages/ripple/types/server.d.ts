@@ -1,4 +1,4 @@
 
-export declare async function render(
+export declare function render(
 	component: () => void,
-): { head: string; body: string };
+): Promise<{ head: string; body: string; css: Set<string> }>;
