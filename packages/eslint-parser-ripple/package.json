@@ -1,6 +1,6 @@
 {
   "name": "eslint-parser-ripple",
-  "version": "0.2.120",
+  "version": "0.2.121",
   "description": "ESLint parser for Ripple (.ripple files)",
   "type": "module",
   "main": "dist/index.js",
@@ -27,7 +27,8 @@
   "author": "Dominic Gannaway",
   "license": "MIT",
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean"
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "prepack": "pnpm run build"
   },
   "peerDependencies": {
     "eslint": "catalog:peer",

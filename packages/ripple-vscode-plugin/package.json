@@ -3,7 +3,7 @@
   "displayName": "Ripple for VS Code",
   "publisher": "ripplejs",
   "description": "Ripple JavaScript/TypeScript language support",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "author": "Dominic Gannaway",
   "license": "MIT",
   "engines": {
@@ -21,11 +21,12 @@
     "directory": "ripple-vscode-plugin"
   },
   "scripts": {
-    "build-extension": "esbuild src/extension.js --bundle --platform=node --target=node20 --outfile=dist/extension.js --external:vscode",
-    "build-server": "esbuild src/server.js --bundle --platform=node --target=node20 --outfile=dist/server.js",
+    "copy-ts": "mkdir -p dist/node_modules && rm -rf dist/node_modules/typescript && cp -RL node_modules/typescript dist/node_modules/typescript",
+    "build-extension": "esbuild src/extension.js --bundle --platform=node --target=node20 --outfile=dist/extension.js --external:vscode --external:typescript && pnpm copy-ts",
+    "build-server": "esbuild src/server.js --bundle --platform=node --target=node20 --outfile=dist/server.js --external:typescript",
     "dist": "perl -pi -e 's/\"main\": \"src\\/extension.js\"/\"main\": \"dist\\/extension.js\"/' package.json",
     "src": "perl -pi -e 's/\"main\": \"dist\\/extension.js\"/\"main\": \"src\\/extension.js\"/' package.json",
-    "package": "pnpm dist && vsce package --no-dependencies --out=ripple-vscode-plugin.vsix; pnpm src",
+    "package": "pnpm dist && pnpm copy-ts && vsce package --no-dependencies --out=ripple-vscode-plugin.vsix; pnpm src",
     "install-package": "code --install-extension ripple-vscode-plugin.vsix",
     "build-and-package": "pnpm build-extension && pnpm build-server && pnpm package",
     "build-package-and-install": "pnpm build-extension && pnpm build-server && pnpm package && pnpm install-package",
@@ -41,6 +42,9 @@
     "volar-service-typescript": "catalog:default",
     "vscode-languageclient": "catalog:default",
     "vscode-uri": "catalog:default"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:vscode"
   },
   "devDependencies": {
     "esbuild": "catalog:default",

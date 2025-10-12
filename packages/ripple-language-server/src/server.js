@@ -9,6 +9,8 @@ const { create: createTypeScriptServices } = require('volar-service-typescript')
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
+/** @typedef {import('typescript').CompilerOptions} CompilerOptions */
+
 /**
  * @param {...unknown} args
  */
@@ -36,6 +38,45 @@ function createRippleLanguageServer() {
 	const rippleLanguagePlugin = getRippleLanguagePlugin();
 	log('Language plugin instance created');
 
+	/** @type {WeakSet<Function>} */
+	const wrappedFunctions = new WeakSet();
+
+	/**
+	 * Ensure TypeScript hosts always see compiler options with Ripple defaults.
+	 * @param {unknown} target
+	 * @param {string} method
+	 */
+	function wrapCompilerOptionsProvider(target, method) {
+		if (!target) {
+			return;
+		}
+
+		const host = /** @type {{ [key: string]: unknown }} */ (target);
+		const original = host[method];
+		if (typeof original !== 'function' || wrappedFunctions.has(original)) {
+			return;
+		}
+
+		/** @type {CompilerOptions | undefined} */
+		let cachedInput;
+		/** @type {CompilerOptions | undefined} */
+		let cachedOutput;
+
+		const wrapped = () => {
+			/** @type {CompilerOptions} */
+			const input = original.call(host);
+			if (cachedInput !== input) {
+				cachedInput = input;
+				cachedOutput = resolveConfig({ options: input }).options;
+			}
+			return cachedOutput;
+		};
+
+		wrappedFunctions.add(original);
+		wrappedFunctions.add(wrapped);
+		host[method] = wrapped;
+	}
+
 	connection.onInitialize(async (params) => {
 		try {
 			log('Initializing Ripple language server...');
@@ -48,10 +89,16 @@ function createRippleLanguageServer() {
 				createTypeScriptProject(
 					ts,
 					undefined,
-					() => ({
-						languagePlugins: [rippleLanguagePlugin],
-						resolveConfig,
-					}),
+					({ projectHost }) => {
+						wrapCompilerOptionsProvider(projectHost, 'getCompilationSettings');
+
+						return {
+							languagePlugins: [rippleLanguagePlugin],
+							setup({ project }) {
+								wrapCompilerOptionsProvider(project?.typescript?.languageServiceHost, 'getCompilationSettings');
+							},
+						};
+					},
 				),
 				[
 					createRippleDiagnosticPlugin(),
