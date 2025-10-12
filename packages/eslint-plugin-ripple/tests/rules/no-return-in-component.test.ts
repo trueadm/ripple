@@ -1,9 +1,10 @@
-import { describe, it } from 'vitest';
 import { RuleTester } from 'eslint';
 import rule from '../../src/rules/no-return-in-component.js';
+import * as parser from 'eslint-parser-ripple';
 
 const ruleTester = new RuleTester({
 	languageOptions: {
+		parser,
 		parserOptions: {
 			ecmaVersion: 2022,
 			sourceType: 'module',
@@ -14,71 +15,67 @@ const ruleTester = new RuleTester({
 	},
 });
 
-describe('no-return-in-component', () => {
-	it('should validate correctly', () => {
-		ruleTester.run('no-return-in-component', rule, {
-			valid: [
-				// Valid: JSX as statement
+ruleTester.run('no-return-in-component', rule, {
+	valid: [
+		// Valid: JSX as statement
+		{
+			code: `
+				component App() {
+					<div>{'Hello'}</div>
+				}
+			`,
+		},
+		// Valid: return non-JSX
+		{
+			code: `
+				component App() {
+					function helper() {
+						return 42;
+					}
+				}
+			`,
+		},
+	],
+	invalid: [
+		// Invalid: early return without JSX
+		{
+			code: `
+				component App() {
+					if (condition) return;
+					<div>{'Hello'}</div>
+				}
+			`,
+			errors: [
 				{
-					code: `
-            component App() {
-              <div>Hello</div>
-            }
-          `,
-				},
-				// Valid: return non-JSX
-				{
-					code: `
-            component App() {
-              function helper() {
-                return 42;
-              }
-            }
-          `,
-				},
-			],
-			invalid: [
-				// Invalid: early return without JSX
-				{
-					code: `
-                    component App() {
-                      if (condition) return;
-                      <div>Hello</div>
-                    }
-                  `,
-					errors: [
-						{
-							messageId: 'noReturn',
-						},
-					],
-				},
-				// Invalid: returning JSX element
-				{
-					code: `
-            component App() {
-              return <div>Hello</div>;
-            }
-          `,
-					errors: [
-						{
-							messageId: 'noReturn',
-						},
-					],
-				},
-				// Invalid: returning JSX fragment
-				{
-					code: `
-            component App() {
-              return <>Hello</>;
-            }
-          `,
-					errors: [
-						{
-							messageId: 'noReturn',
-						},
-					],
+					messageId: 'noReturn',
 				},
 			],
-		});
-	});
+		},
+		// Invalid: returning JSX element
+		{
+			code: `
+				component App() {
+					return <div>{'Hello'}</div>;
+				}
+			`,
+			errors: [
+				{
+					messageId: 'noReturn',
+				},
+			],
+		},
+		// Invalid: returning JSX fragment
+		{
+			code: `
+				component App() {
+					return <>{'Hello'}</>;
+				}
+			`,
+			errors: [
+				{
+					messageId: 'noReturn',
+				},
+			],
+		},
+	],
 });

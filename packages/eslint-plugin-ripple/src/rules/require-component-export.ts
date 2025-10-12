@@ -1,5 +1,11 @@
 import type { Rule } from 'eslint';
-import type { ExportNamedDeclaration, ExportDefaultDeclaration } from 'estree';
+import type {
+	ExportNamedDeclaration,
+	ExportDefaultDeclaration,
+	CallExpression,
+	VariableDeclarator,
+	FunctionDeclaration,
+} from 'estree';
 
 const rule: Rule.RuleModule = {
   meta: {
@@ -20,15 +26,21 @@ const rule: Rule.RuleModule = {
 
     return {
       // Track component definitions
-      'ExpressionStatement > CallExpression[callee.name="component"]'(node: any) {
+      'ExpressionStatement > CallExpression[callee.name="component"]'(node: CallExpression) {
         // component Name() { ... } style
         if (node.arguments.length > 0 && node.arguments[0].type === 'Identifier') {
           components.add(node.arguments[0].name);
         }
       },
       // Track variable declarations with component
-      'VariableDeclarator[init.callee.name="component"]'(node: any) {
+      'VariableDeclarator[init.callee.name="component"]'(node: VariableDeclarator) {
         if (node.id.type === 'Identifier') {
+          components.add(node.id.name);
+        }
+      },
+      // Track Component AST nodes produced by the Ripple parser
+      Component(node: FunctionDeclaration) {
+        if (node.id && node.id.type === 'Identifier') {
           components.add(node.id.name);
         }
       },
