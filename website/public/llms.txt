@@ -485,6 +485,10 @@ component ListView({ title, items }) {
 }
 ```
 
+**Key Usage Guidelines:**
+- **Arrays with `#{}` objects**: Keys are usually unnecessary - object identity and reactivity handle updates automatically. Identity-based loops are more efficient with less bookkeeping.
+- **Arrays with plain objects**: Keys are needed when object reference isn't sufficient for identification. Use stable identifiers: `key item.id`.
+
 #### Dynamic Elements
 ```ripple
 export component App() {
