@@ -27,6 +27,7 @@ export default [...ripple.configs.recommended];
 
 The plugin automatically:
 - Detects and uses `eslint-parser-ripple` if installed for `.ripple` files
+- Detects and uses `@typescript-eslint/parser` if installed for `.ts`/`.tsx` files
 - Excludes `.d.ts` files, `node_modules`, `dist`, and `build` directories from linting
 - Works with both `.ts`/`.tsx` and `.ripple` files
 
@@ -188,6 +189,45 @@ export component App() {
 }
 ```
 
+### `ripple/no-introspect-in-modules` (error)
+
+Prevents using the `@` introspection operator in TypeScript/JavaScript modules. In `.ts`/`.js` files, you should use `get()` and `set()` functions instead.
+
+❌ **Incorrect:**
+
+```ts
+// count.ts
+export function useCount() {
+  const count = track(1);
+  effect(() => {
+    console.log(@count); // Error: Cannot use @ in TypeScript modules
+  });
+  return { count };
+}
+```
+
+✅ **Correct:**
+
+```ts
+// count.ts
+import { get, set } from 'ripple';
+
+export function useCount() {
+  const count = track(1);
+  
+  // Use get() to read tracked values
+  const double = derived(() => get(count) * 2);
+  
+  effect(() => {
+    console.log("count is", get(count));
+  });
+  
+  return { count, double };
+}
+```
+
+**Note:** The `@` operator is only valid in `.ripple` component files. In TypeScript modules, use `get()` to read values and `set()` to update them.
+
 ## Custom Configuration
 
 You can customize individual rules in your ESLint config:
@@ -202,64 +242,13 @@ export default [
       'ripple/prefer-oninput': 'error', // Make this an error instead of warning
       'ripple/no-return-in-component': 'error',
       'ripple/unbox-tracked-values': 'error',
+      'ripple/no-introspect-in-modules': 'error',
     },
   },
 ];
 ```
 
-## Using with TypeScript
-
-This plugin works seamlessly with TypeScript. Make sure you have `@typescript-eslint/parser` configured:
-
-```js
-import ripple from 'eslint-plugin-ripple';
-import tsParser from '@typescript-eslint/parser';
-
-export default [
-  {
-    files: ['**/*.ts', '**/*.tsx', '**/*.ripple'],
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-      },
-    },
-    plugins: { ripple },
-    rules: ripple.configs.recommended.rules,
-  },
-];
-```
-
-## Using with .ripple Files
-
-Full support for `.ripple` files is available via the `eslint-parser-ripple` package:
-
-```bash
-npm install --save-dev eslint-parser-ripple
-```
-
-Then configure your ESLint to use the Ripple parser for `.ripple` files:
-
-```js
-import ripple from 'eslint-plugin-ripple';
-import rippleParser from 'eslint-parser-ripple';
-
-export default [
-  {
-    files: ['**/*.ripple'],
-    languageOptions: {
-      parser: rippleParser,
-    },
-    plugins: { ripple },
-    rules: ripple.configs.recommended.rules,
-  },
-  {
-    files: ['**/*.ts', '**/*.tsx'],
-    plugins: { ripple },
-    rules: ripple.configs.recommended.rules,
-  },
-];
-```
+The plugin will automatically detect and use the Ripple parser for your `.ripple` files.
 
 ## License
 
