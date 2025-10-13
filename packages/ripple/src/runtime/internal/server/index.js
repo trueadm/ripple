@@ -62,7 +62,9 @@ class Output {
 /** @type {render} */
 export async function render(component) {
 	const output = new Output(null);
-	let head, body, css;
+	let head = '';
+	let body = '';
+	let css = new Set();
 
 	try {
 		if (component.async) {

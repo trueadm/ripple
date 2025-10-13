@@ -40,6 +40,7 @@ export function proxy(value, block) {
     return value;
   }
 
+  /** @type {Map<any,Tracked>} */
   var tracked_elements = new Map();
   var is_proxied_array = is_array(value);
   /** @type {Tracked} */
@@ -97,8 +98,8 @@ export function proxy(value, block) {
       var t = tracked_elements.get(prop);
       var exists = prop in target;
 
-      if (is_proxied_array && prop === 'length') {
-        for (var i = value; i < t.v; i += 1) {
+      if (is_proxied_array && prop === 'length' && t !== undefined) {
+        for (var i = value; i < t.__v; i += 1) {
           var other_t = tracked_elements.get(i + '');
           if (other_t !== undefined) {
             set(other_t, UNINITIALIZED, block);
@@ -124,7 +125,7 @@ export function proxy(value, block) {
           tracked_elements.set(prop, t);
         }
       } else {
-        exists = t.v !== UNINITIALIZED;
+        exists = t.__v !== UNINITIALIZED;
 
         set(t, value, block);
       }
@@ -143,7 +144,7 @@ export function proxy(value, block) {
         // will not cause the length to be out of sync.
         var n = Number(prop);
 
-        if (Number.isInteger(n) && n >= tracked_len.v) {
+        if (Number.isInteger(n) && n >= tracked_len.__v) {
           set(tracked_len, n + 1, block);
         }
       }
@@ -180,7 +181,7 @@ export function proxy(value, block) {
       }
 
       var t = tracked_elements.get(prop);
-      var exists = (t !== undefined && t.v !== UNINITIALIZED) || Reflect.has(target, prop);
+      var exists = (t !== undefined && t.__v !== UNINITIALIZED) || Reflect.has(target, prop);
 
       if (t !== undefined || !exists || get_descriptor(target, prop)?.writable) {
         if (t === undefined) {
@@ -229,11 +230,11 @@ export function proxy(value, block) {
     ownKeys(target) {
       var own_keys = Reflect.ownKeys(target).filter((key) => {
         var t = tracked_elements.get(key);
-        return t === undefined || t.v !== UNINITIALIZED;
+        return t === undefined || t.__v !== UNINITIALIZED;
       });
 
       for (var [key, t] of tracked_elements) {
-        if (t.v !== UNINITIALIZED && !(key in target)) {
+        if (t.__v !== UNINITIALIZED && !(key in target)) {
           own_keys.push(key);
         }
       }
@@ -249,7 +250,7 @@ export function proxy(value, block) {
         if (t) descriptor.value = get(t);
       } else if (descriptor === undefined) {
         var t = tracked_elements.get(prop);
-        var value = t?.v;
+        var value = t?.__v;
 
         if (t !== undefined && value !== UNINITIALIZED) {
           return {

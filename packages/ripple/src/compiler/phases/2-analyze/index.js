@@ -109,7 +109,7 @@ const visitors = {
 		const parent = context.path.at(-1);
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {Node} */(parent)) &&
 			binding &&
 			context.state.inside_server_block &&
 			context.state.scope.server_block
@@ -144,7 +144,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {Node} */(parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -155,7 +155,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {Node} */(parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -172,6 +172,18 @@ const visitors = {
 
 		if (context.state.metadata?.tracking === false && parent.type !== 'AssignmentExpression') {
 			context.state.metadata.tracking = true;
+		}
+
+		if (node.object.type === 'Identifier' && !node.object.tracked) {
+			const binding = context.state.scope.get(node.object.name);
+
+			if (binding !== null && binding.initial?.type === 'CallExpression' && is_ripple_track_call(binding.initial.callee, context)) {
+				error(
+					`Accessing a tracked object directly is not allowed, use the \`@\` prefix to read the value inside a tracked object - for example \`@${node.object.name}${node.property.type === 'Identifier' ? `.${node.property.name}` : ''}\``,
+					context.state.analysis.module.filename,
+					node,
+				)
+			}
 		}
 
 		context.next();
@@ -424,10 +436,10 @@ const visitors = {
 
 		if (!node.metadata.has_template && !node.metadata.has_await) {
 			error(
-					'Component for...of loops must contain a template or an await expression in their body. Move the for loop into an effect if it does not render anything.',
-					context.state.analysis.module.filename,
-					node,
-				);
+				'Component for...of loops must contain a template or an await expression in their body. Move the for loop into an effect if it does not render anything.',
+				context.state.analysis.module.filename,
+				node,
+			);
 		}
 	},
 
@@ -477,10 +489,10 @@ const visitors = {
 
 		if (!node.metadata.has_template && !node.metadata.has_await) {
 			error(
-					'Component if statements must contain a template or an await expression in their "then" body. Move the if statement into an effect if it does not render anything.',
-					context.state.analysis.module.filename,
-					node,
-				);
+				'Component if statements must contain a template or an await expression in their "then" body. Move the if statement into an effect if it does not render anything.',
+				context.state.analysis.module.filename,
+				node,
+			);
 		}
 
 		if (node.alternate) {
@@ -490,10 +502,10 @@ const visitors = {
 
 			if (!node.metadata.has_template && !node.metadata.has_await) {
 				error(
-						'Component if statements must contain a template or an await expression in their "else" body. Move the if statement into an effect if it does not render anything.',
-						context.state.analysis.module.filename,
-						node,
-					);
+					'Component if statements must contain a template or an await expression in their "else" body. Move the if statement into an effect if it does not render anything.',
+					context.state.analysis.module.filename,
+					node,
+				);
 			}
 		}
 	},
@@ -599,9 +611,9 @@ const visitors = {
 				state.elements.push(node);
 				// Mark dynamic elements as scoped by default since we can't match CSS at compile time
 				if (state.component?.css) {
-						node.metadata.scoped = true;
+					node.metadata.scoped = true;
 				}
-		}
+			}
 		}
 
 		if (is_dom_element) {
@@ -756,12 +768,12 @@ const visitors = {
 		mark_control_flow_has_template(context.path);
 		context.next();
 	},
-	
- /**
-	* 
-	* @param {any} node 
-	* @param {any} context 
-	*/
+
+	/**
+	 * 
+	 * @param {any} node 
+	 * @param {any} context 
+	 */
 	AwaitExpression(node, context) {
 		if (is_inside_component(context)) {
 			if (context.state.metadata?.await === false) {
@@ -786,7 +798,7 @@ const visitors = {
 			}
 			parent_block.metadata.has_await = true;
 		}
-		
+
 		context.next();
 	},
 };

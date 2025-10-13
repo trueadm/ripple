@@ -1,5 +1,6 @@
 /** @import { Block, Component, Dependency, Derived, Tracked } from '#client' */
 
+import { DEV } from 'esm-env';
 import {
 	destroy_block,
 	destroy_non_branch_children,
@@ -138,13 +139,13 @@ export function run_teardown(block) {
  * @param {Derived} computed
  */
 function update_derived(computed) {
-	var value = computed.v;
+	var value = computed.__v;
 
 	if (value === UNINITIALIZED || is_tracking_dirty(computed.d)) {
 		value = run_derived(computed);
 
-		if (value !== computed.v) {
-			computed.v = value;
+		if (value !== computed.__v) {
+			computed.__v = value;
 			computed.c = increment_clock();
 		}
 	}
@@ -277,12 +278,23 @@ var empty_get_set = { get: undefined, set: undefined };
  */
 export function tracked(v, block, get, set) {
 	// TODO: now we expose tracked, we should likely block access in DEV somehow
+	if (DEV) {
+		return {
+			DO_NOT_ACCESS_THIS_OBJECT_DIRECTLY: true,
+			a: get || set ? { get, set } : empty_get_set,
+			b: block || active_block,
+			c: 0,
+			f: TRACKED,
+			__v: v,
+		};
+	}
+
 	return {
 		a: get || set ? { get, set } : empty_get_set,
 		b: block || active_block,
 		c: 0,
 		f: TRACKED,
-		v,
+		__v: v,
 	};
 }
 
@@ -294,6 +306,21 @@ export function tracked(v, block, get, set) {
  * @returns {Derived}
  */
 export function derived(fn, block, get, set) {
+	if (DEV) {
+		return {
+			DO_NOT_ACCESS_THIS_OBJECT_DIRECTLY: true,
+			a: get || set ? { get, set } : empty_get_set,
+			b: block || active_block,
+			blocks: null,
+			c: 0,
+			co: active_component,
+			d: null,
+			f: TRACKED | DERIVED,
+			fn,
+			__v: UNINITIALIZED,
+		};
+	}
+
 	return {
 		a: get || set ? { get, set } : empty_get_set,
 		b: block || active_block,
@@ -303,7 +330,7 @@ export function derived(fn, block, get, set) {
 		d: null,
 		f: TRACKED | DERIVED,
 		fn,
-		v: UNINITIALIZED,
+		__v: UNINITIALIZED,
 	};
 }
 
@@ -354,7 +381,7 @@ export function track_split(v, l, b) {
 			t = tracked(undefined, b);
 			exists = !!descriptors[key];
 			if (exists) {
-				t = define_property(t, 'v', descriptors[key]);
+				t = define_property(t, '__v', descriptors[key]);
 			}
 		}
 
@@ -468,7 +495,7 @@ export function async_computed(fn, block) {
 		} else {
 			for (var i = 0; i < deferred.length; i++) {
 				var tracked = deferred[i];
-				new_values.set(tracked, { v: tracked.v, c: tracked.c });
+				new_values.set(tracked, { v: tracked.__v, c: tracked.c });
 			}
 		}
 
@@ -476,11 +503,11 @@ export function async_computed(fn, block) {
 			if (parent && is_destroyed(/** @type {Block} */(parent))) {
 				return;
 			}
-			if (promise === current && t.v !== v) {
+			if (promise === current && t.__v !== v) {
 				restore();
 
-				if (t.v === UNINITIALIZED) {
-					t.v = v;
+				if (t.__v === UNINITIALIZED) {
+					t.__v = v;
 				} else {
 					set(t, v, block);
 				}
@@ -493,7 +520,7 @@ export function async_computed(fn, block) {
 					var tracked = deferred[i];
 					var stored = /** @type {{ v: any, c: number }} */ (new_values.get(tracked));
 					var { v, c } = stored;
-					tracked.v = v;
+					tracked.__v = v;
 					tracked.c = c;
 					schedule_update(tracked.b);
 				}
@@ -731,10 +758,10 @@ export function get_derived(computed) {
 	}
 	var get = computed.a.get;
 	if (get !== undefined) {
-		computed.v = trigger_track_get(get, computed.v);
+		computed.__v = trigger_track_get(get, computed.__v);
 	}
 
-	return computed.v;
+	return computed.__v;
 }
 
 /**
@@ -755,7 +782,7 @@ export function get(tracked) {
  * @param {Tracked} tracked
  */
 export function get_tracked(tracked) {
-	var value = tracked.v;
+	var value = tracked.__v;
 	if (tracking) {
 		register_dependency(tracked);
 	}
@@ -791,7 +818,7 @@ export function set(tracked, value, block) {
 		);
 	}
 
-	var old_value = tracked.v;
+	var old_value = tracked.__v;
 
 	if (value !== old_value) {
 		var tracked_block = tracked.b;
@@ -809,7 +836,7 @@ export function set(tracked, value, block) {
 			value = untrack(() => set(value, old_value));
 		}
 
-		tracked.v = value;
+		tracked.__v = value;
 		tracked.c = increment_clock();
 		schedule_update(tracked_block);
 	}
@@ -991,7 +1018,7 @@ export function update(tracked, block, d = 1) {
  * @returns {void}
  */
 export function increment(tracked, block) {
-	set(tracked, tracked.v + 1, block);
+	set(tracked, tracked.__v + 1, block);
 }
 
 /**
@@ -1000,7 +1027,7 @@ export function increment(tracked, block) {
  * @returns {void}
  */
 export function decrement(tracked, block) {
-	set(tracked, tracked.v - 1, block);
+	set(tracked, tracked.__v - 1, block);
 }
 
 /**

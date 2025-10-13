@@ -167,6 +167,7 @@ export function bindValue(maybe_tracked) {
 					value = [].map.call(select.querySelectorAll(query), get_option_value);
 				} else {
 					/** @type {HTMLOptionElement | null} */
+					// @ts-ignore
 					var selected_option =
 						select.querySelector(query) ??
 						// will fall back to first non-disabled option if no option is selected
@@ -184,6 +185,7 @@ export function bindValue(maybe_tracked) {
 				// Mounting and value undefined -> take selection from dom
 				if (mounting && value === undefined) {
 					/** @type {HTMLOptionElement | null} */
+					// @ts-ignore
 					var selected_option = select.querySelector(':checked');
 					if (selected_option !== null) {
 						value = get_option_value(selected_option);
