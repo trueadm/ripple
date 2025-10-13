@@ -33,6 +33,19 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "peerDependencies": {
+    "eslint": "catalog:peer",
+    "@typescript-eslint/parser": "catalog:peer",
+    "eslint-parser-ripple": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@typescript-eslint/parser": {
+      "optional": true
+    },
+    "eslint-parser-ripple": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/eslint": "catalog:default",
     "@types/estree": "catalog:default",
