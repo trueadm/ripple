@@ -32,7 +32,6 @@ import {
 	normalize_children,
 	build_getter,
 	determine_namespace_for_children,
-	is_console_call,
 } from '../../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
@@ -228,11 +227,6 @@ const visitors = {
 	CallExpression(node, context) {
 		if (!context.state.to_ts) {
 			delete node.typeArguments;
-
-			if (is_console_call(node, context)) {
-				const method = node.callee.property.name;
-				return b.call('_$_.console_log', b.literal(method), ...node.arguments.map((arg) => context.visit(arg)));
-			}
 		}
 		const callee = node.callee;
 		const parent = context.path.at(-1);

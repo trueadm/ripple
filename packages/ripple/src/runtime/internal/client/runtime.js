@@ -1190,21 +1190,3 @@ export async function maybe_tracked(v) {
 		return value;
 	};
 }
-
-/**
- * @param {keyof Console} method
- * @param {...any} args
- * @returns {void}
- */
-export function console_log(method, ...args) {
-	const console_fn = console[method];
-	const sanitized_args = args.map(arg => {
-		if (typeof arg === 'object' && arg !== null && TRACKED_OBJECT in arg) {
-			return is_array(arg) ? [...arg] : arg;
-		}
-		return arg;
-	});
-
-	// @ts-ignore
-	return console_fn.apply(console, sanitized_args);
-}

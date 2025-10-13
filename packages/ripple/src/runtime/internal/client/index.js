@@ -47,7 +47,6 @@ export {
 	derived,
 	maybe_tracked,
 	tick,
-	console_log,
 } from './runtime.js';
 
 export { composite } from './composite.js';

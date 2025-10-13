@@ -902,18 +902,3 @@ export function determine_namespace_for_children(element_name, current_namespace
 
 	return current_namespace;
 }
-
-/**
- * @param {CallExpression} node
- * @param {TransformContext} context
- * @returns {boolean}
- */
-export function is_console_call(node, context) {
-	return (
-		node.callee.type === 'MemberExpression' &&
-		node.callee.object.type === 'Identifier' &&
-		node.callee.property.type === 'Identifier' &&
-		node.callee.object.name === 'console' &&
-		context.state.scope.get('console') === null
-	);
-}
