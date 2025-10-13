@@ -152,7 +152,7 @@ catalogs:
       specifier: ^4.1.12
       version: 4.1.12
     typescript:
-      specifier: '>=5.0.0'
+      specifier: ^5.9.2
       version: 5.9.2
   vscode:
     typescript:
