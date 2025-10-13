@@ -120,7 +120,7 @@ const visitors = {
 			component_fn = b.async(component_fn);
 		}
 
-		const declaration = b.const(node.id, component_fn);
+		const declaration = b.function_declaration(node.id, component_fn.params, component_fn.body, component_fn.async);
 
 		if (metadata.await) {
 			const parent = context.path.at(-1);

@@ -444,12 +444,9 @@ const visitors = {
 			// Handle exported components in server blocks
 			if (server_block) {
 				server_block.metadata.exports.push(declaration.id.name);
-			} else {
-				// If it's a server build but not inside a #server block,
-				// we still need to track the component for SSR.
-				// The component metadata is already collected in the Component visitor.
 			}
 		} else {
+			// TODO
 			throw new Error('Not implemented: Exported declaration type not supported in server blocks.');
 		}
 

@@ -123,4 +123,20 @@ describe('basic client > errors', () => {
 
 		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
 	});
+
+	it('should throw error for await in client-side control-flow statements', () => {
+		const code = `
+			export default component App() {
+				let data = 'initial';
+				if (true) {
+					await new Promise(r => setTimeout(r, 100));
+					data = 'loaded';
+				}
+				<div>{data}</div>
+			}
+		`;
+		expect(() => {
+			compile(code, 'test.ripple', { mode: 'client' });
+		}).toThrow('`await` is not allowed in client-side control-flow statements');
+	});
 });

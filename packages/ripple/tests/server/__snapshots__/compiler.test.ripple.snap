@@ -18,7 +18,7 @@ exports[`compiler success tests > compiles imported component with conditional a
 
 import { ChildComponent } from './Child.ripple';
 
-export const App = async function App(__output) {
+export async function App(__output) {
 	return _$_.async(async () => {
 		_$_.push_component();
 		__output.push('<div');
@@ -33,7 +33,7 @@ export const App = async function App(__output) {
 		__output.push('</div>');
 		_$_.pop_component();
 	});
-};"
+}"
 `;
 
 exports[`compiler success tests > removes type assertions from function parameters and leaves default values 1`] = `
