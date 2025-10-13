@@ -1111,6 +1111,42 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 			} else if (node.type === 'TSAnyKeyword' || node.type === 'TSUnknownKeyword' || node.type === 'TSNumberKeyword' || node.type === 'TSObjectKeyword' || node.type === 'TSBooleanKeyword' || node.type === 'TSBigIntKeyword' || node.type === 'TSStringKeyword' || node.type === 'TSSymbolKeyword' || node.type === 'TSVoidKeyword' || node.type === 'TSUndefinedKeyword' || node.type === 'TSNullKeyword' || node.type === 'TSNeverKeyword' || node.type === 'TSThisType' || node.type === 'TSIntrinsicKeyword') {
 				// Primitive type keywords - leaf nodes, no children
 				return;
+			} else if (node.type === 'TSDeclareFunction') {
+				// TypeScript declare function: declare function foo(): void;
+				// Visit in source order: id, typeParameters, params, returnType
+				if (node.id) {
+					visit(node.id);
+				}
+				if (node.typeParameters) {
+					visit(node.typeParameters);
+				}
+				if (node.params) {
+					for (const param of node.params) {
+						visit(param);
+					}
+				}
+				if (node.returnType) {
+					visit(node.returnType);
+				}
+				return;
+			} else if (node.type === 'TSExportAssignment') {
+				// TypeScript export assignment: export = foo;
+				if (node.expression) {
+					visit(node.expression);
+				}
+				return;
+			} else if (node.type === 'TSNamespaceExportDeclaration') {
+				// TypeScript namespace export: export as namespace foo;
+				if (node.id) {
+					visit(node.id);
+				}
+				return;
+			} else if (node.type === 'TSExternalModuleReference') {
+				// TypeScript external module reference: import foo = require('bar');
+				if (node.expression) {
+					visit(node.expression);
+				}
+				return;
 			}
 
 			throw new Error(`Unhandled AST node type in mapping walker: ${node.type}`);
