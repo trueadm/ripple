@@ -1392,6 +1392,7 @@ function RipplePlugin(config) {
 					this.next();
 					this.enterScope(0);
 					node.id = this.parseIdent();
+					this.declareName(node.id.name, 'var', node.id.start);		
 					this.parseFunctionParams(node);
 					this.eat(tt.braceL);
 					node.body = [];
