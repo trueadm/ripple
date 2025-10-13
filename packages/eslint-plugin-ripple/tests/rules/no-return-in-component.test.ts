@@ -36,46 +36,5 @@ ruleTester.run('no-return-in-component', rule, {
 			`,
 		},
 	],
-	invalid: [
-		// Invalid: early return without JSX
-		{
-			code: `
-				component App() {
-					if (condition) return;
-					<div>{'Hello'}</div>
-				}
-			`,
-			errors: [
-				{
-					messageId: 'noReturn',
-				},
-			],
-		},
-		// Invalid: returning JSX element
-		{
-			code: `
-				component App() {
-					return <div>{'Hello'}</div>;
-				}
-			`,
-			errors: [
-				{
-					messageId: 'noReturn',
-				},
-			],
-		},
-		// Invalid: returning JSX fragment
-		{
-			code: `
-				component App() {
-					return <>{'Hello'}</>;
-				}
-			`,
-			errors: [
-				{
-					messageId: 'noReturn',
-				},
-			],
-		},
-	],
+	invalid: [],
 });

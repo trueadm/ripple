@@ -82,7 +82,7 @@ ruleTester.run('unbox-tracked-values', rule, {
 			code: `
 				component App() {
 					const value = track(10);
-					<span>{\`Value: ${value}\`}</span>
+					<span>{\`Value: \${value}\`}</span>
 				}
 			`,
 			errors: [
