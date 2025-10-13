@@ -32,6 +32,7 @@ import {
 	normalize_children,
 	build_getter,
 	determine_namespace_for_children,
+	is_console_call,
 } from '../../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
@@ -221,6 +222,11 @@ const visitors = {
 	CallExpression(node, context) {
 		if (!context.state.to_ts) {
 			delete node.typeArguments;
+
+			if (is_console_call(node, context)) {
+				const method = node.callee.property.name;
+				return b.call('_$_.console_log', b.literal(method), ...node.arguments.map((arg) => context.visit(arg)));
+			}
 		}
 		const callee = node.callee;
 		const parent = context.path.at(-1);
@@ -545,10 +551,9 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${
-					is_boolean_attribute(name) && value === true
-						? ''
-						: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${is_boolean_attribute(name) && value === true
+					? ''
+					: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -880,16 +885,16 @@ const visitors = {
 				}
 			}
 
-		if (node.metadata.scoped && state.component.css) {
-			const hasClassAttr = node.attributes.some(attr => 
-				attr.type === 'Attribute' && attr.name.type === 'Identifier' && attr.name.name === 'class'
-			);
-			if (!hasClassAttr) {
-				const name = is_spreading ? '#class' : 'class';
-				const value = state.component.css.hash;
-				props.push(b.prop('init', b.key(name), b.literal(value)));
+			if (node.metadata.scoped && state.component.css) {
+				const hasClassAttr = node.attributes.some(attr =>
+					attr.type === 'Attribute' && attr.name.type === 'Identifier' && attr.name.name === 'class'
+				);
+				if (!hasClassAttr) {
+					const name = is_spreading ? '#class' : 'class';
+					const value = state.component.css.hash;
+					props.push(b.prop('init', b.key(name), b.literal(value)));
+				}
 			}
-		}
 
 			const children_filtered = [];
 
@@ -1039,10 +1044,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */ (context.visit(left)),
-							/** @type {Expression} */ (context.visit(right)),
-						),
+						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */(context.visit(left)),
+							/** @type {Expression} */(context.visit(right)),
+					),
 				b.id('__block'),
 			);
 		}
@@ -1058,12 +1063,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */ (
-								context.visit(left, { ...context.state, metadata: { tracking: false } })
-							),
-							/** @type {Expression} */ (context.visit(right)),
+						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */(
+							context.visit(left, { ...context.state, metadata: { tracking: false } })
 						),
+							/** @type {Expression} */(context.visit(right)),
+					),
 				b.id('__block'),
 			);
 		}
@@ -1270,12 +1275,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-											b.call(
-												b.id('__render'),
-												b.id(alternate_id),
-												node.alternate ? b.literal(false) : undefined,
-											),
-										)
+										b.call(
+											b.id('__render'),
+											b.id(alternate_id),
+											node.alternate ? b.literal(false) : undefined,
+										),
+									)
 									: undefined,
 							),
 						]),
@@ -1336,9 +1341,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-								b.block(transform_body(node.handler.body.body, context)),
-							),
+							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+							b.block(transform_body(node.handler.body.body, context)),
+						),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1464,7 +1469,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
 	}
 
 	quasi.tail = true;
@@ -1947,7 +1952,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 	};
 
 	const program = /** @type {Program} */ (
-		walk(/** @type {Node} */ (analysis.ast), { ...state, namespace: 'html' }, visitors)
+		walk(/** @type {Node} */(analysis.ast), { ...state, namespace: 'html' }, visitors)
 	);
 
 	for (const hoisted of state.hoisted) {

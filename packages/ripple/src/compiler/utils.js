@@ -1,4 +1,4 @@
-/** @import { Identifier, Pattern, Super, FunctionExpression, FunctionDeclaration, ArrowFunctionExpression, MemberExpression, AssignmentExpression, Expression, Node, AssignmentOperator } from 'estree' */
+/** @import { Identifier, Pattern, Super, FunctionExpression, FunctionDeclaration, ArrowFunctionExpression, MemberExpression, AssignmentExpression, Expression, Node, AssignmentOperator, CallExpression } from 'estree' */
 /** @import { Component, Element, Attribute, SpreadAttribute, ScopeInterface, Binding, RippleNode, CompilerState, TransformContext, DelegatedEventResult, TextNode } from '#compiler' */
 import { build_assignment_value, extract_paths } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
@@ -352,7 +352,7 @@ export function build_hoisted_params(node, context) {
 		}
 	} else {
 		for (const param of node.params) {
-			params.push(/** @type {Pattern} */ (context.visit(param)));
+			params.push(/** @type {Pattern} */(context.visit(param)));
 		}
 	}
 
@@ -554,7 +554,7 @@ export function is_ripple_import(callee, context) {
  * @returns {boolean}
  */
 export function is_declared_function_within_component(node, context) {
-	const component = context.path?.find(/** @param {RippleNode} n */ (n) => n.type === 'Component');
+	const component = context.path?.find(/** @param {RippleNode} n */(n) => n.type === 'Component');
 
 	if (node.type === 'Identifier' && component) {
 		const binding = context.state.scope.get(node.name);
@@ -611,8 +611,8 @@ export function visit_assignment_expression(node, context, build_assignment) {
 				assignment ??
 				b.assignment(
 					'=',
-					/** @type {Pattern} */ (context.visit(path.node)),
-					/** @type {Expression} */ (context.visit(value)),
+					/** @type {Pattern} */(context.visit(path.node)),
+					/** @type {Expression} */(context.visit(value)),
 				)
 			);
 		});
@@ -702,8 +702,8 @@ export function build_assignment(operator, left, right, context) {
 			object,
 			b.assignment(
 				operator,
-				/** @type {Pattern} */ (context.visit(left)),
-				/** @type {Expression} */ (context.visit(right)),
+				/** @type {Pattern} */(context.visit(left)),
+				/** @type {Expression} */(context.visit(right)),
 			),
 		);
 	}
@@ -830,7 +830,7 @@ function normalize_child(node, normalized, context) {
  */
 export function get_parent_block_node(context) {
 	const path = context.path;
-	
+
 	for (let i = path.length - 1; i >= 0; i -= 1) {
 		const context_node = path[i];
 		if (
@@ -901,4 +901,19 @@ export function determine_namespace_for_children(element_name, current_namespace
 	}
 
 	return current_namespace;
+}
+
+/**
+ * @param {CallExpression} node
+ * @param {TransformContext} context
+ * @returns {boolean}
+ */
+export function is_console_call(node, context) {
+	return (
+		node.callee.type === 'MemberExpression' &&
+		node.callee.object.type === 'Identifier' &&
+		node.callee.property.type === 'Identifier' &&
+		node.callee.object.name === 'console' &&
+		context.state.scope.get('console') === null
+	);
 }

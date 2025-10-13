@@ -24,6 +24,7 @@ import {
 	TRY_BLOCK,
 	UNINITIALIZED,
 	REF_PROP,
+	TRACKED_OBJECT,
 } from './constants.js';
 import { capture, suspend } from './try.js';
 import {
@@ -412,7 +413,7 @@ function is_tracking_dirty(tracking) {
 		var tracked = tracking.t;
 
 		if ((tracked.f & DERIVED) !== 0) {
-			update_derived(/** @type {Derived} **/ (tracked));
+			update_derived(/** @type {Derived} **/(tracked));
 		}
 
 		if (tracked.c > tracking.c) {
@@ -472,7 +473,7 @@ export function async_computed(fn, block) {
 		}
 
 		promise.then((v) => {
-			if (parent && is_destroyed(/** @type {Block} */ (parent))) {
+			if (parent && is_destroyed(/** @type {Block} */(parent))) {
 				return;
 			}
 			if (promise === current && t.v !== v) {
@@ -746,7 +747,7 @@ export function get(tracked) {
 	}
 
 	return (tracked.f & DERIVED) !== 0
-		? get_derived(/** @type {Derived} */ (tracked))
+		? get_derived(/** @type {Derived} */(tracked))
 		: get_tracked(tracked);
 }
 
@@ -872,7 +873,7 @@ export function flush_sync(fn) {
  * @returns {Object}
  */
 export function spread_props(fn, block) {
-	let computed = derived(fn, block);
+	var computed = derived(fn, block);
 
 	return new Proxy(
 		{},
@@ -882,8 +883,22 @@ export function spread_props(fn, block) {
 				return obj[property];
 			},
 			has(target, property) {
+				if (property === TRACKED_OBJECT) {
+					return true;
+				}
 				const obj = get_derived(computed);
 				return property in obj;
+			},
+			getOwnPropertyDescriptor(target, key) {
+				const obj = get_derived(computed);
+
+				if (key in obj) {
+					return {
+						enumerable: true,
+						configurable: true,
+						value: obj[key],
+					};
+				}
 			},
 			ownKeys() {
 				const obj = get_derived(computed);
@@ -1164,7 +1179,7 @@ export async function maybe_tracked(v) {
 		} else {
 			value = await async_computed(async () => {
 				return await get_tracked(v);
-			}, /** @type {Block} */ (active_block));
+			}, /** @type {Block} */(active_block));
 		}
 	} else {
 		value = await v;
@@ -1174,4 +1189,22 @@ export async function maybe_tracked(v) {
 		restore();
 		return value;
 	};
+}
+
+/**
+ * @param {keyof Console} method
+ * @param {...any} args
+ * @returns {void}
+ */
+export function console_log(method, ...args) {
+	const console_fn = console[method];
+	const sanitized_args = args.map(arg => {
+		if (typeof arg === 'object' && arg !== null && TRACKED_OBJECT in arg) {
+			return is_array(arg) ? [...arg] : arg;
+		}
+		return arg;
+	});
+
+	// @ts-ignore
+	return console_fn.apply(console, sanitized_args);
 }

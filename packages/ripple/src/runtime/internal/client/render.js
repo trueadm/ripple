@@ -1,7 +1,7 @@
 /** @import { Block } from '#client' */
 
 import { destroy_block, ref } from './blocks.js';
-import { REF_PROP } from './constants.js';
+import { REF_PROP, TRACKED, TRACKED_OBJECT } from './constants.js';
 import {
 	get_descriptors,
 	get_own_property_symbols,
@@ -310,6 +310,10 @@ export function apply_element_spread(element, fn) {
 		}
 
 		for (const symbol of get_own_property_symbols(next)) {
+			// Ensure we are not trying to write to a proxied object
+			if (TRACKED_OBJECT in next) {
+				next = {...next};
+			}
 			var ref_fn = next[symbol];
 
 			if (symbol.description === REF_PROP && (!prev || ref_fn !== prev[symbol])) {
