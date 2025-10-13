@@ -124,9 +124,22 @@ the loop's index.
 
 ```ripple
   for (const item of items; index i) {
-    <div>{item}{' at index '}{i}</div>
+    <div>{item.label}{' at index '}{i}</div>
   }
 ```
+
+You can also provide a `key` for efficient list updates and reconciliation:
+
+```ripple
+  for (const item of items; index i; key item.id) {
+    <div>{item.label}{' at index '}{i}</div>
+  }
+```
+
+**Key Usage Guidelines:**
+
+- **Arrays with `#{}` objects**: Keys are usually unnecessary - object identity and reactivity handle updates automatically. Identity-based loops are more efficient with less bookkeeping.
+- **Arrays with plain objects**: Keys are needed when object reference isn't sufficient for identification. Use stable identifiers: `key item.id`.
 
 You can use Ripple's reactive arrays to easily compose contents of an array.
 

@@ -473,6 +473,22 @@ component ListView({ title, items }) {
 }
 ```
 
+#### For Loops with key
+```ripple
+component ListView({ title, items }) {
+  <h2>{title}</h2>
+  <ul>
+    for (const item of items; index i; key item.id) {
+      <li>{item.text}{' at index '}{i}</li>
+    }
+  </ul>
+}
+```
+
+**Key Usage Guidelines:**
+- **Arrays with `#{}` objects**: Keys are usually unnecessary - object identity and reactivity handle updates automatically. Identity-based loops are more efficient with less bookkeeping.
+- **Arrays with plain objects**: Keys are needed when object reference isn't sufficient for identification. Use stable identifiers: `key item.id`.
+
 #### Dynamic Elements
 ```ripple
 export component App() {
