@@ -60,6 +60,14 @@ export default defineConfig({
 				},
 				plugins: [ripple()],
 			},
+			{
+				name: 'ripple-utils',
+				test: {
+					include: ['packages/ripple/tests/utils/**/*.test.js'],
+					environment: 'node',
+					globals: true,
+				},
+			},
 		],
 	},
 });

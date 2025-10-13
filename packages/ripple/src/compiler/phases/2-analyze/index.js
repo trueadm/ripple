@@ -597,6 +597,14 @@ const visitors = {
 				}
 				binding.metadata.is_dynamic_component = true;
 			}
+
+			if (!is_dom_element && state.elements) {
+				state.elements.push(node);
+				// Mark dynamic elements as scoped by default since we can't match CSS at compile time
+				if (state.component?.css) {
+						node.metadata.scoped = true;
+				}
+		}
 		}
 
 		if (is_dom_element) {

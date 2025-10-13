@@ -1,4 +1,4 @@
-import { effect } from './blocks';
+import { effect } from './blocks.js';
 /**
  * @param {Text | Comment} node
  * @param {string} content

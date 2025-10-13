@@ -571,6 +571,123 @@ export component Test({ a, b }: Props) {}`;
 			const result = await format(expected, { singleQuote: true, printWidth: 60 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('keeps a new line between comments above and code if one is present', async () => {
+			const expected = `// comment
+
+import { useCount, incrementCount } from './useCount';
+import { effect, track } from 'ripple';`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format properly an array of objects', async () => {
+			const expected = `obj = {
+  test: [
+    { a: 1, b: 2, c: 3, d: 4 },
+    { a: 1, b: 2 },
+    { c: 3, d: 4 },
+  ],
+};`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep chained expression intact', async () => {
+			const expected = `const doc = getRootNode?.()?.ownerDocument ?? document;`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('does not add spaces around inlined array elements in destructured arguments', async () => {
+			const expected = `for (const [key, value] of Object.entries(attributes).filter(([_key, value]) => value !== '')) {}
+const [obj1, obj2] = arrayOfObjects;`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('properly formats for of loops where the parent has no attributes', async () => {
+			const expected = `<tbody>
+  for (const [key, value] of Object.entries(attributes).filter(([_key, value]) => value !== '')) {
+    <tr class="not-last:border-b border-border/50">
+      <td class="py-2 font-mono w-48">
+        <Kbd>{key}</Kbd>
+      </td>
+      <td class="py-2">{value}</td>
+    </tr>
+  }
+</tbody>`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep a new line between elements or component if provided', async () => {
+			const expected = `<Something>
+  <div>{'Hello'}</div>
+</Something>
+
+<Child class="test" />`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep proper formatting between css declarations', async () => {
+			const expected = `export component App() {
+  <style>
+    div {
+      background-color: red;
+    }
+    .even-class {
+      color: green;
+    }
+    .odd-class {
+      color: blue;
+    }
+  </style>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep one new line between css declarations if one or more is provided', async () => {
+			const input = `export component App() {
+  <style>
+    div {
+      background-color: red;
+    }
+
+    .even-class {
+      color: green;
+    }
+
+
+    .odd-class {
+      color: blue;
+    }
+  </style>
+}`;
+
+			const expected = `export component App() {
+  <style>
+    div {
+      background-color: red;
+    }
+
+    .even-class {
+      color: green;
+    }
+
+    .odd-class {
+      color: blue;
+    }
+  </style>
+}`;
+			const result = await format(input, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
@@ -752,7 +869,7 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 		const input = `for (const [i = 0, item] of items.entries()) {}
 for (const {i = 0, item} of items.entries()) {}`;
 
-		const expected = `for (const [ i = 0, item ] of items.entries()) {}
+		const expected = `for (const [i = 0, item] of items.entries()) {}
 for (const { i = 0, item } of items.entries()) {}`;
 
 		const result = await format(input);

@@ -11,7 +11,12 @@ describe('validateProjectName', () => {
 			'my-awesome-app',
 			'app123',
 			'a',
-			'a'.repeat(214) // max length
+			'a'.repeat(214), // max length
+			'.',
+			'my/app',
+			'./my-app',
+			'../my-app',
+			'path/to/my-app'
 		];
 
 		validNames.forEach(name => {
@@ -43,8 +48,6 @@ describe('validateProjectName', () => {
 			'My-App', // uppercase
 			'my app', // space
 			'my@app', // special character
-			'my/app', // slash
-			'my\\app', // backslash
 			'my:app', // colon
 			'my*app', // asterisk
 			'my?app', // question mark
