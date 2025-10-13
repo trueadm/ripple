@@ -664,6 +664,8 @@ const visitors = {
 	},
 
 	AwaitExpression(node, context) {
+		context.state.scope.server_block = true
+		context.inside_server_block = true
 		if (context.state.to_ts) {
 			return context.next();
 		}

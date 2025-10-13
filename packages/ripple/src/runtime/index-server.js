@@ -3,21 +3,11 @@
 import { DERIVED, TRACKED, UNINITIALIZED } from './internal/client/constants.js';
 import { is_tracked_object } from './internal/client/utils.js';
 import { active_component } from './internal/server/index.js';
-import { active_output } from './internal/server/index.js';
 
 export { Context } from './internal/server/context.js';
 
-/**
- * 
- * @param {Function} cbfn 
- */
-export function effect(cbfn) {
-	const res = cbfn();
-	if (res && typeof res.then === 'function') {
-		if (active_output) {
-			active_output.promises.push(res);
-		}
-	}
+export function effect() {
+	// NO-OP
 }
 
 var empty_get_set = { get: undefined, set: undefined };

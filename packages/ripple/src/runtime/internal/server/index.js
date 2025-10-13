@@ -24,8 +24,6 @@ const replacements = {
 	]),
 };
 
-export let active_output = null;
-
 class Output {
 	head = '';
 	body = '';
@@ -62,11 +60,11 @@ class Output {
 
 /**
  * @param {((output: Output, props: Record<string, any>) => void | Promise<void>) & { async?: boolean }} component
- * @returns {Promise<{head: string, body: string, css: Set<string>}>}
+ * @returns {Promise<{head?: string, body?: string, css?: Set<string>}>}
  */
 export async function render(component) {
 	const output = new Output(null);
-	active_output = output;
+	let head, body, css;
 
 	try {
 		if (component.async) {
@@ -74,19 +72,19 @@ export async function render(component) {
 		} else {
 			component(output, {});
 		}
-
 		if (output.promises.length > 0) {
 			await Promise.all(output.promises);
 		}
 
-		const { head, body, css } = output;
-
-		return { head, body, css };
-	} finally {
-		active_output = null;
+		head = output.head
+		body = output.body
+		css = output.css
 	}
+	catch (error) {
+		console.log(error)
+	}
+	return { head, body, css }
 }
-
 /**
  * @returns {void}
  */

@@ -111,7 +111,8 @@ const visitors = {
 		if (
 			is_reference(node, /** @type {Node} */ (parent)) &&
 			binding &&
-			context.state.inside_server_block
+			context.state.inside_server_block &&
+			context.state.scope.server_block
 		) {
 			let current_scope = binding.scope;
 
@@ -439,9 +440,17 @@ const visitors = {
 
 		if (declaration && declaration.type === 'FunctionDeclaration') {
 			server_block.metadata.exports.push(declaration.id.name);
+		} else if (declaration && declaration.type === 'Component') {
+			// Handle exported components in server blocks
+			if (server_block) {
+				server_block.metadata.exports.push(declaration.id.name);
+			} else {
+				// If it's a server build but not inside a #server block,
+				// we still need to track the component for SSR.
+				// The component metadata is already collected in the Component visitor.
+			}
 		} else {
-			// TODO
-			throw new Error('Not implemented');
+			throw new Error('Not implemented: Exported declaration type not supported in server blocks.');
 		}
 
 		return context.next();
@@ -756,6 +765,16 @@ const visitors = {
 		}
 		const parent_block = get_parent_block_node(context);
 
+		if (parent_block !== null && parent_block.type !== 'Component') {
+			if (context.state.inside_server_block === false) {
+				error(
+					'`await` is not allowed in client-side control-flow statements',
+					context.state.analysis.module.filename,
+					node
+				);
+			}
+		}
+
 		if (parent_block) {
 			if (!parent_block.metadata) {
 				parent_block.metadata = {};
@@ -767,7 +786,7 @@ const visitors = {
 	},
 };
 
-export function analyze(ast, filename) {
+export function analyze(ast, filename, options = {}) {
 	const scope_root = new ScopeRoot();
 
 	const { scope, scopes } = create_scopes(ast, scope_root, null);
@@ -787,7 +806,7 @@ export function analyze(ast, filename) {
 			scopes,
 			analysis,
 			inside_head: false,
-			inside_server_block: false,
+			inside_server_block: options.mode === 'server',
 		},
 		visitors,
 	);
