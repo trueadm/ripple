@@ -248,40 +248,6 @@ export default [
 ];
 ```
 
-## Using with TypeScript
-
-This plugin works seamlessly with TypeScript. The recommended config automatically uses `@typescript-eslint/parser` for `.ts` and `.tsx` files if it's installed:
-
-```bash
-npm install --save-dev @typescript-eslint/parser
-```
-
-Then just use the recommended config - no additional configuration needed:
-
-```js
-import ripple from 'eslint-plugin-ripple';
-
-export default [...ripple.configs.recommended];
-```
-
-The plugin will automatically detect and use the TypeScript parser for your `.ts` and `.tsx` files.
-
-## Using with .ripple Files
-
-Full support for `.ripple` files is available via the `eslint-parser-ripple` package:
-
-```bash
-npm install --save-dev eslint-parser-ripple
-```
-
-Then just use the recommended config - the parser will be automatically detected:
-
-```js
-import ripple from 'eslint-plugin-ripple';
-
-export default [...ripple.configs.recommended];
-```
-
 The plugin will automatically detect and use the Ripple parser for your `.ripple` files.
 
 ## License
