@@ -74,7 +74,7 @@ export default defineConfig({
 		},
 
 		editLink: {
-			pattern: 'https://github.com/trueadm/ripple/edit/main/webside/:path',
+			pattern: 'https://github.com/trueadm/ripple/edit/main/website/:path',
 			text: 'Edit this page on GitHub'
 		},
 
