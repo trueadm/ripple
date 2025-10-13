@@ -237,14 +237,14 @@ export function export_builder(declaration, specifiers = [], attributes = [], so
  * @param {ESTree.BlockStatement} body
  * @returns {ESTree.FunctionDeclaration}
  */
-export function function_declaration(id, params, body) {
+export function function_declaration(id, params, body, async = false) {
 	return {
 		type: 'FunctionDeclaration',
 		id,
 		params,
 		body,
 		generator: false,
-		async: false,
+		async,
 		metadata: /** @type {any} */ (null), // should not be used by codegen
 	};
 }

@@ -24,7 +24,7 @@ export function parse(source) {
  */
 export function compile(source, filename, options = {}) {
   const ast = parse_module(source);
-  const analysis = analyze(ast, filename);
+  const analysis = analyze(ast, filename, options);
   const result = options.mode === 'server'
       ? transform_server(filename, source, analysis)
       : transform_client(filename, source, analysis, false);

@@ -30,6 +30,8 @@ class Output {
 	body = '';
 	/** @type {Set<string>} */
 	css = new Set();
+	/** @type {Promise<any>[]} */
+	promises = [];
 	/** @type {Output | null} */
 	#parent = null;
 
@@ -60,18 +62,27 @@ class Output {
 /** @type {render} */
 export async function render(component) {
 	const output = new Output(null);
+	let head, body, css;
 
-	if (component.async) {
-		await component(output, {});
-	} else {
-		component(output, {});
+	try {
+		if (component.async) {
+			await component(output, {});
+		} else {
+			component(output, {});
+		}
+		if (output.promises.length > 0) {
+			await Promise.all(output.promises);
+		}
+
+		head = output.head
+		body = output.body
+		css = output.css
 	}
-
-	const { head, body, css } = output;
-
-	return { head, body, css };
+	catch (error) {
+		console.log(error)
+	}
+	return { head, body, css }
 }
-
 /**
  * @returns {void}
  */

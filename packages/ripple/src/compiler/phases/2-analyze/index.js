@@ -111,7 +111,8 @@ const visitors = {
 		if (
 			is_reference(node, /** @type {Node} */ (parent)) &&
 			binding &&
-			context.state.inside_server_block
+			context.state.inside_server_block &&
+			context.state.scope.server_block
 		) {
 			let current_scope = binding.scope;
 
@@ -349,13 +350,14 @@ const visitors = {
 			node.metadata = {
 				...node.metadata,
 				has_template: false,
+				has_await: false,
 			};
 
 			context.visit(switch_case, context.state);
 
-			if (!node.metadata.has_template) {
+			if (!node.metadata.has_template && !node.metadata.has_await) {
 				error(
-					'Component switch statements must contain a template in each of their cases. Move the switch statement into an effect if it does not render anything.',
+					'Component switch statements must contain a template or an await expression in each of their cases. Move the switch statement into an effect if it does not render anything.',
 					context.state.analysis.module.filename,
 					node,
 				);
@@ -416,15 +418,16 @@ const visitors = {
 		node.metadata = {
 			...node.metadata,
 			has_template: false,
+			has_await: false,
 		};
 		context.next();
 
-		if (!node.metadata.has_template) {
+		if (!node.metadata.has_template && !node.metadata.has_await) {
 			error(
-				'Component for...of loops must contain a template in their body. Move the for loop into an effect if it does not render anything.',
-				context.state.analysis.module.filename,
-				node,
-			);
+					'Component for...of loops must contain a template or an await expression in their body. Move the for loop into an effect if it does not render anything.',
+					context.state.analysis.module.filename,
+					node,
+				);
 		}
 	},
 
@@ -437,9 +440,14 @@ const visitors = {
 
 		if (declaration && declaration.type === 'FunctionDeclaration') {
 			server_block.metadata.exports.push(declaration.id.name);
+		} else if (declaration && declaration.type === 'Component') {
+			// Handle exported components in server blocks
+			if (server_block) {
+				server_block.metadata.exports.push(declaration.id.name);
+			}
 		} else {
 			// TODO
-			throw new Error('Not implemented');
+			throw new Error('Not implemented: Exported declaration type not supported in server blocks.');
 		}
 
 		return context.next();
@@ -462,35 +470,39 @@ const visitors = {
 		node.metadata = {
 			...node.metadata,
 			has_template: false,
+			has_await: false,
 		};
 
 		context.visit(node.consequent, context.state);
 
-		if (!node.metadata.has_template) {
+		if (!node.metadata.has_template && !node.metadata.has_await) {
 			error(
-				'Component if statements must contain a template in their "then" body. Move the if statement into an effect if it does not render anything.',
-				context.state.analysis.module.filename,
-				node,
-			);
-		}
-
-		if (node.alternate) {
-			node.metadata = {
-				...node.metadata,
-				has_template: false,
-			};
-			context.visit(node.alternate, context.state);
-
-			if (!node.metadata.has_template) {
-				error(
-					'Component if statements must contain a template in their "else" body. Move the if statement into an effect if it does not render anything.',
+					'Component if statements must contain a template or an await expression in their "then" body. Move the if statement into an effect if it does not render anything.',
 					context.state.analysis.module.filename,
 					node,
 				);
+		}
+
+		if (node.alternate) {
+			node.metadata.has_template = false;
+			node.metadata.has_await = false;
+			context.visit(node.alternate, context.state);
+
+			if (!node.metadata.has_template && !node.metadata.has_await) {
+				error(
+						'Component if statements must contain a template or an await expression in their "else" body. Move the if statement into an effect if it does not render anything.',
+						context.state.analysis.module.filename,
+						node,
+					);
 			}
 		}
 	},
-
+	/**
+	 * 
+	 * @param {any} node 
+	 * @param {any} context 
+	 * @returns 
+	 */
 	TryStatement(node, context) {
 		if (!is_inside_component(context)) {
 			return context.next();
@@ -744,7 +756,12 @@ const visitors = {
 		mark_control_flow_has_template(context.path);
 		context.next();
 	},
-
+	
+ /**
+	* 
+	* @param {any} node 
+	* @param {any} context 
+	*/
 	AwaitExpression(node, context) {
 		if (is_inside_component(context)) {
 			if (context.state.metadata?.await === false) {
@@ -754,18 +771,27 @@ const visitors = {
 		const parent_block = get_parent_block_node(context);
 
 		if (parent_block !== null && parent_block.type !== 'Component') {
-			error(
-				'`await` expressions can only currently be used at the top-level of a component body. Support for using them in control flow statements will be added in the future.',
-				context.state.analysis.module.filename,
-				node,
-			);
+			if (context.state.inside_server_block === false) {
+				error(
+					'`await` is not allowed in client-side control-flow statements',
+					context.state.analysis.module.filename,
+					node
+				);
+			}
 		}
 
+		if (parent_block) {
+			if (!parent_block.metadata) {
+				parent_block.metadata = {};
+			}
+			parent_block.metadata.has_await = true;
+		}
+		
 		context.next();
 	},
 };
 
-export function analyze(ast, filename) {
+export function analyze(ast, filename, options = {}) {
 	const scope_root = new ScopeRoot();
 
 	const { scope, scopes } = create_scopes(ast, scope_root, null);
@@ -785,7 +811,7 @@ export function analyze(ast, filename) {
 			scopes,
 			analysis,
 			inside_head: false,
-			inside_server_block: false,
+			inside_server_block: options.mode === 'server',
 		},
 		visitors,
 	);
