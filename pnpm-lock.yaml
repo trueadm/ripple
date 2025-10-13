@@ -373,6 +373,9 @@ importers:
       '@volar/vscode':
         specifier: catalog:default
         version: 2.4.23
+      ripple:
+        specifier: workspace:*
+        version: link:../ripple
       ripple-language-server:
         specifier: workspace:*
         version: link:../ripple-language-server
@@ -426,6 +429,9 @@ importers:
       '@volar/typescript':
         specifier: catalog:default
         version: 2.4.23
+      ripple:
+        specifier: workspace:*
+        version: link:../ripple
       typescript:
         specifier: catalog:peer
         version: 5.9.2
