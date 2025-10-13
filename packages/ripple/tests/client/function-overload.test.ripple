@@ -1,0 +1,40 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mount, flushSync } from 'ripple';
+
+import { test } from './function-overload-import.ripple';
+
+describe('function overload import tests', () => {
+	describe('function overloads', () => {
+		it('test function with string argument returns the string', () => {
+			const result = test('hello');
+			expect(result).toBe('hello');
+			expect(typeof result).toBe('string');
+		});
+
+		it('test function with number argument returns string representation', () => {
+			const result = test(42);
+			expect(result).toBe('42');
+			expect(typeof result).toBe('string');
+		});
+
+		it('test function with zero returns "0"', () => {
+			const result = test(0);
+			expect(result).toBe('0');
+		});
+
+		it('test function with negative number returns string representation', () => {
+			const result = test(-100);
+			expect(result).toBe('-100');
+		});
+
+		it('test function with empty string returns empty string', () => {
+			const result = test('');
+			expect(result).toBe('');
+		});
+
+		it('test function with decimal number returns string representation', () => {
+			const result = test(3.14159);
+			expect(result).toBe('3.14159');
+		});
+	});
+});

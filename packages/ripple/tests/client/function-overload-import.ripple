@@ -1,0 +1,10 @@
+export function test(arg: string): string
+export function test(arg: number): string
+
+export function test(arg: string | number): string {
+  if (typeof arg === 'string') {
+    return arg;
+  }
+
+  return arg.toString();
+}
