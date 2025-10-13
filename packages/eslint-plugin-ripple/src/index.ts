@@ -1,6 +1,5 @@
 import { createRequire } from 'module';
 import noModuleScopeTrack from './rules/no-module-scope-track.js';
-import requireComponentExport from './rules/require-component-export.js';
 import preferOnInput from './rules/prefer-oninput.js';
 import noReturnInComponent from './rules/no-return-in-component.js';
 import unboxTrackedValues from './rules/unbox-tracked-values.js';
@@ -13,7 +12,6 @@ const plugin = {
   },
   rules: {
     'no-module-scope-track': noModuleScopeTrack,
-    'require-component-export': requireComponentExport,
     'prefer-oninput': preferOnInput,
     'no-return-in-component': noReturnInComponent,
     'unbox-tracked-values': unboxTrackedValues,
@@ -36,7 +34,6 @@ function createConfig(name: string, files: string[], isStrict = false) {
     },
     rules: {
       'ripple/no-module-scope-track': 'error',
-      'ripple/require-component-export': 'off',
       'ripple/prefer-oninput': isStrict ? 'error' : 'warn',
       'ripple/no-return-in-component': 'error',
       'ripple/unbox-tracked-values': 'error',

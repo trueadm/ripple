@@ -16,8 +16,18 @@ const rule: Rule.RuleModule = {
   },
   create(context) {
     return {
-      // Check JSX attributes
+      // Check JSX attributes (standard JSX)
       'JSXAttribute[name.name="onChange"]'(node: any) {
+        context.report({
+          node,
+          messageId: 'preferOnInput',
+          fix(fixer) {
+            return fixer.replaceText(node.name, 'onInput');
+          },
+        });
+      },
+      // Check Attribute nodes (Ripple parser)
+      'Attribute[name.name="onChange"]'(node: any) {
         context.report({
           node,
           messageId: 'preferOnInput',
@@ -29,7 +39,7 @@ const rule: Rule.RuleModule = {
       // Check object properties (for spread props)
       'Property[key.name="onChange"]'(node: any) {
         // Only report if this looks like it's in a props object
-        const ancestors = context.getAncestors();
+        const ancestors = context.sourceCode.getAncestors(node);
         const inObjectExpression = ancestors.some(
           (ancestor) => ancestor.type === 'ObjectExpression'
         );
