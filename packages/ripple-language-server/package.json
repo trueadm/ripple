@@ -1,6 +1,6 @@
 {
   "name": "ripple-language-server",
-  "version": "0.2.124",
+  "version": "0.2.125",
   "description": "Language Server Protocol implementation for Ripple",
   "main": "index.js",
   "bin": {

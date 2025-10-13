@@ -3,7 +3,7 @@
   "description": "TypeScript plugin for Ripple",
   "license": "MIT",
   "author": "Dominic Gannaway",
-  "version": "0.2.124",
+  "version": "0.2.125",
   "main": "src/index.js",
   "homepage": "https://ripplejs.com",
   "repository": {
