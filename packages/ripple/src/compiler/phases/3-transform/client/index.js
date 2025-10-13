@@ -49,6 +49,12 @@ function add_ripple_internal_import(context) {
 }
 
 function visit_function(node, context) {
+	// Function overload signatures don't have a body - they're TypeScript-only
+	// Remove them when compiling to JavaScript
+	if (!context.state.to_ts && !node.body) {
+		return b.empty;
+	}
+
 	if (context.state.to_ts) {
 		return context.next(context.state);
 	}
@@ -1312,6 +1318,22 @@ const visitors = {
 			return b.empty;
 		}
 
+		// Remove TSDeclareFunction nodes (function overload signatures) in JavaScript mode
+		if (!context.state.to_ts && node.declaration?.type === 'TSDeclareFunction') {
+			return b.empty;
+		}
+
+		return context.next();
+	},
+
+	TSDeclareFunction(node, context) {
+		// TSDeclareFunction nodes are TypeScript overload signatures - remove in JavaScript mode
+		if (!context.state.to_ts) {
+			return b.empty;
+		}
+
+		// In TypeScript mode, keep as TSDeclareFunction - esrap will print it with 'declare'
+		// We'll remove the 'declare' keyword in post-processing
 		return context.next();
 	},
 
@@ -1975,6 +1997,15 @@ export function transform_client(filename, source, analysis, to_ts) {
 		sourceMapContent: source,
 		sourceMapSource: path.basename(filename),
 	});
+
+	// Post-process TypeScript output to remove 'declare' from function overload signatures
+	// Function overload signatures in regular .ts files should not have 'declare' keyword
+	if (to_ts) {
+		// Remove 'export declare function' -> 'export function' (for overloads only, not implementations)
+		// Match: export declare function name(...): type;
+		// Don't match: export declare function name(...): type { (has body)
+		js.code = js.code.replace(/^(export\s+)declare\s+(function\s+\w+[^{\n]*;)$/gm, '$1$2');
+	}
 
 	const css = render_stylesheets(state.stylesheets);
 
