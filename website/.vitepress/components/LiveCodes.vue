@@ -103,6 +103,25 @@ export default component Counter() {
 }
 `.trimStart()
 
+const mountRoot =
+	'<scr' +
+	`ipt type="module">
+	import { mount } from 'ripple';
+	import * as script from "./script.ripple";
+
+  const exports = Object.keys(script);
+  const App = exports.length === 1
+		? script[exports[0]]
+		: (script.default || script.App || script[exports.find(e => typeof script[e] === 'function' )]);
+  if (typeof App !== 'function') {
+    throw new Error('No valid export found');
+  }
+  mount(App, {
+    target: document.body.appendChild(document.createElement('div')),
+  });
+</scr` +
+	'ipt>'
+
 const getStyle = () => ({
 	language: 'css' as const,
 	content: props.styles ?? '',
@@ -123,6 +142,7 @@ const config: Partial<Config> = {
 	},
 	markup: {
 		language: 'html',
+		content: mountRoot,
 		hideTitle: true,
 	},
 	style: getStyle(),
@@ -176,9 +196,13 @@ const onReady = (sdk: Playground) => {
 		}
 
 		let newConfig: Partial<Config> = {}
-		if (!config.markup.hideTitle || !config.style.hideTitle) {
+		if (
+			!config.markup.content ||
+			!config.markup.hideTitle ||
+			!config.style.hideTitle
+		) {
 			newConfig = {
-				markup: { ...config.markup, hideTitle: true },
+				markup: { ...config.markup, content: mountRoot, hideTitle: true },
 				style: { ...config.style, hideTitle: true },
 			}
 		}

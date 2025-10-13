@@ -31,12 +31,6 @@ const modifyContent = (content: string) => {
 	if (content.startsWith('ripple')) {
 		content = content.slice('ripple'.length)
 	}
-	if (!content.includes('export default component')) {
-		content = content.replace('export component', 'export default component')
-	}
-	if (!content.includes('export default component')) {
-		content = content.replace('component', 'export default component')
-	}
 	return content
 }
 
