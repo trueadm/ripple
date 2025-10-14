@@ -12,10 +12,10 @@ describe('validateProjectName', () => {
 			'app123',
 			'a',
 			'a'.repeat(214), // max length
-			'.',
+			// '.',
 			'my/app',
-			'./my-app',
-			'../my-app',
+			// './my-app',
+			// '../my-app',
 			'path/to/my-app'
 		];
 

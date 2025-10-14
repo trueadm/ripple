@@ -1,6 +1,4 @@
-import * as tsParser from '@typescript-eslint/parser';
-import * as rippleParser from 'eslint-parser-ripple';
-
+import { createRequire } from 'module';
 import noModuleScopeTrack from './rules/no-module-scope-track.js';
 import preferOnInput from './rules/prefer-oninput.js';
 import noReturnInComponent from './rules/no-return-in-component.js';
@@ -24,6 +22,26 @@ const plugin = {
 	configs: {} as any,
 };
 
+// Try to load optional parsers
+const require = createRequire(import.meta.url);
+
+let rippleParser: any;
+let tsParser: any;
+
+try {
+	rippleParser = require('eslint-parser-ripple');
+} catch {
+	// eslint-parser-ripple is optional
+	rippleParser = null;
+}
+
+try {
+	tsParser = require('@typescript-eslint/parser');
+} catch {
+	// @typescript-eslint/parser is optional
+	tsParser = null;
+}
+
 // Helper to create config objects
 function createConfig(name: string, files: string[], parser: any) {
 	const config: any = {
@@ -32,13 +50,6 @@ function createConfig(name: string, files: string[], parser: any) {
 		plugins: {
 			ripple: plugin,
 		},
-    languageOptions: {
-      parser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
-    },
 		rules: {
 			'ripple/no-module-scope-track': 'error',
 			'ripple/prefer-oninput': 'warn',
@@ -48,6 +59,17 @@ function createConfig(name: string, files: string[], parser: any) {
 			'ripple/no-introspect-in-modules': 'error',
 		},
 	};
+
+	// Only add parser if it's available
+	if (parser) {
+		config.languageOptions = {
+			parser,
+			parserOptions: {
+				ecmaVersion: 'latest',
+				sourceType: 'module',
+			},
+		};
+	}
 
 	return config;
 }
