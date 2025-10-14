@@ -76,3 +76,5 @@ export { script } from './script.js';
 export { html } from './html.js';
 
 export { rpc } from './rpc.js';
+
+export { tsx_compat } from './comapt.js';

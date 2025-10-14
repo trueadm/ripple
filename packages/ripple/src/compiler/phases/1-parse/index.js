@@ -107,7 +107,8 @@ function RipplePlugin(config) {
 						// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
 						// At component top-level (scopeStack.length <= 4), apply JSX detection logic
 						// BUT: if the < is followed by /, it's a closing JSX tag, not a less-than operator
-						const nextChar = this.pos + 1 < this.input.length ? this.input.charCodeAt(this.pos + 1) : -1;
+						const nextChar =
+							this.pos + 1 < this.input.length ? this.input.charCodeAt(this.pos + 1) : -1;
 						const isClosingTag = nextChar === 47; // '/'
 
 						if (this.scopeStack.length >= 5 && !isClosingTag) {
@@ -169,15 +170,19 @@ function RipplePlugin(config) {
 
 						// Check if this is #Map or #Set
 						if (this.input.slice(this.pos, this.pos + 4) === '#Map') {
-							const charAfter = this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
-							if (charAfter === 40) { // ( character
+							const charAfter =
+								this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
+							if (charAfter === 40) {
+								// ( character
 								this.pos += 4; // consume '#Map'
 								return this.finishToken(tt.name, '#Map');
 							}
 						}
 						if (this.input.slice(this.pos, this.pos + 4) === '#Set') {
-							const charAfter = this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
-							if (charAfter === 40) { // ( character
+							const charAfter =
+								this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
+							if (charAfter === 40) {
+								// ( character
 								this.pos += 4; // consume '#Set'
 								return this.finishToken(tt.name, '#Set');
 							}
@@ -206,12 +211,18 @@ function RipplePlugin(config) {
 						// Check if this is an invalid #Identifier pattern
 						// Valid patterns: #[, #{, #Map(, #Set(, #server
 						// If we see # followed by an uppercase letter that isn't Map or Set, it's an error
-						if (nextChar >= 65 && nextChar <= 90) { // A-Z
+						if (nextChar >= 65 && nextChar <= 90) {
+							// A-Z
 							// Extract the identifier name
 							let identEnd = this.pos + 1;
 							while (identEnd < this.input.length) {
 								const ch = this.input.charCodeAt(identEnd);
-								if ((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122) || (ch >= 48 && ch <= 57) || ch === 95) {
+								if (
+									(ch >= 65 && ch <= 90) ||
+									(ch >= 97 && ch <= 122) ||
+									(ch >= 48 && ch <= 57) ||
+									ch === 95
+								) {
 									// A-Z, a-z, 0-9, _
 									identEnd++;
 								} else {
@@ -220,7 +231,10 @@ function RipplePlugin(config) {
 							}
 							const identName = this.input.slice(this.pos + 1, identEnd);
 							if (identName !== 'Map' && identName !== 'Set') {
-								this.raise(this.pos, `Invalid tracked syntax '#${identName}'. Only #Map and #Set are currently supported using shorthand tracked syntax.`);
+								this.raise(
+									this.pos,
+									`Invalid tracked syntax '#${identName}'. Only #Map and #Set are currently supported using shorthand tracked syntax.`,
+								);
 							}
 						}
 					}
@@ -923,9 +937,13 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'JSXIdentifier');
 			}
 
-			// Override jsx_parseElementName to support @ syntax in member expressions
 			jsx_parseElementName() {
-				let node = this.jsx_parseIdentifier();
+				let node = this.jsx_parseNamespacedName();
+
+				if (node.type === 'JSXNamespacedName') {
+					return node;
+				}
+
 				if (this.eat(tt.dot)) {
 					let memberExpr = this.startNodeAt(node.start, node.loc && node.loc.start);
 					memberExpr.object = node;
@@ -1002,11 +1020,15 @@ function RipplePlugin(config) {
 			}
 
 			jsx_readToken() {
+				const inside_tsx_compat = this.#path.findLast((n) => n.type === 'TsxCompat');
+				if (inside_tsx_compat) {
+					return super.jsx_readToken();
+				}
 				let out = '',
 					chunkStart = this.pos;
 				const tok = this.acornTypeScript.tokTypes;
 
-				for (;;) {
+				while (true) {
 					if (this.pos >= this.input.length) this.raise(this.start, 'Unterminated JSX contents');
 					let ch = this.input.charCodeAt(this.pos);
 
@@ -1161,10 +1183,29 @@ function RipplePlugin(config) {
 				element.start = position.index;
 				element.loc.start = position;
 				element.metadata = {};
-				element.type = 'Element';
-				this.#path.push(element);
 				element.children = [];
 				const open = this.jsx_parseOpeningElementAt();
+
+				// Check if this is a namespaced element (tsx:react)
+				const is_tsx_compat = open.name.type === 'JSXNamespacedName';
+
+				if (is_tsx_compat) {
+					element.type = 'TsxCompat';
+					element.kind = open.name.name.name; // e.g., "react" from "tsx:react"
+
+					if (open.selfClosing) {
+						const tagName = open.name.namespace.name + ':' + open.name.name.name;
+						this.raise(
+							open.start,
+							`TSX compatibility elements cannot be self-closing. '<${tagName} />' must have a closing tag '</${tagName}>'.`,
+						);
+					}
+				} else {
+					element.type = 'Element';
+				}
+
+				this.#path.push(element);
+
 				for (const attr of open.attributes) {
 					if (attr.type === 'JSXAttribute') {
 						attr.type = 'Attribute';
@@ -1178,13 +1219,16 @@ function RipplePlugin(config) {
 						}
 					}
 				}
-				if (open.name.type === 'JSXIdentifier') {
-					open.name.type = 'Identifier';
+
+				if (!is_tsx_compat) {
+					if (open.name.type === 'JSXIdentifier') {
+						open.name.type = 'Identifier';
+					}
+					element.id = convert_from_jsx(open.name);
+					element.selfClosing = open.selfClosing;
 				}
 
-				element.id = convert_from_jsx(open.name);
 				element.attributes = open.attributes;
-				element.selfClosing = open.selfClosing;
 				element.metadata = {};
 
 				if (element.selfClosing) {
@@ -1277,10 +1321,40 @@ function RipplePlugin(config) {
 						this.parseTemplateBody(element.children);
 						this.exitScope();
 
-						// Check if this element was properly closed
-						// If we reach here and this element is still in the path, it means it was never closed
-						if (this.#path[this.#path.length - 1] === element) {
+						if (element.type === 'TsxCompat') {
+							this.#path.pop();
+
+							const raise_error = () => {
+								this.raise(this.start, `Expected closing tag '</tsx:${element.kind}>'`);
+							};
+
+							this.next();
+							// we should expect to see </tsx:kind>
+							if (this.value !== '/') {
+								raise_error();
+							}
+							this.next();
+							if (this.value !== 'tsx') {
+								raise_error();
+							}
+							this.next();
+							if (this.type.label !== ':') {
+								raise_error();
+							}
+							this.next();
+							if (this.value !== element.kind) {
+								raise_error();
+							}
+							this.next();
+							if (this.type.label !== 'jsxTagEnd') {
+								raise_error();
+							}
+							this.next();
+						} else if (this.#path[this.#path.length - 1] === element) {
+							// Check if this element was properly closed
+							// If we reach here and this element is still in the path, it means it was never closed
 							const tagName = this.getElementName(element.id);
+
 							this.raise(
 								this.start,
 								`Unclosed tag '<${tagName}>'. Expected '</${tagName}>' before end of component.`,
@@ -1296,13 +1370,14 @@ function RipplePlugin(config) {
 					}
 				}
 
-				this.finishNode(element, 'Element');
+				this.finishNode(element, element.type);
 				return element;
 			}
 
 			parseTemplateBody(body) {
-				var inside_func =
+				const inside_func =
 					this.context.some((n) => n.token === 'function') || this.scopeStack.length > 1;
+				const inside_tsx_compat = this.#path.findLast((n) => n.type === 'TsxCompat');
 
 				if (!inside_func) {
 					if (this.type.label === 'return') {
@@ -1313,6 +1388,19 @@ function RipplePlugin(config) {
 					}
 					if (this.type.label === 'break') {
 						throw new Error('`break` statements are not allowed in components');
+					}
+				}
+
+				if (inside_tsx_compat) {
+					this.exprAllowed = true;
+
+					while (true) {
+						const node = super.parseExpression();
+						body.push(node);
+
+						if (this.input.slice(this.pos, this.pos + 5) === '/tsx:') {
+							return;
+						}
 					}
 				}
 
@@ -1332,12 +1420,32 @@ function RipplePlugin(config) {
 
 						// Validate that the closing tag matches the opening tag
 						const currentElement = this.#path[this.#path.length - 1];
-						if (!currentElement || currentElement.type !== 'Element') {
+						if (
+							!currentElement ||
+							(currentElement.type !== 'Element' && currentElement.type !== 'TsxCompat')
+						) {
 							this.raise(this.start, 'Unexpected closing tag');
 						}
 
-						const openingTagName = this.getElementName(currentElement.id);
-						const closingTagName = this.getElementName(closingTag);
+						let openingTagName;
+						let closingTagName;
+
+						if (currentElement.type === 'TsxCompat') {
+							if (closingTag.type === 'JSXNamespacedName') {
+								openingTagName = 'tsx:' + currentElement.kind;
+								closingTagName = closingTag.namespace.name + ':' + closingTag.name.name;
+							} else {
+								openingTagName = 'tsx:' + currentElement.kind;
+								closingTagName = this.getElementName(closingTag);
+							}
+						} else {
+							// Regular Element node
+							openingTagName = this.getElementName(currentElement.id);
+							closingTagName =
+								closingTag.type === 'JSXNamespacedName'
+									? closingTag.namespace.name + ':' + closingTag.name.name
+									: this.getElementName(closingTag);
+						}
 
 						if (openingTagName !== closingTagName) {
 							this.raise(
@@ -1392,7 +1500,7 @@ function RipplePlugin(config) {
 					this.next();
 					this.enterScope(0);
 					node.id = this.parseIdent();
-					this.declareName(node.id.name, 'var', node.id.start);		
+					this.declareName(node.id.name, 'var', node.id.start);
 					this.parseFunctionParams(node);
 					this.eat(tt.braceL);
 					node.body = [];

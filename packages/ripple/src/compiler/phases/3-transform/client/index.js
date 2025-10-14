@@ -524,6 +524,38 @@ const visitors = {
 		return visit_function(node, context);
 	},
 
+	TsxCompat(node, context) {
+		const { state, visit } = context;
+
+		state.template.push('<!>');
+
+		const normalized_children = node.children.filter((child) => {
+			return child.type !== 'JSXText' || child.value.trim() !== '';
+		});
+		const needs_fragment = normalized_children.length !== 1;
+		const id = state.flush_node();
+		const children_fn = b.arrow(
+			[b.id('__compat')],
+			needs_fragment
+				? b.call(
+					'__compat._jsx',
+					b.id('__compat.Fragment'),
+					b.object([
+						b.prop(
+							'init',
+							b.id('children'),
+							b.array(normalized_children.map((child) => visit(child, state))),
+						),
+					]),
+				)
+				: visit(normalized_children[0], state),
+		);
+
+		context.state.init.push(
+			b.stmt(b.call('_$_.tsx_compat', b.literal(node.kind), id, children_fn)),
+		);
+	},
+
 	Element(node, context) {
 		const { state, visit } = context;
 
@@ -886,8 +918,11 @@ const visitors = {
 			}
 
 			if (node.metadata.scoped && state.component.css) {
-				const hasClassAttr = node.attributes.some(attr =>
-					attr.type === 'Attribute' && attr.name.type === 'Identifier' && attr.name.name === 'class'
+				const hasClassAttr = node.attributes.some(
+					(attr) =>
+						attr.type === 'Attribute' &&
+						attr.name.type === 'Identifier' &&
+						attr.name.name === 'class',
 				);
 				if (!hasClassAttr) {
 					const name = is_spreading ? '#class' : 'class';
@@ -1823,6 +1858,8 @@ function transform_children(children, context) {
 			if (node.type === 'Element') {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'HeadElement') {
+				visit(node, { ...state, flush_node, namespace: state.namespace });
+			} else if (node.type === 'TsxCompat') {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'Html') {
 				const metadata = { tracking: false, await: false };

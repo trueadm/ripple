@@ -575,13 +575,17 @@ const visitors = {
 	},
 
 	JSXElement(node, context) {
-		{
-			error(
-				'Elements cannot be used as generic expressions, only as statements within a component',
-				context.state.analysis.module.filename,
-				node,
-			);
+		const inside_tsx_compat = context.path.some((n) => n.type === 'TsxCompat');
+
+		if (inside_tsx_compat) {
+			return context.next();
 		}
+		error(
+			'Elements cannot be used as generic expressions, only as statements within a component',
+			context.state.analysis.module.filename,
+			node,
+		);
+
 	},
 
 	Element(node, context) {
