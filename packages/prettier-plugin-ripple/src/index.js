@@ -517,8 +517,9 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TrackedMapExpression': {
 			// Format: #Map(arg1, arg2, ...)
+			// When used with 'new', the arguments are empty and belong to NewExpression
 			if (!node.arguments || node.arguments.length === 0) {
-				nodeContent = '#Map()';
+				nodeContent = '#Map';
 			} else {
 				const args = path.map(print, 'arguments');
 				nodeContent = concat(['#Map(', join(concat([',', line]), args), ')']);
@@ -528,8 +529,9 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TrackedSetExpression': {
 			// Format: #Set(arg1, arg2, ...)
+			// When used with 'new', the arguments are empty and belong to NewExpression
 			if (!node.arguments || node.arguments.length === 0) {
-				nodeContent = '#Set()';
+				nodeContent = '#Set';
 			} else {
 				const args = path.map(print, 'arguments');
 				nodeContent = concat(['#Set(', join(concat([',', line]), args), ')']);

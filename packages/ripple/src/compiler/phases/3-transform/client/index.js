@@ -335,6 +335,23 @@ const visitors = {
 			if (!context.state.to_ts) {
 				delete node.typeArguments;
 			}
+
+			// Special handling for TrackedMapExpression and TrackedSetExpression
+			// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
+			// and the actual arguments are in NewExpression.arguments
+			// We need to merge them before transforming
+			if (
+				context.state.to_ts &&
+				(callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression')
+			) {
+				// If the callee has empty arguments, use the NewExpression's arguments instead
+				if (callee.arguments.length === 0 && node.arguments.length > 0) {
+					callee.arguments = node.arguments;
+				}
+				// Transform the tracked expression directly - it will return a NewExpression
+				return context.visit(callee);
+			}
+
 			return context.next();
 		}
 
@@ -358,7 +375,7 @@ const visitors = {
 
 			return b.call(
 				b.member(b.id('TrackedArray'), b.id('from')),
-				...node.elements.map((el) => context.visit(el)),
+				b.array(node.elements.map((el) => context.visit(el))),
 			);
 		}
 

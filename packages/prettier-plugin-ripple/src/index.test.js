@@ -777,6 +777,14 @@ const [obj1, obj2] = arrayOfObjects;`;
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should keep TrackedMap short syntax intact', async () => {
+			const expected = `const map = new #Map([['key1', 'value1'], ['key2', 'value2']]);
+const set = new #Set([1, 2, 3]);`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
