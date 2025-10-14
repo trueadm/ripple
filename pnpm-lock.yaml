@@ -324,6 +324,9 @@ importers:
       muggle-string:
         specifier: catalog:default
         version: 0.4.1
+      ripple:
+        specifier: workspace:*
+        version: 'link:'
       zimmerframe:
         specifier: catalog:default
         version: 1.1.2
