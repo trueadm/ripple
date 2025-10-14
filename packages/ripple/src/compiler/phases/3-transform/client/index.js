@@ -1563,15 +1563,6 @@ function transform_ts_child(node, context) {
 			}
 		});
 
-		if (state.component.css) {
-			attributes.push(
-				b.jsx_attribute(
-					b.jsx_id('#class'),
-					b.jsx_expression_container(b.literal(state.component.css.hash)),
-				),
-			);
-		}
-
 		if (!node.selfClosing && !has_children_props && node.children.length > 0) {
 			const is_dom_element = is_element_dom_element(node);
 
