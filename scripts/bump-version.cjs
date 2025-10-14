@@ -276,13 +276,18 @@ function runPackagePack(pkg, destination) {
 /**
  * @param {readonly { dir: string; json: Record<string, any> }[]} packages
  * @param {string} version
+ * @param {"all" | "vscode"} targetScope
  */
-function runPrePublishChecks(packages, version) {
+function runPrePublishChecks(packages, version, targetScope) {
   console.log("\nPerforming pre-publish checks...");
   const packOutputDir = path.join(repoRoot, ".tmp", "prepublish-pack");
   preparePackOutputDir(packOutputDir);
 
   try {
+    if (targetScope === "vscode") {
+      runVscodeScopePreCheck(packages);
+    }
+
     for (const pkg of packages) {
       console.log(`\nVerifying ${pkg.json.name}@${version}`);
       ensureVersionNotPublished(pkg, version);
@@ -296,6 +301,22 @@ function runPrePublishChecks(packages, version) {
 
 function revertLastCommit() {
   execSafe("git", ["reset", "--hard", "HEAD~1"], { stdio: "inherit" });
+}
+
+/**
+ * @param {readonly { dir: string; json: Record<string, any> }[]} packages
+ */
+function runVscodeScopePreCheck(packages) {
+  const vscodePackage = packages.find((pkg) => pkg.json.name === "ripple-vscode-plugin");
+  if (!vscodePackage) {
+    throw new Error("Unable to locate ripple-vscode-plugin package for VS Code scope checks.");
+  }
+
+  console.log("\nRunning VS Code extension pre-check: pnpm run build-and-package");
+  execSafe("pnpm", ["run", "build-and-package"], {
+    cwd: vscodePackage.dir,
+    stdio: "inherit"
+  });
 }
 
 (function main() {
@@ -345,7 +366,7 @@ function revertLastCommit() {
       execSafe("git", ["commit", "-m", commitMessage], { stdio: "inherit" });
       commitCreated = true;
 
-      runPrePublishChecks(packages, newVersion);
+  runPrePublishChecks(packages, newVersion, scope);
 
       for (const pkg of packages) {
         if (!publishStarted) {
