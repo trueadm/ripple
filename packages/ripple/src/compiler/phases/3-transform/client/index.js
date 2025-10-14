@@ -851,7 +851,6 @@ const visitors = {
 			const props = [];
 			let children_prop = null;
 
-			// Propagate scoping to descendant Element nodes in dynamic elements (exclude Components)
 			if (state.component.css) {
 				for (const child of node.children) mark_scoped_css_recursively(child);
 			}

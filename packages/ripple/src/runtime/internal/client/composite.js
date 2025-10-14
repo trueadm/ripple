@@ -55,7 +55,6 @@ export function composite(get_component, node, props) {
 
 					props?.children?.(child_anchor, {}, block);
 				}
-
 			});
 		}
 	}, COMPOSITE_BLOCK);
