@@ -2,6 +2,7 @@
 const ts = require('typescript');
 const { forEachEmbeddedCode } = require('@volar/language-core');
 const fs = require('fs');
+const path = require('path');
 
 /** @typedef {import('typescript').CompilerOptions} CompilerOptions */
 /** @typedef {Error & { pos?: number }} RippleError */
@@ -110,10 +111,22 @@ function getRippleLanguagePlugin() {
 	};
 
 	/**
+	 * Cached bundled ripple compiler instance (fallback)
+	 * @type {RippleCompiler | null | undefined}
+	 */
+	let bundledRipple;
+
+	/**
+	 * Resolves ripple compiler with proper priority:
+	 * 1. Workspace version (from user's project node_modules) - ensures diagnostics match project
+	 * 2. Bundled version (packaged with extension) - fallback for projects without ripple installed
+	 *
 	 * @param {string} file_name
 	 * @returns {RippleCompiler | undefined}
 	 */
 	function getRippleForFile(file_name) {
+		// PRIORITY 1: Try workspace version of ripple (from user's project node_modules)
+		// This ensures diagnostics match the project's actual dependencies
 		const parts = file_name.split('/');
 
 		for (let i = parts.length - 2; i >= 0; i--) {
@@ -121,12 +134,18 @@ function getRippleLanguagePlugin() {
 
 			if (!path2RipplePathMap.has(dir)) {
 				const full_path = [dir, 'node_modules', 'ripple', 'src', 'compiler', 'index.js'].join('/');
-				console.log("Checking ripple path:", full_path)
+				log('Checking workspace ripple path:', full_path);
 				if (fs.existsSync(full_path)) {
-					path2RipplePathMap.set(dir, full_path);
-					console.log("Found ripple compiler at:", full_path)
-				}
-				else {
+					try {
+						const compiler = /** @type {RippleCompiler} */ (require(full_path));
+						path2RipplePathMap.set(dir, full_path);
+						log('Using workspace ripple compiler from:', full_path);
+						return compiler;
+					} catch (err) {
+						logError('Failed to load workspace ripple compiler from', full_path, ':', err);
+						path2RipplePathMap.set(dir, null);
+					}
+				} else {
 					path2RipplePathMap.set(dir, null);
 				}
 			}
@@ -136,6 +155,28 @@ function getRippleLanguagePlugin() {
 				return /** @type {RippleCompiler} */ (require(ripple_path));
 			}
 		}
+
+		// PRIORITY 2: Fall back to bundled ripple (packaged with VS Code extension)
+		// This path is relative to this file: typescript-plugin-ripple/src/language.js
+		// The bundled ripple should be at: ../../ripple/src/compiler/index.js
+		if (bundledRipple === undefined) {
+			const bundledPath = path.join(__dirname, '..', '..', 'ripple', 'src', 'compiler', 'index.js');
+			log('Workspace ripple not found, checking for bundled ripple at:', bundledPath);
+			if (fs.existsSync(bundledPath)) {
+				try {
+					bundledRipple = /** @type {RippleCompiler} */ (require(bundledPath));
+					log('Using bundled ripple compiler as fallback');
+				} catch (err) {
+					logError('Failed to load bundled ripple compiler:', err);
+					bundledRipple = null;
+				}
+			} else {
+				log('Bundled ripple not found');
+				bundledRipple = null;
+			}
+		}
+
+		return bundledRipple || undefined;
 	}
 }
 
