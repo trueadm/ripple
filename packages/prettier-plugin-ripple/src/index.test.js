@@ -688,6 +688,52 @@ const [obj1, obj2] = arrayOfObjects;`;
 			const result = await format(input, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+    it('should keep style tag intact when wrapped in parent outside a component', async () => {
+      const expected = `<head>
+  <style>
+    div {
+      background: purple;
+    }
+    p {
+      background: blue;
+    }
+    .div {
+      color: red;
+    }
+    .p {
+      color: green;
+    }
+  </style>
+</head>`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+    });
+
+    it('should keep style tag intact when wrapped in parent inside component', async () => {
+      const expected = `component App() {
+  <head>
+    <style>
+      div {
+        background: purple;
+      }
+      p {
+        background: blue;
+      }
+      .div {
+        color: red;
+      }
+      .p {
+        color: green;
+      }
+    </style>
+  </head>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+    });
 	});
 
 	describe('edge cases', () => {

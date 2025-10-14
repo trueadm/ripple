@@ -1233,11 +1233,13 @@ function RipplePlugin(config) {
 						const content = input.slice(0, end);
 
 						const component = this.#path.findLast((n) => n.type === 'Component');
+						const parsed_css = parse_style(content);
+
 						if (!inside_head) {
 							if (component.css !== null) {
 								throw new Error('Components can only have one style tag');
 							}
-							component.css = parse_style(content);
+							component.css = parsed_css;
 						}
 
 						const newLines = content.match(regex_newline_characters)?.length;
@@ -1256,11 +1258,10 @@ function RipplePlugin(config) {
 							this.#path.pop();
 							this.next();
 						}
-						// This node is used for Prettier, we don't actually need
-						// the node for Ripple's transform process
-						if (!inside_head) {
-							element.children = [component.css];
-						}
+						// This node is used for Prettier - always add parsed CSS as children
+						// for proper formatting, regardless of whether it's inside head or not
+						element.children = [parsed_css];
+
 						// Ensure we escape JSX <tag></tag> context
 						const tokContexts = this.acornTypeScript.tokContexts;
 						const curContext = this.curContext();
@@ -1392,7 +1393,7 @@ function RipplePlugin(config) {
 					this.next();
 					this.enterScope(0);
 					node.id = this.parseIdent();
-					this.declareName(node.id.name, 'var', node.id.start);		
+					this.declareName(node.id.name, 'var', node.id.start);
 					this.parseFunctionParams(node);
 					this.eat(tt.braceL);
 					node.body = [];
