@@ -150,6 +150,19 @@ function visit_title_element(node, context) {
 	}
 }
 
+function mark_scoped_css_recursively(node) {
+	if (!node || typeof node !== 'object') return;
+	if (node.type === 'Element') {
+		node.metadata.scoped = true;
+	}
+	if (Array.isArray(node.children)) {
+		for (const child of node.children) mark_scoped_css_recursively(child);
+	}
+	if (Array.isArray(node.body)) {
+		for (const child of node.body) mark_scoped_css_recursively(child);
+	}
+};
+
 const visitors = {
 	_: function set_scope(node, { next, state }) {
 		const scope = state.scopes.get(node);
@@ -838,6 +851,11 @@ const visitors = {
 			const props = [];
 			let children_prop = null;
 
+			// Propagate scoping to descendant Element nodes in dynamic elements (exclude Components)
+			if (state.component.css) {
+				for (const child of node.children) mark_scoped_css_recursively(child);
+			}
+
 			for (const attr of node.attributes) {
 				if (attr.type === 'Attribute') {
 					if (attr.name.type === 'Identifier') {
@@ -885,15 +903,8 @@ const visitors = {
 				}
 			}
 
-			if (node.metadata.scoped && state.component.css) {
-				const hasClassAttr = node.attributes.some(attr =>
-					attr.type === 'Attribute' && attr.name.type === 'Identifier' && attr.name.name === 'class'
-				);
-				if (!hasClassAttr) {
-					const name = is_spreading ? '#class' : 'class';
-					const value = state.component.css.hash;
-					props.push(b.prop('init', b.key(name), b.literal(value)));
-				}
+			if (state.component.css) {
+				props.push(b.prop('init', b.key('#class'), b.literal(state.component.css.hash)));
 			}
 
 			const children_filtered = [];
@@ -909,7 +920,14 @@ const visitors = {
 
 			if (children_filtered.length > 0) {
 				const component_scope = context.state.scopes.get(node);
-				const children = visit(b.component(b.id('children'), [], children_filtered), {
+				const children_component = b.component(b.id('children'), [], children_filtered);
+
+				if (state.component && state.component.css) {
+					children_component.css = state.component.css;
+					children_component.metadata = { ...(children_component.metadata || {}), inherited_css: true };
+				}
+
+				const children = visit(children_component, {
 					...context.state,
 					scope: component_scope,
 					namespace: child_namespace,
@@ -1547,6 +1565,16 @@ function transform_ts_child(node, context) {
 				return b.jsx_spread_attribute(wrapper);
 			}
 		});
+
+		if (state.component.css) {
+			for (const child of node.children) mark_scoped_css_recursively(child);
+			attributes.push(
+				b.jsx_attribute(
+					b.jsx_id('#class'),
+					b.jsx_expression_container(b.literal(state.component.css.hash)),
+				),
+			);
+		}
 
 		if (!node.selfClosing && !has_children_props && node.children.length > 0) {
 			const is_dom_element = is_element_dom_element(node);
