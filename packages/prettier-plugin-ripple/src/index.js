@@ -2678,7 +2678,8 @@ function printCSSSelectorList(node, path, options, print) {
 			const selector = path.call(print, 'children', i);
 			selectors.push(selector);
 		}
-		return join(', ', selectors);
+		// Join selectors with comma and line break for proper CSS formatting
+		return join([',', hardline], selectors);
 	}
 	return '';
 }
@@ -2698,15 +2699,29 @@ function printCSSComplexSelector(node, path, options, print) {
 
 function printCSSRelativeSelector(node, path, options, print) {
 	// RelativeSelector contains selector components in the 'selectors' property
+	const parts = [];
+
+	// Print combinator if it exists (e.g., +, >, ~, or space)
+	if (node.combinator) {
+		if (node.combinator.name === ' ') {
+			// Space combinator (descendant selector)
+			parts.push(' ');
+		} else {
+			// Other combinators (+, >, ~)
+			parts.push(' ', node.combinator.name, ' ');
+		}
+	}
+
 	if (node.selectors && node.selectors.length > 0) {
 		const selectorParts = [];
 		for (let i = 0; i < node.selectors.length; i++) {
 			const part = path.call(print, 'selectors', i);
 			selectorParts.push(part);
 		}
-		return concat(selectorParts);
+		parts.push(...selectorParts);
 	}
-	return '';
+
+	return concat(parts);
 }
 
 function printCSSTypeSelector(node, path, options, print) {

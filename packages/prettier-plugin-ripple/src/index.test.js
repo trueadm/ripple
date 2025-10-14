@@ -734,6 +734,21 @@ const [obj1, obj2] = arrayOfObjects;`;
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
     });
+
+		it('should keep css siblings formatting intact', async () => {
+			const expected = `export component App() {
+  <style>
+    div + .div > div,
+    p,
+    #id + .div ~ div,
+    #id {
+      color: red;
+    }
+  </style>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
