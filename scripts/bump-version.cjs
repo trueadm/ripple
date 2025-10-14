@@ -247,11 +247,30 @@ function ensureVersionNotPublished(pkg, version) {
 }
 
 /**
- * @param {{ dir: string; json: Record<string, any> }} pkg
+ * @param {string} directory
  */
-function runPackagePackDryRun(pkg) {
-  console.log(`Running npm pack --dry-run for ${pkg.json.name}`);
-  execSafe("npm", ["pack", "--dry-run"], { cwd: pkg.dir, stdio: "inherit" });
+function preparePackOutputDir(directory) {
+  fs.rmSync(directory, { recursive: true, force: true });
+  fs.mkdirSync(directory, { recursive: true });
+}
+
+/**
+ * @param {string} directory
+ */
+function cleanupPackOutputDir(directory) {
+  fs.rmSync(directory, { recursive: true, force: true });
+}
+
+/**
+ * @param {{ dir: string; json: Record<string, any> }} pkg
+ * @param {string} destination
+ */
+function runPackagePack(pkg, destination) {
+  console.log(`Running pnpm pack for ${pkg.json.name} into ${destination}`);
+  execSafe("pnpm", ["pack", "--pack-destination", destination], {
+    cwd: pkg.dir,
+    stdio: "inherit"
+  });
 }
 
 /**
@@ -260,12 +279,19 @@ function runPackagePackDryRun(pkg) {
  */
 function runPrePublishChecks(packages, version) {
   console.log("\nPerforming pre-publish checks...");
-  for (const pkg of packages) {
-    console.log(`\nVerifying ${pkg.json.name}@${version}`);
-    ensureVersionNotPublished(pkg, version);
-    runPackagePackDryRun(pkg);
+  const packOutputDir = path.join(repoRoot, ".tmp", "prepublish-pack");
+  preparePackOutputDir(packOutputDir);
+
+  try {
+    for (const pkg of packages) {
+      console.log(`\nVerifying ${pkg.json.name}@${version}`);
+      ensureVersionNotPublished(pkg, version);
+      runPackagePack(pkg, packOutputDir);
+    }
+    console.log("\nAll pre-publish checks passed. Proceeding to publish.");
+  } finally {
+    cleanupPackOutputDir(packOutputDir);
   }
-  console.log("\nAll pre-publish checks passed. Proceeding to publish.");
 }
 
 function revertLastCommit() {
