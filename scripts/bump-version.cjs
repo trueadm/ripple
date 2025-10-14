@@ -215,6 +215,63 @@ function publishPackage(pkg, newVersion) {
   execSafe("pnpm", args, { cwd: pkg.dir, stdio: "inherit" });
 }
 
+/**
+ * @param {{ dir: string; json: Record<string, any> }} pkg
+ * @param {string} version
+ */
+function ensureVersionNotPublished(pkg, version) {
+  try {
+    execFileSync("npm", ["view", `${pkg.json.name}@${version}`, "version"], {
+      cwd: pkg.dir,
+      stdio: "pipe",
+      encoding: "utf8"
+    });
+  } catch (error) {
+    const err = /** @type {any} */ (error);
+    if (!err || typeof err !== "object") {
+      throw error;
+    }
+
+    const stderr = err.stderr ? err.stderr.toString() : "";
+    const stdout = err.stdout ? err.stdout.toString() : "";
+    const combined = `${stdout}\n${stderr}`;
+
+    if (/E404/i.test(combined) || /404 Not Found/i.test(combined)) {
+      return;
+    }
+
+    throw new Error(`Failed to check npm registry for ${pkg.json.name}@${version}: ${err.message ?? err}`);
+  }
+
+  throw new Error(`${pkg.json.name}@${version} is already published on npm.`);
+}
+
+/**
+ * @param {{ dir: string; json: Record<string, any> }} pkg
+ */
+function runPackagePackDryRun(pkg) {
+  console.log(`Running npm pack --dry-run for ${pkg.json.name}`);
+  execSafe("npm", ["pack", "--dry-run"], { cwd: pkg.dir, stdio: "inherit" });
+}
+
+/**
+ * @param {readonly { dir: string; json: Record<string, any> }[]} packages
+ * @param {string} version
+ */
+function runPrePublishChecks(packages, version) {
+  console.log("\nPerforming pre-publish checks...");
+  for (const pkg of packages) {
+    console.log(`\nVerifying ${pkg.json.name}@${version}`);
+    ensureVersionNotPublished(pkg, version);
+    runPackagePackDryRun(pkg);
+  }
+  console.log("\nAll pre-publish checks passed. Proceeding to publish.");
+}
+
+function revertLastCommit() {
+  execSafe("git", ["reset", "--hard", "HEAD~1"], { stdio: "inherit" });
+}
+
 (function main() {
   try {
     const remote = determineRemote();
@@ -250,25 +307,51 @@ function publishPackage(pkg, newVersion) {
       pkg.json.version = newVersion;
       writePackage(pkg);
     }
+    const changedPaths = packages.map((pkg) => path.relative(repoRoot, pkg.packageJsonPath));
+    execSafe("git", ["add", ...changedPaths]);
 
-  const changedPaths = packages.map((pkg) => path.relative(repoRoot, pkg.packageJsonPath));
-  execSafe("git", ["add", ...changedPaths]);
+    const scopeLabel = scope;
+    const commitMessage = `chore: bump ${scopeLabel} to v${newVersion}`;
+    let commitCreated = false;
+    let publishStarted = false;
 
-  const scopeLabel = scope;
-  const commitMessage = `chore: bump ${scopeLabel} to v${newVersion}`;
     try {
       execSafe("git", ["commit", "-m", commitMessage], { stdio: "inherit" });
+      commitCreated = true;
+
+      runPrePublishChecks(packages, newVersion);
+
+      for (const pkg of packages) {
+        if (!publishStarted) {
+          publishStarted = true;
+        }
+        publishPackage(pkg, newVersion);
+      }
+
+      execSafe("git", ["push", remote, "main"], { stdio: "inherit" });
+      console.log(`Completed bump to ${newVersion}.`);
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      throw new Error(`Git commit failed: ${err.message}`);
-    }
+      if (!commitCreated) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        throw new Error(`Git commit failed: ${err.message}`);
+      }
 
-    for (const pkg of packages) {
-      publishPackage(pkg, newVersion);
-    }
+      if (commitCreated && !publishStarted) {
+        try {
+          revertLastCommit();
+          console.error("Pre-publish checks failed. The bump commit has been reverted.");
+        } catch (revertError) {
+          const revertMessage =
+            revertError instanceof Error ? revertError.message : String(revertError);
+          console.error(`Failed to reset bump commit automatically: ${revertMessage}`);
+          console.error(
+            "Please run `git reset --hard HEAD~1` manually to discard the failed bump commit."
+          );
+        }
+      }
 
-    execSafe("git", ["push", remote, "main"], { stdio: "inherit" });
-    console.log(`Completed bump to ${newVersion}.`);
+      throw error;
+    }
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error(`\nError: ${err.message}`);
