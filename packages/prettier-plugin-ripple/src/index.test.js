@@ -17,13 +17,25 @@ expect.extend({
 		return {
 			pass,
 			message: () => {
-				const { printExpected, printReceived, matcherHint } = this.utils;
+				const { matcherHint } = this.utils;
+
+				// Custom formatting to show actual newlines with double line breaks for blank lines
+				const formatWithActualNewlines = (str) => {
+					// Split by newlines and show each line
+					const lines = str.split('\n');
+					return lines.map((line, i) => {
+						if (i === lines.length - 1 && line === '') return ''; // Skip final empty line
+						// Use double newline for blank lines to show them more clearly
+						return line === '' ? '\n\n' : line + '\n';
+					}).join('');
+				};
+
 				return (
 					matcherHint('toBeWithNewline') +
 					'\n\nExpected:\n' +
-					`  ${printExpected(expectedWithNewline)}\n` +
-					'Received:\n' +
-					`  ${printReceived(received)}`
+					formatWithActualNewlines(expectedWithNewline) +
+					'\nReceived:\n' +
+					formatWithActualNewlines(received)
 				);
 			},
 		};
@@ -272,7 +284,6 @@ export default component App() {
 			const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
 			const expected = `export component Test() {
   <div>{'Test'}</div>
-
   <style>
     div {
       color: red;
@@ -743,6 +754,23 @@ const [obj1, obj2] = arrayOfObjects;`;
     #id + .div ~ div,
     #id {
       color: red;
+    }
+  </style>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format & parent nested selector correctly', async () => {
+			const expected = `export component App() {
+  <div>
+    <h1>{'Hello'}</h1>
+  </div>
+  <style>
+    div {
+      & > * {
+        color: blue;
+      }
     }
   </style>
 }`;

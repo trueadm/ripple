@@ -980,19 +980,21 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printCSSIdSelector(node, path, options, print);
 			break;
 
-		case 'ClassSelector':
-			nodeContent = printCSSClassSelector(node, path, options, print);
-			break;
+	case 'ClassSelector':
+		nodeContent = printCSSClassSelector(node, path, options, print);
+		break;
 
-		case 'Block':
-			nodeContent = printCSSBlock(node, path, options, print);
-			break;
+	case 'NestingSelector':
+		nodeContent = printCSSNestingSelector(node, path, options, print);
+		break;
 
-		case 'Attribute':
-			nodeContent = printAttribute(node, path, options, print);
-			break;
+	case 'Block':
+		nodeContent = printCSSBlock(node, path, options, print);
+		break;
 
-		case 'Text': {
+	case 'Attribute':
+		nodeContent = printAttribute(node, path, options, print);
+		break;		case 'Text': {
 			const parts = ['{', path.call(print, 'expression'), '}'];
 			nodeContent = concat(parts);
 			break;
@@ -2143,10 +2145,10 @@ function shouldAddBlankLine(currentNode, nextNode) {
 
 	// Ripple-specific formatting rules for when to add blank lines
 
-	// Add blank line before style elements
+	// Add blank line before style elements only if there was one originally
 	if (nextNode.type === 'Element') {
 		if (nextNode.id && nextNode.id.type === 'Identifier' && nextNode.id.name === 'style') {
-			return true;
+			return originalBlankLines > 0;
 		}
 	}
 
@@ -2737,6 +2739,11 @@ function printCSSIdSelector(node, path, options, print) {
 function printCSSClassSelector(node, path, options, print) {
 	// ClassSelector for .class
 	return concat(['.', node.name || '']);
+}
+
+function printCSSNestingSelector(node, path, options, print) {
+	// NestingSelector for & (parent reference in nested CSS)
+	return '&';
 }
 
 function printCSSBlock(node, path, options, print) {
