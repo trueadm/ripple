@@ -2057,6 +2057,50 @@ function transform_body(body, { visit, state }) {
 	return [...body_state.setup, ...body_state.init, ...body_state.final];
 }
 
+/**
+ * Create a TSX language handler with enhanced TypeScript support
+ * @returns {Object} TSX language handler with TypeScript return type support
+ */
+function create_tsx_with_typescript_support() {
+	const base_tsx = tsx();
+
+	// Override the ArrowFunctionExpression handler to support TypeScript return types
+	return {
+		...base_tsx,
+		ArrowFunctionExpression(node, context) {
+			if (node.async) context.write('async ');
+
+			context.write('(');
+			// Visit each parameter
+			for (let i = 0; i < node.params.length; i++) {
+				if (i > 0) context.write(', ');
+				context.visit(node.params[i]);
+			}
+			context.write(')');
+
+			// Add TypeScript return type annotation if present
+			if (node.returnType) {
+				context.visit(node.returnType);
+			}
+
+			context.write(' => ');
+
+			if (
+				node.body.type === 'ObjectExpression' ||
+				(node.body.type === 'AssignmentExpression' && node.body.left.type === 'ObjectPattern') ||
+				(node.body.type === 'LogicalExpression' && node.body.left.type === 'ObjectExpression') ||
+				(node.body.type === 'ConditionalExpression' && node.body.test.type === 'ObjectExpression')
+			) {
+				context.write('(');
+				context.visit(node.body);
+				context.write(')');
+			} else {
+				context.visit(node.body);
+			}
+		}
+	};
+}
+
 export function transform_client(filename, source, analysis, to_ts) {
 	/**
 	 * User's named imports from 'ripple' so we can reuse them in TS output
@@ -2117,7 +2161,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 		);
 	}
 
-	const js = print(program, tsx(), {
+	const js = print(program, to_ts ? create_tsx_with_typescript_support() : tsx(), {
 		sourceMapContent: source,
 		sourceMapSource: path.basename(filename),
 	});
