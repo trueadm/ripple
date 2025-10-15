@@ -254,6 +254,16 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 					visit(node.local);
 				}
 				return;
+			} else if (node.type === 'ExportSpecifier') {
+				// If local and exported are the same, only visit local to avoid duplicates
+				// Otherwise visit both in order
+				if (node.local && node.exported && node.local.name !== node.exported.name) {
+					visit(node.local);
+					visit(node.exported);
+				} else if (node.local) {
+					visit(node.local);
+				}
+				return;
 			} else if (node.type === 'ExportNamedDeclaration') {
 				if (node.specifiers && node.specifiers.length > 0) {
 					for (const specifier of node.specifiers) {
