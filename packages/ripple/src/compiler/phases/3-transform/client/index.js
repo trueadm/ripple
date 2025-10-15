@@ -156,13 +156,13 @@ function visit_title_element(node, context) {
  * @returns {string}
  */
 function import_from_ripple_if_needed(name, context) {
-	const alias = context.state.ripple_user_imports?.get?.(name) ?? name;
+	const alias = context.state.ripple_user_imports?.get?.(name);
 
 	if (!alias && !context.state.imports.has(`import { ${name} } from 'ripple'`)) {
 		context.state.imports.add(`import { ${name} } from 'ripple'`);
 	}
 
-	return alias;
+	return alias ?? name;
 }
 
 const visitors = {
