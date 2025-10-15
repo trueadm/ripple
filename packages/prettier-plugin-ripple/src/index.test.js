@@ -17,25 +17,19 @@ expect.extend({
 		return {
 			pass,
 			message: () => {
-				const { matcherHint } = this.utils;
+				const { matcherHint, EXPECTED_COLOR, RECEIVED_COLOR } = this.utils;
 
-				// Custom formatting to show actual newlines with double line breaks for blank lines
-				const formatWithActualNewlines = (str) => {
-					// Split by newlines and show each line
-					const lines = str.split('\n');
-					return lines.map((line, i) => {
-						if (i === lines.length - 1 && line === '') return ''; // Skip final empty line
-						// Use double newline for blank lines to show them more clearly
-						return line === '' ? '\n\n' : line + '\n';
-					}).join('');
+				// Just apply color without modifying the string
+				const formatWithColor = (str, colorFn) => {
+					return colorFn(str);
 				};
 
 				return (
 					matcherHint('toBeWithNewline') +
 					'\n\nExpected:\n' +
-					formatWithActualNewlines(expectedWithNewline) +
+					formatWithColor(expectedWithNewline, EXPECTED_COLOR) +
 					'\nReceived:\n' +
-					formatWithActualNewlines(received)
+					formatWithColor(received, RECEIVED_COLOR)
 				);
 			},
 		};
@@ -781,6 +775,39 @@ const [obj1, obj2] = arrayOfObjects;`;
 		it('should keep TrackedMap short syntax intact', async () => {
 			const expected = `const map = new #Map([['key1', 'value1'], ['key2', 'value2']]);
 const set = new #Set([1, 2, 3]);`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should not remove blank lines between components and types if provided', async () => {
+			const expected = `export component App() {
+  console.log('test');
+}
+
+type RootNode = ShadowRoot | Document | Node;
+type GetRootNode = () => RootNode;`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve blank lines between components and various TS declarations', async () => {
+			const expected = `export component App() {
+  console.log('test');
+}
+
+interface Props {
+  value: string;
+}
+
+type Result = string | number;
+
+enum Status {
+  Active,
+  Inactive,
+  Pending,
+}`;
 
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
@@ -1579,7 +1606,63 @@ component RowList({ rows, Row }) {
 }`;
 			const result = await format(expected, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
-		})
+		});
+
+		it('should format TypeScript enums', async () => {
+			const input = `enum Color{Red,Green,Blue}`;
+			const expected = `enum Color {
+  Red,
+  Green,
+  Blue,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript enums with values', async () => {
+			const input = `enum Status{Active=1,Inactive=0,Pending=2}`;
+			const expected = `enum Status {
+  Active = 1,
+  Inactive = 0,
+  Pending = 2,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format const enums', async () => {
+			const input = `const enum Direction{Up,Down,Left,Right}`;
+			const expected = `const enum Direction {
+  Up,
+  Down,
+  Left,
+  Right,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should respect trailingComma option for enums', async () => {
+			const input = `enum Size{Small,Medium,Large}`;
+			const expected = `enum Size {
+  Small,
+  Medium,
+  Large
+}`;
+			const result = await format(input, { singleQuote: true, trailingComma: 'none' });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format enums with string values', async () => {
+			const input = `enum Colors{Red='red',Green='green',Blue='blue'}`;
+			const expected = `enum Colors {
+  Red = 'red',
+  Green = 'green',
+  Blue = 'blue',
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('regex formatting', () => {

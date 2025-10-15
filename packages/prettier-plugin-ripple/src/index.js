@@ -580,6 +580,10 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSTypeAliasDeclaration(node, path, options, print);
 			break;
 
+		case 'TSEnumDeclaration':
+			nodeContent = printTSEnumDeclaration(node, path, options, print);
+			break;
+
 		case 'TSTypeParameterDeclaration':
 			nodeContent = printTSTypeParameterDeclaration(node, path, options, print);
 			break;
@@ -853,6 +857,10 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSPropertySignature':
 			nodeContent = printTSPropertySignature(node, path, options, print);
+			break;
+
+		case 'TSEnumMember':
+			nodeContent = printTSEnumMember(node, path, options, print);
 			break;
 
 		case 'TSLiteralType':
@@ -1977,6 +1985,67 @@ function printTSTypeAliasDeclaration(node, path, options, print) {
 	return parts;
 }
 
+function printTSEnumDeclaration(node, path, options, print) {
+	const parts = [];
+
+	// Handle 'const enum' vs 'enum'
+	if (node.const) {
+		parts.push('const ');
+	}
+
+	parts.push('enum ');
+	parts.push(node.id.name);
+	parts.push(' ');
+
+	// Print enum body
+	if (!node.members || node.members.length === 0) {
+		parts.push('{}');
+	} else {
+		const members = path.map(print, 'members');
+		const membersWithCommas = [];
+
+		for (let i = 0; i < members.length; i++) {
+			membersWithCommas.push(members[i]);
+			if (i < members.length - 1) {
+				membersWithCommas.push(',');
+				membersWithCommas.push(hardline);
+			}
+		}
+
+		parts.push(
+			group([
+				'{',
+				indent([hardline, concat(membersWithCommas)]),
+				options.trailingComma !== 'none' ? ',' : '',
+				hardline,
+				'}',
+			])
+		);
+	}
+
+	return concat(parts);
+}
+
+function printTSEnumMember(node, path, options, print) {
+	const parts = [];
+
+	// Print the key (id)
+	if (node.id.type === 'Identifier') {
+		parts.push(node.id.name);
+	} else {
+		// Handle computed or string literal keys
+		parts.push(path.call(print, 'id'));
+	}
+
+	// Print the initializer if present
+	if (node.initializer) {
+		parts.push(' = ');
+		parts.push(path.call(print, 'initializer'));
+	}
+
+	return concat(parts);
+}
+
 function printTSTypeParameterDeclaration(node, path, options, print) {
 	if (!node.params || node.params.length === 0) {
 		return '';
@@ -2126,6 +2195,18 @@ function getWhitespaceLinesBetween(currentNode, nextNode) {
 	return 0;
 }
 
+// Helper to check if a node is a TypeScript type/interface declaration
+function isTSDeclaration(node) {
+	if (!node || !node.type) return false;
+	return (
+		node.type === 'TSInterfaceDeclaration' ||
+		node.type === 'TSTypeAliasDeclaration' ||
+		node.type === 'TSEnumDeclaration' ||
+		node.type === 'TSModuleDeclaration' ||
+		node.type === 'TSNamespaceExportDeclaration'
+	);
+}
+
 function shouldAddBlankLine(currentNode, nextNode) {
 	// If nextNode has leading comments, check whitespace between current node and first comment
 	// Otherwise check whitespace between current node and next node
@@ -2176,10 +2257,12 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Add blank line after TypeScript declarations when followed by other statements (not just elements)
-	if (
-		currentNode.type === 'TSInterfaceDeclaration' ||
-		currentNode.type === 'TSTypeAliasDeclaration'
-	) {
+	if (isTSDeclaration(currentNode)) {
+		// Preserve blank lines between TS declarations if originally present
+		if (isTSDeclaration(nextNode) && originalBlankLines > 0) {
+			return true;
+		}
+		// Always add blank line when followed by other statement types
 		if (
 			nextNode.type === 'VariableDeclaration' ||
 			nextNode.type === 'Element' ||
@@ -2208,6 +2291,10 @@ function shouldAddBlankLine(currentNode, nextNode) {
 		if (nextNode.type === 'Component' || nextNode.type === 'ExportNamedDeclaration' || nextNode.type === 'ExportDefaultDeclaration') {
 			return true;
 		}
+		// Preserve blank lines between components/exports and TypeScript declarations if originally present
+		if (originalBlankLines > 0 && isTSDeclaration(nextNode)) {
+			return true;
+		}
 	}
 
 	// Add blank line after if/for/try statements if next is an element
@@ -2231,8 +2318,7 @@ function shouldAddBlankLine(currentNode, nextNode) {
 		if (
 			currentNode.type !== 'Element' &&
 			currentNode.type !== 'VariableDeclaration' &&
-			currentNode.type !== 'TSInterfaceDeclaration' &&
-			currentNode.type !== 'TSTypeAliasDeclaration'
+			!isTSDeclaration(currentNode)
 		) {
 			return true;
 		}
