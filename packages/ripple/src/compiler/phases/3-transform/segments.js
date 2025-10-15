@@ -366,9 +366,13 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				}
 				return;
 			} else if (node.type === 'VariableDeclarator') {
-				// Visit in source order: id, init
+				// Visit in source order: id, typeAnnotation, init
 				if (node.id) {
 					visit(node.id);
+					// Visit type annotation if present
+					if (node.id.typeAnnotation) {
+						visit(node.id.typeAnnotation);
+					}
 				}
 				if (node.init) {
 					visit(node.init);
@@ -486,9 +490,13 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				}
 				return;
 			} else if (node.type === 'AssignmentExpression' || node.type === 'AssignmentPattern') {
-				// Visit in source order: left, right
+				// Visit in source order: left, typeAnnotation, right
 				if (node.left) {
 					visit(node.left);
+					// Visit type annotation if present (for AssignmentPattern)
+					if (node.left.typeAnnotation) {
+						visit(node.left.typeAnnotation);
+					}
 				}
 				if (node.right) {
 					visit(node.right);
@@ -647,6 +655,14 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				// Visit the argument
 				if (node.argument) {
 					visit(node.argument);
+					// Visit type annotation if present (for RestElement)
+					if (node.argument.typeAnnotation) {
+						visit(node.argument.typeAnnotation);
+					}
+				}
+				// RestElement itself can have typeAnnotation
+				if (node.typeAnnotation) {
+					visit(node.typeAnnotation);
 				}
 				return;
 			} else if (node.type === 'YieldExpression' || node.type === 'AwaitExpression') {
