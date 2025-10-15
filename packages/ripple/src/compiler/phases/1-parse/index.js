@@ -515,10 +515,27 @@ function RipplePlugin(config) {
 			parseTrackedCollectionExpression(type) {
 				const node = this.startNode();
 				this.next(); // consume '#Map' or '#Set'
+
+				// Check if we should NOT consume the parentheses
+				// This happens when #Map/#Set appears as a callee in 'new #Map(...)'
+				// In this case, the parentheses and arguments belong to the NewExpression
+				// We detect this by checking if next token is '(' but we just consumed a token
+				// that came right after 'new' keyword (indicated by context or recent token)
+
+				// Simple heuristic: if the input around our start position looks like 'new #Map('
+				// then don't consume the parens
+				const beforeStart = this.input.substring(Math.max(0, node.start - 5), node.start);
+				const isAfterNew = /new\s*$/.test(beforeStart);
+
+				if (isAfterNew && this.type === tt.parenL) {
+					// Don't consume parens - they belong to NewExpression
+					node.arguments = [];
+					return this.finishNode(node, type);
+				}
+
 				this.expect(tt.parenL); // expect '('
 
 				node.arguments = [];
-
 				// Parse arguments similar to function call arguments
 				let first = true;
 				while (!this.eat(tt.parenR)) {
@@ -1277,11 +1294,13 @@ function RipplePlugin(config) {
 						const content = input.slice(0, end);
 
 						const component = this.#path.findLast((n) => n.type === 'Component');
+						const parsed_css = parse_style(content);
+
 						if (!inside_head) {
 							if (component.css !== null) {
 								throw new Error('Components can only have one style tag');
 							}
-							component.css = parse_style(content);
+							component.css = parsed_css;
 						}
 
 						const newLines = content.match(regex_newline_characters)?.length;
@@ -1300,11 +1319,10 @@ function RipplePlugin(config) {
 							this.#path.pop();
 							this.next();
 						}
-						// This node is used for Prettier, we don't actually need
-						// the node for Ripple's transform process
-						if (!inside_head) {
-							element.children = [component.css];
-						}
+						// This node is used for Prettier - always add parsed CSS as children
+						// for proper formatting, regardless of whether it's inside head or not
+						element.children = [parsed_css];
+
 						// Ensure we escape JSX <tag></tag> context
 						const tokContexts = this.acornTypeScript.tokContexts;
 						const curContext = this.curContext();

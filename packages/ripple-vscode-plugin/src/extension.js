@@ -318,71 +318,71 @@ function setupDynamicContexts(context) {
  * @param {import('vscode').ExtensionContext} context
  */
 function addCustomCommands(context) {
-		context.subscriptions.push(
-			vscode.commands.registerCommand('ripple.goToSourceDefinition', async () => {
-				try {
-					const editor = vscode.window.activeTextEditor;
-					if (!editor) {
-						console.log('[Ripple] No active editor');
-						return;
+	context.subscriptions.push(
+		vscode.commands.registerCommand('ripple.goToSourceDefinition', async () => {
+			try {
+				const editor = vscode.window.activeTextEditor;
+				if (!editor) {
+					console.log('[Ripple] No active editor');
+					return;
+				}
+
+				const position = editor.selection.active;
+				console.log('[Ripple] Getting definitions at position:', position);
+
+				// Use VS Code's definition provider API
+				const definitions = /** @type {any} */ (await vscode.commands.executeCommand(
+					'vscode.executeDefinitionProvider',
+					editor.document.uri,
+					position
+				));
+
+				console.log('[Ripple] Definitions result:', definitions);
+
+				if (!definitions || !Array.isArray(definitions) || definitions.length === 0) {
+					vscode.window.showInformationMessage('No definition found');
+					return;
+				}
+
+				// Filter for .ripple files (prefer source over .d.ts)
+				// Definition objects can have either `uri` or `targetUri`
+				const rippleDefinition = definitions.find(d => {
+					const uri = d?.uri || d?.targetUri;
+					if (!uri) {
+						console.warn('[Ripple] Definition has no uri:', d);
+						return false;
 					}
+					const isRipple = uri.path.endsWith('.ripple');
+					console.log('[Ripple] Checking definition:', uri.path, 'isRipple:', isRipple);
+					return isRipple;
+				});
 
-					const position = editor.selection.active;
-					console.log('[Ripple] Getting definitions at position:', position);
-
-					// Use VS Code's definition provider API
-					const definitions = /** @type {any} */ (await vscode.commands.executeCommand(
-						'vscode.executeDefinitionProvider',
-						editor.document.uri,
-						position
-					));
-
-					console.log('[Ripple] Definitions result:', definitions);
-
-					if (!definitions || !Array.isArray(definitions) || definitions.length === 0) {
-						vscode.window.showInformationMessage('No definition found');
-						return;
-					}
-
-					// Filter for .ripple files (prefer source over .d.ts)
-					// Definition objects can have either `uri` or `targetUri`
-					const rippleDefinition = definitions.find(d => {
-						const uri = d?.uri || d?.targetUri;
-						if (!uri) {
-							console.warn('[Ripple] Definition has no uri:', d);
-							return false;
-						}
-						const isRipple = uri.path.endsWith('.ripple');
-						console.log('[Ripple] Checking definition:', uri.path, 'isRipple:', isRipple);
-						return isRipple;
+				if (rippleDefinition) {
+					const uri = rippleDefinition.uri || rippleDefinition.targetUri;
+					const range = rippleDefinition.range || rippleDefinition.targetRange;
+					console.log('[Ripple] Found ripple definition:', uri.path);
+					await vscode.window.showTextDocument(uri, {
+						selection: range
 					});
-
-					if (rippleDefinition) {
-						const uri = rippleDefinition.uri || rippleDefinition.targetUri;
-						const range = rippleDefinition.range || rippleDefinition.targetRange;
-						console.log('[Ripple] Found ripple definition:', uri.path);
+				} else {
+					// If no .ripple file found, just go to the first definition (might be .d.ts)
+					const firstDef = definitions[0];
+					const uri = firstDef?.uri || firstDef?.targetUri;
+					const range = firstDef?.range || firstDef?.targetRange;
+					console.log('[Ripple] No .ripple definition, using first result:', uri?.path);
+					if (uri) {
 						await vscode.window.showTextDocument(uri, {
 							selection: range
 						});
-					} else {
-						// If no .ripple file found, just go to the first definition (might be .d.ts)
-						const firstDef = definitions[0];
-						const uri = firstDef?.uri || firstDef?.targetUri;
-						const range = firstDef?.range || firstDef?.targetRange;
-						console.log('[Ripple] No .ripple definition, using first result:', uri?.path);
-						if (uri) {
-							await vscode.window.showTextDocument(uri, {
-								selection: range
-							});
-						}
 					}
-				} catch (error) {
-					console.error('[Ripple] Error in goToSourceDefinition:', error);
-					const message = error instanceof Error ? error.message : String(error);
-					vscode.window.showErrorMessage(`Go to Source Definition failed: ${message}`);
 				}
-			})
-		);
+			} catch (error) {
+				console.error('[Ripple] Error in goToSourceDefinition:', error);
+				const message = error instanceof Error ? error.message : String(error);
+				vscode.window.showErrorMessage(`Go to Source Definition failed: ${message}`);
+			}
+		})
+	);
 }
 
 async function configurePrettier() {

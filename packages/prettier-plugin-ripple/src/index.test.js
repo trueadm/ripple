@@ -17,13 +17,19 @@ expect.extend({
 		return {
 			pass,
 			message: () => {
-				const { printExpected, printReceived, matcherHint } = this.utils;
+				const { matcherHint, EXPECTED_COLOR, RECEIVED_COLOR } = this.utils;
+
+				// Just apply color without modifying the string
+				const formatWithColor = (str, colorFn) => {
+					return colorFn(str);
+				};
+
 				return (
 					matcherHint('toBeWithNewline') +
 					'\n\nExpected:\n' +
-					`  ${printExpected(expectedWithNewline)}\n` +
-					'Received:\n' +
-					`  ${printReceived(received)}`
+					formatWithColor(expectedWithNewline, EXPECTED_COLOR) +
+					'\nReceived:\n' +
+					formatWithColor(received, RECEIVED_COLOR)
 				);
 			},
 		};
@@ -272,7 +278,6 @@ export default component App() {
 			const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
 			const expected = `export component Test() {
   <div>{'Test'}</div>
-
   <style>
     div {
       color: red;
@@ -686,6 +691,138 @@ const [obj1, obj2] = arrayOfObjects;`;
   </style>
 }`;
 			const result = await format(input, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+    it('should keep style tag intact when wrapped in parent outside a component', async () => {
+      const expected = `<head>
+  <style>
+    div {
+      background: purple;
+    }
+    p {
+      background: blue;
+    }
+    .div {
+      color: red;
+    }
+    .p {
+      color: green;
+    }
+  </style>
+</head>`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+    });
+
+    it('should keep style tag intact when wrapped in parent inside component', async () => {
+      const expected = `component App() {
+  <head>
+    <style>
+      div {
+        background: purple;
+      }
+      p {
+        background: blue;
+      }
+      .div {
+        color: red;
+      }
+      .p {
+        color: green;
+      }
+    </style>
+  </head>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+    });
+
+		it('should keep css siblings formatting intact', async () => {
+			const expected = `export component App() {
+  <style>
+    div + .div > div,
+    p,
+    #id + .div ~ div,
+    #id {
+      color: red;
+    }
+  </style>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format & parent nested selector correctly', async () => {
+			const expected = `export component App() {
+  <div>
+    <h1>{'Hello'}</h1>
+  </div>
+  <style>
+    div {
+      & > * {
+        color: blue;
+      }
+    }
+  </style>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep TrackedMap short syntax intact', async () => {
+			const expected = `const map = new #Map([['key1', 'value1'], ['key2', 'value2']]);
+const set = new #Set([1, 2, 3]);`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should not remove blank lines between components and types if provided', async () => {
+			const expected = `export component App() {
+  console.log('test');
+}
+
+type RootNode = ShadowRoot | Document | Node;
+type GetRootNode = () => RootNode;`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve blank lines between components and various TS declarations', async () => {
+			const expected = `export component App() {
+  console.log('test');
+}
+
+interface Props {
+  value: string;
+}
+
+type Result = string | number;
+
+enum Status {
+  Active,
+  Inactive,
+  Pending,
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve blank lines between ts and import statements', async () => {
+			const expected = `export interface PortalActionProps {
+  disabled?: boolean | undefined;
+  container?: HTMLElement | undefined;
+  getRootNode?: GetRootNode | undefined;
+}
+
+import { Portal as RipplePortal } from 'ripple';`
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
 	});
@@ -1482,7 +1619,63 @@ component RowList({ rows, Row }) {
 }`;
 			const result = await format(expected, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
-		})
+		});
+
+		it('should format TypeScript enums', async () => {
+			const input = `enum Color{Red,Green,Blue}`;
+			const expected = `enum Color {
+  Red,
+  Green,
+  Blue,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript enums with values', async () => {
+			const input = `enum Status{Active=1,Inactive=0,Pending=2}`;
+			const expected = `enum Status {
+  Active = 1,
+  Inactive = 0,
+  Pending = 2,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format const enums', async () => {
+			const input = `const enum Direction{Up,Down,Left,Right}`;
+			const expected = `const enum Direction {
+  Up,
+  Down,
+  Left,
+  Right,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should respect trailingComma option for enums', async () => {
+			const input = `enum Size{Small,Medium,Large}`;
+			const expected = `enum Size {
+  Small,
+  Medium,
+  Large
+}`;
+			const result = await format(input, { singleQuote: true, trailingComma: 'none' });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format enums with string values', async () => {
+			const input = `enum Colors{Red='red',Green='green',Blue='blue'}`;
+			const expected = `enum Colors {
+  Red = 'red',
+  Green = 'green',
+  Blue = 'blue',
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('regex formatting', () => {

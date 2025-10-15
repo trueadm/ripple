@@ -1,12 +1,31 @@
 {
-	"prettier.documentSelectors": ["**/*.ripple"],
-	"[ripple]": {
-		"editor.defaultFormatter": "ripplejs.ripple-vscode-plugin"
-	},
-	"editor.tabSize": 2,
-	"editor.defaultFormatter": "esbenp.prettier-vscode",
-	"prettier.useTabs": true,
-	"[javascript]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	}
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.detectIndentation": false,
+  "editor.formatOnSave": false,
+  "editor.insertSpaces": false,
+  "editor.tabSize": 2,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "prettier.requireConfig": true,
+  "js/ts.implicitProjectConfig.checkJs": true,
+
+  "[javascript]": {
+    "editor.insertSpaces": false
+  },
+  "[typescript]": {
+    "editor.insertSpaces": false
+  },
+  "[json]": {
+    "editor.insertSpaces": true
+  },
+  "[jsonc]": {
+    "editor.insertSpaces": true
+  },
+  "[markdown]": {
+    "editor.insertSpaces": true
+  },
+  "[ripple]": {
+    "editor.formatOnSave": true
+  }
 }

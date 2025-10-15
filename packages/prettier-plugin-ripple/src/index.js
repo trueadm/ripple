@@ -517,8 +517,9 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TrackedMapExpression': {
 			// Format: #Map(arg1, arg2, ...)
+			// When used with 'new', the arguments are empty and belong to NewExpression
 			if (!node.arguments || node.arguments.length === 0) {
-				nodeContent = '#Map()';
+				nodeContent = '#Map';
 			} else {
 				const args = path.map(print, 'arguments');
 				nodeContent = concat(['#Map(', join(concat([',', line]), args), ')']);
@@ -528,8 +529,9 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TrackedSetExpression': {
 			// Format: #Set(arg1, arg2, ...)
+			// When used with 'new', the arguments are empty and belong to NewExpression
 			if (!node.arguments || node.arguments.length === 0) {
-				nodeContent = '#Set()';
+				nodeContent = '#Set';
 			} else {
 				const args = path.map(print, 'arguments');
 				nodeContent = concat(['#Set(', join(concat([',', line]), args), ')']);
@@ -576,6 +578,10 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'TSTypeAliasDeclaration':
 			nodeContent = printTSTypeAliasDeclaration(node, path, options, print);
+			break;
+
+		case 'TSEnumDeclaration':
+			nodeContent = printTSEnumDeclaration(node, path, options, print);
 			break;
 
 		case 'TSTypeParameterDeclaration':
@@ -853,6 +859,10 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSPropertySignature(node, path, options, print);
 			break;
 
+		case 'TSEnumMember':
+			nodeContent = printTSEnumMember(node, path, options, print);
+			break;
+
 		case 'TSLiteralType':
 			nodeContent = path.call(print, 'literal');
 			break;
@@ -980,19 +990,21 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printCSSIdSelector(node, path, options, print);
 			break;
 
-		case 'ClassSelector':
-			nodeContent = printCSSClassSelector(node, path, options, print);
-			break;
+	case 'ClassSelector':
+		nodeContent = printCSSClassSelector(node, path, options, print);
+		break;
 
-		case 'Block':
-			nodeContent = printCSSBlock(node, path, options, print);
-			break;
+	case 'NestingSelector':
+		nodeContent = printCSSNestingSelector(node, path, options, print);
+		break;
 
-		case 'Attribute':
-			nodeContent = printAttribute(node, path, options, print);
-			break;
+	case 'Block':
+		nodeContent = printCSSBlock(node, path, options, print);
+		break;
 
-		case 'Text': {
+	case 'Attribute':
+		nodeContent = printAttribute(node, path, options, print);
+		break;		case 'Text': {
 			const parts = ['{', path.call(print, 'expression'), '}'];
 			nodeContent = concat(parts);
 			break;
@@ -1973,6 +1985,67 @@ function printTSTypeAliasDeclaration(node, path, options, print) {
 	return parts;
 }
 
+function printTSEnumDeclaration(node, path, options, print) {
+	const parts = [];
+
+	// Handle 'const enum' vs 'enum'
+	if (node.const) {
+		parts.push('const ');
+	}
+
+	parts.push('enum ');
+	parts.push(node.id.name);
+	parts.push(' ');
+
+	// Print enum body
+	if (!node.members || node.members.length === 0) {
+		parts.push('{}');
+	} else {
+		const members = path.map(print, 'members');
+		const membersWithCommas = [];
+
+		for (let i = 0; i < members.length; i++) {
+			membersWithCommas.push(members[i]);
+			if (i < members.length - 1) {
+				membersWithCommas.push(',');
+				membersWithCommas.push(hardline);
+			}
+		}
+
+		parts.push(
+			group([
+				'{',
+				indent([hardline, concat(membersWithCommas)]),
+				options.trailingComma !== 'none' ? ',' : '',
+				hardline,
+				'}',
+			])
+		);
+	}
+
+	return concat(parts);
+}
+
+function printTSEnumMember(node, path, options, print) {
+	const parts = [];
+
+	// Print the key (id)
+	if (node.id.type === 'Identifier') {
+		parts.push(node.id.name);
+	} else {
+		// Handle computed or string literal keys
+		parts.push(path.call(print, 'id'));
+	}
+
+	// Print the initializer if present
+	if (node.initializer) {
+		parts.push(' = ');
+		parts.push(path.call(print, 'initializer'));
+	}
+
+	return concat(parts);
+}
+
 function printTSTypeParameterDeclaration(node, path, options, print) {
 	if (!node.params || node.params.length === 0) {
 		return '';
@@ -2122,6 +2195,29 @@ function getWhitespaceLinesBetween(currentNode, nextNode) {
 	return 0;
 }
 
+// Helper to check if a node is a TypeScript type/interface declaration
+function isTSDeclaration(node) {
+	if (!node || !node.type) return false;
+	return (
+		node.type === 'TSInterfaceDeclaration' ||
+		node.type === 'TSTypeAliasDeclaration' ||
+		node.type === 'TSEnumDeclaration' ||
+		node.type === 'TSModuleDeclaration' ||
+		node.type === 'TSNamespaceExportDeclaration'
+	);
+}
+
+function isTSDeclarationOrExportedTS(node) {
+	if (!node || !node.type) return false;
+	// Direct TS declaration
+	if (isTSDeclaration(node)) return true;
+	// ExportNamedDeclaration with TS declaration
+	if (node.type === 'ExportNamedDeclaration' && node.declaration && isTSDeclaration(node.declaration)) {
+		return true;
+	}
+	return false;
+}
+
 function shouldAddBlankLine(currentNode, nextNode) {
 	// If nextNode has leading comments, check whitespace between current node and first comment
 	// Otherwise check whitespace between current node and next node
@@ -2143,10 +2239,10 @@ function shouldAddBlankLine(currentNode, nextNode) {
 
 	// Ripple-specific formatting rules for when to add blank lines
 
-	// Add blank line before style elements
+	// Add blank line before style elements only if there was one originally
 	if (nextNode.type === 'Element') {
 		if (nextNode.id && nextNode.id.type === 'Identifier' && nextNode.id.name === 'style') {
-			return true;
+			return originalBlankLines > 0;
 		}
 	}
 
@@ -2172,10 +2268,16 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Add blank line after TypeScript declarations when followed by other statements (not just elements)
-	if (
-		currentNode.type === 'TSInterfaceDeclaration' ||
-		currentNode.type === 'TSTypeAliasDeclaration'
-	) {
+	if (isTSDeclarationOrExportedTS(currentNode)) {
+		// Preserve blank lines between TS declarations if originally present
+		if (isTSDeclarationOrExportedTS(nextNode) && originalBlankLines > 0) {
+			return true;
+		}
+		// Preserve blank lines when followed by import statements if originally present
+		if (nextNode.type === 'ImportDeclaration' && originalBlankLines > 0) {
+			return true;
+		}
+		// Always add blank line when followed by other statement types
 		if (
 			nextNode.type === 'VariableDeclaration' ||
 			nextNode.type === 'Element' ||
@@ -2186,9 +2288,15 @@ function shouldAddBlankLine(currentNode, nextNode) {
 			nextNode.type === 'WhileStatement' ||
 			nextNode.type === 'DoWhileStatement' ||
 			nextNode.type === 'ExpressionStatement' ||
-			nextNode.type === 'ExportDefaultDeclaration' ||
-			nextNode.type === 'ExportNamedDeclaration' ||
 			nextNode.type === 'Component'
+		) {
+			return true;
+		}
+		// Only add blank line when followed by ExportNamedDeclaration/ExportDefaultDeclaration
+		// if they are not TS declarations themselves
+		if (
+			(nextNode.type === 'ExportDefaultDeclaration' || nextNode.type === 'ExportNamedDeclaration') &&
+			!isTSDeclarationOrExportedTS(nextNode)
 		) {
 			return true;
 		}
@@ -2201,8 +2309,17 @@ function shouldAddBlankLine(currentNode, nextNode) {
 
 	// Add blank line between Component declarations at top level
 	if (currentNode.type === 'Component' || currentNode.type === 'ExportNamedDeclaration' || currentNode.type === 'ExportDefaultDeclaration') {
-		if (nextNode.type === 'Component' || nextNode.type === 'ExportNamedDeclaration' || nextNode.type === 'ExportDefaultDeclaration') {
-			return true;
+		// Skip if current node is an exported TS declaration (handled above)
+		if (isTSDeclarationOrExportedTS(currentNode)) {
+			// Already handled above, do nothing here
+		} else {
+			if (nextNode.type === 'Component' || nextNode.type === 'ExportNamedDeclaration' || nextNode.type === 'ExportDefaultDeclaration') {
+				return true;
+			}
+			// Preserve blank lines between components/exports and TypeScript declarations if originally present
+			if (originalBlankLines > 0 && isTSDeclarationOrExportedTS(nextNode)) {
+				return true;
+			}
 		}
 	}
 
@@ -2227,8 +2344,7 @@ function shouldAddBlankLine(currentNode, nextNode) {
 		if (
 			currentNode.type !== 'Element' &&
 			currentNode.type !== 'VariableDeclaration' &&
-			currentNode.type !== 'TSInterfaceDeclaration' &&
-			currentNode.type !== 'TSTypeAliasDeclaration'
+			!isTSDeclaration(currentNode)
 		) {
 			return true;
 		}
@@ -2678,7 +2794,8 @@ function printCSSSelectorList(node, path, options, print) {
 			const selector = path.call(print, 'children', i);
 			selectors.push(selector);
 		}
-		return join(', ', selectors);
+		// Join selectors with comma and line break for proper CSS formatting
+		return join([',', hardline], selectors);
 	}
 	return '';
 }
@@ -2698,15 +2815,29 @@ function printCSSComplexSelector(node, path, options, print) {
 
 function printCSSRelativeSelector(node, path, options, print) {
 	// RelativeSelector contains selector components in the 'selectors' property
+	const parts = [];
+
+	// Print combinator if it exists (e.g., +, >, ~, or space)
+	if (node.combinator) {
+		if (node.combinator.name === ' ') {
+			// Space combinator (descendant selector)
+			parts.push(' ');
+		} else {
+			// Other combinators (+, >, ~)
+			parts.push(' ', node.combinator.name, ' ');
+		}
+	}
+
 	if (node.selectors && node.selectors.length > 0) {
 		const selectorParts = [];
 		for (let i = 0; i < node.selectors.length; i++) {
 			const part = path.call(print, 'selectors', i);
 			selectorParts.push(part);
 		}
-		return concat(selectorParts);
+		parts.push(...selectorParts);
 	}
-	return '';
+
+	return concat(parts);
 }
 
 function printCSSTypeSelector(node, path, options, print) {
@@ -2722,6 +2853,11 @@ function printCSSIdSelector(node, path, options, print) {
 function printCSSClassSelector(node, path, options, print) {
 	// ClassSelector for .class
 	return concat(['.', node.name || '']);
+}
+
+function printCSSNestingSelector(node, path, options, print) {
+	// NestingSelector for & (parent reference in nested CSS)
+	return '&';
 }
 
 function printCSSBlock(node, path, options, print) {
