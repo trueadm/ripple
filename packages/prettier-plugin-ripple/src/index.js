@@ -1602,13 +1602,19 @@ function printArrowFunction(node, path, options, print) {
 		options.arrowParens !== 'always' &&
 		node.params.length === 1 &&
 		node.params[0].type === 'Identifier' &&
-		!node.params[0].typeAnnotation
+		!node.params[0].typeAnnotation &&
+		!node.returnType
 	) {
 		parts.push(...paramParts);
 	} else {
 		parts.push('(');
 		parts.push(...paramParts);
 		parts.push(')');
+	}
+
+	// Handle return type annotation
+	if (node.returnType) {
+		parts.push(': ', path.call(print, 'returnType'));
 	}
 
 	parts.push(' => ');

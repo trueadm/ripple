@@ -1675,6 +1675,14 @@ component RowList({ rows, Row }) {
 			const result = await format(input, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should keep the return type annotation intact on an arrow function', async () => {
+			const expected = `const getParams = (): Params<T> => ({});
+interface Params<T> {}`;
+
+			const result = await format(expected, { singleQuote: true  });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('regex formatting', () => {
