@@ -13,7 +13,7 @@
   "categories": [
     "Programming Languages"
   ],
-  "main": "dist/extension.js",
+  "main": "src/extension.js",
   "icon": "icons/logo.png",
   "repository": {
     "type": "git",
