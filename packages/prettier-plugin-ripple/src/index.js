@@ -2207,6 +2207,17 @@ function isTSDeclaration(node) {
 	);
 }
 
+function isTSDeclarationOrExportedTS(node) {
+	if (!node || !node.type) return false;
+	// Direct TS declaration
+	if (isTSDeclaration(node)) return true;
+	// ExportNamedDeclaration with TS declaration
+	if (node.type === 'ExportNamedDeclaration' && node.declaration && isTSDeclaration(node.declaration)) {
+		return true;
+	}
+	return false;
+}
+
 function shouldAddBlankLine(currentNode, nextNode) {
 	// If nextNode has leading comments, check whitespace between current node and first comment
 	// Otherwise check whitespace between current node and next node
@@ -2257,9 +2268,13 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Add blank line after TypeScript declarations when followed by other statements (not just elements)
-	if (isTSDeclaration(currentNode)) {
+	if (isTSDeclarationOrExportedTS(currentNode)) {
 		// Preserve blank lines between TS declarations if originally present
-		if (isTSDeclaration(nextNode) && originalBlankLines > 0) {
+		if (isTSDeclarationOrExportedTS(nextNode) && originalBlankLines > 0) {
+			return true;
+		}
+		// Preserve blank lines when followed by import statements if originally present
+		if (nextNode.type === 'ImportDeclaration' && originalBlankLines > 0) {
 			return true;
 		}
 		// Always add blank line when followed by other statement types
@@ -2273,9 +2288,15 @@ function shouldAddBlankLine(currentNode, nextNode) {
 			nextNode.type === 'WhileStatement' ||
 			nextNode.type === 'DoWhileStatement' ||
 			nextNode.type === 'ExpressionStatement' ||
-			nextNode.type === 'ExportDefaultDeclaration' ||
-			nextNode.type === 'ExportNamedDeclaration' ||
 			nextNode.type === 'Component'
+		) {
+			return true;
+		}
+		// Only add blank line when followed by ExportNamedDeclaration/ExportDefaultDeclaration
+		// if they are not TS declarations themselves
+		if (
+			(nextNode.type === 'ExportDefaultDeclaration' || nextNode.type === 'ExportNamedDeclaration') &&
+			!isTSDeclarationOrExportedTS(nextNode)
 		) {
 			return true;
 		}
@@ -2288,12 +2309,17 @@ function shouldAddBlankLine(currentNode, nextNode) {
 
 	// Add blank line between Component declarations at top level
 	if (currentNode.type === 'Component' || currentNode.type === 'ExportNamedDeclaration' || currentNode.type === 'ExportDefaultDeclaration') {
-		if (nextNode.type === 'Component' || nextNode.type === 'ExportNamedDeclaration' || nextNode.type === 'ExportDefaultDeclaration') {
-			return true;
-		}
-		// Preserve blank lines between components/exports and TypeScript declarations if originally present
-		if (originalBlankLines > 0 && isTSDeclaration(nextNode)) {
-			return true;
+		// Skip if current node is an exported TS declaration (handled above)
+		if (isTSDeclarationOrExportedTS(currentNode)) {
+			// Already handled above, do nothing here
+		} else {
+			if (nextNode.type === 'Component' || nextNode.type === 'ExportNamedDeclaration' || nextNode.type === 'ExportDefaultDeclaration') {
+				return true;
+			}
+			// Preserve blank lines between components/exports and TypeScript declarations if originally present
+			if (originalBlankLines > 0 && isTSDeclarationOrExportedTS(nextNode)) {
+				return true;
+			}
 		}
 	}
 

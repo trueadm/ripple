@@ -812,6 +812,19 @@ enum Status {
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should preserve blank lines between ts and import statements', async () => {
+			const expected = `export interface PortalActionProps {
+  disabled?: boolean | undefined;
+  container?: HTMLElement | undefined;
+  getRootNode?: GetRootNode | undefined;
+}
+
+import { Portal as RipplePortal } from 'ripple';`
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
