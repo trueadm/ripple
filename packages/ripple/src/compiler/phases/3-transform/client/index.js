@@ -150,6 +150,21 @@ function visit_title_element(node, context) {
 	}
 }
 
+/**
+ * @param {string} name
+ * @param {any} context
+ * @returns {string}
+ */
+function import_from_ripple_if_needed(name, context) {
+	const alias = context.state.ripple_user_imports?.get?.(name) ?? name;
+
+	if (!alias && !context.state.imports.has(`import { ${name} } from 'ripple'`)) {
+		context.state.imports.add(`import { ${name} } from 'ripple'`);
+	}
+
+	return alias;
+}
+
 const visitors = {
 	_: function set_scope(node, { next, state }) {
 		const scope = state.scopes.get(node);
@@ -369,12 +384,10 @@ const visitors = {
 
 	TrackedArrayExpression(node, context) {
 		if (context.state.to_ts) {
-			if (!context.state.imports.has(`import { TrackedArray } from 'ripple'`)) {
-				context.state.imports.add(`import { TrackedArray } from 'ripple'`);
-			}
+			const arrayAlias = import_from_ripple_if_needed("TrackedArray", context);
 
 			return b.call(
-				b.member(b.id('TrackedArray'), b.id('from')),
+				b.member(b.id(arrayAlias), b.id('from')),
 				b.array(node.elements.map((el) => context.visit(el))),
 			);
 		}
@@ -388,12 +401,10 @@ const visitors = {
 
 	TrackedObjectExpression(node, context) {
 		if (context.state.to_ts) {
-			if (!context.state.imports.has(`import { TrackedObject } from 'ripple'`)) {
-				context.state.imports.add(`import { TrackedObject } from 'ripple'`);
-			}
+			const objectAlias = import_from_ripple_if_needed("TrackedObject", context);
 
 			return b.new(
-				b.id('TrackedObject'),
+				b.id(objectAlias),
 				b.object(node.properties.map((prop) => context.visit(prop))),
 			);
 		}
@@ -407,11 +418,9 @@ const visitors = {
 
 	TrackedMapExpression(node, context) {
 		if (context.state.to_ts) {
-			if (!context.state.imports.has(`import { TrackedMap } from 'ripple'`)) {
-				context.state.imports.add(`import { TrackedMap } from 'ripple'`);
-			}
+			const mapAlias = import_from_ripple_if_needed('TrackedMap', context);
 
-			const calleeId = b.id('TrackedMap');
+			const calleeId = b.id(mapAlias);
 			// Preserve location from original node for Volar mapping
 			calleeId.loc = node.loc;
 			// Add metadata for Volar mapping - map "TrackedMap" identifier to "#Map" in source
@@ -428,11 +437,9 @@ const visitors = {
 
 	TrackedSetExpression(node, context) {
 		if (context.state.to_ts) {
-			if (!context.state.imports.has(`import { TrackedSet } from 'ripple'`)) {
-				context.state.imports.add(`import { TrackedSet } from 'ripple'`);
-			}
+			const setAlias = import_from_ripple_if_needed('TrackedSet', context);
 
-			const calleeId = b.id('TrackedSet');
+			const calleeId = b.id(setAlias);
 			// Preserve location from original node for Volar mapping
 			calleeId.loc = node.loc;
 			// Add metadata for Volar mapping - map "TrackedSet" identifier to "#Set" in source
@@ -1555,12 +1562,12 @@ function transform_ts_child(node, context) {
 				const argument = visit(attr.argument, { ...state, metadata });
 				return b.jsx_spread_attribute(argument);
 			} else if (attr.type === 'RefAttribute') {
-				if (!context.state.imports.has(`import { createRefKey } from 'ripple'`)) {
-					context.state.imports.add(`import { createRefKey } from 'ripple'`);
-				}
+				const createRefKeyAlias = import_from_ripple_if_needed('createRefKey', context);
 				const metadata = { await: false };
 				const argument = visit(attr.argument, { ...state, metadata });
-				const wrapper = b.object([b.prop('init', b.call('createRefKey'), argument, true)]);
+				const wrapper = b.object(
+					[b.prop('init', b.call(createRefKeyAlias), argument, true)]
+				);
 				return b.jsx_spread_attribute(wrapper);
 			}
 		});
@@ -1967,8 +1974,30 @@ function transform_body(body, { visit, state }) {
 }
 
 export function transform_client(filename, source, analysis, to_ts) {
+	/**
+	 * User's named imports from 'ripple' so we can reuse them in TS output
+	 * when transforming shorthand syntax. E.g., if the user has already imported
+	 * TrackedArray, we want to reuse that import instead of importing it again
+	 * if we encounter `#[]`. It's a Map of export name to local name in case the
+	 * user renamed something when importing.
+	 * @type {Map<string, string>}
+	 */
+	const ripple_user_imports = new Map(); // exported -> local
+	if (analysis && analysis.ast && Array.isArray(analysis.ast.body)) {
+		for (const stmt of analysis.ast.body) {
+			if (stmt && stmt.type === 'ImportDeclaration' && stmt.source && stmt.source.value === 'ripple') {
+				for (const spec of stmt.specifiers || []) {
+					if (spec.type === 'ImportSpecifier' && spec.imported && spec.local) {
+						ripple_user_imports.set(spec.imported.name, spec.local.name);
+					}
+				}
+			}
+		}
+	}
+
 	const state = {
 		imports: new Set(),
+		ripple_user_imports,
 		events: new Set(),
 		template: null,
 		hoisted: [],
