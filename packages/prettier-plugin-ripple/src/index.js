@@ -2,7 +2,7 @@
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
-const { concat, join, line, softline, hardline, group, indent, dedent, ifBreak } = doc.builders;
+const { concat, join, line, softline, hardline, group, indent, dedent, ifBreak, fill, conditionalGroup } = doc.builders;
 
 // Embed function - not needed for now
 export function embed(path, options) {
@@ -92,36 +92,6 @@ function semi(options) {
 	return options.semi !== false ? ';' : '';
 }
 
-function hasBlankLineBeforeComment(comment, options) {
-	if (!comment || !options || typeof comment.start !== 'number' || !options.originalText) {
-		return false;
-	}
-
-	const text = options.originalText;
-	let index = comment.start - 1;
-	let newlineCount = 0;
-
-	while (index >= 0) {
-		const char = text[index];
-		if (char === '\n') {
-			newlineCount++;
-			if (newlineCount >= 2) {
-				return true;
-			}
-		} else if (char === '\r') {
-			// Ignore carriage returns, handle \r\n gracefully
-		} else if (char === ' ' || char === '\t') {
-			// continue scanning backwards through whitespace
-		} else {
-			break;
-		}
-
-		index--;
-	}
-
-	return false;
-}
-
 function wasOriginallySingleLine(node, options) {
 	if (!node || !node.loc || !node.loc.start || !node.loc.end) {
 		return false;
@@ -185,18 +155,10 @@ function printRippleNode(node, path, options, print, args) {
 						parts.push(hardline);
 					}
 				} else if (isLastComment) {
-					// Preserve a blank line between the last comment and the node when it existed in source
+					// Preserve a blank line between the last comment and the node if it existed
 					const blankLinesBetween = getWhitespaceLinesBetween(comment, node);
 					if (blankLinesBetween > 0) {
-						const hadBlankLineBefore = hasBlankLineBeforeComment(comment, options);
-						// At top level with import/export declarations, preserve blank lines for organizational clarity
-						// Otherwise, only add if there wasn't already a blank line before the comment
-						const isImportOrExport = node.type === 'ImportDeclaration' ||
-							node.type === 'ExportNamedDeclaration' ||
-							node.type === 'ExportDefaultDeclaration';
-						if ((isTopLevel && isImportOrExport) || !hadBlankLineBefore) {
-							parts.push(hardline);
-						}
+						parts.push(hardline);
 					}
 				}
 			} else if (comment.type === 'Block') {
@@ -211,18 +173,10 @@ function printRippleNode(node, path, options, print, args) {
 							parts.push(hardline);
 						}
 					} else if (isLastComment) {
-						// Preserve a blank line between the last comment and the node when it existed in source
+						// Preserve a blank line between the last comment and the node if it existed
 						const blankLinesBetween = getWhitespaceLinesBetween(comment, node);
 						if (blankLinesBetween > 0) {
-							const hadBlankLineBefore = hasBlankLineBeforeComment(comment, options);
-							// At top level with import/export declarations, preserve blank lines for organizational clarity
-							// Otherwise, only add if there wasn't already a blank line before the comment
-							const isImportOrExport = node.type === 'ImportDeclaration' ||
-								node.type === 'ExportNamedDeclaration' ||
-								node.type === 'ExportDefaultDeclaration';
-							if ((isTopLevel && isImportOrExport) || !hadBlankLineBefore) {
-								parts.push(hardline);
-							}
+							parts.push(hardline);
 						}
 					}
 				} else {
@@ -354,8 +308,17 @@ function printRippleNode(node, path, options, print, args) {
 			// Check if this array is inside an attribute
 			const isInAttribute = args && args.isInAttribute;
 
+			// Check if all elements are objects with multiple properties
+			// In that case, each object should be on its own line
+			const objectElements = node.elements.filter(el => el && el.type === 'ObjectExpression');
+			const allElementsAreObjects = node.elements.length > 0 &&
+				node.elements.every(el => el && el.type === 'ObjectExpression');
+			const allObjectsHaveMultipleProperties = allElementsAreObjects && objectElements.length > 0 &&
+				objectElements.every(obj => obj.properties && obj.properties.length > 1);
+
 			// For arrays of simple objects with only a few properties, try to keep compact
-			if (hasObjectElements) {
+			// But NOT if all objects have multiple properties
+			if (hasObjectElements && !allObjectsHaveMultipleProperties) {
 				shouldInlineObjects = true;
 				for (let i = 0; i < node.elements.length; i++) {
 					const element = node.elements[i];
@@ -403,32 +366,69 @@ function printRippleNode(node, path, options, print, args) {
 					indent(concat([softline, join(separator, elements), trailing])),
 					softline,
 					']',
-				]));
-				break;
-			}
+			]));
+			break;
+		}
 
-			// Simple single-line for short arrays without object elements
-			if (elements.length <= 3 && !hasObjectElements) {
-				const parts = [prefix + '['];
-				for (let i = 0; i < elements.length; i++) {
-					if (i > 0) parts.push(', ');
-					parts.push(elements[i]);
-				}
-				parts.push(']');
-				nodeContent = parts;
-				break;
-			}
+		// Arrays should inline all elements unless:
+		// 1. An element (not first) has blank line above it - then that element on new line with blank
+		// 2. Elements don't fit within printWidth
+		// 3. Array contains objects and every object has more than 1 property - each object on own line
 
-			// Multi-line for longer arrays or complex arrays with objects
+		// Check which elements have blank lines above them
+		const elementsWithBlankLineAbove = [];
+		for (let i = 1; i < node.elements.length; i++) {
+			const prevElement = node.elements[i - 1];
+			const currentElement = node.elements[i];
+			if (prevElement && currentElement && getWhitespaceLinesBetween(prevElement, currentElement) > 0) {
+				elementsWithBlankLineAbove.push(i);
+			}
+		}
+
+		const hasAnyBlankLines = elementsWithBlankLineAbove.length > 0;
+
+		if (!hasAnyBlankLines && !allObjectsHaveMultipleProperties) {
+			// No blank lines and no multi-property objects - try to inline everything, let group() break if doesn't fit
+			const parts = [prefix + '['];
+			for (let i = 0; i < elements.length; i++) {
+				if (i > 0) parts.push(concat([',', line]));
+				parts.push(elements[i]);
+			}
+			const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
+			parts.push(trailingDoc);
+			parts.push(']');
+			nodeContent = group(concat(parts));
+			break;
+		}
+
+		// If array has multi-property objects, force each object on its own line
+		// Objects that were originally inline can stay inline if they fit printWidth
+		// Objects that were originally multi-line should stay multi-line
+		if (allObjectsHaveMultipleProperties) {
 			const parts = [prefix + '['];
 			const contentParts = [];
 
-			for (let i = 0; i < elements.length; i++) {
+			// Print elements - allow inline only if originally single-line
+			const inlineElements = path.map(
+				(elPath, index) => {
+					const obj = node.elements[index];
+					const wasObjSingleLine = obj && obj.type === 'ObjectExpression' &&
+						wasOriginallySingleLine(obj, options);
+					// Only allow inline if object was originally single-line
+					return print(elPath, {
+						isInArray: true,
+						allowInlineObject: wasObjSingleLine
+					});
+				},
+				'elements'
+			);
+
+			for (let i = 0; i < inlineElements.length; i++) {
 				if (i > 0) {
 					contentParts.push(',');
-					contentParts.push(hardline);
+					contentParts.push(hardline); // Force line break for each object
 				}
-				contentParts.push(elements[i]);
+				contentParts.push(inlineElements[i]);
 			}
 
 			if (shouldUseTrailingComma) {
@@ -438,8 +438,104 @@ function printRippleNode(node, path, options, print, args) {
 			parts.push(indent([hardline, concat(contentParts)]));
 			parts.push(hardline);
 			parts.push(']');
-			nodeContent = group(parts);
+			nodeContent = concat(parts); // Don't use group() - force the breaks
 			break;
+		}
+
+		// Has blank lines - format with blank lines preserved
+		// Group elements between blank lines together so they can inline
+		const contentParts = [];
+
+		// Split elements into groups separated by blank lines
+		const groups = [];
+		let currentGroup = [];
+
+		for (let i = 0; i < elements.length; i++) {
+			const hasBlankLineAbove = elementsWithBlankLineAbove.includes(i);
+
+			if (hasBlankLineAbove && currentGroup.length > 0) {
+				// Save current group and start new one
+				groups.push(currentGroup);
+				currentGroup = [i];
+			} else {
+				currentGroup.push(i);
+			}
+		}
+
+		// Don't forget the last group
+		if (currentGroup.length > 0) {
+			groups.push(currentGroup);
+		}
+
+		// Now output each group
+		for (let groupIdx = 0; groupIdx < groups.length; groupIdx++) {
+			const group_indices = groups[groupIdx];
+
+			// Add blank line before this group (except first group)
+			if (groupIdx > 0) {
+				contentParts.push(hardline);
+				contentParts.push(hardline);
+			}
+
+			// Build the group elements
+			// Use fill() to automatically pack as many elements as fit per line
+			// IMPORTANT: Each element+comma needs to be grouped for proper width calculation
+			const fillParts = [];
+			for (let i = 0; i < group_indices.length; i++) {
+				const elemIdx = group_indices[i];
+				const isLastInArray = elemIdx === elements.length - 1;
+
+				if (i > 0) {
+					fillParts.push(line);
+				}
+				// Wrap element+comma in group so fill() measures them together including breaks
+				// But don't add comma to the very last element (it gets trailing comma separately)
+				if (isLastInArray && shouldUseTrailingComma) {
+					fillParts.push(group(elements[elemIdx]));
+				} else {
+					fillParts.push(group(concat([elements[elemIdx], ','])));
+				}
+			}
+
+			contentParts.push(fill(fillParts));
+		}
+
+		// Add trailing comma only if the last element didn't already have one
+		if (shouldUseTrailingComma) {
+			contentParts.push(',');
+		}
+
+		// Array with blank lines - format as multi-line
+		// Use conditionalGroup to provide two alternatives:
+		// 1. Bracket stays inline (most compact)
+		// 2. Bracket breaks to new line with indent (when prefix+'[' doesn't fit)
+		nodeContent = conditionalGroup([
+			// Alternative 1: Try to keep bracket inline
+			group(concat([
+				prefix + '[',
+				indent(concat([
+					line,
+					concat(contentParts)
+				])),
+				line,
+				']'
+			])),
+			// Alternative 2: Break bracket to new line and indent it and elements
+			concat([
+				prefix,
+				indent(concat([
+					line,
+					'[',
+					indent(concat([
+						line,
+						concat(contentParts)
+					])),
+					line,
+					']'
+				]))
+			])
+		]);
+		break;
 		}
 
 		case 'ObjectExpression':
@@ -501,18 +597,62 @@ function printRippleNode(node, path, options, print, args) {
 				parts.push(path.call(print, 'typeParameters'));
 			}
 
-			if (node.arguments && node.arguments.length > 0) {
-				parts.push('(');
-
-				const args = path.map((argPath) => {
-					return print(argPath, { isInlineContext: true });
-				}, 'arguments');
-
-				for (let i = 0; i < args.length; i++) {
-					if (i > 0) parts.push(', ');
-					parts.push(args[i]);
+			// Check if there are blank lines between arguments
+			let hasBlankLinesBetweenArgs = false;
+			if (node.arguments && node.arguments.length > 1) {
+				for (let i = 0; i < node.arguments.length - 1; i++) {
+					const current = node.arguments[i];
+					const next = node.arguments[i + 1];
+					if (current && next && getWhitespaceLinesBetween(current, next) > 0) {
+						hasBlankLinesBetweenArgs = true;
+						break;
+					}
 				}
-				parts.push(')');
+			}
+
+			if (node.arguments && node.arguments.length > 0) {
+				if (hasBlankLinesBetweenArgs) {
+					// Multi-line arguments with blank line preservation
+					const args = path.map((argPath) => {
+						return print(argPath, { isInlineContext: true });
+					}, 'arguments');
+
+					const argParts = [];
+					for (let i = 0; i < args.length; i++) {
+						if (i > 0) {
+							argParts.push(',');
+
+							// Check for blank lines between arguments
+							const prevArg = node.arguments[i - 1];
+							const currentArg = node.arguments[i];
+							if (prevArg && currentArg && getWhitespaceLinesBetween(prevArg, currentArg) > 0) {
+								argParts.push(hardline);
+								argParts.push(hardline); // Two hardlines = blank line
+							} else {
+								argParts.push(hardline);
+							}
+						}
+						argParts.push(args[i]);
+					}
+
+					parts.push('(');
+					parts.push(indent([hardline, concat(argParts)]));
+					parts.push(hardline);
+					parts.push(')');
+				} else {
+					// Single-line arguments
+					parts.push('(');
+
+					const args = path.map((argPath) => {
+						return print(argPath, { isInlineContext: true });
+					}, 'arguments');
+
+					for (let i = 0; i < args.length; i++) {
+						if (i > 0) parts.push(', ');
+						parts.push(args[i]);
+					}
+					parts.push(')');
+				}
 			} else {
 				parts.push('()');
 			}
@@ -1383,17 +1523,57 @@ function printFunctionExpression(node, path, options, print) {
 		parts.push(node.id.name);
 	}
 
-	parts.push('(');
-
-	if (node.params && node.params.length > 0) {
-		const paramList = path.map(print, 'params');
-		for (let i = 0; i < paramList.length; i++) {
-			if (i > 0) parts.push(', ');
-			parts.push(paramList[i]);
+	// Check if there are blank lines between params
+	let hasBlankLinesBetweenParams = false;
+	if (node.params && node.params.length > 1) {
+		for (let i = 0; i < node.params.length - 1; i++) {
+			const current = node.params[i];
+			const next = node.params[i + 1];
+			if (current && next && getWhitespaceLinesBetween(current, next) > 0) {
+				hasBlankLinesBetweenParams = true;
+				break;
+			}
 		}
 	}
 
-	parts.push(')');
+	if (hasBlankLinesBetweenParams && node.params && node.params.length > 0) {
+		// Multi-line params with blank line preservation
+		const paramList = path.map(print, 'params');
+		const paramParts = [];
+
+		for (let i = 0; i < paramList.length; i++) {
+			if (i > 0) {
+				paramParts.push(',');
+
+				// Check for blank lines between params
+				const prevParam = node.params[i - 1];
+				const currentParam = node.params[i];
+				if (prevParam && currentParam && getWhitespaceLinesBetween(prevParam, currentParam) > 0) {
+					paramParts.push(hardline);
+					paramParts.push(hardline); // Two hardlines = blank line
+				} else {
+					paramParts.push(hardline);
+				}
+			}
+			paramParts.push(paramList[i]);
+		}
+
+		parts.push('(');
+		parts.push(indent([hardline, concat(paramParts)]));
+		parts.push(hardline);
+		parts.push(')');
+	} else {
+		// Single-line params
+		parts.push('(');
+		if (node.params && node.params.length > 0) {
+			const paramList = path.map(print, 'params');
+			for (let i = 0; i < paramList.length; i++) {
+				if (i > 0) parts.push(', ');
+				parts.push(paramList[i]);
+			}
+		}
+		parts.push(')');
+	}
 
 	// Handle return type annotation
 	if (node.returnType) {
@@ -1475,17 +1655,58 @@ function printFunctionDeclaration(node, path, options, print) {
 
 	parts.push(' ');
 	parts.push(node.id.name);
-	parts.push('(');
 
-	if (node.params && node.params.length > 0) {
-		const paramList = path.map(print, 'params');
-		for (let i = 0; i < paramList.length; i++) {
-			if (i > 0) parts.push(', ');
-			parts.push(paramList[i]);
+	// Check if there are blank lines between params
+	let hasBlankLinesBetweenParams = false;
+	if (node.params && node.params.length > 1) {
+		for (let i = 0; i < node.params.length - 1; i++) {
+			const current = node.params[i];
+			const next = node.params[i + 1];
+			if (current && next && getWhitespaceLinesBetween(current, next) > 0) {
+				hasBlankLinesBetweenParams = true;
+				break;
+			}
 		}
 	}
 
-	parts.push(')');
+	if (hasBlankLinesBetweenParams && node.params && node.params.length > 0) {
+		// Multi-line params with blank line preservation
+		const paramList = path.map(print, 'params');
+		const paramParts = [];
+
+		for (let i = 0; i < paramList.length; i++) {
+			if (i > 0) {
+				paramParts.push(',');
+
+				// Check for blank lines between params
+				const prevParam = node.params[i - 1];
+				const currentParam = node.params[i];
+				if (prevParam && currentParam && getWhitespaceLinesBetween(prevParam, currentParam) > 0) {
+					paramParts.push(hardline);
+					paramParts.push(hardline); // Two hardlines = blank line
+				} else {
+					paramParts.push(hardline);
+				}
+			}
+			paramParts.push(paramList[i]);
+		}
+
+		parts.push('(');
+		parts.push(indent([hardline, concat(paramParts)]));
+		parts.push(hardline);
+		parts.push(')');
+	} else {
+		// Single-line params
+		parts.push('(');
+		if (node.params && node.params.length > 0) {
+			const paramList = path.map(print, 'params');
+			for (let i = 0; i < paramList.length; i++) {
+				if (i > 0) parts.push(', ');
+				parts.push(paramList[i]);
+			}
+		}
+		parts.push(')');
+	}
 
 	// Handle return type annotation
 	if (node.returnType) {
@@ -1593,6 +1814,53 @@ function printObjectExpression(node, path, options, print, args) {
 		return '{}';
 	}
 
+	// Check if there are blank lines between any properties
+	let hasBlankLinesBetweenProperties = false;
+	for (let i = 0; i < node.properties.length - 1; i++) {
+		const current = node.properties[i];
+		const next = node.properties[i + 1];
+		if (current && next && getWhitespaceLinesBetween(current, next) > 0) {
+			hasBlankLinesBetweenProperties = true;
+			break;
+		}
+	}
+
+	// Check if object was originally multi-line
+	let isOriginallyMultiLine = false;
+	if (node.loc && node.loc.start && node.loc.end) {
+		isOriginallyMultiLine = node.loc.start.line !== node.loc.end.line;
+	}
+
+	// Also check for blank lines at edges (after { or before })
+	// If the original code has blank lines anywhere in the object, format multi-line
+	let hasAnyBlankLines = hasBlankLinesBetweenProperties;
+	if (!hasAnyBlankLines && node.properties.length > 0 && options.originalText) {
+		const firstProp = node.properties[0];
+		const lastProp = node.properties[node.properties.length - 1];
+
+		// Check for blank line after opening brace (before first property)
+		if (firstProp && node.loc && node.loc.start) {
+			const textBetween = options.originalText.substring(
+				node.loc.start.offset + 1, // +1 to skip the '{'
+				firstProp.loc.start.offset
+			);
+			if (/\n\s*\n/.test(textBetween)) {
+				hasAnyBlankLines = true;
+			}
+		}
+
+		// Check for blank line before closing brace (after last property)
+		if (!hasAnyBlankLines && lastProp && node.loc && node.loc.end) {
+			const textBetween = options.originalText.substring(
+				lastProp.loc.end.offset,
+				node.loc.end.offset - 1 // -1 to skip the '}'
+			);
+			if (/\n\s*\n/.test(textBetween)) {
+				hasAnyBlankLines = true;
+			}
+		}
+	}
+
 	// Check if we should try to format inline
 	const isInArray = args && args.isInArray;
 	const isInAttribute = args && args.isInAttribute;
@@ -1606,7 +1874,8 @@ function printObjectExpression(node, path, options, print, args) {
 
 	// For arrays: very simple (1-prop) objects can be inline, 2-prop objects always multiline
 	// For attributes: force inline for simple objects
-	if (isSimple && (isInArray || isInAttribute)) {
+	// BUT: if there are ANY blank lines in the object (between props or at edges), always use multi-line
+	if (isSimple && (isInArray || isInAttribute) && !hasAnyBlankLines) {
 		if (isInArray) {
 			if (isVerySimple) {
 				// 1-property objects: force inline with spaces
@@ -1640,9 +1909,46 @@ function printObjectExpression(node, path, options, print, args) {
 		]));
 	}
 
+	// For objects that were originally inline (single-line) and don't have blank lines,
+	// and aren't in arrays, allow inline formatting if it fits printWidth
+	// This handles cases like `const T0: t17 = { x: 1 };` staying inline when it fits
+	// The group() will automatically break to multi-line if it doesn't fit
+	if (!hasAnyBlankLines && !isOriginallyMultiLine && !isInArray) {
+		const separator = concat([',', line]);
+		const propertyDoc = join(separator, properties);
+		const spacing = options.bracketSpacing === false ? softline : line;
+		const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
+
+		return group(concat([
+			'{',
+			indent(concat([spacing, propertyDoc, trailingDoc])),
+			spacing,
+			'}',
+		]));
+	}
+
 	let content = [hardline];
 	if (properties.length > 0) {
-		content.push(join([',', hardline], properties));
+		// Build properties with blank line preservation
+		const propertyParts = [];
+		for (let i = 0; i < properties.length; i++) {
+			if (i > 0) {
+				propertyParts.push(',');
+
+				// Check for blank lines between properties and preserve them
+				const prevProp = node.properties[i - 1];
+				const currentProp = node.properties[i];
+				if (prevProp && currentProp && getWhitespaceLinesBetween(prevProp, currentProp) > 0) {
+					propertyParts.push(hardline);
+					propertyParts.push(hardline); // Two hardlines = blank line
+				} else {
+					propertyParts.push(hardline);
+				}
+			}
+			propertyParts.push(properties[i]);
+		}
+
+		content.push(concat(propertyParts));
 		if (shouldUseTrailingComma) {
 			content.push(',');
 		}
@@ -2213,30 +2519,13 @@ function getWhitespaceLinesBetween(currentNode, nextNode) {
 	return 0;
 }
 
-// Helper to check if a node is a TypeScript type/interface declaration
-function isTSDeclaration(node) {
-	if (!node || !node.type) return false;
-	return (
-		node.type === 'TSInterfaceDeclaration' ||
-		node.type === 'TSTypeAliasDeclaration' ||
-		node.type === 'TSEnumDeclaration' ||
-		node.type === 'TSModuleDeclaration' ||
-		node.type === 'TSNamespaceExportDeclaration'
-	);
-}
-
-function isTSDeclarationOrExportedTS(node) {
-	if (!node || !node.type) return false;
-	// Direct TS declaration
-	if (isTSDeclaration(node)) return true;
-	// ExportNamedDeclaration with TS declaration
-	if (node.type === 'ExportNamedDeclaration' && node.declaration && isTSDeclaration(node.declaration)) {
-		return true;
-	}
-	return false;
-}
-
 function shouldAddBlankLine(currentNode, nextNode) {
+	// Simplified blank line logic:
+	// 1. Check if there was originally 1+ blank lines between nodes
+	// 2. If yes, preserve exactly 1 blank line (collapse multiple to one)
+	// 3. Only exception: add blank line after imports when followed by non-imports
+	//    (this is standard Prettier behavior)
+
 	// Determine the source node for whitespace checking
 	// If currentNode has trailing comments, use the last one
 	let sourceNode = currentNode;
@@ -2254,213 +2543,14 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	// Check if there was original whitespace between the nodes
 	const originalBlankLines = getWhitespaceLinesBetween(sourceNode, targetNode);
 
-	// If nextNode has leading comments, only add blank line if there was one originally
-	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
-		if (originalBlankLines > 0) {
-			return true;
-		}
-		return false;
-	}
-
-	// Ripple-specific formatting rules for when to add blank lines
-
-	// Add blank line before style elements only if there was one originally
-	if (nextNode.type === 'Element') {
-		if (nextNode.id && nextNode.id.type === 'Identifier' && nextNode.id.name === 'style') {
-			return originalBlankLines > 0;
-		}
-	}
-
-	// Preserve author-provided blank lines between sibling elements
-	if (originalBlankLines > 0 && currentNode.type === 'Element' && nextNode.type === 'Element') {
-		return true;
-	}
-
-	// Add blank line after variable declarations when followed by elements or control flow statements
-	// Only if there was originally a blank line
-	if (originalBlankLines > 0 && currentNode.type === 'VariableDeclaration') {
-		if (
-			nextNode.type === 'Element' ||
-			nextNode.type === 'IfStatement' ||
-			nextNode.type === 'TryStatement' ||
-			nextNode.type === 'ForStatement' ||
-			nextNode.type === 'ForOfStatement' ||
-			nextNode.type === 'WhileStatement' ||
-			nextNode.type === 'DoWhileStatement'
-		) {
-			return true;
-		}
-	}
-
-	// Add blank line after TypeScript declarations when followed by other statements (not just elements)
-	if (isTSDeclarationOrExportedTS(currentNode)) {
-		// Preserve blank lines between TS declarations if originally present
-		if (isTSDeclarationOrExportedTS(nextNode) && originalBlankLines > 0) {
-			return true;
-		}
-		// Preserve blank lines when followed by import statements if originally present
-		if (nextNode.type === 'ImportDeclaration' && originalBlankLines > 0) {
-			return true;
-		}
-		// Always add blank line when followed by other statement types
-		if (
-			nextNode.type === 'VariableDeclaration' ||
-			nextNode.type === 'Element' ||
-			nextNode.type === 'IfStatement' ||
-			nextNode.type === 'ForStatement' ||
-			nextNode.type === 'ForOfStatement' ||
-			nextNode.type === 'TryStatement' ||
-			nextNode.type === 'WhileStatement' ||
-			nextNode.type === 'DoWhileStatement' ||
-			nextNode.type === 'ExpressionStatement' ||
-			nextNode.type === 'Component'
-		) {
-			return true;
-		}
-		// Only add blank line when followed by ExportNamedDeclaration/ExportDefaultDeclaration
-		// if they are not TS declarations themselves
-		if (
-			(nextNode.type === 'ExportDefaultDeclaration' || nextNode.type === 'ExportNamedDeclaration') &&
-			!isTSDeclarationOrExportedTS(nextNode)
-		) {
-			return true;
-		}
-	}
-
-	// Add blank line after import declarations when followed by code (not just other imports)
+	// Special case: Always add blank line after import declarations when followed by non-imports
+	// This is standard Prettier behavior for separating imports from code
 	if (currentNode.type === 'ImportDeclaration' && nextNode.type !== 'ImportDeclaration') {
 		return true;
 	}
 
-	// Preserve blank lines between export statements and import statements if originally present
-	if (
-		(currentNode.type === 'ExportNamedDeclaration' || currentNode.type === 'ExportDefaultDeclaration') &&
-		nextNode.type === 'ImportDeclaration' &&
-		originalBlankLines > 0
-	) {
-		return true;
-	}
-
-	// Add blank line between Component declarations at top level
-	if (currentNode.type === 'Component' || currentNode.type === 'ExportNamedDeclaration' || currentNode.type === 'ExportDefaultDeclaration') {
-		// Skip if current node is an exported TS declaration (handled above)
-		if (isTSDeclarationOrExportedTS(currentNode)) {
-			// Already handled above, do nothing here
-		} else {
-			if (nextNode.type === 'Component' || nextNode.type === 'ExportNamedDeclaration' || nextNode.type === 'ExportDefaultDeclaration') {
-				return true;
-			}
-			// Preserve blank lines between components/exports and TypeScript declarations if originally present
-			if (originalBlankLines > 0 && isTSDeclarationOrExportedTS(nextNode)) {
-				return true;
-			}
-		}
-	}
-
-	// Add blank line after if/for/try statements if next is an element
-	// Only if there was originally a blank line
-	if (
-		originalBlankLines > 0 &&
-		(currentNode.type === 'IfStatement' ||
-			currentNode.type === 'ForStatement' ||
-			currentNode.type === 'ForOfStatement' ||
-			currentNode.type === 'TryStatement' ||
-			currentNode.type === 'WhileStatement')
-	) {
-		if (nextNode.type === 'Element') {
-			return true;
-		}
-	}
-
-	// Add blank line before elements when preceded by non-element statements
-	// Only if there was originally a blank line
-	if (originalBlankLines > 0 && nextNode.type === 'Element') {
-		if (
-			currentNode.type !== 'Element' &&
-			currentNode.type !== 'VariableDeclaration' &&
-			!isTSDeclaration(currentNode)
-		) {
-			return true;
-		}
-	}
-
-	// Standard Prettier behavior: preserve blank lines between different statement types
-	// This helps maintain logical groupings in the code
-	// Also add blank lines in certain contexts even if they didn't exist originally
-	// Common patterns where blank lines are meaningful:
-	// - Before/after control flow (if/for/while/try)
-	// - Before return statements
-	// - Between variable declarations and other code
-	// - Before/after function declarations
-
-	const hadOriginalBlankLines = originalBlankLines > 0;
-
-	// Add blank line before control flow statements (only if originally present)
-	if (
-		hadOriginalBlankLines &&
-		(nextNode.type === 'IfStatement' ||
-			nextNode.type === 'ForStatement' ||
-			nextNode.type === 'ForOfStatement' ||
-			nextNode.type === 'WhileStatement' ||
-			nextNode.type === 'DoWhileStatement' ||
-			nextNode.type === 'TryStatement' ||
-			nextNode.type === 'SwitchStatement')
-	) {
-		return true;
-	}
-
-	// Always add blank line before return statements (unless it's the only/first statement)
-	if (nextNode.type === 'ReturnStatement' && currentNode.type !== 'VariableDeclaration') {
-		return true;
-	}
-
-	// Add blank line after control flow statements (only if originally present)
-	if (
-		hadOriginalBlankLines &&
-		(currentNode.type === 'IfStatement' ||
-			currentNode.type === 'ForStatement' ||
-			currentNode.type === 'ForOfStatement' ||
-			currentNode.type === 'WhileStatement' ||
-			currentNode.type === 'DoWhileStatement' ||
-			currentNode.type === 'TryStatement' ||
-			currentNode.type === 'SwitchStatement')
-	) {
-		return true;
-	}
-
-	// Add blank line after return/throw/break/continue (only if originally present)
-	if (
-		hadOriginalBlankLines &&
-		(currentNode.type === 'ReturnStatement' ||
-			currentNode.type === 'ThrowStatement' ||
-			currentNode.type === 'BreakStatement' ||
-			currentNode.type === 'ContinueStatement')
-	) {
-		return true;
-	}
-
-	// Add blank line between variable declarations and other code (only if originally present)
-	if (hadOriginalBlankLines && currentNode.type === 'VariableDeclaration' && nextNode.type !== 'VariableDeclaration') {
-		return true;
-	}
-
-	// Add blank line before variable declarations (only if originally present, except after other variable declarations)
-	if (hadOriginalBlankLines && nextNode.type === 'VariableDeclaration' && currentNode.type !== 'VariableDeclaration') {
-		return true;
-	}
-
-	// Also add blank line between variable declarations if they were originally separated
-	if (hadOriginalBlankLines && currentNode.type === 'VariableDeclaration' && nextNode.type === 'VariableDeclaration') {
-		return true;
-	}
-
-	// Add blank line before/after function declarations (only if originally present)
-	if (hadOriginalBlankLines && (currentNode.type === 'FunctionDeclaration' || nextNode.type === 'FunctionDeclaration')) {
-		return true;
-	}
-
-	// Fallback: don't add blank lines by default
-	return false;
+	// Default behavior: preserve blank line if one or more existed originally
+	return originalBlankLines > 0;
 }
 
 function printObjectPattern(node, path, options, print) {
