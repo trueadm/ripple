@@ -6,7 +6,9 @@ module.exports = defineConfig({
 		legalComments: 'inline',
 		minify: true,
 	},
+	format: 'cjs',
 	platform: 'node',
 	target: 'node20',
-	external: ['vscode', 'typescript'],
+	external: ['vscode', 'typescript', 'ripple'],
+	noExternal: /.+/,
 });
