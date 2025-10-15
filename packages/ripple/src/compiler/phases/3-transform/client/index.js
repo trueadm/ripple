@@ -524,6 +524,52 @@ const visitors = {
 		return visit_function(node, context);
 	},
 
+	JSXText(node, context) {
+		return b.literal(node.value + '');
+	},
+
+	JSXIdentifier(node, context) {
+		return b.id(node.name);
+	},
+
+	JSXElement(node, context) {
+		const name = node.openingElement.name;
+		const attributes = node.openingElement.attributes;
+		const normalized_children = node.children.filter((child) => {
+			return child.type !== 'JSXText' || child.value.trim() !== '';
+		});
+
+		const props = b.object(
+			attributes.map((attr) => {
+				if (attr.type === 'JSXAttribute') {
+					return b.prop('init', context.visit(attr.name), context.visit(attr.value));
+				} else if (attr.type === 'JSXSpreadAttribute') {
+					return b.spread(context.visit(attr.argument));
+				}
+			}),
+		);
+
+		if (normalize_children.length > 0) {
+			props.properties.push(
+				b.prop(
+					'init',
+					b.id('children'),
+					normalized_children.length === 1
+						? context.visit(normalized_children[0])
+						: b.array(normalized_children.map((child) => context.visit(child))),
+				),
+			);
+		}
+
+		return b.call(
+			'_$_jsx',
+			name.type === 'JSXIdentifier' && name.name[0].toLowerCase() === name.name[0]
+				? b.literal(name.name)
+				: context.visit(name),
+			props,
+		);
+	},
+
 	TsxCompat(node, context) {
 		const { state, visit } = context;
 
@@ -538,16 +584,16 @@ const visitors = {
 			[b.id('__compat')],
 			needs_fragment
 				? b.call(
-					'__compat._jsx',
-					b.id('__compat.Fragment'),
-					b.object([
-						b.prop(
-							'init',
-							b.id('children'),
-							b.array(normalized_children.map((child) => visit(child, state))),
-						),
-					]),
-				)
+						'__compat._jsxs',
+						b.id('__compat.Fragment'),
+						b.object([
+							b.prop(
+								'init',
+								b.id('children'),
+								b.array(normalized_children.map((child) => visit(child, state))),
+							),
+						]),
+					)
 				: visit(normalized_children[0], state),
 		);
 
@@ -583,9 +629,10 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${is_boolean_attribute(name) && value === true
-					? ''
-					: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${
+					is_boolean_attribute(name) && value === true
+						? ''
+						: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -1079,10 +1126,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */(context.visit(left)),
-							/** @type {Expression} */(context.visit(right)),
-					),
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */ (context.visit(left)),
+							/** @type {Expression} */ (context.visit(right)),
+						),
 				b.id('__block'),
 			);
 		}
@@ -1098,12 +1145,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */(
-							context.visit(left, { ...context.state, metadata: { tracking: false } })
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */ (
+								context.visit(left, { ...context.state, metadata: { tracking: false } })
+							),
+							/** @type {Expression} */ (context.visit(right)),
 						),
-							/** @type {Expression} */(context.visit(right)),
-					),
 				b.id('__block'),
 			);
 		}
@@ -1310,12 +1357,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-										b.call(
-											b.id('__render'),
-											b.id(alternate_id),
-											node.alternate ? b.literal(false) : undefined,
-										),
-									)
+											b.call(
+												b.id('__render'),
+												b.id(alternate_id),
+												node.alternate ? b.literal(false) : undefined,
+											),
+										)
 									: undefined,
 							),
 						]),
@@ -1392,9 +1439,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-							b.block(transform_body(node.handler.body.body, context)),
-						),
+								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+								b.block(transform_body(node.handler.body.body, context)),
+							),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1520,7 +1567,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
 	}
 
 	quasi.tail = true;
@@ -2005,7 +2052,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 	};
 
 	const program = /** @type {Program} */ (
-		walk(/** @type {Node} */(analysis.ast), { ...state, namespace: 'html' }, visitors)
+		walk(/** @type {Node} */ (analysis.ast), { ...state, namespace: 'html' }, visitors)
 	);
 
 	for (const hoisted of state.hoisted) {
