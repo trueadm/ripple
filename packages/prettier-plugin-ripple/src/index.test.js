@@ -825,6 +825,19 @@ import { Portal as RipplePortal } from 'ripple';`
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should preserve blank lines between export statements and import statements or comments', async () => {
+			const expected = `export { handler } from './test.ripple';
+
+import { Portal as RipplePortal } from 'ripple';
+
+// export { something } from './test.ripple;
+
+import { GetRootNode } from './somewhere';`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {

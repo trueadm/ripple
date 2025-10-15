@@ -163,6 +163,10 @@ function printRippleNode(node, path, options, print, args) {
 
 	const isInlineContext = args && args.isInlineContext;
 
+	// Check if this node is a direct child of Program (top-level)
+	const parentNode = path.getParentNode();
+	const isTopLevel = parentNode && parentNode.type === 'Program';
+
 	// Handle leading comments
 	if (node.leadingComments) {
 		for (let i = 0; i < node.leadingComments.length; i++) {
@@ -181,11 +185,18 @@ function printRippleNode(node, path, options, print, args) {
 						parts.push(hardline);
 					}
 				} else if (isLastComment) {
-					// Preserve a blank line between the last comment and the node when it existed in source,
-					// unless the comment was already visually separated from previous code by a blank line.
+					// Preserve a blank line between the last comment and the node when it existed in source
 					const blankLinesBetween = getWhitespaceLinesBetween(comment, node);
-					if (blankLinesBetween > 0 && !hasBlankLineBeforeComment(comment, options)) {
-						parts.push(hardline);
+					if (blankLinesBetween > 0) {
+						const hadBlankLineBefore = hasBlankLineBeforeComment(comment, options);
+						// At top level with import/export declarations, preserve blank lines for organizational clarity
+						// Otherwise, only add if there wasn't already a blank line before the comment
+						const isImportOrExport = node.type === 'ImportDeclaration' ||
+							node.type === 'ExportNamedDeclaration' ||
+							node.type === 'ExportDefaultDeclaration';
+						if ((isTopLevel && isImportOrExport) || !hadBlankLineBefore) {
+							parts.push(hardline);
+						}
 					}
 				}
 			} else if (comment.type === 'Block') {
@@ -200,11 +211,18 @@ function printRippleNode(node, path, options, print, args) {
 							parts.push(hardline);
 						}
 					} else if (isLastComment) {
-						// Preserve a blank line between the last comment and the node when it existed in source,
-						// unless the comment was already visually separated from previous code by a blank line.
+						// Preserve a blank line between the last comment and the node when it existed in source
 						const blankLinesBetween = getWhitespaceLinesBetween(comment, node);
-						if (blankLinesBetween > 0 && !hasBlankLineBeforeComment(comment, options)) {
-							parts.push(hardline);
+						if (blankLinesBetween > 0) {
+							const hadBlankLineBefore = hasBlankLineBeforeComment(comment, options);
+							// At top level with import/export declarations, preserve blank lines for organizational clarity
+							// Otherwise, only add if there wasn't already a blank line before the comment
+							const isImportOrExport = node.type === 'ImportDeclaration' ||
+								node.type === 'ExportNamedDeclaration' ||
+								node.type === 'ExportDefaultDeclaration';
+							if ((isTopLevel && isImportOrExport) || !hadBlankLineBefore) {
+								parts.push(hardline);
+							}
 						}
 					}
 				} else {
@@ -2219,15 +2237,22 @@ function isTSDeclarationOrExportedTS(node) {
 }
 
 function shouldAddBlankLine(currentNode, nextNode) {
-	// If nextNode has leading comments, check whitespace between current node and first comment
-	// Otherwise check whitespace between current node and next node
+	// Determine the source node for whitespace checking
+	// If currentNode has trailing comments, use the last one
+	let sourceNode = currentNode;
+	if (currentNode.trailingComments && currentNode.trailingComments.length > 0) {
+		sourceNode = currentNode.trailingComments[currentNode.trailingComments.length - 1];
+	}
+
+	// If nextNode has leading comments, check whitespace between source node and first comment
+	// Otherwise check whitespace between source node and next node
 	let targetNode = nextNode;
 	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
 		targetNode = nextNode.leadingComments[0];
 	}
 
 	// Check if there was original whitespace between the nodes
-	const originalBlankLines = getWhitespaceLinesBetween(currentNode, targetNode);
+	const originalBlankLines = getWhitespaceLinesBetween(sourceNode, targetNode);
 
 	// If nextNode has leading comments, only add blank line if there was one originally
 	if (nextNode.leadingComments && nextNode.leadingComments.length > 0) {
@@ -2304,6 +2329,15 @@ function shouldAddBlankLine(currentNode, nextNode) {
 
 	// Add blank line after import declarations when followed by code (not just other imports)
 	if (currentNode.type === 'ImportDeclaration' && nextNode.type !== 'ImportDeclaration') {
+		return true;
+	}
+
+	// Preserve blank lines between export statements and import statements if originally present
+	if (
+		(currentNode.type === 'ExportNamedDeclaration' || currentNode.type === 'ExportDefaultDeclaration') &&
+		nextNode.type === 'ImportDeclaration' &&
+		originalBlankLines > 0
+	) {
 		return true;
 	}
 
