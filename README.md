@@ -39,31 +39,33 @@ TypeScript and JSX, but with a few interesting touches. In my experience, this h
 
 - **SSR**: Ripple is currently an SPA only. It will have SSR soon! Hydration to follow after.
 
-## Getting Started
+## 🚀 Try Ripple Now
+You can explore Ripple in several ways:
 
-### Try Ripple
+### 🧩 Online Playground  
+Jump into our [**Playground**](https://www.ripplejs.com/playground) to explore interactive examples and real-world use cases.
 
-> We're working hard on getting an online playground available. Watch this space!
-
-You can try Ripple now by using our basic Vite template either via [StackBlitz](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic), or by running these commands in your terminal:
+### ⚡ Quick Start with Vite Template  
+Spin up a Ripple project instantly using our basic Vite template on [**StackBlitz**](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic),  
+or run the following commands in your terminal:
+> Note: Syntax highlighting will be added soon – once StackBlitz integration is finalized.
 
 ```bash
 npx degit trueadm/ripple/templates/basic my-app
 cd my-app
-npm i # or yarn or pnpm
-npm run dev # or yarn or pnpm
+npm install   # or yarn / pnpm
+npm run dev   # or yarn dev / pnpm dev
 ```
 
-or use create-ripple interactive CLI tool for creating new Ripple applications with features like Tailwind CSS or Bootstrap setup.
-
-```
-npx create-ripple  # or yarn create ripple or pnpm create ripple
-```
-
-If you want to install the RippleJS package directly, it is `ripple` on npm:
-
+### 🛠️ Use the Create Ripple CLI
+For more options (like Tailwind CSS or Bootstrap setup), use the interactive CLI:
 ```bash
-npm i --save ripple # or yarn or pnpm
+npx create-ripple    # or yarn create ripple / pnpm create ripple
+```
+### 📦 Install Ripple Directly
+To use Ripple in an existing project, install it from npm:
+```bash
+npm install ripple    # or yarn add ripple / pnpm add ripple
 ```
 
 ## VSCode Extension
