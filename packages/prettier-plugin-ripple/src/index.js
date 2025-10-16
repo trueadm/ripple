@@ -2577,16 +2577,20 @@ function printObjectPattern(node, path, options, print) {
 				line,
 				'}',
 			]);
-		const typeDoc = typeMembers.length === 0
-			? '{}'
-			: concat([
-				'{',
-				indent(concat([line, typeMemberDocs, ifBreak(';', '')])),
-				line,
-				'}',
-			]);			// Return combined
+			const typeDoc = typeMembers.length === 0
+				? '{}'
+				: concat([
+					'{',
+					indent(concat([line, typeMemberDocs, ifBreak(';', '')])),
+					line,
+					'}',
+				]);
+
+				// Return combined
 			return concat([objectDoc, ': ', typeDoc]);
-		}		// For other type annotations, just concatenate
+		}
+
+		// For other type annotations, just concatenate
 		const objectContent = group(
 			concat([
 				'{',
