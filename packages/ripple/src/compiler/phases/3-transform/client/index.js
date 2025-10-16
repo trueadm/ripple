@@ -556,6 +556,10 @@ const visitors = {
 		return b.id(node.name);
 	},
 
+	JSXExpressionContainer(node, context) {
+		return context.visit(node.expression);
+	},
+
 	JSXElement(node, context) {
 		const name = node.openingElement.name;
 		const attributes = node.openingElement.attributes;
