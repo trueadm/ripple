@@ -26,7 +26,7 @@
     "build": "tsdown",
     "dist": "perl -pi -e 's/\"main\": \"src\\/extension.js\"/\"main\": \"dist\\/extension.js\"/' package.json",
     "src": "perl -pi -e 's/\"main\": \"dist\\/extension.js\"/\"main\": \"src\\/extension.js\"/' package.json",
-    "package": "pnpm dist && pnpm copy-ts && pnpm copy-ripple && vsce package --no-dependencies --out=ripple-vscode-plugin.vsix || true; pnpm src",
+    "package": "pnpm dist && pnpm copy-ts && pnpm copy-ripple && vsce package --no-dependencies --out=ripple-vscode-plugin.vsix && pnpm src || pnpm src",
     "install-package": "code --install-extension ripple-vscode-plugin.vsix",
     "build-and-package": "pnpm build && pnpm package",
     "build-package-and-install": "pnpm build && pnpm package && pnpm install-package",
