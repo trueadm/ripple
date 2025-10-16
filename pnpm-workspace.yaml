@@ -23,7 +23,6 @@ catalogs:
     commander: ^12.1.0
     degit: ^2.8.4
     devalue: ^5.3.2
-    esbuild: ^0.25.10
     eslint: ^9.0.0
     esm-env: ^1.2.2
     esrap: ^2.1.0
