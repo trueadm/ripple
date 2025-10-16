@@ -1062,6 +1062,44 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should handle default arguments correctly in functions', async () => {
+		const input = `function expand({ name, startingLength = 10 }: { name: string; startingLength?: number }) {
+  return null;
+}`;
+
+		const expected = `function expand({
+  name,
+  startingLength = 10,
+}: {
+  name: string;
+  startingLength?: number;
+}) {
+  return null;
+}`;
+
+		const result = await format(input, { singleQuote: true, printWidth: 80 });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should handle default arguments correctly in arrow functions', async () => {
+		const input = `const expand = ({ name, startingLength = 10 }: { name: string; startingLength?: number }) => {
+  return null;
+};`;
+
+		const expected = `const expand = ({
+  name,
+  startingLength = 10,
+}: {
+  name: string;
+  startingLength?: number;
+}) => {
+  return null;
+};`;
+
+		const result = await format(input, { singleQuote: true, printWidth: 80 });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should handle array and object patterns correctly', async () => {
 		const input = `for (const [i = 0, item] of items.entries()) {}
 for (const {i = 0, item} of items.entries()) {}`;

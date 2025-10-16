@@ -1381,23 +1381,24 @@ function printComponent(node, path, options, print) {
 	// Always add parentheses, even if no parameters
 	if (node.params && node.params.length > 0) {
 		const paramDocs = path.map(print, 'params');
-		const singleParam = node.params.length === 1;
-		const firstParamNode = node.params[0];
-		const isDestructuredParam = firstParamNode && firstParamNode.type === 'ObjectPattern';
+		const lastParam = node.params[node.params.length - 1];
+		// Don't add trailing comma if the last param has a type annotation, since the
+		// type annotation is part of the parameter formatting but isn't a separate param
+		const hasTypeAnnotation = lastParam && lastParam.typeAnnotation;
+		const shouldAddTrailingComma =
+			options.trailingComma === 'all' &&
+			lastParam &&
+			lastParam.type !== 'RestElement' &&
+			!hasTypeAnnotation;
+		const trailingCommaDoc = shouldAddTrailingComma ? ifBreak(',', '') : '';
 
-		if (singleParam && isDestructuredParam) {
-			signatureParts.push(group(concat(['(', paramDocs[0], ')'])));
-		} else {
-			const joinedParams = join(concat([',', line]), paramDocs);
-			const lastParam = node.params[node.params.length - 1];
-			const shouldAddTrailingComma =
-				options.trailingComma === 'all' && lastParam && lastParam.type !== 'RestElement';
-			const trailingCommaDoc = shouldAddTrailingComma ? ifBreak(',', '') : '';
-			const paramsDoc = group(
-				concat(['(', indent(concat([softline, joinedParams, trailingCommaDoc])), softline, ')']),
-			);
-			signatureParts.push(paramsDoc);
-		}
+		// Build params doc - keep "(" with params, ")" right after last param
+		// Params themselves handle trailing commas, so don't add one here
+		const paramsPart = join(concat([',', line]), paramDocs);
+
+		signatureParts.push(
+			group(['(', paramsPart, ')'])
+		);
 	} else {
 		signatureParts.push('()');
 	}
@@ -1451,7 +1452,7 @@ function printComponent(node, path, options, print) {
 	}
 
 	// Use Prettier's standard block statement pattern
-	const parts = [concat(signatureParts)];
+	const parts = [concat(signatureParts), ' {'];
 
 	if (statements.length > 0 || scriptContent) {
 		// Build all content that goes inside the component body
@@ -1483,9 +1484,11 @@ function printComponent(node, path, options, print) {
 		// Apply component-level indentation
 		const indentedContent = joinedContent ? indent([hardline, joinedContent]) : indent([hardline]);
 
-		parts.push(group([' {', indentedContent, hardline, '}']));
+		// Add the body and closing brace
+		parts.push(indentedContent, hardline, '}');
 	} else {
-		parts.push(' {}');
+		// Empty component body
+		parts[1] = ' {}';
 	}
 
 	return concat(parts);
@@ -1575,17 +1578,17 @@ function printFunctionExpression(node, path, options, print) {
 		parts.push(indent([hardline, concat(paramParts)]));
 		parts.push(hardline);
 		parts.push(')');
+	} else if (node.params && node.params.length > 0) {
+		// Use group/line/indent for intelligent breaking like components
+		const paramDocs = path.map(print, 'params');
+		const paramsPart = join(concat([',', line]), paramDocs);
+
+		parts.push(
+			group(['(', paramsPart, ')'])
+		);
 	} else {
-		// Single-line params
-		parts.push('(');
-		if (node.params && node.params.length > 0) {
-			const paramList = path.map(print, 'params');
-			for (let i = 0; i < paramList.length; i++) {
-				if (i > 0) parts.push(', ');
-				parts.push(paramList[i]);
-			}
-		}
-		parts.push(')');
+		// Empty params
+		parts.push('()');
 	}
 
 	// Handle return type annotation
@@ -1600,17 +1603,9 @@ function printFunctionExpression(node, path, options, print) {
 }
 
 function printArrowFunction(node, path, options, print) {
-	// Build params array properly
-	const paramParts = [];
-	const paramList = path.map(print, 'params');
-	for (let i = 0; i < paramList.length; i++) {
-		if (i > 0) paramParts.push(', ');
-		paramParts.push(paramList[i]);
-	}
-
-	// Return array of parts
 	const parts = [];
 
+	// Handle single param without parens (when arrowParens !== 'always')
 	if (
 		options.arrowParens !== 'always' &&
 		node.params.length === 1 &&
@@ -1618,11 +1613,18 @@ function printArrowFunction(node, path, options, print) {
 		!node.params[0].typeAnnotation &&
 		!node.returnType
 	) {
-		parts.push(...paramParts);
+		parts.push(path.call(print, 'params', 0));
+	} else if (node.params && node.params.length > 0) {
+		// Use group/line/indent for intelligent breaking like components and functions
+		const paramDocs = path.map(print, 'params');
+		const paramsPart = join(concat([',', line]), paramDocs);
+
+		parts.push(
+			group(['(', paramsPart, ')'])
+		);
 	} else {
-		parts.push('(');
-		parts.push(...paramParts);
-		parts.push(')');
+		// Empty params
+		parts.push('()');
 	}
 
 	// Handle return type annotation
@@ -1714,17 +1716,17 @@ function printFunctionDeclaration(node, path, options, print) {
 		parts.push(indent([hardline, concat(paramParts)]));
 		parts.push(hardline);
 		parts.push(')');
+	} else if (node.params && node.params.length > 0) {
+		// Use group/line/indent for intelligent breaking like components
+		const paramDocs = path.map(print, 'params');
+		const paramsPart = join(concat([',', line]), paramDocs);
+
+		parts.push(
+			group(['(', paramsPart, ')'])
+		);
 	} else {
-		// Single-line params
-		parts.push('(');
-		if (node.params && node.params.length > 0) {
-			const paramList = path.map(print, 'params');
-			for (let i = 0; i < paramList.length; i++) {
-				if (i > 0) parts.push(', ');
-				parts.push(paramList[i]);
-			}
-		}
-		parts.push(')');
+		// Empty params
+		parts.push('()');
 	}
 
 	// Handle return type annotation
@@ -2553,64 +2555,93 @@ function shouldAddBlankLine(currentNode, nextNode) {
 }
 
 function printObjectPattern(node, path, options, print) {
-	const printedTypeAnnotation = node.typeAnnotation ? path.call(print, 'typeAnnotation') : null;
 	const propList = path.map(print, 'properties');
 	if (propList.length === 0) {
-		if (!printedTypeAnnotation) {
-			return '{}';
+		if (node.typeAnnotation) {
+			return concat(['{}', ': ', path.call(print, 'typeAnnotation')]);
 		}
-		return group(concat(['{}', ifBreak(line, ' '), ': ', printedTypeAnnotation]));
+		return '{}';
 	}
+
 	const allowTrailingComma =
 		node.properties &&
 		node.properties.length > 0 &&
 		node.properties[node.properties.length - 1].type !== 'RestElement';
 
-	const objectContent = concat([
-		'{',
-		indent(
-			concat([
-				line,
-				join(concat([',', line]), propList),
-				allowTrailingComma && options.trailingComma !== 'none' ? ifBreak(',', '') : '',
-			]),
-		),
-		line,
-		'}',
-	]);
+	const trailingCommaDoc = allowTrailingComma && options.trailingComma !== 'none' ? ifBreak(',', '') : '';
 
-	if (!printedTypeAnnotation) {
-		return group(objectContent);
-	}
+	// When the pattern has a type annotation, we need to format them together
+	// so they break at the same time
+	if (node.typeAnnotation) {
+		const typeAnn = node.typeAnnotation.typeAnnotation;
 
-	// Create inline and multiline variants using conditionalGroup
-	const inlineVariant = group(concat([objectContent, ': ', printedTypeAnnotation]));
-
-	// For broken variant, format the type annotation in multiline style
-	// Extract and reformat TSTypeLiteral members if that's what we have
-	let brokenTypeAnnotation = printedTypeAnnotation;
-	if (
-		node.typeAnnotation &&
-		node.typeAnnotation.typeAnnotation &&
-		node.typeAnnotation.typeAnnotation.type === 'TSTypeLiteral'
-	) {
-		const typeLiteral = node.typeAnnotation.typeAnnotation;
-		if (typeLiteral.members && typeLiteral.members.length > 0) {
-			const memberDocs = path.call(
+		// If it's a TSTypeLiteral, format both object and type
+		if (typeAnn && typeAnn.type === 'TSTypeLiteral') {
+			const typeMembers = path.call(
 				(path) => path.map(print, 'members'),
 				'typeAnnotation',
 				'typeAnnotation',
 			);
-			const multilineMembers = memberDocs.map((member) => concat([member, ';']));
-			brokenTypeAnnotation = group(
-				concat(['{', indent(concat([hardline, join(hardline, multilineMembers)])), hardline, '}']),
-			);
+
+			// Use softline for proper spacing - will become space when inline, line when breaking
+			// Format type members with semicolons between AND after the last member
+			const typeMemberDocs = join(concat([';', line]), typeMembers);
+
+			// Don't wrap in group - let the outer params group control breaking
+			const objectDoc = concat([
+				'{',
+				indent(concat([line, join(concat([',', line]), propList), trailingCommaDoc])),
+				line,
+				'}',
+			]);
+			const typeDoc = typeMembers.length === 0
+				? '{}'
+				: concat([
+					'{',
+					indent(concat([line, typeMemberDocs, ifBreak(';', '')])),
+					line,
+					'}',
+				]);
+
+				// Return combined
+			return concat([objectDoc, ': ', typeDoc]);
 		}
+
+		// For other type annotations, just concatenate
+		const objectContent = group(
+			concat([
+				'{',
+				indent(
+					concat([
+						line,
+						join(concat([',', line]), propList),
+						trailingCommaDoc,
+					]),
+				),
+				line,
+				'}',
+			]),
+		);
+		return concat([objectContent, ': ', path.call(print, 'typeAnnotation')]);
 	}
 
-	const brokenVariant = group(concat([objectContent, ': ', brokenTypeAnnotation]));
+	// No type annotation - just format the object pattern
+	const objectContent = group(
+		concat([
+			'{',
+			indent(
+				concat([
+					line,
+					join(concat([',', line]), propList),
+					trailingCommaDoc,
+				]),
+			),
+			line,
+			'}',
+		]),
+	);
 
-	return conditionalGroup([inlineVariant, brokenVariant]);
+	return objectContent;
 }
 
 function printArrayPattern(node, path, options, print) {
