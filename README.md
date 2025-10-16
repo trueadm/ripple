@@ -48,6 +48,7 @@ Jump into our [**Playground**](https://www.ripplejs.com/playground) to explore i
 ### ⚡ Quick Start with Vite Template  
 Spin up a Ripple project instantly using our basic Vite template on [**StackBlitz**](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic),  
 or run the following commands in your terminal:
+> Note: Syntax highlighting will be added soon – once StackBlitz integration is finalized.
 
 ```bash
 npx degit trueadm/ripple/templates/basic my-app
