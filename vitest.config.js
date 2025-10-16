@@ -9,6 +9,7 @@ export default defineConfig({
 			{
 				name: 'ripple-client',
 				test: {
+					name: "ripple-client",
 					include: ['packages/ripple/tests/client/**/*.test.ripple'],
 					environment: 'jsdom',
 					setupFiles: ['packages/ripple/tests/setup-client.js'],
@@ -20,6 +21,7 @@ export default defineConfig({
 			{
 				name: 'ripple-server',
 				test: {
+					name: "ripple-server",
 					include: ['packages/ripple/tests/server/**/*.test.ripple'],
 					environment: 'node',
 				},
@@ -29,6 +31,7 @@ export default defineConfig({
 			{
 				name: 'prettier-plugin',
 				test: {
+					name: "prettier-plugin",
 					include: ['packages/prettier-plugin-ripple/src/*.test.js'],
 					environment: 'jsdom',
 				},
@@ -37,6 +40,7 @@ export default defineConfig({
 			{
 				name: 'eslint-plugin',
 				test: {
+					name: "eslint-plugin",
 					include: ['packages/eslint-plugin-ripple/tests/**/*.test.ts'],
 					environment: 'jsdom',
 					globals: true,
@@ -46,6 +50,7 @@ export default defineConfig({
 			{
 				name: 'eslint-parser',
 				test: {
+					name: 'eslint-parser',
 					include: ['packages/eslint-parser-ripple/tests/**/*.test.ts'],
 					environment: 'jsdom',
 					globals: true,
@@ -55,6 +60,7 @@ export default defineConfig({
 			{
 				name: 'create-ripple',
 				test: {
+					name: 'create-ripple',
 					include: ['packages/create-ripple/tests/**/*.test.js'],
 					environment: 'jsdom',
 				},
@@ -63,6 +69,7 @@ export default defineConfig({
 			{
 				name: 'ripple-utils',
 				test: {
+					name: 'ripple-utils',
 					include: ['packages/ripple/tests/utils/**/*.test.js'],
 					environment: 'node',
 					globals: true,

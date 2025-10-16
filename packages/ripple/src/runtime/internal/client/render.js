@@ -17,6 +17,7 @@ import {
 import { get } from './runtime.js';
 import { clsx } from 'clsx';
 import { normalize_css_property_name } from '../../../utils/normalize_css_property_name.js';
+import { normalize_css_property_value } from '../../../utils/normalize_css_property_value.js';
 
 /**
  * @param {Text} text
@@ -105,7 +106,7 @@ export function apply_styles(element, newStyles) {
 
 	for (const [property, value] of Object.entries(newStyles)) {
 		const normalized_property = normalize_css_property_name(property);
-		const normalized_value = String(value);
+		const normalized_value = normalize_css_property_value(normalized_property, value);
 
 		if (style.getPropertyValue(normalized_property) !== normalized_value) {
 			style.setProperty(normalized_property, normalized_value);
