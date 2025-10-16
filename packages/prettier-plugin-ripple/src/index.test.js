@@ -997,6 +997,21 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should keep comments inside function with one statement at the top', async () => {
+		const expected = `component App() {
+  const something = 5;
+  // comment
+}
+
+function test() {
+  const something = 5;
+  // comment
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should correctly handle for loops with variable declarations', async () => {
 		const input = `for (let i = 0, len = array.length; i < len; i++) {
   console.log(i);

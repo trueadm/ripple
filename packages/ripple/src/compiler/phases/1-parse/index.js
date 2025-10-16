@@ -1755,37 +1755,47 @@ function get_comment_handlers(source, comments, index = 0) {
 						(node.leadingComments ||= []).push(comment);
 					}
 
-					next();
+			next();
 
-					if (comments[0]) {
-						if (node.type === 'BlockStatement' && node.body.length === 0) {
-							if (comments[0].start < node.end && comments[0].end < node.end) {
-								comment = /** @type {CommentWithLocation} */ (comments.shift());
-								(node.innerComments ||= []).push(comment);
-								return;
-							}
-						}
-						// Handle empty Element nodes the same way as empty BlockStatements
-						if (node.type === 'Element' && (!node.children || node.children.length === 0)) {
-							if (comments[0].start < node.end && comments[0].end < node.end) {
-								comment = /** @type {CommentWithLocation} */ (comments.shift());
-								(node.innerComments ||= []).push(comment);
-								return;
-							}
-						}
-						const parent = /** @type {any} */ (path.at(-1));
-
-						if (parent === undefined || node.end !== parent.end) {
+			if (comments[0]) {
+				if (node.type === 'BlockStatement' && node.body.length === 0) {
+					// Collect all comments that fall within this empty block
+					while (comments[0] && comments[0].start < node.end && comments[0].end < node.end) {
+						comment = /** @type {CommentWithLocation} */ (comments.shift());
+						(node.innerComments ||= []).push(comment);
+					}
+					if (node.innerComments && node.innerComments.length > 0) {
+						return;
+					}
+				}
+				// Handle empty Element nodes the same way as empty BlockStatements
+				if (node.type === 'Element' && (!node.children || node.children.length === 0)) {
+					if (comments[0].start < node.end && comments[0].end < node.end) {
+						comment = /** @type {CommentWithLocation} */ (comments.shift());
+						(node.innerComments ||= []).push(comment);
+						return;
+					}
+				}
+				const parent = /** @type {any} */ (path.at(-1));						if (parent === undefined || node.end !== parent.end) {
 							const slice = source.slice(node.end, comments[0].start);
-							const is_last_in_body =
-								((parent?.type === 'BlockStatement' || parent?.type === 'Program') &&
-									parent.body.indexOf(node) === parent.body.length - 1) ||
-								(parent?.type === 'ArrayExpression' &&
-									parent.elements.indexOf(node) === parent.elements.length - 1) ||
-								(parent?.type === 'ObjectExpression' &&
-									parent.properties.indexOf(node) === parent.properties.length - 1);
 
-							if (is_last_in_body) {
+							// Check if this node is the last item in an array-like structure
+							let is_last_in_array = false;
+							let array_prop = null;
+
+							if (parent?.type === 'BlockStatement' || parent?.type === 'Program' || parent?.type === 'Component') {
+								array_prop = 'body';
+							} else if (parent?.type === 'ArrayExpression') {
+								array_prop = 'elements';
+							} else if (parent?.type === 'ObjectExpression') {
+								array_prop = 'properties';
+							}
+
+							if (array_prop && Array.isArray(parent[array_prop])) {
+								is_last_in_array = parent[array_prop].indexOf(node) === parent[array_prop].length - 1;
+							}
+
+							if (is_last_in_array) {
 								// Special case: There can be multiple trailing comments after the last node in a block,
 								// and they can be separated by newlines
 								let end = node.end;
