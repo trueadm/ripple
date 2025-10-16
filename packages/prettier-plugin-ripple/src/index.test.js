@@ -945,6 +945,45 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should correctly handle comments according to Ripple\'s syntax', async () => {
+		const input = `// input
+<section>
+  // TODO
+  {'Hello'}
+</section>
+
+// input
+<section>
+  // TODO
+</section>
+
+// input
+<section>
+      // TODO
+  <span>{'Hello'}</span>
+</section>`;
+
+		const expected = `// input
+<section>
+  // TODO
+  {'Hello'}
+</section>
+
+// input
+<section>
+  // TODO
+</section>
+
+// input
+<section>
+  // TODO
+  <span>{'Hello'}</span>
+</section>`;
+
+		const result = await format(input, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should correctly handle for loops with variable declarations', async () => {
 		const input = `for (let i = 0, len = array.length; i < len; i++) {
   console.log(i);

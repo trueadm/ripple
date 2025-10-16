@@ -1692,6 +1692,14 @@ function get_comment_handlers(source, comments, index = 0) {
 								return;
 							}
 						}
+						// Handle empty Element nodes the same way as empty BlockStatements
+						if (node.type === 'Element' && (!node.children || node.children.length === 0)) {
+							if (comments[0].start < node.end && comments[0].end < node.end) {
+								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								(node.innerComments ||= []).push(comment);
+								return;
+							}
+						}
 						const parent = /** @type {any} */ (path.at(-1));
 
 						if (parent === undefined || node.end !== parent.end) {

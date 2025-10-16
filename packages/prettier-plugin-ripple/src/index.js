@@ -137,8 +137,12 @@ function printRippleNode(node, path, options, print, args) {
 	const parentNode = path.getParentNode();
 	const isTopLevel = parentNode && parentNode.type === 'Program';
 
+	// For Text and Html nodes, don't add leading comments here - they should be handled
+	// as separate children within the element, not as part of the expression
+	const shouldSkipLeadingComments = node.type === 'Text' || node.type === 'Html';
+
 	// Handle leading comments
-	if (node.leadingComments) {
+	if (node.leadingComments && !shouldSkipLeadingComments) {
 		for (let i = 0; i < node.leadingComments.length; i++) {
 			const comment = node.leadingComments[i];
 			const nextComment = node.leadingComments[i + 1];
@@ -1148,21 +1152,23 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printCSSIdSelector(node, path, options, print);
 			break;
 
-	case 'ClassSelector':
-		nodeContent = printCSSClassSelector(node, path, options, print);
-		break;
+		case 'ClassSelector':
+			nodeContent = printCSSClassSelector(node, path, options, print);
+			break;
 
-	case 'NestingSelector':
-		nodeContent = printCSSNestingSelector(node, path, options, print);
-		break;
+		case 'NestingSelector':
+			nodeContent = printCSSNestingSelector(node, path, options, print);
+			break;
 
-	case 'Block':
-		nodeContent = printCSSBlock(node, path, options, print);
-		break;
+		case 'Block':
+			nodeContent = printCSSBlock(node, path, options, print);
+			break;
 
-	case 'Attribute':
-		nodeContent = printAttribute(node, path, options, print);
-		break;		case 'Text': {
+		case 'Attribute':
+			nodeContent = printAttribute(node, path, options, print);
+			break;
+
+		case 'Text': {
 			const parts = ['{', path.call(print, 'expression'), '}'];
 			nodeContent = concat(parts);
 			break;
@@ -3025,84 +3031,287 @@ function shouldInlineSingleChild(parentNode, firstChild, childDoc) {
 	return false;
 }
 
-function printElement(node, path, options, print) {
-	const tagName = (node.id.tracked ? '@' : '') + node.id.name;
+function extractElementLevelComments(node) {
+	const elementStartLine = node?.loc?.start?.line;
+	if (typeof elementStartLine !== 'number') {
+		return { comments: [], restore: () => {} };
+	}
 
-	// Check if any children have leading comments that are actually at the element's level
-	// (i.e., comments that appear before the element in the source code)
-	const elementLevelCommentParts = [];
-	let originalLeadingComments = null;
+	const collectedComments = [];
+	const originalCommentArrays = [];
 
-	if (node.children && node.children.length > 0 && node.children[0].leadingComments) {
-		const firstChild = node.children[0];
-		if (firstChild.leadingComments) {
-			const elementLevelComments = [];
-			for (let i = 0; i < firstChild.leadingComments.length; i++) {
-				const comment = firstChild.leadingComments[i];
-				// For elements, all leading comments on the first child that appear before
-				// the element's opening tag should be treated as element-level comments.
-				// This is because comments truly inside an element would be after the opening tag.
-				let isBeforeElement = true; // Default to true for safety
+	const recordOriginal = (owner, key) => {
+		if (!owner) {
+			return;
+		}
+		for (let i = 0; i < originalCommentArrays.length; i++) {
+			const entry = originalCommentArrays[i];
+			if (entry.owner === owner && entry.key === key) {
+				return;
+			}
+		}
+		originalCommentArrays.push({ owner, key, original: owner[key] });
+	};
 
-				// Only set to false if we can confirm the comment is AFTER the element starts
-				if (typeof comment.start === 'number' && typeof node.start === 'number') {
-					isBeforeElement = comment.start < node.start;
-				} else if (comment.loc && node.loc) {
-					isBeforeElement = comment.loc.start.line <= node.loc.start.line;
-				}
+	const maybeLiftFrom = (owner, key) => {
+		if (!owner) {
+			return;
+		}
+		const comments = owner[key];
+		if (!Array.isArray(comments) || comments.length === 0) {
+			return;
+		}
 
-				if (isBeforeElement) {
-					elementLevelComments.push(comment);
+		const keep = [];
+		let lifted = null;
 
-					// Manually format the comment for printing
-					if (comment.type === 'Line') {
-						elementLevelCommentParts.push('//' + comment.value);
-						elementLevelCommentParts.push(hardline);
-					} else if (comment.type === 'Block') {
-						elementLevelCommentParts.push('/*' + comment.value + '*/');
-						elementLevelCommentParts.push(hardline);
-					}
+		for (const comment of comments) {
+			const endLine = typeof comment?.loc?.end?.line === 'number'
+				? comment.loc.end.line
+				: (typeof comment?.loc?.start?.line === 'number' ? comment.loc.start.line : null);
+
+			if (endLine != null && endLine < elementStartLine) {
+				(lifted ?? (lifted = [])).push(comment);
+			} else {
+				keep.push(comment);
+			}
+		}
+
+		if (!lifted) {
+			return;
+		}
+
+		recordOriginal(owner, key);
+
+		if (keep.length > 0) {
+			owner[key] = keep;
+		} else {
+			delete owner[key];
+		}
+
+		collectedComments.push(...lifted);
+	};
+
+	const stack = [];
+
+	if (node.id && typeof node.id === 'object') {
+		maybeLiftFrom(node.id, 'leadingComments');
+	}
+
+	if (Array.isArray(node.children) && node.children.length > 0) {
+		stack.push(node.children[0]);
+	}
+
+	while (stack.length > 0) {
+		const current = stack.pop();
+		if (!current || typeof current !== 'object') {
+			continue;
+		}
+
+		maybeLiftFrom(current, 'leadingComments');
+
+		if (current.expression && typeof current.expression === 'object') {
+			maybeLiftFrom(current.expression, 'leadingComments');
+		}
+
+		if (Array.isArray(current.children) && current.children.length > 0) {
+			stack.push(current.children[0]);
+		}
+	}
+
+	collectedComments.sort((a, b) => {
+		const aLine = a?.loc?.start?.line ?? 0;
+		const bLine = b?.loc?.start?.line ?? 0;
+		if (aLine !== bLine) {
+			return aLine - bLine;
+		}
+		const aColumn = a?.loc?.start?.column ?? 0;
+		const bColumn = b?.loc?.start?.column ?? 0;
+		if (aColumn !== bColumn) {
+			return aColumn - bColumn;
+		}
+		return 0;
+	});
+
+	return {
+		comments: collectedComments,
+		restore() {
+			for (let i = originalCommentArrays.length - 1; i >= 0; i--) {
+				const { owner, key, original } = originalCommentArrays[i];
+				if (original === undefined) {
+					delete owner[key];
+				} else {
+					owner[key] = original;
 				}
 			}
+		},
+	};
+}
 
-			// If we found element-level comments, temporarily remove them from the child
-			if (elementLevelComments.length > 0) {
-				originalLeadingComments = firstChild.leadingComments;
-				firstChild.leadingComments = originalLeadingComments.filter(
-					c => !elementLevelComments.includes(c)
-				);
-				if (firstChild.leadingComments.length === 0) {
-					firstChild.leadingComments = undefined;
-				}
+function createElementLevelCommentParts(comments, node) {
+	if (!comments || comments.length === 0) {
+		return [];
+	}
+
+	const parts = [];
+
+	for (let i = 0; i < comments.length; i++) {
+		const comment = comments[i];
+		const nextComment = comments[i + 1];
+
+		if (comment.type === 'Line') {
+			parts.push('//' + comment.value);
+			parts.push(hardline);
+		} else if (comment.type === 'Block') {
+			parts.push('/*' + comment.value + '*/');
+			parts.push(hardline);
+		}
+
+		if (nextComment) {
+			const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
+			if (blankLinesBetween > 0) {
+				parts.push(hardline);
 			}
 		}
 	}
 
+	return parts;
+}
+
+function printElement(node, path, options, print) {
+	const tagName = (node.id.tracked ? '@' : '') + node.id.name;
+
+	const { comments: liftedElementComments, restore: restoreElementComments } = extractElementLevelComments(node);
+	const elementLevelCommentParts = createElementLevelCommentParts(liftedElementComments, node);
+	const finish = (doc) => {
+		restoreElementComments();
+		return elementLevelCommentParts.length > 0 ? concat([...elementLevelCommentParts, doc]) : doc;
+	};
+
 	if (!node.attributes || node.attributes.length === 0) {
 		if (node.selfClosing || !node.children || node.children.length === 0) {
-			// Restore original comments before returning
-			if (originalLeadingComments && node.children && node.children[0]) {
-				node.children[0].leadingComments = originalLeadingComments;
+			const innerCommentParts = [];
+			if (node.innerComments) {
+				for (const comment of node.innerComments) {
+					if (comment.type === 'Line') {
+						innerCommentParts.push('//' + comment.value);
+						innerCommentParts.push(hardline);
+					} else if (comment.type === 'Block') {
+						innerCommentParts.push('/*' + comment.value + '*/');
+						innerCommentParts.push(hardline);
+					}
+				}
 			}
-			// Prepend element-level comments if any
-			if (elementLevelCommentParts.length > 0) {
-				return concat([...elementLevelCommentParts, group(['<', tagName, ' />'])]);
+
+			if (innerCommentParts.length > 0) {
+				const innerBody = [...innerCommentParts];
+				if (innerBody.length > 0 && innerBody[innerBody.length - 1] === hardline) {
+					innerBody.pop();
+				}
+				const elementParts = [
+					'<',
+					tagName,
+					'>',
+					indent(concat([hardline, ...innerBody])),
+					hardline,
+					'</',
+					tagName,
+					'>',
+				];
+				const elementOutput = group(elementParts);
+				return finish(elementOutput);
 			}
-			return group(['<', tagName, ' />']);
+
+			return finish(group(['<', tagName, ' />']));
 		}
 
 		// No attributes, but has children - use unified children processing
 		// Build children with whitespace preservation
 		const finalChildren = [];
 
+		// Store original leading comments for Text/Html nodes
+		const savedComments = new Map();
+
 		// Iterate over the original AST children to analyze whitespace
 		for (let i = 0; i < node.children.length; i++) {
 			const currentChild = node.children[i];
 			const nextChild = node.children[i + 1]; // Can be undefined for last child
 
-			// Print the current child
+			// For Text and Html nodes with leading comments on the Text node or its expression, output comments separately first
+			const hasLeadingComments = (currentChild.type === 'Text' || currentChild.type === 'Html') &&
+				(currentChild.leadingComments || currentChild.expression?.leadingComments);
+
+			if (hasLeadingComments) {
+				// Save the original comments
+				savedComments.set(currentChild, currentChild.leadingComments);
+				if (currentChild.expression) {
+					savedComments.set(currentChild.expression, currentChild.expression.leadingComments);
+				}
+
+				// Collect comments from both the Text/Html node and its expression
+				const commentsToOutput = [];
+				if (currentChild.leadingComments) {
+					commentsToOutput.push(...currentChild.leadingComments);
+				}
+				if (currentChild.expression?.leadingComments) {
+					commentsToOutput.push(...currentChild.expression.leadingComments);
+				}
+
+				// Output comments as separate children
+				for (let j = 0; j < commentsToOutput.length; j++) {
+					const comment = commentsToOutput[j];
+					const nextComment = commentsToOutput[j + 1];
+					const isLastComment = j === commentsToOutput.length - 1;
+
+					if (comment.type === 'Line') {
+						finalChildren.push('//' + comment.value);
+						finalChildren.push(hardline);
+
+						if (nextComment) {
+							const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
+							if (blankLinesBetween > 0) {
+								finalChildren.push(hardline);
+							}
+						} else if (isLastComment) {
+							const blankLinesBetween = getWhitespaceLinesBetween(comment, currentChild);
+							if (blankLinesBetween > 0) {
+								finalChildren.push(hardline);
+							}
+						}
+					} else if (comment.type === 'Block') {
+						finalChildren.push('/*' + comment.value + '*/');
+						finalChildren.push(hardline);
+
+						if (nextComment) {
+							const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
+							if (blankLinesBetween > 0) {
+								finalChildren.push(hardline);
+							}
+						} else if (isLastComment) {
+							const blankLinesBetween = getWhitespaceLinesBetween(comment, currentChild);
+							if (blankLinesBetween > 0) {
+								finalChildren.push(hardline);
+							}
+						}
+					}
+				}
+
+				// Remove leading comments from both the Text/Html node and its expression
+				currentChild.leadingComments = undefined;
+				if (currentChild.expression) {
+					currentChild.expression.leadingComments = undefined;
+				}
+			}			// Print the current child
 			const printedChild = path.call(print, 'children', i);
 			finalChildren.push(printedChild);
+
+			// Restore the comments
+			if (savedComments.has(currentChild)) {
+				currentChild.leadingComments = savedComments.get(currentChild);
+			}
+			if (currentChild.expression && savedComments.has(currentChild.expression)) {
+				currentChild.expression.leadingComments = savedComments.get(currentChild.expression);
+			}
 
 			// Only add spacing if this is not the last child
 			if (nextChild) {
@@ -3119,11 +3328,6 @@ function printElement(node, path, options, print) {
 					finalChildren.push(hardline);
 				}
 			}
-		}
-
-		// Restore original comments after printing
-		if (originalLeadingComments && node.children && node.children[0]) {
-			node.children[0].leadingComments = originalLeadingComments;
 		}
 
 		// Build the element output
@@ -3175,11 +3379,7 @@ function printElement(node, path, options, print) {
 			]);
 		}
 
-		// Prepend element-level comments if any
-		if (elementLevelCommentParts.length > 0) {
-			return concat([...elementLevelCommentParts, elementOutput]);
-		}
-		return elementOutput;
+		return finish(elementOutput);
 	}
 
 	// Determine the line break type for attributes
@@ -3207,15 +3407,7 @@ function printElement(node, path, options, print) {
 	]);
 
 	if (node.selfClosing || !node.children || node.children.length === 0) {
-		// Restore original comments before returning
-		if (originalLeadingComments && node.children && node.children[0]) {
-			node.children[0].leadingComments = originalLeadingComments;
-		}
-		// Prepend element-level comments if any
-		if (elementLevelCommentParts.length > 0) {
-			return concat([...elementLevelCommentParts, openingTag]);
-		}
-		return openingTag;
+		return finish(openingTag);
 	}
 
 	// Has children - use unified children processing
@@ -3252,11 +3444,6 @@ function printElement(node, path, options, print) {
 				finalChildren.push(hardline);
 			}
 		}
-	}
-
-	// Restore original comments after printing
-	if (originalLeadingComments && node.children && node.children[0]) {
-		node.children[0].leadingComments = originalLeadingComments;
 	}
 
 	const closingTag = concat(['</', tagName, '>']);
@@ -3305,11 +3492,7 @@ function printElement(node, path, options, print) {
 		elementOutput = group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 	}
 
-	// Prepend element-level comments if any
-	if (elementLevelCommentParts.length > 0) {
-		return concat([...elementLevelCommentParts, elementOutput]);
-	}
-	return elementOutput;
+	return finish(elementOutput);
 }
 
 function printAttribute(node, path, options, print) {
