@@ -2,7 +2,7 @@
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
-const { concat, join, line, softline, hardline, group, indent, dedent, ifBreak, fill, conditionalGroup } = doc.builders;
+const { concat, join, line, softline, hardline, group, indent, dedent, ifBreak, fill, conditionalGroup, breakParent, indentIfBreak } = doc.builders;
 
 // Embed function - not needed for now
 export function embed(path, options) {
@@ -92,36 +92,17 @@ function semi(options) {
 	return options.semi !== false ? ';' : '';
 }
 
-function wasOriginallySingleLine(node, options) {
+function wasOriginallySingleLine(node) {
 	if (!node || !node.loc || !node.loc.start || !node.loc.end) {
 		return false;
 	}
 
-	if (node.loc.start.line !== node.loc.end.line) {
-		return false;
-	}
-
-	if (
-		options &&
-		options.originalText &&
-		typeof node.loc.start.index === 'number' &&
-		typeof node.loc.end.index === 'number'
-	) {
-		const snippet = options.originalText.slice(node.loc.start.index, node.loc.end.index);
-		if (/\n/.test(snippet)) {
-			return false;
-		}
-	}
-
-	return true;
+	return node.loc.start.line === node.loc.end.line;
 }
 
-function isSingleLineObjectExpression(node, options) {
-	if (!node || node.type !== 'ObjectExpression') {
-		return false;
-	}
+function isSingleLineObjectExpression(node) {
 
-	return wasOriginallySingleLine(node, options);
+	return wasOriginallySingleLine(node);
 }
 
 function printRippleNode(node, path, options, print, args) {
@@ -132,6 +113,8 @@ function printRippleNode(node, path, options, print, args) {
 	const parts = [];
 
 	const isInlineContext = args && args.isInlineContext;
+	const suppressLeadingComments = args && args.suppressLeadingComments;
+	const suppressExpressionLeadingComments = args && args.suppressExpressionLeadingComments;
 
 	// Check if this node is a direct child of Program (top-level)
 	const parentNode = path.getParentNode();
@@ -142,7 +125,7 @@ function printRippleNode(node, path, options, print, args) {
 	const shouldSkipLeadingComments = node.type === 'Text' || node.type === 'Html';
 
 	// Handle leading comments
-	if (node.leadingComments && !shouldSkipLeadingComments) {
+	if (node.leadingComments && !shouldSkipLeadingComments && !suppressLeadingComments) {
 		for (let i = 0; i < node.leadingComments.length; i++) {
 			const comment = node.leadingComments[i];
 			const nextComment = node.leadingComments[i + 1];
@@ -327,7 +310,7 @@ function printRippleNode(node, path, options, print, args) {
 				for (let i = 0; i < node.elements.length; i++) {
 					const element = node.elements[i];
 					if (element && element.type === 'ObjectExpression') {
-						if (!isSingleLineObjectExpression(element, options)) {
+						if (!isSingleLineObjectExpression(element)) {
 							shouldInlineObjects = false;
 							break;
 						}
@@ -336,7 +319,7 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			// Default printing - pass isInArray or isInAttribute context
-			const arrayWasSingleLine = wasOriginallySingleLine(node, options);
+			const arrayWasSingleLine = wasOriginallySingleLine(node);
 			const shouldUseTrailingComma = options.trailingComma !== 'none';
 			const elements = path.map(
 				/**
@@ -392,16 +375,15 @@ function printRippleNode(node, path, options, print, args) {
 		const hasAnyBlankLines = elementsWithBlankLineAbove.length > 0;
 
 		if (!hasAnyBlankLines && !allObjectsHaveMultipleProperties) {
-			// No blank lines and no multi-property objects - try to inline everything, let group() break if doesn't fit
-			const parts = [prefix + '['];
-			for (let i = 0; i < elements.length; i++) {
-				if (i > 0) parts.push(concat([',', line]));
-				parts.push(elements[i]);
-			}
+			// No blank lines and no multi-property objects - standard compact array formatting
+			const separator = concat([',', line]);
 			const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
-			parts.push(trailingDoc);
-			parts.push(']');
-			nodeContent = group(concat(parts));
+			nodeContent = group(concat([
+				prefix + '[',
+				indent(concat([softline, join(separator, elements), trailingDoc])),
+				softline,
+				']',
+			]));
 			break;
 		}
 
@@ -409,16 +391,11 @@ function printRippleNode(node, path, options, print, args) {
 		// Objects that were originally inline can stay inline if they fit printWidth
 		// Objects that were originally multi-line should stay multi-line
 		if (allObjectsHaveMultipleProperties) {
-			const parts = [prefix + '['];
-			const contentParts = [];
-
-			// Print elements - allow inline only if originally single-line
 			const inlineElements = path.map(
 				(elPath, index) => {
 					const obj = node.elements[index];
 					const wasObjSingleLine = obj && obj.type === 'ObjectExpression' &&
-						wasOriginallySingleLine(obj, options);
-					// Only allow inline if object was originally single-line
+						wasOriginallySingleLine(obj);
 					return print(elPath, {
 						isInArray: true,
 						allowInlineObject: wasObjSingleLine
@@ -426,23 +403,14 @@ function printRippleNode(node, path, options, print, args) {
 				},
 				'elements'
 			);
-
-			for (let i = 0; i < inlineElements.length; i++) {
-				if (i > 0) {
-					contentParts.push(',');
-					contentParts.push(hardline); // Force line break for each object
-				}
-				contentParts.push(inlineElements[i]);
-			}
-
-			if (shouldUseTrailingComma) {
-				contentParts.push(',');
-			}
-
-			parts.push(indent([hardline, concat(contentParts)]));
-			parts.push(hardline);
-			parts.push(']');
-			nodeContent = concat(parts); // Don't use group() - force the breaks
+			const separator = concat([',', hardline]);
+			const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
+			nodeContent = group(concat([
+				prefix + '[',
+				indent(concat([hardline, join(separator, inlineElements), trailingDoc])),
+				hardline,
+				']',
+			]));
 			break;
 		}
 
@@ -1169,14 +1137,18 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 
 		case 'Text': {
-			const parts = ['{', path.call(print, 'expression'), '}'];
-			nodeContent = concat(parts);
+			const expressionDoc = suppressExpressionLeadingComments
+				? path.call((exprPath) => print(exprPath, { suppressLeadingComments: true }), 'expression')
+				: path.call(print, 'expression');
+			nodeContent = concat(['{', expressionDoc, '}']);
 			break;
 		}
 
 		case 'Html': {
-			const parts = ['{html ', path.call(print, 'expression'), '}'];
-			nodeContent = concat(parts);
+			const expressionDoc = suppressExpressionLeadingComments
+				? path.call((exprPath) => print(exprPath, { suppressLeadingComments: true }), 'expression')
+				: path.call(print, 'expression');
+			nodeContent = concat(['{html ', expressionDoc, '}']);
 			break;
 		}
 
@@ -1370,27 +1342,29 @@ function printComponent(node, path, options, print) {
 
 	// Always add parentheses, even if no parameters
 	if (node.params && node.params.length > 0) {
-		const paramList = path.map(print, 'params');
+		const paramDocs = path.map(print, 'params');
+		const singleParam = node.params.length === 1;
+		const firstParamNode = node.params[0];
+		const isDestructuredParam = firstParamNode && firstParamNode.type === 'ObjectPattern';
 
-		// Use Prettier doc builders to allow proper line breaking based on printWidth
-		const params = [];
-		for (let i = 0; i < paramList.length; i++) {
-			if (i > 0) {
-				params.push(',');
-				params.push(line);
-			}
-			if (Array.isArray(paramList[i])) {
-				params.push(...paramList[i]);
-			} else {
-				params.push(paramList[i]);
-			}
+		if (singleParam && isDestructuredParam) {
+			signatureParts.push(group(concat(['(', paramDocs[0], ')'])));
+		} else {
+			const joinedParams = join(concat([',', line]), paramDocs);
+			const lastParam = node.params[node.params.length - 1];
+			const shouldAddTrailingComma =
+				options.trailingComma === 'all' && lastParam && lastParam.type !== 'RestElement';
+			const trailingCommaDoc = shouldAddTrailingComma ? ifBreak(',', '') : '';
+			const paramsDoc = group(
+				concat([
+					'(',
+					indent(concat([softline, joinedParams, trailingCommaDoc])),
+					softline,
+					')',
+				]),
+			);
+			signatureParts.push(paramsDoc);
 		}
-
-		// Use group to allow Prettier to decide whether to break or not
-		// For ObjectPattern, the opening ( goes before the {
-		signatureParts.push('(');
-		signatureParts.push(group(concat(params)));
-		signatureParts.push(')');
 	} else {
 		signatureParts.push('()');
 	}
@@ -2566,32 +2540,70 @@ function shouldAddBlankLine(currentNode, nextNode) {
 }
 
 function printObjectPattern(node, path, options, print) {
+	const printedTypeAnnotation = node.typeAnnotation ? path.call(print, 'typeAnnotation') : null;
 	const propList = path.map(print, 'properties');
+	if (propList.length === 0) {
+		if (!printedTypeAnnotation) {
+			return '{}';
+		}
+		return group(concat(['{}', ifBreak(line, ' '), ': ', printedTypeAnnotation]));
+	}
 	const allowTrailingComma =
 		node.properties &&
 		node.properties.length > 0 &&
 		node.properties[node.properties.length - 1].type !== 'RestElement';
 
-	const content = group(
-		concat([
-			'{',
-			indent(
-				concat([
-					line,
-					join(concat([',', line]), propList),
-					allowTrailingComma && options.trailingComma !== 'none' ? ifBreak(',', '') : '',
-				]),
-			),
-			line,
-			'}',
-		]),
-	);
+	const objectContent = concat([
+		'{',
+		indent(
+			concat([
+				line,
+				join(concat([',', line]), propList),
+				allowTrailingComma && options.trailingComma !== 'none' ? ifBreak(',', '') : '',
+			]),
+		),
+		line,
+		'}',
+	]);
 
-	if (node.typeAnnotation) {
-		return concat([content, ': ', path.call(print, 'typeAnnotation')]);
+	if (!printedTypeAnnotation) {
+		return group(objectContent);
 	}
 
-	return content;
+	// Create inline and multiline variants using conditionalGroup
+	const inlineVariant = group(concat([objectContent, ': ', printedTypeAnnotation]));
+
+	// For broken variant, format the type annotation in multiline style
+	// Extract and reformat TSTypeLiteral members if that's what we have
+	let brokenTypeAnnotation = printedTypeAnnotation;
+	if (node.typeAnnotation && node.typeAnnotation.typeAnnotation &&
+	    node.typeAnnotation.typeAnnotation.type === 'TSTypeLiteral') {
+		const typeLiteral = node.typeAnnotation.typeAnnotation;
+		if (typeLiteral.members && typeLiteral.members.length > 0) {
+			const memberDocs = path.call(
+				(path) => path.map(print, 'members'),
+				'typeAnnotation',
+				'typeAnnotation'
+			);
+			const multilineMembers = memberDocs.map((member) => concat([member, ';']));
+			brokenTypeAnnotation = group(
+				concat([
+					'{',
+					indent(concat([hardline, join(hardline, multilineMembers)])),
+					hardline,
+					'}',
+				]),
+			);
+		}
+	}
+
+	const brokenVariant = group(concat([
+		objectContent,
+		': ',
+		brokenTypeAnnotation
+	]));
+
+	return conditionalGroup([inlineVariant, brokenVariant]);
 }
 
 function printArrayPattern(node, path, options, print) {
@@ -2668,9 +2680,32 @@ function printTSTypeLiteral(node, path, options, print) {
 	}
 
 	const members = path.map(print, 'members');
+	const inlineMembers = members.map((member, index) =>
+		index < members.length - 1 ? concat([member, ';']) : member,
+	);
+	const multilineMembers = members.map((member) => concat([member, ';']));
 
-	// Use AST builders for proper formatting with proper semicolons
-	return group(['{', indent([line, join([';', line], members)]), line, '}']);
+	const inlineDoc = group(
+		concat([
+			'{',
+			indent(concat([line, join(line, inlineMembers)])),
+			line,
+			'}',
+		]),
+	);
+
+	const multilineDoc = group(
+		concat([
+			'{',
+			indent(concat([hardline, join(hardline, multilineMembers)])),
+			hardline,
+			'}',
+		]),
+	);
+
+	return conditionalGroup(
+		wasOriginallySingleLine(node) ? [inlineDoc, multilineDoc] : [multilineDoc, inlineDoc],
+	);
 }
 
 function printTSPropertySignature(node, path, options, print) {
@@ -3031,124 +3066,15 @@ function shouldInlineSingleChild(parentNode, firstChild, childDoc) {
 	return false;
 }
 
-function extractElementLevelComments(node) {
-	const elementStartLine = node?.loc?.start?.line;
-	if (typeof elementStartLine !== 'number') {
-		return { comments: [], restore: () => {} };
+function getElementLeadingComments(node) {
+	const fromMetadata = node?.metadata?.elementLeadingComments;
+	if (Array.isArray(fromMetadata)) {
+		return fromMetadata;
 	}
-
-	const collectedComments = [];
-	const originalCommentArrays = [];
-
-	const recordOriginal = (owner, key) => {
-		if (!owner) {
-			return;
-		}
-		for (let i = 0; i < originalCommentArrays.length; i++) {
-			const entry = originalCommentArrays[i];
-			if (entry.owner === owner && entry.key === key) {
-				return;
-			}
-		}
-		originalCommentArrays.push({ owner, key, original: owner[key] });
-	};
-
-	const maybeLiftFrom = (owner, key) => {
-		if (!owner) {
-			return;
-		}
-		const comments = owner[key];
-		if (!Array.isArray(comments) || comments.length === 0) {
-			return;
-		}
-
-		const keep = [];
-		let lifted = null;
-
-		for (const comment of comments) {
-			const endLine = typeof comment?.loc?.end?.line === 'number'
-				? comment.loc.end.line
-				: (typeof comment?.loc?.start?.line === 'number' ? comment.loc.start.line : null);
-
-			if (endLine != null && endLine < elementStartLine) {
-				(lifted ?? (lifted = [])).push(comment);
-			} else {
-				keep.push(comment);
-			}
-		}
-
-		if (!lifted) {
-			return;
-		}
-
-		recordOriginal(owner, key);
-
-		if (keep.length > 0) {
-			owner[key] = keep;
-		} else {
-			delete owner[key];
-		}
-
-		collectedComments.push(...lifted);
-	};
-
-	const stack = [];
-
-	if (node.id && typeof node.id === 'object') {
-		maybeLiftFrom(node.id, 'leadingComments');
-	}
-
-	if (Array.isArray(node.children) && node.children.length > 0) {
-		stack.push(node.children[0]);
-	}
-
-	while (stack.length > 0) {
-		const current = stack.pop();
-		if (!current || typeof current !== 'object') {
-			continue;
-		}
-
-		maybeLiftFrom(current, 'leadingComments');
-
-		if (current.expression && typeof current.expression === 'object') {
-			maybeLiftFrom(current.expression, 'leadingComments');
-		}
-
-		if (Array.isArray(current.children) && current.children.length > 0) {
-			stack.push(current.children[0]);
-		}
-	}
-
-	collectedComments.sort((a, b) => {
-		const aLine = a?.loc?.start?.line ?? 0;
-		const bLine = b?.loc?.start?.line ?? 0;
-		if (aLine !== bLine) {
-			return aLine - bLine;
-		}
-		const aColumn = a?.loc?.start?.column ?? 0;
-		const bColumn = b?.loc?.start?.column ?? 0;
-		if (aColumn !== bColumn) {
-			return aColumn - bColumn;
-		}
-		return 0;
-	});
-
-	return {
-		comments: collectedComments,
-		restore() {
-			for (let i = originalCommentArrays.length - 1; i >= 0; i--) {
-				const { owner, key, original } = originalCommentArrays[i];
-				if (original === undefined) {
-					delete owner[key];
-				} else {
-					owner[key] = original;
-				}
-			}
-		},
-	};
+	return [];
 }
 
-function createElementLevelCommentParts(comments, node) {
+function createElementLevelCommentParts(comments) {
 	if (!comments || comments.length === 0) {
 		return [];
 	}
@@ -3181,205 +3107,21 @@ function createElementLevelCommentParts(comments, node) {
 function printElement(node, path, options, print) {
 	const tagName = (node.id.tracked ? '@' : '') + node.id.name;
 
-	const { comments: liftedElementComments, restore: restoreElementComments } = extractElementLevelComments(node);
-	const elementLevelCommentParts = createElementLevelCommentParts(liftedElementComments, node);
-	const finish = (doc) => {
-		restoreElementComments();
-		return elementLevelCommentParts.length > 0 ? concat([...elementLevelCommentParts, doc]) : doc;
-	};
+	const elementLeadingComments = getElementLeadingComments(node);
+	const metadataCommentParts = elementLeadingComments.length > 0
+		? createElementLevelCommentParts(elementLeadingComments)
+		: [];
+	const fallbackElementComments = [];
+	const shouldLiftTextLevelComments = elementLeadingComments.length === 0;
 
-	if (!node.attributes || node.attributes.length === 0) {
-		if (node.selfClosing || !node.children || node.children.length === 0) {
-			const innerCommentParts = [];
-			if (node.innerComments) {
-				for (const comment of node.innerComments) {
-					if (comment.type === 'Line') {
-						innerCommentParts.push('//' + comment.value);
-						innerCommentParts.push(hardline);
-					} else if (comment.type === 'Block') {
-						innerCommentParts.push('/*' + comment.value + '*/');
-						innerCommentParts.push(hardline);
-					}
-				}
-			}
+	const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+	const hasInnerComments = Array.isArray(node.innerComments) && node.innerComments.length > 0;
+	const isSelfClosing = !!node.selfClosing;
+	const hasAttributes = Array.isArray(node.attributes) && node.attributes.length > 0;
 
-			if (innerCommentParts.length > 0) {
-				const innerBody = [...innerCommentParts];
-				if (innerBody.length > 0 && innerBody[innerBody.length - 1] === hardline) {
-					innerBody.pop();
-				}
-				const elementParts = [
-					'<',
-					tagName,
-					'>',
-					indent(concat([hardline, ...innerBody])),
-					hardline,
-					'</',
-					tagName,
-					'>',
-				];
-				const elementOutput = group(elementParts);
-				return finish(elementOutput);
-			}
-
-			return finish(group(['<', tagName, ' />']));
-		}
-
-		// No attributes, but has children - use unified children processing
-		// Build children with whitespace preservation
-		const finalChildren = [];
-
-		// Store original leading comments for Text/Html nodes
-		const savedComments = new Map();
-
-		// Iterate over the original AST children to analyze whitespace
-		for (let i = 0; i < node.children.length; i++) {
-			const currentChild = node.children[i];
-			const nextChild = node.children[i + 1]; // Can be undefined for last child
-
-			// For Text and Html nodes with leading comments on the Text node or its expression, output comments separately first
-			const hasLeadingComments = (currentChild.type === 'Text' || currentChild.type === 'Html') &&
-				(currentChild.leadingComments || currentChild.expression?.leadingComments);
-
-			if (hasLeadingComments) {
-				// Save the original comments
-				savedComments.set(currentChild, currentChild.leadingComments);
-				if (currentChild.expression) {
-					savedComments.set(currentChild.expression, currentChild.expression.leadingComments);
-				}
-
-				// Collect comments from both the Text/Html node and its expression
-				const commentsToOutput = [];
-				if (currentChild.leadingComments) {
-					commentsToOutput.push(...currentChild.leadingComments);
-				}
-				if (currentChild.expression?.leadingComments) {
-					commentsToOutput.push(...currentChild.expression.leadingComments);
-				}
-
-				// Output comments as separate children
-				for (let j = 0; j < commentsToOutput.length; j++) {
-					const comment = commentsToOutput[j];
-					const nextComment = commentsToOutput[j + 1];
-					const isLastComment = j === commentsToOutput.length - 1;
-
-					if (comment.type === 'Line') {
-						finalChildren.push('//' + comment.value);
-						finalChildren.push(hardline);
-
-						if (nextComment) {
-							const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
-							if (blankLinesBetween > 0) {
-								finalChildren.push(hardline);
-							}
-						} else if (isLastComment) {
-							const blankLinesBetween = getWhitespaceLinesBetween(comment, currentChild);
-							if (blankLinesBetween > 0) {
-								finalChildren.push(hardline);
-							}
-						}
-					} else if (comment.type === 'Block') {
-						finalChildren.push('/*' + comment.value + '*/');
-						finalChildren.push(hardline);
-
-						if (nextComment) {
-							const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
-							if (blankLinesBetween > 0) {
-								finalChildren.push(hardline);
-							}
-						} else if (isLastComment) {
-							const blankLinesBetween = getWhitespaceLinesBetween(comment, currentChild);
-							if (blankLinesBetween > 0) {
-								finalChildren.push(hardline);
-							}
-						}
-					}
-				}
-
-				// Remove leading comments from both the Text/Html node and its expression
-				currentChild.leadingComments = undefined;
-				if (currentChild.expression) {
-					currentChild.expression.leadingComments = undefined;
-				}
-			}			// Print the current child
-			const printedChild = path.call(print, 'children', i);
-			finalChildren.push(printedChild);
-
-			// Restore the comments
-			if (savedComments.has(currentChild)) {
-				currentChild.leadingComments = savedComments.get(currentChild);
-			}
-			if (currentChild.expression && savedComments.has(currentChild.expression)) {
-				currentChild.expression.leadingComments = savedComments.get(currentChild.expression);
-			}
-
-			// Only add spacing if this is not the last child
-			if (nextChild) {
-				const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
-
-				// For element children, ONLY preserve original whitespace
-				// Don't apply any formatting rules
-				if (whitespaceLinesCount > 0) {
-					// Double hardline for blank line
-					finalChildren.push(hardline); // Line break
-					finalChildren.push(hardline); // Blank line
-				} else {
-					// Single hardline for normal line break
-					finalChildren.push(hardline);
-				}
-			}
-		}
-
-		// Build the element output
-		let elementOutput;
-
-		// For single simple children, try to keep on one line
-		// But never if the child is a non-self-closing Component node
-		const hasComponentChild = node.children && node.children.some(ch => ch.type === 'Component' && !ch.selfClosing);
-
-		if (finalChildren.length === 1 && !hasComponentChild) {
-			const child = finalChildren[0];
-			const firstChild = node.children[0];
-
-			// Try to inline if:
-			// 1. Short string content (<= 20 chars)
-			// 2. Simple JSX expression (Text or Html nodes)
-			// 3. Self-closing elements/components
-			// But DON'T inline if child is a non-self-closing Element
-			const isNonSelfClosingElement = firstChild && firstChild.type === 'Element' && !firstChild.selfClosing;
-
-			if (typeof child === 'string' && child.length < 20) {
-				// Single line with short content
-				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
-			} else if (child && typeof child === 'object' && !isNonSelfClosingElement && shouldInlineSingleChild(node, firstChild, child)) {
-				elementOutput = group(['<', tagName, '>', child, '</', tagName, '>']);
-			} else {
-				// Multi-line for non-self-closing elements
-				elementOutput = group([
-					'<',
-					tagName,
-					'>',
-					indent(concat([hardline, ...finalChildren])),
-					hardline,
-					'</',
-					tagName,
-					'>',
-				]);
-			}
-		} else {
-			elementOutput = group([
-				'<',
-				tagName,
-				'>',
-				indent(concat([hardline, ...finalChildren])),
-				hardline,
-				'</',
-				tagName,
-				'>',
-			]);
-		}
-
-		return finish(elementOutput);
+	if (isSelfClosing && !hasInnerComments && !hasAttributes) {
+		const elementDoc = group(['<', tagName, ' />']);
+		return metadataCommentParts.length > 0 ? concat([...metadataCommentParts, elementDoc]) : elementDoc;
 	}
 
 	// Determine the line break type for attributes
@@ -3387,112 +3129,144 @@ function printElement(node, path, options, print) {
 	// Otherwise, use line to allow collapsing when it fits
 	const attrLineBreak = options.singleAttributePerLine ? hardline : line;
 
+	const shouldUseSelfClosingSyntax = isSelfClosing || (!hasChildren && !hasInnerComments);
+
 	const openingTag = group([
 		'<',
 		tagName,
-		indent(
-			concat([
-				...path.map((attrPath) => {
-					return concat([attrLineBreak, print(attrPath)]);
-				}, 'attributes'),
-			]),
-		),
+		hasAttributes
+			? indent(
+				concat([
+					...path.map((attrPath) => {
+						return concat([attrLineBreak, print(attrPath)]);
+					}, 'attributes'),
+				]),
+			)
+			: '',
 		// Add line break opportunity before > or />
 		// Use line for self-closing (keeps space), softline for non-self-closing when attributes present
 		// When bracketSameLine is true, don't add line break for non-self-closing elements
-		node.selfClosing || !node.children || node.children.length === 0
-			? (node.attributes && node.attributes.length > 0 ? line : '')
-			: (node.attributes && node.attributes.length > 0 && !options.bracketSameLine ? softline : ''),
-		node.selfClosing || !node.children || node.children.length === 0 ? '/>' : '>',
+		shouldUseSelfClosingSyntax
+			? (hasAttributes ? line : '')
+			: (hasAttributes && !options.bracketSameLine ? softline : ''),
+		shouldUseSelfClosingSyntax ? (hasAttributes ? '/>' : ' />') : '>',
 	]);
 
-	if (node.selfClosing || !node.children || node.children.length === 0) {
-		return finish(openingTag);
+	if (!hasChildren) {
+		if (!hasInnerComments) {
+			return metadataCommentParts.length > 0 ? concat([...metadataCommentParts, openingTag]) : openingTag;
+		}
+
+		const innerParts = [];
+		for (const comment of node.innerComments) {
+			if (comment.type === 'Line') {
+				innerParts.push('//' + comment.value);
+				innerParts.push(hardline);
+			} else if (comment.type === 'Block') {
+				innerParts.push('/*' + comment.value + '*/');
+				innerParts.push(hardline);
+			}
+		}
+
+		if (innerParts.length > 0 && innerParts[innerParts.length - 1] === hardline) {
+			innerParts.pop();
+		}
+
+		const closingTag = concat(['</', tagName, '>']);
+		const elementOutput = group([openingTag, indent(concat([hardline, ...innerParts])), hardline, closingTag]);
+		return metadataCommentParts.length > 0 ? concat([...metadataCommentParts, elementOutput]) : elementOutput;
 	}
 
 	// Has children - use unified children processing
 	// Build children with whitespace preservation
 	const finalChildren = [];
 
-	// Iterate over the original AST children to analyze whitespace
 	for (let i = 0; i < node.children.length; i++) {
 		const currentChild = node.children[i];
-		const nextChild = node.children[i + 1]; // Can be undefined for last child
+		const nextChild = node.children[i + 1];
+		const isTextLikeChild = currentChild.type === 'Text' || currentChild.type === 'Html';
+		const hasTextLeadingComments = shouldLiftTextLevelComments && isTextLikeChild && Array.isArray(currentChild.leadingComments) && currentChild.leadingComments.length > 0;
+		const rawExpressionLeadingComments = isTextLikeChild && Array.isArray(currentChild.expression?.leadingComments)
+			? currentChild.expression.leadingComments
+			: null;
 
-		// Print the current child
-		const printedChild = path.call(print, 'children', i);
-		finalChildren.push(printedChild);
+		if (hasTextLeadingComments) {
+			for (let j = 0; j < currentChild.leadingComments.length; j++) {
+				fallbackElementComments.push(currentChild.leadingComments[j]);
+			}
+		}
 
-		// Only add spacing if this is not the last child
+		const childPrintArgs = {};
+		if (hasTextLeadingComments) {
+			childPrintArgs.suppressLeadingComments = true;
+		}
+		if (rawExpressionLeadingComments && rawExpressionLeadingComments.length > 0) {
+			childPrintArgs.suppressExpressionLeadingComments = true;
+		}
+
+		const printedChild = Object.keys(childPrintArgs).length > 0
+			? path.call((childPath) => print(childPath, childPrintArgs), 'children', i)
+			: path.call(print, 'children', i);
+
+		const childDoc = rawExpressionLeadingComments && rawExpressionLeadingComments.length > 0
+			? concat([...createElementLevelCommentParts(rawExpressionLeadingComments), printedChild])
+			: printedChild;
+		finalChildren.push(childDoc);
+
 		if (nextChild) {
-			const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);			// For element children (Text nodes and Html nodes), don't add automatic blank lines
-			// Only preserve them if they existed in the original
-			const isTextOrHtmlChild = currentChild.type === 'Text' || currentChild.type === 'Html' || nextChild.type === 'Text' || nextChild.type === 'Html';
+			const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
+			const isTextOrHtmlChild =
+				currentChild.type === 'Text' ||
+				currentChild.type === 'Html' ||
+				nextChild.type === 'Text' ||
+				nextChild.type === 'Html';
 
-			// Add blank line if there was original whitespace (> 0 lines)
 			if (whitespaceLinesCount > 0) {
-				// Double hardline for blank line
-				finalChildren.push(hardline); // Line break
-				finalChildren.push(hardline); // Blank line
+				finalChildren.push(hardline);
+				finalChildren.push(hardline);
 			} else if (!isTextOrHtmlChild && shouldAddBlankLine(currentChild, nextChild)) {
-				// Only apply formatting rules for non-text/html children
-				// Double hardline for blank line
-				finalChildren.push(hardline); // Line break
-				finalChildren.push(hardline); // Blank line
+				finalChildren.push(hardline);
+				finalChildren.push(hardline);
 			} else {
-				// Single hardline for normal line break
 				finalChildren.push(hardline);
 			}
 		}
 	}
 
-	const closingTag = concat(['</', tagName, '>']);
+	const fallbackCommentParts = fallbackElementComments.length > 0
+		? createElementLevelCommentParts(fallbackElementComments)
+		: [];
+	const leadingCommentParts = metadataCommentParts.length > 0
+		? [...metadataCommentParts, ...fallbackCommentParts]
+		: fallbackCommentParts;
 
-	// Build the element output
+	const closingTag = concat(['</', tagName, '>']);
 	let elementOutput;
 
-	// For single simple children, try to keep on one line
-	// But never if the child is a non-self-closing Component node
-	const hasComponentChild2 = node.children && node.children.some(ch => ch.type === 'Component' && !ch.selfClosing);
+	const hasComponentChild = node.children && node.children.some((child) => child.type === 'Component' && !child.selfClosing);
 
-	if (finalChildren.length === 1 && !hasComponentChild2) {
+	if (finalChildren.length === 1 && !hasComponentChild) {
 		const child = finalChildren[0];
 		const firstChild = node.children[0];
-
-		// Try to inline if:
-		// 1. Short string content (<= 20 chars)
-		// 2. Simple JSX expression (Text or Html nodes)
-		// 3. Self-closing elements/components
-		// But DON'T inline if child is a non-self-closing Element or JSXElement
 		const isNonSelfClosingElement = firstChild && (firstChild.type === 'Element' || firstChild.type === 'JSXElement') && !firstChild.selfClosing;
-
-		// Check if child is any kind of Element/JSXElement (including self-closing)
 		const isElementChild = firstChild && (firstChild.type === 'Element' || firstChild.type === 'JSXElement');
 
-		// If parent has attributes and child is an element, always break to multiple lines
-		const hasAttributes = node.attributes && node.attributes.length > 0;
-
 		if (typeof child === 'string' && child.length < 20) {
-			// Single line with short text
 			elementOutput = group([openingTag, child, closingTag]);
 		} else if (child && typeof child === 'object' && !isNonSelfClosingElement && shouldInlineSingleChild(node, firstChild, child)) {
-			// For self-closing elements with parent having attributes, force multi-line
 			if (isElementChild && hasAttributes) {
 				elementOutput = concat([openingTag, indent(concat([hardline, child])), hardline, closingTag]);
 			} else {
-				// For simple JSX expressions (Text, Html nodes), use softline to collapse without spaces
 				elementOutput = group([openingTag, indent(concat([softline, child])), softline, closingTag]);
 			}
 		} else {
-			// Multi-line for nested elements
 			elementOutput = concat([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 		}
 	} else {
-		// Multi-line
 		elementOutput = group([openingTag, indent(concat([hardline, ...finalChildren])), hardline, closingTag]);
 	}
 
-	return finish(elementOutput);
+	return leadingCommentParts.length > 0 ? concat([...leadingCommentParts, elementOutput]) : elementOutput;
 }
 
 function printAttribute(node, path, options, print) {

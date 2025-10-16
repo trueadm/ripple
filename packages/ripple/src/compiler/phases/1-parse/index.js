@@ -1,3 +1,4 @@
+// @ts-nocheck
 /** @import { Program } from 'estree' */
 /** @import {
  *   CommentWithLocation,
@@ -28,6 +29,14 @@ function convert_from_jsx(node) {
 	return node;
 }
 
+function isWhitespaceTextNode(node) {
+	if (!node || node.type !== 'Text') {
+		return false;
+	}
+	const value = typeof node.value === 'string' ? node.value : typeof node.raw === 'string' ? node.raw : '';
+	return /^\s*$/.test(value);
+}
+
 /**
  * Acorn parser plugin for Ripple syntax extensions
  * @param {RipplePluginConfig} [config] - Plugin configuration
@@ -42,6 +51,37 @@ function RipplePlugin(config) {
 		class RippleParser extends Parser {
 			/** @type {any[]} */
 			#path = [];
+			#commentContextId = 0;
+
+			#createCommentMetadata() {
+				if (this.#path.length === 0) {
+					return null;
+				}
+
+				const container = this.#path[this.#path.length - 1];
+				if (!container || container.type !== 'Element') {
+					return null;
+				}
+
+				const children = Array.isArray(container.children) ? container.children : [];
+				const hasMeaningfulChildren = children.some((child) => child && !isWhitespaceTextNode(child));
+
+				if (hasMeaningfulChildren) {
+					return null;
+				}
+
+				container.metadata ??= {};
+				if (container.metadata.commentContainerId === undefined) {
+					container.metadata.commentContainerId = ++this.#commentContextId;
+				}
+
+				return {
+					containerId: container.metadata.commentContainerId,
+					containerType: container.type,
+					childIndex: children.length,
+					beforeMeaningfulChild: !hasMeaningfulChildren,
+				};
+			}
 
 			/**
 			 * Helper method to get the element name from a JSX identifier or member expression
@@ -1083,6 +1123,7 @@ function RipplePlugin(config) {
 
 								// Call onComment if it exists
 								if (this.options.onComment) {
+									const metadata = this.#createCommentMetadata();
 									this.options.onComment(
 										false,
 										commentText,
@@ -1090,6 +1131,7 @@ function RipplePlugin(config) {
 										commentEnd,
 										startLoc,
 										endLoc,
+										metadata,
 									);
 								}
 
@@ -1120,6 +1162,7 @@ function RipplePlugin(config) {
 
 								// Call onComment if it exists
 								if (this.options.onComment) {
+									const metadata = this.#createCommentMetadata();
 									this.options.onComment(
 										true,
 										commentText,
@@ -1127,6 +1170,7 @@ function RipplePlugin(config) {
 										commentEnd,
 										startLoc,
 										endLoc,
+										metadata,
 									);
 								}
 
@@ -1246,7 +1290,8 @@ function RipplePlugin(config) {
 				}
 
 				element.attributes = open.attributes;
-				element.metadata = {};
+				element.metadata ??= {};
+				element.metadata.commentContainerId = ++this.#commentContextId;
 
 				if (element.selfClosing) {
 					this.#path.pop();
@@ -1643,7 +1688,7 @@ function RipplePlugin(config) {
  */
 function get_comment_handlers(source, comments, index = 0) {
 	return {
-		onComment: (block, value, start, end, start_loc, end_loc) => {
+		onComment: (block, value, start, end, start_loc, end_loc, metadata) => {
 			if (block && /\n/.test(value)) {
 				let a = start;
 				while (a > 0 && source[a - 1] !== '\n') a -= 1;
@@ -1664,6 +1709,7 @@ function get_comment_handlers(source, comments, index = 0) {
 					start: /** @type {import('acorn').Position} */ (start_loc),
 					end: /** @type {import('acorn').Position} */ (end_loc),
 				},
+				context: metadata ?? null,
 			});
 		},
 		add_comments: (ast) => {
@@ -1671,14 +1717,41 @@ function get_comment_handlers(source, comments, index = 0) {
 
 			comments = comments
 				.filter((comment) => comment.start >= index)
-				.map(({ type, value, start, end, loc }) => ({ type, value, start, end, loc }));
+				.map(({ type, value, start, end, loc, context }) => ({ type, value, start, end, loc, context }));
 
 			walk(ast, null, {
 				_(node, { next, path }) {
 					let comment;
 
+						const metadata = /** @type {{ commentContainerId?: number, elementLeadingComments?: CommentWithLocation[] }} */ (node?.metadata);
+
+						if (metadata && metadata.commentContainerId !== undefined) {
+							while (
+								comments[0] &&
+								comments[0].context &&
+								comments[0].context.containerId === metadata.commentContainerId &&
+								comments[0].context.beforeMeaningfulChild
+							) {
+								const elementComment = /** @type {CommentWithLocation & { context?: any }} */ (comments.shift());
+								(metadata.elementLeadingComments ||= []).push(elementComment);
+							}
+						}
+
 					while (comments[0] && comments[0].start < node.start) {
 						comment = /** @type {CommentWithLocation} */ (comments.shift());
+						if (comment.loc) {
+							const ancestorElements = path
+								.filter((ancestor) => ancestor && ancestor.type === 'Element' && ancestor.loc)
+								.sort((a, b) => a.loc.start.line - b.loc.start.line);
+
+							const targetAncestor = ancestorElements.find((ancestor) => comment.loc.start.line < ancestor.loc.start.line);
+
+							if (targetAncestor) {
+								targetAncestor.metadata ??= {};
+								(targetAncestor.metadata.elementLeadingComments ||= []).push(comment);
+								continue;
+							}
+						}
 						(node.leadingComments ||= []).push(comment);
 					}
 

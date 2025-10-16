@@ -1035,14 +1035,17 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
   <div></div>
 }`;
 
-		const expected = `component Expand({ name, startingLength = 10 }: {
+		const expected = `component Expand({
+  name,
+  startingLength = 10,
+}: {
   name: string;
-  startingLength?: number
+  startingLength?: number;
 }) {
   <div />
 }`;
 
-		const result = await format(input);
+		const result = await format(input, { singleQuote: true, printWidth: 80 });
 		expect(result).toBeWithNewline(expected);
 	});
 
