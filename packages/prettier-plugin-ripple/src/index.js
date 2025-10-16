@@ -1540,17 +1540,17 @@ function printFunctionExpression(node, path, options, print) {
 		parts.push(indent([hardline, concat(paramParts)]));
 		parts.push(hardline);
 		parts.push(')');
+	} else if (node.params && node.params.length > 0) {
+		// Use group/line/indent for intelligent breaking like components
+		const paramDocs = path.map(print, 'params');
+		const paramsPart = join(concat([',', line]), paramDocs);
+
+		parts.push(
+			group(['(', paramsPart, ')'])
+		);
 	} else {
-		// Single-line params
-		parts.push('(');
-		if (node.params && node.params.length > 0) {
-			const paramList = path.map(print, 'params');
-			for (let i = 0; i < paramList.length; i++) {
-				if (i > 0) parts.push(', ');
-				parts.push(paramList[i]);
-			}
-		}
-		parts.push(')');
+		// Empty params
+		parts.push('()');
 	}
 
 	// Handle return type annotation
@@ -1565,17 +1565,9 @@ function printFunctionExpression(node, path, options, print) {
 }
 
 function printArrowFunction(node, path, options, print) {
-	// Build params array properly
-	const paramParts = [];
-	const paramList = path.map(print, 'params');
-	for (let i = 0; i < paramList.length; i++) {
-		if (i > 0) paramParts.push(', ');
-		paramParts.push(paramList[i]);
-	}
-
-	// Return array of parts
 	const parts = [];
 
+	// Handle single param without parens (when arrowParens !== 'always')
 	if (
 		options.arrowParens !== 'always' &&
 		node.params.length === 1 &&
@@ -1583,11 +1575,18 @@ function printArrowFunction(node, path, options, print) {
 		!node.params[0].typeAnnotation &&
 		!node.returnType
 	) {
-		parts.push(...paramParts);
+		parts.push(path.call(print, 'params', 0));
+	} else if (node.params && node.params.length > 0) {
+		// Use group/line/indent for intelligent breaking like components and functions
+		const paramDocs = path.map(print, 'params');
+		const paramsPart = join(concat([',', line]), paramDocs);
+
+		parts.push(
+			group(['(', paramsPart, ')'])
+		);
 	} else {
-		parts.push('(');
-		parts.push(...paramParts);
-		parts.push(')');
+		// Empty params
+		parts.push('()');
 	}
 
 	// Handle return type annotation
@@ -1679,17 +1678,17 @@ function printFunctionDeclaration(node, path, options, print) {
 		parts.push(indent([hardline, concat(paramParts)]));
 		parts.push(hardline);
 		parts.push(')');
+	} else if (node.params && node.params.length > 0) {
+		// Use group/line/indent for intelligent breaking like components
+		const paramDocs = path.map(print, 'params');
+		const paramsPart = join(concat([',', line]), paramDocs);
+
+		parts.push(
+			group(['(', paramsPart, ')'])
+		);
 	} else {
-		// Single-line params
-		parts.push('(');
-		if (node.params && node.params.length > 0) {
-			const paramList = path.map(print, 'params');
-			for (let i = 0; i < paramList.length; i++) {
-				if (i > 0) parts.push(', ');
-				parts.push(paramList[i]);
-			}
-		}
-		parts.push(')');
+		// Empty params
+		parts.push('()');
 	}
 
 	// Handle return type annotation
