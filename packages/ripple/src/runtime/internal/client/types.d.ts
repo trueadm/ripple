@@ -53,3 +53,13 @@ export type Block = {
 	// teardown function
 	t: (() => {}) | null;
 };
+
+export type CompatApi = {
+	createRoot: () => void;
+	createComponent: (node: any, children_fn: () => any) => void;
+	jsx: (type: any, props: any) => any;
+}
+
+export type CompatOptions = {
+	[key: string]: CompatApi;
+}

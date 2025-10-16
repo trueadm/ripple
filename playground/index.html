@@ -13,11 +13,71 @@
 		<div id="root"><!--ssr-body--></div>
 
 		<script type="module">
-			import { mount } from 'ripple';
+			import { mount, effect } from 'ripple';
 			import { App } from '/src/App.ripple';
+			import { jsx } from 'react/jsx-runtime';
+			import { useSyncExternalStore } from 'react';
+			import { createPortal } from 'react-dom';
+			import { createRoot } from 'react-dom/client';
+
+			const portals = new Map();
+
+			const tsx = {
+				jsx,
+			};
+
+			const handle_react = {
+				createComponent(node, children_fn) {
+					const target_element = document.createElement('span');
+					target_element.style.display = 'contents';
+					node.before(target_element);
+
+					let trigger;
+					let teadown;
+					let react_node;
+
+					effect(() => {
+						react_node = children_fn(tsx);
+						trigger?.();
+					});
+
+					function subscribe(callback) {
+						trigger = callback;
+
+						return () => {
+							teadown?.();
+						};
+					}
+
+					function ReactCompat() {
+						return useSyncExternalStore(subscribe, () => react_node);
+					}
+
+					const key = Math.random().toString(36).substring(2, 9);
+					portals.set(target_element, { component: ReactCompat, key });
+				},
+				createRoot() {
+					const root_element = document.createElement('div');
+
+					function CompatRoot() {
+						return Array.from(portals.entries()).map(([el, { component, key }], i) => {
+							return createPortal(jsx(component, {}, key), el);
+						});
+					}
+
+					const root = createRoot(root_element).render(jsx(CompatRoot, {}));
+
+					return () => {
+						// unmount logic
+					};
+				},
+			};
 
 			mount(App, {
 				target: document.getElementById('root'),
+				compat: {
+					react: handle_react,
+				},
 			});
 		</script>
 	</body>

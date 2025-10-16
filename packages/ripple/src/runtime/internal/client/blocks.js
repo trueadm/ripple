@@ -1,4 +1,4 @@
-/** @import { Block, Derived } from '#client' */
+/** @import { Block, Derived, CompatOptions } from '#client' */
 
 import {
 	BLOCK_HAS_RUN,
@@ -125,10 +125,17 @@ export function ref(element, get_fn) {
 
 /**
  * @param {() => void} fn
+ * @param {CompatOptions} [compat]
  * @returns {Block}
  */
-export function root(fn) {
-	return block(ROOT_BLOCK, fn);
+export function root(fn, compat) {
+	if (compat != null) {
+		for (var key in compat) {
+			var api = compat[key];
+			api.createRoot();
+		}
+	}
+	return block(ROOT_BLOCK, fn, { compat });
 }
 
 /**

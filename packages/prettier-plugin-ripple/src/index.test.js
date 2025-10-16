@@ -8,9 +8,7 @@ const __dirname = dirname(__filename);
 
 expect.extend({
 	toBeWithNewline(received, expected) {
-		const expectedWithNewline = expected.endsWith('\n')
-			? expected
-			: expected + '\n';
+		const expectedWithNewline = expected.endsWith('\n') ? expected : expected + '\n';
 
 		const pass = received === expectedWithNewline;
 
@@ -54,11 +52,14 @@ describe('prettier-plugin-ripple', () => {
 	 * @param {Partial<import('prettier').CursorOptions>} options
 	 */
 	const formatWithCursorHelper = async (code, options = {}) => {
-		return await prettier.formatWithCursor(code, /** @type {import('prettier').CursorOptions} */({
-			parser: 'ripple',
-			plugins: [join(__dirname, 'index.js')],
-			...options,
-		}));
+		return await prettier.formatWithCursor(
+			code,
+			/** @type {import('prettier').CursorOptions} */ ({
+				parser: 'ripple',
+				plugins: [join(__dirname, 'index.js')],
+				...options,
+			}),
+		);
 	};
 
 	describe('basic formatting', () => {
@@ -468,7 +469,11 @@ export component Test({ a, b }: Props) {}`;
   </button>
 }`;
 
-			const result = await format(input, { singleQuote: true, printWidth: 40, bracketSameLine: true });
+			const result = await format(input, {
+				singleQuote: true,
+				printWidth: 40,
+				bracketSameLine: true,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -494,7 +499,11 @@ export component Test({ a, b }: Props) {}`;
   </button>
 }`;
 
-			const result = await format(input, { singleQuote: true, printWidth: 100, singleAttributePerLine: true });
+			const result = await format(input, {
+				singleQuote: true,
+				printWidth: 100,
+				singleAttributePerLine: true,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -511,13 +520,17 @@ export component Test({ a, b }: Props) {}`;
   </button>
 }`;
 
-		const expected = `component One() {
+			const expected = `component One() {
   <button class="some-class" something="should" not="go" wrong="at all" id="this-is-a-button">
     {'this is a button'}
   </button>
 }`;
 
-			const result = await format(input, { singleQuote: true, printWidth: 100, singleAttributePerLine: false });
+			const result = await format(input, {
+				singleQuote: true,
+				printWidth: 100,
+				singleAttributePerLine: false,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -689,8 +702,8 @@ const [obj1, obj2] = arrayOfObjects;`;
 			expect(result).toBeWithNewline(expected);
 		});
 
-    it('should keep style tag intact when wrapped in parent outside a component', async () => {
-      const expected = `<head>
+		it('should keep style tag intact when wrapped in parent outside a component', async () => {
+			const expected = `<head>
   <style>
     div {
       background: purple;
@@ -709,10 +722,10 @@ const [obj1, obj2] = arrayOfObjects;`;
 
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
-    });
+		});
 
-    it('should keep style tag intact when wrapped in parent inside component', async () => {
-      const expected = `component App() {
+		it('should keep style tag intact when wrapped in parent inside component', async () => {
+			const expected = `component App() {
   <head>
     <style>
       div {
@@ -733,7 +746,7 @@ const [obj1, obj2] = arrayOfObjects;`;
 
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
-    });
+		});
 
 		it('should keep css siblings formatting intact', async () => {
 			const expected = `export component App() {
@@ -815,7 +828,7 @@ enum Status {
   getRootNode?: GetRootNode | undefined;
 }
 
-import { Portal as RipplePortal } from 'ripple';`
+import { Portal as RipplePortal } from 'ripple';`;
 
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
@@ -945,7 +958,7 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 		expect(result).toBeWithNewline(expected);
 	});
 
-	it('should correctly handle comments according to Ripple\'s syntax', async () => {
+	it("should correctly handle comments according to Ripple's syntax", async () => {
 		const input = `// input
 <section>
   // TODO
@@ -1062,7 +1075,7 @@ for (const { i = 0, item } of items.entries()) {}`;
 
 	it('should handle various other TS things', async () => {
 		const input = `const globalContext = new Context<{ theme: string, array: number[] }>({ theme: 'light', array: [] });
-const items = [] as unknown[];`
+const items = [] as unknown[];`;
 
 		const expected = `const globalContext = new Context<{ theme: string; array: number[] }>({
   theme: 'light',
@@ -1088,7 +1101,6 @@ const items = [] as unknown[];`;
 
 		const result = await format(input);
 		expect(result).toBeWithNewline(input);
-
 	});
 
 	it('should format {html string} syntax correctly', async () => {
@@ -1139,7 +1151,11 @@ const items = [] as unknown[];`;
   <div>{String(text)}</div>
 }`;
 
-		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		const result = await format(expected, {
+			singleQuote: true,
+			arrowParens: 'always',
+			printWidth: 100,
+		});
 		expect(result).toBeWithNewline(expected);
 	});
 
@@ -1149,7 +1165,11 @@ const items = [] as unknown[];`;
   <div>{String(text)}</div>
 }`;
 
-		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		const result = await format(expected, {
+			singleQuote: true,
+			arrowParens: 'always',
+			printWidth: 100,
+		});
 		expect(result).toBeWithNewline(expected);
 	});
 
@@ -1160,7 +1180,11 @@ const items = [] as unknown[];`;
   </div>
 }`;
 
-		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		const result = await format(expected, {
+			singleQuote: true,
+			arrowParens: 'always',
+			printWidth: 100,
+		});
 
 		expect(result).toBeWithNewline(expected);
 	});
@@ -1180,7 +1204,11 @@ const items = [] as unknown[];`;
   </div>
 }`;
 
-		const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		const result = await format(input, {
+			singleQuote: true,
+			arrowParens: 'always',
+			printWidth: 100,
+		});
 
 		expect(result).toBeWithNewline(expected);
 	});
@@ -1580,7 +1608,11 @@ component RowList({ rows, Row }) {
     <Row index={i} {id} />
   }
 }`;
-			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(input, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -1594,7 +1626,11 @@ component RowList({ rows, Row }) {
   const obj = #{ a: 1, b: 2, c: 3 };
   let singleUser = #{ name: 'Test Me', email: 'abc@example.com' };
 }`;
-			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(input, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -1624,7 +1660,11 @@ component RowList({ rows, Row }) {
   };
   let singleUser = #{ name: 'Test Me', email: 'abc@example.com' };
 }`;
-			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(input, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -1650,7 +1690,11 @@ component RowList({ rows, Row }) {
     { k: 11 },
   ];
 }`;
-			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(input, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -1722,7 +1766,7 @@ component RowList({ rows, Row }) {
 			const expected = `const getParams = (): Params<T> => ({});
 interface Params<T> {}`;
 
-			const result = await format(expected, { singleQuote: true  });
+			const result = await format(expected, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
 		});
 	});
@@ -1735,10 +1779,13 @@ interface Params<T> {}`;
   <div>{String(result)}</div>
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
-
 		});
 
 		it('preserves multiple regex patterns', async () => {
@@ -1749,7 +1796,11 @@ interface Params<T> {}`;
   let allTags = html.split(/<br>/);
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
 		});
@@ -1761,7 +1812,11 @@ interface Params<T> {}`;
   let simpleRegex = /<br>/g;
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
 		});
@@ -1775,7 +1830,11 @@ interface Params<T> {}`;
   </div>
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
 		});
@@ -1787,7 +1846,11 @@ interface Params<T> {}`;
   let simplePattern = text.match(/<>/);
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
 		});
@@ -2565,5 +2628,30 @@ export component App() {
 				expect(result).toBeWithNewline(expected);
 			});
 		});
+
+	describe('<tsx:react>', () => {
+		it('should format JSX inside <tsx:react> tags', async () => {
+			const input = `component App() {
+	<div>
+		<h1>{"Hello, from Ripple!"}</h1>
+		<tsx:react>
+			<div className="123">Welcome from React!</div>
+		</tsx:react>
+	</div>
+}`;
+
+			const expected = `component App() {
+  <div>
+    <h1>{'Hello, from Ripple!'}</h1>
+    <tsx:react>
+      <div className="123">Welcome from React!</div>
+    </tsx:react>
+  </div>
+}`;
+
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
+});
 });

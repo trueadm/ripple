@@ -586,7 +586,7 @@ const visitors = {
 		}
 
 		return b.call(
-			'_$_jsx',
+			'__compat.jsx',
 			name.type === 'JSXIdentifier' && name.name[0].toLowerCase() === name.name[0]
 				? b.literal(name.name)
 				: context.visit(name),
