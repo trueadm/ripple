@@ -682,6 +682,29 @@ const visitors = {
 			const local_updates = [];
 			const is_void = is_void_element(node.id.name);
 
+			let scoping_hash = null;
+			if (node.metadata.scoped && state.component.css) {
+				scoping_hash = state.component.css.hash;
+			} else {
+				let inside_dynamic_children = false;
+				for (let i = context.path.length - 1; i >= 0; i--) {
+					const anc = context.path[i];
+					if (anc && anc.type === 'Component' && anc.metadata && anc.metadata.inherited_css) {
+						inside_dynamic_children = true;
+						break;
+					}
+				}
+				if (inside_dynamic_children) {
+					for (let i = context.path.length - 1; i >= 0; i--) {
+						const anc = context.path[i];
+						if (anc && anc.type === 'Component' && anc.css) {
+							scoping_hash = anc.css.hash;
+							break;
+						}
+					}
+				}
+			}
+
 			state.template.push(`<${node.id.name}`);
 
 			for (const attr of node.attributes) {
@@ -851,8 +874,8 @@ const visitors = {
 				if (class_attribute.value.type === 'Literal') {
 					let value = class_attribute.value.value;
 
-					if (node.metadata.scoped && state.component.css) {
-						value = `${state.component.css.hash} ${value}`;
+					if (scoping_hash) {
+						value = `${scoping_hash} ${value}`;
 					}
 
 					handle_static_attr(class_attribute.name.name, value);
@@ -861,10 +884,7 @@ const visitors = {
 					const metadata = { tracking: false, await: false };
 					let expression = visit(class_attribute.value, { ...state, metadata });
 
-					const hash_arg =
-						node.metadata.scoped && state.component.css
-							? b.literal(state.component.css.hash)
-							: undefined;
+					const hash_arg = scoping_hash ? b.literal(scoping_hash) : undefined;
 					const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg';
 
 					if (metadata.tracking) {
@@ -877,10 +897,8 @@ const visitors = {
 						);
 					}
 				}
-			} else if (node.metadata.scoped && state.component.css) {
-				const value = state.component.css.hash;
-
-				handle_static_attr(is_spreading ? '#class' : 'class', value);
+			} else if (scoping_hash) {
+				handle_static_attr(is_spreading ? '#class' : 'class', scoping_hash);
 			}
 
 			if (style_attribute !== null) {
@@ -1019,7 +1037,11 @@ const visitors = {
 
 			if (children_filtered.length > 0) {
 				const component_scope = context.state.scopes.get(node);
-				const children = visit(b.component(b.id('children'), [], children_filtered), {
+				const children_component = b.component(b.id('children'), [], children_filtered);
+
+				children_component.metadata = { ...(children_component.metadata || {}), inherited_css: true };
+
+				const children = visit(children_component, {
 					...context.state,
 					scope: component_scope,
 					namespace: child_namespace,
@@ -2068,9 +2090,16 @@ function transform_body(body, { visit, state }) {
 function create_tsx_with_typescript_support() {
 	const base_tsx = tsx();
 
-	// Override the ArrowFunctionExpression handler to support TypeScript return types
+	// Add custom TypeScript node handlers that aren't in tsx
 	return {
 		...base_tsx,
+		// Custom handler for TSParenthesizedType: (Type)
+		TSParenthesizedType(node, context) {
+			context.write('(');
+			context.visit(node.typeAnnotation);
+			context.write(')');
+		},
+		// Override the ArrowFunctionExpression handler to support TypeScript return types
 		ArrowFunctionExpression(node, context) {
 			if (node.async) context.write('async ');
 

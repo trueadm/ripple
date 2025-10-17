@@ -398,4 +398,123 @@ describe('dynamic DOM elements', () => {
 		expect(stillHasScopedClass).toBe(true);
 		expect(newClasses.includes('even')).toBe(true);
 	});
+
+	it('adds scoping class to dynamic elements', () => {
+		component App() {
+			let tag = track('div');
+
+			<@tag class="scoped"><p>{'Scoped dynamic element'}</p></@tag>
+
+			<style>
+				.scoped {
+					color: blue;
+				}
+			</style>
+		}
+		render(App);
+
+		const div = container.querySelector('div');
+		const p = div.querySelector('p');
+
+		expect(Array.from(div.classList).some(c => c.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(p.classList).some(c => c.startsWith('ripple-'))).toBe(true);
+	});
+
+	it('adds scoping class to dynamic elements when selector targets by tag name', () => {
+		component App() {
+			let tag = track('div');
+
+			<@tag class="scoped"><p>{'Scoped dynamic element'}</p></@tag>
+
+			<style>
+				div {
+					color: blue;
+				}
+			</style>
+		}
+		render(App);
+
+		const div = container.querySelector('div');
+		const p = div.querySelector('p');
+
+		expect(Array.from(div.classList).some(c => c.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(p.classList).some(c => c.startsWith('ripple-'))).toBe(true);
+	});
+
+	it("doesn't add scoping class to components inside dynamic element", () => {
+		component Child() {
+			<div class="child"><p>{"I am a child component"}</p></div>
+
+			<style>
+				.child {
+					color: blue;
+				}
+			</style>
+		}
+
+		component App() {
+			let tag = track('div');
+
+			<@tag class="scoped">
+				<p>{'Scoped dynamic element'}</p>
+				<Child />
+			</@tag>
+
+			<style>
+				div {
+					color: blue;
+				}
+			</style>
+		}
+		render(App);
+
+		const outerDiv = container.querySelector('.scoped');
+		const innerDiv = outerDiv.querySelector('.child');
+		const innerP = innerDiv.querySelector('p');
+
+		const outerScope = Array.from(outerDiv.classList).find(c => c.startsWith('ripple-'));
+		const innerScopes = Array.from(innerDiv.classList).filter(c => c.startsWith('ripple-'));
+		const innerInnerScopes = Array.from(innerP.classList).filter(c => c.startsWith('ripple-'));
+
+		expect(outerScope).toBeTruthy();
+
+		expect(innerScopes).toHaveLength(1);
+		expect(innerScopes[0]).not.toBe(outerScope);
+
+		expect(innerInnerScopes).toHaveLength(0);
+	});
+
+	it("doesn't add scoping class to dynamically rendered component", () => {
+		component Child() {
+			<div class="child"><p>{"I am a child component"}</p></div>
+
+			<style>
+				.child {
+					color: green;
+				}
+			</style>
+		}
+
+		component App() {
+			let tag = track(() => Child);
+
+			<@tag />
+
+			<style>
+				.child {
+					color: red;
+				}
+			</style>
+		}
+		render(App);
+
+		const div = container.querySelector('.child');
+		const p = div.querySelector('p');
+
+		const outerScopes = Array.from(div.classList).filter(c => c.startsWith('ripple-'));
+		const innerScopes = Array.from(p.classList).filter(c => c.startsWith('ripple-'));
+
+		expect(outerScopes).toHaveLength(1);
+		expect(innerScopes).toHaveLength(0);
+	});
 });
