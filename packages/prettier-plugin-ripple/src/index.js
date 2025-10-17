@@ -1106,6 +1106,11 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSIndexedAccessType(node, path, options, print);
 			break;
 
+		case 'TSParenthesizedType': {
+			nodeContent = concat(['(', path.call(print, 'typeAnnotation'), ')']);
+			break;
+		}
+
 		case 'Element':
 			nodeContent = printElement(node, path, options, print);
 			break;

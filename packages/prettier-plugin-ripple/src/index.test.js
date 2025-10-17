@@ -1447,6 +1447,12 @@ const items = [] as unknown[];`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should properly format TSParenthesizedType', async () => {
+			const expected = `const logs: (number | undefined)[] = [];`;
+			const result = await format(expected);
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('respects arrowParens option', async () => {
 			const input = `function inputRef(node) {
 	const removeListener = on(node, 'input', e => { value = e.target.value; console.log(value) });

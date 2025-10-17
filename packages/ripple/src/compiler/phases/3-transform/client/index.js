@@ -2068,9 +2068,16 @@ function transform_body(body, { visit, state }) {
 function create_tsx_with_typescript_support() {
 	const base_tsx = tsx();
 
-	// Override the ArrowFunctionExpression handler to support TypeScript return types
+	// Add custom TypeScript node handlers that aren't in tsx
 	return {
 		...base_tsx,
+		// Custom handler for TSParenthesizedType: (Type)
+		TSParenthesizedType(node, context) {
+			context.write('(');
+			context.visit(node.typeAnnotation);
+			context.write(')');
+		},
+		// Override the ArrowFunctionExpression handler to support TypeScript return types
 		ArrowFunctionExpression(node, context) {
 			if (node.async) context.write('async ');
 
