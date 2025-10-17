@@ -1808,7 +1808,12 @@ function get_comment_handlers(source, comments, index = 0) {
 							let is_last_in_array = false;
 							let array_prop = null;
 
-							if (parent?.type === 'BlockStatement' || parent?.type === 'Program' || parent?.type === 'Component') {
+							if (
+								parent?.type === 'BlockStatement' ||
+								parent?.type === 'Program' ||
+								parent?.type === 'Component' ||
+								parent?.type === 'ClassBody'
+							) {
 								array_prop = 'body';
 							} else if (parent?.type === 'ArrayExpression') {
 								array_prop = 'elements';
@@ -1863,20 +1868,30 @@ function get_comment_handlers(source, comments, index = 0) {
 										end = comment.end;
 									}
 								}
-							} else if (node.end <= comments[0].start && /^[,) \t]*$/.test(slice)) {
-								// For function parameters, only attach as trailing comment if it's on the same line
-								// Comments on next line after comma should be leading comments of next parameter
-								const isParam = array_prop === 'params';
-								if (isParam) {
-									// Check if comment is on same line as the node
-									const nodeEndLine = source.slice(0, node.end).split('\n').length;
-									const commentStartLine = source.slice(0, comments[0].start).split('\n').length;
-									if (nodeEndLine === commentStartLine) {
+							} else if (node.end <= comments[0].start) {
+								const onlySimpleWhitespace = /^[,) \t]*$/.test(slice);
+								const onlyWhitespace = /^\s*$/.test(slice);
+								const hasBlankLine = /\n\s*\n/.test(slice);
+								const nodeEndLine = node.loc?.end?.line ?? null;
+								const commentStartLine = comments[0].loc?.start?.line ?? null;
+								const isImmediateNextLine =
+									nodeEndLine !== null && commentStartLine !== null && commentStartLine === nodeEndLine + 1;
+
+								if (onlySimpleWhitespace || (onlyWhitespace && !hasBlankLine && isImmediateNextLine)) {
+									// For function parameters, only attach as trailing comment if it's on the same line
+									// Comments on next line after comma should be leading comments of next parameter
+									const isParam = array_prop === 'params';
+									if (isParam) {
+										// Check if comment is on same line as the node
+										const nodeEndLine = source.slice(0, node.end).split('\n').length;
+										const commentStartLine = source.slice(0, comments[0].start).split('\n').length;
+										if (nodeEndLine === commentStartLine) {
+											node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+										}
+										// Otherwise leave it for next parameter's leading comments
+									} else {
 										node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
 									}
-									// Otherwise leave it for next parameter's leading comments
-								} else {
-									node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
 								}
 							}
 						}

@@ -1041,6 +1041,35 @@ function test() {
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should preserve trailing comments in arrow function parameters', async () => {
+		const expected = `const test = (
+  // comment in params
+  a,
+  // comment in params
+  b,
+  // comment in params
+  c,
+  // comment in params
+) => {};`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve trailing comments in class body', async () => {
+		const expected = `class MyClass {
+  /* comment 1 */
+  method1() {}
+  //comment 2
+
+  method2() {}
+  // comment 3
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should correctly handle for loops with variable declarations', async () => {
 		const input = `for (let i = 0, len = array.length; i < len; i++) {
   console.log(i);
