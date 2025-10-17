@@ -1027,6 +1027,20 @@ function test() {
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should preserve trailing comments in call arguments', async () => {
+		const expected = `fn(
+  arg1,
+  // comment in args
+  arg2,
+  // comment in args
+  arg3,
+  // comment in args
+);`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should correctly handle for loops with variable declarations', async () => {
 		const input = `for (let i = 0, len = array.length; i < len; i++) {
   console.log(i);
@@ -2173,7 +2187,7 @@ export component App() {
 
     'second',
 
-    'third'
+    'third',
   );
 }`;
 
@@ -2183,7 +2197,7 @@ export component App() {
 
     'second',
 
-    'third'
+    'third',
   );
 }`;
 

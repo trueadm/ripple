@@ -1814,15 +1814,27 @@ function get_comment_handlers(source, comments, index = 0) {
 								array_prop = 'elements';
 							} else if (parent?.type === 'ObjectExpression') {
 								array_prop = 'properties';
-							} else if (parent?.type === 'FunctionDeclaration' || parent?.type === 'FunctionExpression' || parent?.type === 'ArrowFunctionExpression') {
+							} else if (
+								parent?.type === 'FunctionDeclaration' ||
+								parent?.type === 'FunctionExpression' ||
+								parent?.type === 'ArrowFunctionExpression'
+							) {
 								array_prop = 'params';
-							} if (array_prop && Array.isArray(parent[array_prop])) {
+							} else if (
+								parent?.type === 'CallExpression' ||
+								parent?.type === 'OptionalCallExpression' ||
+								parent?.type === 'NewExpression'
+							) {
+								array_prop = 'arguments';
+							}
+							if (array_prop && Array.isArray(parent[array_prop])) {
 								is_last_in_array = parent[array_prop].indexOf(node) === parent[array_prop].length - 1;
 							}
 
 							if (is_last_in_array) {
 								const isParam = array_prop === 'params';
-								if (isParam) {
+								const isArgument = array_prop === 'arguments';
+								if (isParam || isArgument) {
 									while (comments.length) {
 										const potentialComment = comments[0];
 										if (parent && potentialComment.start >= parent.end) {
