@@ -1,3 +1,7 @@
+prettier_common: &prettier_common ^3.6.2
+ts_common: &ts_common ^5.9.2
+ts_eslint_parser: &ts_eslint_parser ^8.20.0
+
 packages:
   - packages/*
   - playground
@@ -11,7 +15,7 @@ catalogs:
     '@types/estree': ^1.0.8
     '@types/node': ^24.3.0
     '@types/prompts': ^2.4.9
-    '@typescript-eslint/parser': ^8.20.0
+    '@typescript-eslint/parser': *ts_eslint_parser
     '@volar/language-core': ~2.4.23
     '@volar/language-server': ~2.4.23
     '@volar/typescript': ~2.4.23
@@ -23,7 +27,6 @@ catalogs:
     commander: ^12.1.0
     degit: ^2.8.4
     devalue: ^5.3.2
-    esbuild: ^0.25.10
     eslint: ^9.0.0
     esm-env: ^1.2.2
     esrap: ^2.1.0
@@ -35,11 +38,11 @@ catalogs:
     muggle-string: ^0.4.1
     ora: ^8.1.0
     polka: ^1.0.0-next.25
-    prettier: ^3.6.2
+    prettier: *prettier_common
     prompts: ^2.4.2
     tsdown: ^0.15.4
     tsup: ^8.3.5
-    typescript: &ts_common ^5.9.2
+    typescript: *ts_common
     vite: ^7.1.9
     vitepress: 2.0.0-alpha.12
     vitepress-plugin-npm-commands: ^0.8.1
@@ -56,5 +59,6 @@ catalogs:
     ripple: '*'
     tailwindcss: ^4.1.12
     typescript: *ts_common
+    '@typescript-eslint/parser': *ts_eslint_parser
   vscode:
     typescript: *ts_common

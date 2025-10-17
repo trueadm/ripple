@@ -8,22 +8,26 @@ const __dirname = dirname(__filename);
 
 expect.extend({
 	toBeWithNewline(received, expected) {
-		const expectedWithNewline = expected.endsWith('\n')
-			? expected
-			: expected + '\n';
+		const expectedWithNewline = expected.endsWith('\n') ? expected : expected + '\n';
 
 		const pass = received === expectedWithNewline;
 
 		return {
 			pass,
 			message: () => {
-				const { printExpected, printReceived, matcherHint } = this.utils;
+				const { matcherHint, EXPECTED_COLOR, RECEIVED_COLOR } = this.utils;
+
+				// Just apply color without modifying the string
+				const formatWithColor = (str, colorFn) => {
+					return colorFn(str);
+				};
+
 				return (
 					matcherHint('toBeWithNewline') +
 					'\n\nExpected:\n' +
-					`  ${printExpected(expectedWithNewline)}\n` +
-					'Received:\n' +
-					`  ${printReceived(received)}`
+					formatWithColor(expectedWithNewline, EXPECTED_COLOR) +
+					'\nReceived:\n' +
+					formatWithColor(received, RECEIVED_COLOR)
 				);
 			},
 		};
@@ -48,11 +52,14 @@ describe('prettier-plugin-ripple', () => {
 	 * @param {Partial<import('prettier').CursorOptions>} options
 	 */
 	const formatWithCursorHelper = async (code, options = {}) => {
-		return await prettier.formatWithCursor(code, /** @type {import('prettier').CursorOptions} */({
-			parser: 'ripple',
-			plugins: [join(__dirname, 'index.js')],
-			...options,
-		}));
+		return await prettier.formatWithCursor(
+			code,
+			/** @type {import('prettier').CursorOptions} */ ({
+				parser: 'ripple',
+				plugins: [join(__dirname, 'index.js')],
+				...options,
+			}),
+		);
 	};
 
 	describe('basic formatting', () => {
@@ -146,7 +153,6 @@ describe('prettier-plugin-ripple', () => {
 
     if (x) {
       console.log('test');
-
       return null;
     }
 
@@ -272,7 +278,6 @@ export default component App() {
 			const input = `export component Test(){<div>{"Test"}</div><style>div{color:red}</style>}`;
 			const expected = `export component Test() {
   <div>{'Test'}</div>
-
   <style>
     div {
       color: red;
@@ -290,11 +295,7 @@ export default component App() {
     id: number;
     name: string;
   }
-
-  let user: User = {
-    id: 1,
-    name: 'test',
-  };
+  let user: User = { id: 1, name: 'test' };
   user;
 }`;
 			const result = await format(input, { singleQuote: true });
@@ -468,7 +469,11 @@ export component Test({ a, b }: Props) {}`;
   </button>
 }`;
 
-			const result = await format(input, { singleQuote: true, printWidth: 40, bracketSameLine: true });
+			const result = await format(input, {
+				singleQuote: true,
+				printWidth: 40,
+				bracketSameLine: true,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -494,7 +499,11 @@ export component Test({ a, b }: Props) {}`;
   </button>
 }`;
 
-			const result = await format(input, { singleQuote: true, printWidth: 100, singleAttributePerLine: true });
+			const result = await format(input, {
+				singleQuote: true,
+				printWidth: 100,
+				singleAttributePerLine: true,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -511,13 +520,17 @@ export component Test({ a, b }: Props) {}`;
   </button>
 }`;
 
-		const expected = `component One() {
+			const expected = `component One() {
   <button class="some-class" something="should" not="go" wrong="at all" id="this-is-a-button">
     {'this is a button'}
   </button>
 }`;
 
-			const result = await format(input, { singleQuote: true, printWidth: 100, singleAttributePerLine: false });
+			const result = await format(input, {
+				singleQuote: true,
+				printWidth: 100,
+				singleAttributePerLine: false,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -688,6 +701,151 @@ const [obj1, obj2] = arrayOfObjects;`;
 			const result = await format(input, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should keep style tag intact when wrapped in parent outside a component', async () => {
+			const expected = `<head>
+  <style>
+    div {
+      background: purple;
+    }
+    p {
+      background: blue;
+    }
+    .div {
+      color: red;
+    }
+    .p {
+      color: green;
+    }
+  </style>
+</head>`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep style tag intact when wrapped in parent inside component', async () => {
+			const expected = `component App() {
+  <head>
+    <style>
+      div {
+        background: purple;
+      }
+      p {
+        background: blue;
+      }
+      .div {
+        color: red;
+      }
+      .p {
+        color: green;
+      }
+    </style>
+  </head>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep css siblings formatting intact', async () => {
+			const expected = `export component App() {
+  <style>
+    div + .div > div,
+    p,
+    #id + .div ~ div,
+    #id {
+      color: red;
+    }
+  </style>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format & parent nested selector correctly', async () => {
+			const expected = `export component App() {
+  <div>
+    <h1>{'Hello'}</h1>
+  </div>
+  <style>
+    div {
+      & > * {
+        color: blue;
+      }
+    }
+  </style>
+}`;
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep TrackedMap short syntax intact', async () => {
+			const expected = `const map = new #Map([['key1', 'value1'], ['key2', 'value2']]);
+const set = new #Set([1, 2, 3]);`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should not remove blank lines between components and types if provided', async () => {
+			const expected = `export component App() {
+  console.log('test');
+}
+
+type RootNode = ShadowRoot | Document | Node;
+type GetRootNode = () => RootNode;`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve blank lines between components and various TS declarations', async () => {
+			const expected = `export component App() {
+  console.log('test');
+}
+
+interface Props {
+  value: string;
+}
+
+type Result = string | number;
+
+enum Status {
+  Active,
+  Inactive,
+  Pending,
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve blank lines between ts and import statements', async () => {
+			const expected = `export interface PortalActionProps {
+  disabled?: boolean | undefined;
+  container?: HTMLElement | undefined;
+  getRootNode?: GetRootNode | undefined;
+}
+
+import { Portal as RipplePortal } from 'ripple';`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve blank lines between export statements and import statements or comments', async () => {
+			const expected = `export { handler } from './test.ripple';
+
+import { Portal as RipplePortal } from 'ripple';
+
+// export { something } from './test.ripple;
+
+import { GetRootNode } from './somewhere';`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
@@ -760,15 +918,12 @@ message.push(greet(\`Ripple\`));
 message.push(\`User: \${JSON.stringify({ name: 'Alice', age: 30 } as User)}\`);`;
 
 			const expected = `type User = { name: string; age: number };
-
 let message: string[] = [];
 
 // comments should be preserved
+
 message.push(greet(\`Ripple\`));
-message.push(\`User: \${JSON.stringify({
-  name: "Alice",
-  age: 30,
-} as User)}\`);`;
+message.push(\`User: \${JSON.stringify({ name: "Alice", age: 30 } as User)}\`);`;
 
 			const result = await format(input);
 			expect(result).toBeWithNewline(expected);
@@ -800,6 +955,45 @@ message.push(/* Some test comment */ greet( /* Some text */ \`Ripple\`));
 message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 
 		const result = await format(input);
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it("should correctly handle comments according to Ripple's syntax", async () => {
+		const input = `// input
+<section>
+  // TODO
+  {'Hello'}
+</section>
+
+// input
+<section>
+  // TODO
+</section>
+
+// input
+<section>
+      // TODO
+  <span>{'Hello'}</span>
+</section>`;
+
+		const expected = `// input
+<section>
+  // TODO
+  {'Hello'}
+</section>
+
+// input
+<section>
+  // TODO
+</section>
+
+// input
+<section>
+  // TODO
+  <span>{'Hello'}</span>
+</section>`;
+
+		const result = await format(input, { singleQuote: true });
 		expect(result).toBeWithNewline(expected);
 	});
 
@@ -854,14 +1048,55 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
   <div></div>
 }`;
 
-		const expected = `component Expand({ name, startingLength = 10 }: {
+		const expected = `component Expand({
+  name,
+  startingLength = 10,
+}: {
   name: string;
-  startingLength?: number
+  startingLength?: number;
 }) {
   <div />
 }`;
 
-		const result = await format(input);
+		const result = await format(input, { singleQuote: true, printWidth: 80 });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should handle default arguments correctly in functions', async () => {
+		const input = `function expand({ name, startingLength = 10 }: { name: string; startingLength?: number }) {
+  return null;
+}`;
+
+		const expected = `function expand({
+  name,
+  startingLength = 10,
+}: {
+  name: string;
+  startingLength?: number;
+}) {
+  return null;
+}`;
+
+		const result = await format(input, { singleQuote: true, printWidth: 80 });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should handle default arguments correctly in arrow functions', async () => {
+		const input = `const expand = ({ name, startingLength = 10 }: { name: string; startingLength?: number }) => {
+  return null;
+};`;
+
+		const expected = `const expand = ({
+  name,
+  startingLength = 10,
+}: {
+  name: string;
+  startingLength?: number;
+}) => {
+  return null;
+};`;
+
+		const result = await format(input, { singleQuote: true, printWidth: 80 });
 		expect(result).toBeWithNewline(expected);
 	});
 
@@ -878,15 +1113,15 @@ for (const { i = 0, item } of items.entries()) {}`;
 
 	it('should handle various other TS things', async () => {
 		const input = `const globalContext = new Context<{ theme: string, array: number[] }>({ theme: 'light', array: [] });
-const items = [] as unknown[];`
+const items = [] as unknown[];`;
 
 		const expected = `const globalContext = new Context<{ theme: string; array: number[] }>({
-  theme: "light",
+  theme: 'light',
   array: [],
 });
-const items = [] as unknown[];`
+const items = [] as unknown[];`;
 
-		const result = await format(input);
+		const result = await format(input, { singleQuote: true, printWidth: 80 });
 		expect(result).toBeWithNewline(expected);
 	});
 
@@ -904,7 +1139,6 @@ const items = [] as unknown[];`
 
 		const result = await format(input);
 		expect(result).toBeWithNewline(input);
-
 	});
 
 	it('should format {html string} syntax correctly', async () => {
@@ -955,7 +1189,11 @@ const items = [] as unknown[];`
   <div>{String(text)}</div>
 }`;
 
-		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		const result = await format(expected, {
+			singleQuote: true,
+			arrowParens: 'always',
+			printWidth: 100,
+		});
 		expect(result).toBeWithNewline(expected);
 	});
 
@@ -965,7 +1203,11 @@ const items = [] as unknown[];`
   <div>{String(text)}</div>
 }`;
 
-		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		const result = await format(expected, {
+			singleQuote: true,
+			arrowParens: 'always',
+			printWidth: 100,
+		});
 		expect(result).toBeWithNewline(expected);
 	});
 
@@ -976,7 +1218,11 @@ const items = [] as unknown[];`
   </div>
 }`;
 
-		const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		const result = await format(expected, {
+			singleQuote: true,
+			arrowParens: 'always',
+			printWidth: 100,
+		});
 
 		expect(result).toBeWithNewline(expected);
 	});
@@ -996,7 +1242,11 @@ const items = [] as unknown[];`
   </div>
 }`;
 
-		const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+		const result = await format(input, {
+			singleQuote: true,
+			arrowParens: 'always',
+			printWidth: 100,
+		});
 
 		expect(result).toBeWithNewline(expected);
 	});
@@ -1047,7 +1297,6 @@ const items = [] as unknown[];`
   type t8 = unknown;
   type t9 = never;
   type t10 = void;
-
   <div>{'test'}</div>
 }`;
 
@@ -1077,10 +1326,7 @@ const items = [] as unknown[];`
 			const expected = `component UtilityTypeTest() {
   type t11 = { a: number; b: string };
   type t12 = keyof t11;
-
-  const T0: t17 = {
-    x: 1,
-  };
+  const T0: t17 = { x: 1 };
   type t13 = typeof T0;
   type t14 = Partial<t11>;
   type t15 = Required<t14>;
@@ -1092,7 +1338,6 @@ const items = [] as unknown[];`
   type t21 = Parameters<(x: number, y: string) => void>;
   type t27 = new () => object;
   type t41 = ReturnType<typeof Math.max>;
-
   <div>{'test'}</div>
 }`;
 
@@ -1130,7 +1375,6 @@ const items = [] as unknown[];`
 			const expected = `component UnionTest() {
   type StringOrNumber = string | number;
   type Props = { a: string } & { b: number };
-
   let value: string | null = null;
   <div>{'test'}</div>
 }`;
@@ -1402,7 +1646,11 @@ component RowList({ rows, Row }) {
     <Row index={i} {id} />
   }
 }`;
-			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(input, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -1416,7 +1664,11 @@ component RowList({ rows, Row }) {
   const obj = #{ a: 1, b: 2, c: 3 };
   let singleUser = #{ name: 'Test Me', email: 'abc@example.com' };
 }`;
-			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(input, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -1446,7 +1698,11 @@ component RowList({ rows, Row }) {
   };
   let singleUser = #{ name: 'Test Me', email: 'abc@example.com' };
 }`;
-			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(input, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -1472,7 +1728,11 @@ component RowList({ rows, Row }) {
     { k: 11 },
   ];
 }`;
-			const result = await format(input, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(input, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -1482,7 +1742,71 @@ component RowList({ rows, Row }) {
 }`;
 			const result = await format(expected, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
-		})
+		});
+
+		it('should format TypeScript enums', async () => {
+			const input = `enum Color{Red,Green,Blue}`;
+			const expected = `enum Color {
+  Red,
+  Green,
+  Blue,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TypeScript enums with values', async () => {
+			const input = `enum Status{Active=1,Inactive=0,Pending=2}`;
+			const expected = `enum Status {
+  Active = 1,
+  Inactive = 0,
+  Pending = 2,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format const enums', async () => {
+			const input = `const enum Direction{Up,Down,Left,Right}`;
+			const expected = `const enum Direction {
+  Up,
+  Down,
+  Left,
+  Right,
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should respect trailingComma option for enums', async () => {
+			const input = `enum Size{Small,Medium,Large}`;
+			const expected = `enum Size {
+  Small,
+  Medium,
+  Large
+}`;
+			const result = await format(input, { singleQuote: true, trailingComma: 'none' });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format enums with string values', async () => {
+			const input = `enum Colors{Red='red',Green='green',Blue='blue'}`;
+			const expected = `enum Colors {
+  Red = 'red',
+  Green = 'green',
+  Blue = 'blue',
+}`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep the return type annotation intact on an arrow function', async () => {
+			const expected = `const getParams = (): Params<T> => ({});
+interface Params<T> {}`;
+
+			const result = await format(expected, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('regex formatting', () => {
@@ -1493,10 +1817,13 @@ component RowList({ rows, Row }) {
   <div>{String(result)}</div>
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
-
 		});
 
 		it('preserves multiple regex patterns', async () => {
@@ -1507,7 +1834,11 @@ component RowList({ rows, Row }) {
   let allTags = html.split(/<br>/);
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
 		});
@@ -1519,7 +1850,11 @@ component RowList({ rows, Row }) {
   let simpleRegex = /<br>/g;
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
 		});
@@ -1533,7 +1868,11 @@ component RowList({ rows, Row }) {
   </div>
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
 		});
@@ -1545,9 +1884,812 @@ component RowList({ rows, Row }) {
   let simplePattern = text.match(/<>/);
 }`;
 
-			const result = await format(expected, { singleQuote: true, arrowParens: 'always', printWidth: 100 });
+			const result = await format(expected, {
+				singleQuote: true,
+				arrowParens: 'always',
+				printWidth: 100,
+			});
 
 			expect(result).toBeWithNewline(expected);
 		});
 	});
+
+	describe('blank line rules', () => {
+		describe('Rule A: Collapse multiple blank lines to one', () => {
+			it('collapses multiple blank lines between statements', async () => {
+				const input = `export component App() {
+  let a = 1;
+
+
+  let b = 2;
+}`;
+
+				const expected = `export component App() {
+  let a = 1;
+
+  let b = 2;
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('collapses multiple blank lines in element children', async () => {
+				const input = `export component App() {
+  <div>
+    <span>{'First'}</span>
+
+
+    <span>{'Second'}</span>
+  </div>
+}`;
+
+				const expected = `export component App() {
+  <div>
+    <span>{'First'}</span>
+
+    <span>{'Second'}</span>
+  </div>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+		});
+
+		describe('Rule B: Remove leading/trailing blank lines at file and block boundaries', () => {
+			it('remove all blank lines in empty statement', async () => {
+				const input = `export component App() {
+
+
+
+}`;
+
+				const expected = `export component App() {}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes leading blank line at file start', async () => {
+				const input = `
+
+export component App() {
+  let x = 1;
+}`;
+
+				const expected = `export component App() {
+  let x = 1;
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes trailing blank line at file end (preserves single newline)', async () => {
+				const input = `export component App() {
+  let x = 1;
+}
+
+`;
+
+				const expected = `export component App() {
+  let x = 1;
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes blank lines immediately after opening brace', async () => {
+				const input = `export component App() {
+
+  let x = 1;
+  let y = 2;
+}`;
+
+				const expected = `export component App() {
+  let x = 1;
+  let y = 2;
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes blank lines immediately before closing brace', async () => {
+				const input = `export component App() {
+  let x = 1;
+  let y = 2;
+
+}`;
+
+				const expected = `export component App() {
+  let x = 1;
+  let y = 2;
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes leading blank line inside if block', async () => {
+				const input = `export component App() {
+  if (true) {
+
+    console.log('test');
+  }
+}`;
+
+				const expected = `export component App() {
+  if (true) {
+    console.log('test');
+  }
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes trailing blank line inside if block', async () => {
+				const input = `export component App() {
+  if (true) {
+    console.log('test');
+
+  }
+}`;
+
+				const expected = `export component App() {
+  if (true) {
+    console.log('test');
+  }
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+		});
+
+		describe('Rule C: Preserve internal blank lines in multi-line structures', () => {
+			it('preserves blank lines between array elements when multi-line', async () => {
+				const input = `export component App() {
+  let arr = [
+    1,
+
+    2,
+
+    3
+  ];
+}`;
+
+				const expected = `export component App() {
+  let arr = [
+    1,
+
+    2,
+
+    3,
+  ];
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('preserves blank lines between object properties when multi-line', async () => {
+				const input = `export component App() {
+  let obj = {
+    a: 1,
+
+    b: 2,
+
+    c: 3
+  };
+}`;
+
+				const expected = `export component App() {
+  let obj = {
+    a: 1,
+
+    b: 2,
+
+    c: 3,
+  };
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('preserves blank lines between function parameters when multi-line', async () => {
+				const input = `export component App() {
+  function test(
+    a,
+
+    b,
+
+    c
+  ) {
+    return a + b + c;
+  }
+}`;
+
+				const expected = `export component App() {
+  function test(
+    a,
+
+    b,
+
+    c
+  ) {
+    return a + b + c;
+  }
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('preserves blank lines between call arguments when multi-line', async () => {
+				const input = `export component App() {
+  console.log(
+    'first',
+
+    'second',
+
+    'third'
+  );
+}`;
+
+				const expected = `export component App() {
+  console.log(
+    'first',
+
+    'second',
+
+    'third'
+  );
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('preserves blank lines between JSX element children', async () => {
+				const input = `export component App() {
+  <div>
+    <span>{'First'}</span>
+
+    <span>{'Second'}</span>
+
+    <span>{'Third'}</span>
+  </div>
+}`;
+
+				const expected = `export component App() {
+  <div>
+    <span>{'First'}</span>
+
+    <span>{'Second'}</span>
+
+    <span>{'Third'}</span>
+  </div>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+		});
+
+		describe('Rule D: Remove blank lines immediately after opening or before closing delimiters', () => {
+			it('removes blank line immediately after opening paren in params', async () => {
+				const input = `export component App() {
+  function foo(
+
+    a,
+    b
+  ) {
+    return a + b;
+  }
+}`;
+
+				const expected = `export component App() {
+  function foo(a, b) {
+    return a + b;
+  }
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes blank line immediately before closing paren in params', async () => {
+				const input = `export component App() {
+  function foo(
+    a,
+    b
+
+  ) {
+    return a + b;
+  }
+}`;
+
+				const expected = `export component App() {
+  function foo(a, b) {
+    return a + b;
+  }
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes blank line immediately after opening paren in call', async () => {
+				const input = `export component App() {
+  foo(
+
+    'a',
+    'b'
+  );
+}`;
+
+				const expected = `export component App() {
+  foo('a', 'b');
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes blank line immediately after opening bracket in array', async () => {
+				const input = `export component App() {
+  let arr = [
+
+    1,
+    2,
+    3
+  ];
+}`;
+
+				const expected = `export component App() {
+  let arr = [1, 2, 3];
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes blank line immediately before closing bracket in array', async () => {
+				const input = `export component App() {
+  let arr = [
+    1,
+    2,
+    3
+
+  ];
+}`;
+
+				const expected = `export component App() {
+  let arr = [1, 2, 3];
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes blank line immediately after opening brace in object', async () => {
+				const input = `export component App() {
+  let obj = {
+
+    a: 1,
+    b: 2
+  };
+}`;
+
+				const expected = `export component App() {
+  let obj = {
+    a: 1,
+    b: 2,
+  };
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('removes blank line immediately before closing brace in object', async () => {
+				const input = `export component App() {
+  let obj = {
+    a: 1,
+    b: 2
+
+  };
+}`;
+
+				const expected = `export component App() {
+  let obj = {
+    a: 1,
+    b: 2,
+  };
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+		});
+
+		describe('Combined rules: preserve internal, remove leading/trailing', () => {
+			it('preserves internal blank lines but removes leading/trailing in params', async () => {
+				const input = `export component App() {
+  function foo(
+
+    a,
+
+    b,
+
+    c
+
+  ) {
+    return a + b + c;
+  }
+}`;
+
+				const expected = `export component App() {
+  function foo(
+    a,
+
+    b,
+
+    c
+  ) {
+    return a + b + c;
+  }
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('preserves internal blank lines but removes leading/trailing in arrays', async () => {
+				const input = `export component App() {
+  let arr = [
+
+    1,
+
+    2,
+
+    3
+
+  ];
+}`;
+
+				const expected = `export component App() {
+  let arr = [
+    1,
+
+    2,
+
+    3,
+  ];
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('preserves internal blank lines but removes leading/trailing in objects', async () => {
+				const input = `export component App() {
+  let obj = {
+
+    a: 1,
+
+    b: 2,
+
+    c: 3
+
+  };
+}`;
+
+				const expected = `export component App() {
+  let obj = {
+    a: 1,
+
+    b: 2,
+
+    c: 3,
+  };
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+		});
+
+		describe('Statement-level blank lines (should be preserved)', () => {
+			it('preserves blank lines between top-level statements', async () => {
+				const input = `export component App() {
+  let x = 1;
+
+  let y = 2;
+
+  console.log(x, y);
+}`;
+
+				const expected = `export component App() {
+  let x = 1;
+
+  let y = 2;
+
+  console.log(x, y);
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('preserves blank lines between class members', async () => {
+				const input = `class Foo {
+  method1() {
+    return 1;
+  }
+
+  method2() {
+    return 2;
+  }
+
+  method3() {
+    return 3;
+  }
+}`;
+
+				const expected = `class Foo {
+  method1() {
+    return 1;
+  }
+
+  method2() {
+    return 2;
+  }
+
+  method3() {
+    return 3;
+  }
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+		});
+
+		describe('Arrays with printWidth constraints', () => {
+			it('inlines array elements when they fit within printWidth', async () => {
+				const input = `export component App() {
+  let arr = [1, 2, 3, 4, 5,
+
+    6, 7,
+
+    8];
+}`;
+
+				const expected = `export component App() {
+  let arr = [
+    1, 2, 3, 4, 5,
+
+    6, 7,
+
+    8,
+  ];
+}`;
+
+				const result = await format(input, { singleQuote: true, printWidth: 100 });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			// Note: Known limitation - fill() doesn't account for parent bracket breaking
+			// With very small printWidth, bracket should break adding extra indent
+			// but fill() calculates widths before knowing about parent break
+			it('breaks array elements when they exceed printWidth 10', async () => {
+				const input = `export component App() {
+  let arr = [1, 2, 3, 4, 5,
+
+    6, 7,
+
+    8];
+}`;
+
+				// With printWidth 10, all elements break to separate lines
+				// Because even "6, 7," is 5 chars + indentation = exceeds 10
+				const expected = `export component App() {
+  let arr =
+    [
+      1,
+      2,
+      3,
+      4,
+      5,
+
+      6,
+      7,
+
+      8,
+    ];
+}`;
+
+				const result = await format(input, { singleQuote: true, printWidth: 10 });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('fits elements on same line with printWidth 11', async () => {
+				const input = `export component App() {
+  let arr = [1, 2, 3, 4, 5,
+
+    6, 7,
+
+    8];
+}`;
+
+				// With printWidth 11: "    6, 7," is exactly 9 chars, should fit
+				const expected = `export component App() {
+  let arr =
+    [
+      1, 2,
+      3, 4,
+      5,
+
+      6, 7,
+
+      8,
+    ];
+}`;
+
+				const result = await format(input, { singleQuote: true, printWidth: 11 });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('fits more elements with printWidth 15', async () => {
+				const input = `export component App() {
+  let arr = [1, 2, 3, 4, 5,
+
+    6, 7,
+
+    8];
+}`;
+
+				// With printWidth 15: "    1, 2, 3," is 12 chars, should fit 1, 2, 3 together
+				const expected = `export component App() {
+  let arr = [
+    1, 2, 3, 4,
+    5,
+
+    6, 7,
+
+    8,
+  ];
+}`;
+
+				const result = await format(input, { singleQuote: true, printWidth: 15 });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('fits even more elements with printWidth 18', async () => {
+				const input = `export component App() {
+  let arr = [1, 2, 3, 4, 5,
+
+    6, 7,
+
+    8];
+}`;
+
+				// With printWidth 18: "    1, 2, 3, 4," is 15 chars, should fit 1, 2, 3, 4 together
+				const expected = `export component App() {
+  let arr = [
+    1, 2, 3, 4, 5,
+
+    6, 7,
+
+    8,
+  ];
+}`;
+
+				const result = await format(input, { singleQuote: true, printWidth: 18 });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('places each object on its own line when array contains objects where each has multiple properties', async () => {
+				const input = `export component App() {
+  let arr = [{ a: 1, b: 2 }, { c: 3, d: 4 }, { e: 5, f: 6 }];
+}`;
+
+				// Each object should be on its own line when all objects have >1 property
+				const expected = `export component App() {
+  let arr = [
+    { a: 1, b: 2 },
+    { c: 3, d: 4 },
+    { e: 5, f: 6 },
+  ];
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('allows inline when array has single-property objects', async () => {
+				const input = `export component App() {
+  let arr = [{ a: 1 }, { b: 2 }, { c: 3 }];
+}`;
+
+				// Single-property objects can stay inline
+				const expected = `export component App() {
+  let arr = [{ a: 1 }, { b: 2 }, { c: 3 }];
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('allows inline when array has mix of single and multi-property objects', async () => {
+				const input = `export component App() {
+  let arr = [{ a: 1 }, { b: 2, c: 3 }, { d: 4 }];
+}`;
+
+				// Mixed property counts - can stay inline (rule only applies when ALL objects have >1 property)
+				const expected = `export component App() {
+  let arr = [{ a: 1 }, { b: 2, c: 3 }, { d: 4 }];
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('respects original formatting when array has mixture of inline and multi-line objects', async () => {
+				const input = `export component App() {
+  let arr = [{ a: 1, b: 2 }, {
+    c: 3,
+    d: 4
+  }, { e: 5, f: 6 }];
+}`;
+
+				// Objects originally inline stay inline, originally multi-line stay multi-line
+				// Each object on its own line because all have >1 property
+				const expected = `export component App() {
+  let arr = [
+    { a: 1, b: 2 },
+    {
+      c: 3,
+      d: 4,
+    },
+    { e: 5, f: 6 },
+  ];
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+		});
+
+	describe('<tsx:react>', () => {
+		it('should format JSX inside <tsx:react> tags', async () => {
+			const input = `component App() {
+	<div>
+		<h1>{"Hello, from Ripple!"}</h1>
+		<tsx:react>
+			<div className="123">Welcome from React!</div>
+		</tsx:react>
+	</div>
+}`;
+
+			const expected = `component App() {
+  <div>
+    <h1>{'Hello, from Ripple!'}</h1>
+    <tsx:react>
+      <div className="123">Welcome from React!</div>
+    </tsx:react>
+  </div>
+}`;
+
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+	});
+});
 });

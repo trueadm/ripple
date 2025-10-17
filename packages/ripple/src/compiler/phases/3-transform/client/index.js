@@ -150,6 +150,21 @@ function visit_title_element(node, context) {
 	}
 }
 
+/**
+ * @param {string} name
+ * @param {any} context
+ * @returns {string}
+ */
+function import_from_ripple_if_needed(name, context) {
+	const alias = context.state.ripple_user_imports?.get?.(name);
+
+	if (!alias && !context.state.imports.has(`import { ${name} } from 'ripple'`)) {
+		context.state.imports.add(`import { ${name} } from 'ripple'`);
+	}
+
+	return alias ?? name;
+}
+
 const visitors = {
 	_: function set_scope(node, { next, state }) {
 		const scope = state.scopes.get(node);
@@ -335,6 +350,23 @@ const visitors = {
 			if (!context.state.to_ts) {
 				delete node.typeArguments;
 			}
+
+			// Special handling for TrackedMapExpression and TrackedSetExpression
+			// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
+			// and the actual arguments are in NewExpression.arguments
+			// We need to merge them before transforming
+			if (
+				context.state.to_ts &&
+				(callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression')
+			) {
+				// If the callee has empty arguments, use the NewExpression's arguments instead
+				if (callee.arguments.length === 0 && node.arguments.length > 0) {
+					callee.arguments = node.arguments;
+				}
+				// Transform the tracked expression directly - it will return a NewExpression
+				return context.visit(callee);
+			}
+
 			return context.next();
 		}
 
@@ -352,13 +384,11 @@ const visitors = {
 
 	TrackedArrayExpression(node, context) {
 		if (context.state.to_ts) {
-			if (!context.state.imports.has(`import { TrackedArray } from 'ripple'`)) {
-				context.state.imports.add(`import { TrackedArray } from 'ripple'`);
-			}
+			const arrayAlias = import_from_ripple_if_needed("TrackedArray", context);
 
 			return b.call(
-				b.member(b.id('TrackedArray'), b.id('from')),
-				...node.elements.map((el) => context.visit(el)),
+				b.member(b.id(arrayAlias), b.id('from')),
+				b.array(node.elements.map((el) => context.visit(el))),
 			);
 		}
 
@@ -371,12 +401,10 @@ const visitors = {
 
 	TrackedObjectExpression(node, context) {
 		if (context.state.to_ts) {
-			if (!context.state.imports.has(`import { TrackedObject } from 'ripple'`)) {
-				context.state.imports.add(`import { TrackedObject } from 'ripple'`);
-			}
+			const objectAlias = import_from_ripple_if_needed("TrackedObject", context);
 
 			return b.new(
-				b.id('TrackedObject'),
+				b.id(objectAlias),
 				b.object(node.properties.map((prop) => context.visit(prop))),
 			);
 		}
@@ -390,11 +418,9 @@ const visitors = {
 
 	TrackedMapExpression(node, context) {
 		if (context.state.to_ts) {
-			if (!context.state.imports.has(`import { TrackedMap } from 'ripple'`)) {
-				context.state.imports.add(`import { TrackedMap } from 'ripple'`);
-			}
+			const mapAlias = import_from_ripple_if_needed('TrackedMap', context);
 
-			const calleeId = b.id('TrackedMap');
+			const calleeId = b.id(mapAlias);
 			// Preserve location from original node for Volar mapping
 			calleeId.loc = node.loc;
 			// Add metadata for Volar mapping - map "TrackedMap" identifier to "#Map" in source
@@ -411,11 +437,9 @@ const visitors = {
 
 	TrackedSetExpression(node, context) {
 		if (context.state.to_ts) {
-			if (!context.state.imports.has(`import { TrackedSet } from 'ripple'`)) {
-				context.state.imports.add(`import { TrackedSet } from 'ripple'`);
-			}
+			const setAlias = import_from_ripple_if_needed('TrackedSet', context);
 
-			const calleeId = b.id('TrackedSet');
+			const calleeId = b.id(setAlias);
 			// Preserve location from original node for Volar mapping
 			calleeId.loc = node.loc;
 			// Add metadata for Volar mapping - map "TrackedSet" identifier to "#Set" in source
@@ -524,6 +548,88 @@ const visitors = {
 		return visit_function(node, context);
 	},
 
+	JSXText(node, context) {
+		return b.literal(node.value + '');
+	},
+
+	JSXIdentifier(node, context) {
+		return b.id(node.name);
+	},
+
+	JSXExpressionContainer(node, context) {
+		return context.visit(node.expression);
+	},
+
+	JSXElement(node, context) {
+		const name = node.openingElement.name;
+		const attributes = node.openingElement.attributes;
+		const normalized_children = node.children.filter((child) => {
+			return child.type !== 'JSXText' || child.value.trim() !== '';
+		});
+
+		const props = b.object(
+			attributes.map((attr) => {
+				if (attr.type === 'JSXAttribute') {
+					return b.prop('init', context.visit(attr.name), context.visit(attr.value));
+				} else if (attr.type === 'JSXSpreadAttribute') {
+					return b.spread(context.visit(attr.argument));
+				}
+			}),
+		);
+
+		if (normalize_children.length > 0) {
+			props.properties.push(
+				b.prop(
+					'init',
+					b.id('children'),
+					normalized_children.length === 1
+						? context.visit(normalized_children[0])
+						: b.array(normalized_children.map((child) => context.visit(child))),
+				),
+			);
+		}
+
+		return b.call(
+			'__compat.jsx',
+			name.type === 'JSXIdentifier' && name.name[0].toLowerCase() === name.name[0]
+				? b.literal(name.name)
+				: context.visit(name),
+			props,
+		);
+	},
+
+	TsxCompat(node, context) {
+		const { state, visit } = context;
+
+		state.template.push('<!>');
+
+		const normalized_children = node.children.filter((child) => {
+			return child.type !== 'JSXText' || child.value.trim() !== '';
+		});
+		const needs_fragment = normalized_children.length !== 1;
+		const id = state.flush_node();
+		const children_fn = b.arrow(
+			[b.id('__compat')],
+			needs_fragment
+				? b.call(
+						'__compat._jsxs',
+						b.id('__compat.Fragment'),
+						b.object([
+							b.prop(
+								'init',
+								b.id('children'),
+								b.array(normalized_children.map((child) => visit(child, state))),
+							),
+						]),
+					)
+				: visit(normalized_children[0], state),
+		);
+
+		context.state.init.push(
+			b.stmt(b.call('_$_.tsx_compat', b.literal(node.kind), id, children_fn)),
+		);
+	},
+
 	Element(node, context) {
 		const { state, visit } = context;
 
@@ -551,9 +657,10 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${is_boolean_attribute(name) && value === true
-					? ''
-					: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${
+					is_boolean_attribute(name) && value === true
+						? ''
+						: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -903,8 +1010,18 @@ const visitors = {
 				}
 			}
 
-			if (state.component.css) {
-				props.push(b.prop('init', b.key('#class'), b.literal(state.component.css.hash)));
+			if (node.metadata.scoped && state.component.css) {
+				const hasClassAttr = node.attributes.some(
+					(attr) =>
+						attr.type === 'Attribute' &&
+						attr.name.type === 'Identifier' &&
+						attr.name.name === 'class',
+				);
+				if (!hasClassAttr) {
+					const name = is_spreading ? '#class' : 'class';
+					const value = state.component.css.hash;
+					props.push(b.prop('init', b.key(name), b.literal(value)));
+				}
 			}
 
 			const children_filtered = [];
@@ -1059,10 +1176,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */(context.visit(left)),
-							/** @type {Expression} */(context.visit(right)),
-					),
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */ (context.visit(left)),
+							/** @type {Expression} */ (context.visit(right)),
+						),
 				b.id('__block'),
 			);
 		}
@@ -1078,12 +1195,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */(
-							context.visit(left, { ...context.state, metadata: { tracking: false } })
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */ (
+								context.visit(left, { ...context.state, metadata: { tracking: false } })
+							),
+							/** @type {Expression} */ (context.visit(right)),
 						),
-							/** @type {Expression} */(context.visit(right)),
-					),
 				b.id('__block'),
 			);
 		}
@@ -1290,12 +1407,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-										b.call(
-											b.id('__render'),
-											b.id(alternate_id),
-											node.alternate ? b.literal(false) : undefined,
-										),
-									)
+											b.call(
+												b.id('__render'),
+												b.id(alternate_id),
+												node.alternate ? b.literal(false) : undefined,
+											),
+										)
 									: undefined,
 							),
 						]),
@@ -1372,9 +1489,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-							b.block(transform_body(node.handler.body.body, context)),
-						),
+								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+								b.block(transform_body(node.handler.body.body, context)),
+							),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1500,7 +1617,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
 	}
 
 	quasi.tail = true;
@@ -1553,12 +1670,12 @@ function transform_ts_child(node, context) {
 				const argument = visit(attr.argument, { ...state, metadata });
 				return b.jsx_spread_attribute(argument);
 			} else if (attr.type === 'RefAttribute') {
-				if (!context.state.imports.has(`import { createRefKey } from 'ripple'`)) {
-					context.state.imports.add(`import { createRefKey } from 'ripple'`);
-				}
+				const createRefKeyAlias = import_from_ripple_if_needed('createRefKey', context);
 				const metadata = { await: false };
 				const argument = visit(attr.argument, { ...state, metadata });
-				const wrapper = b.object([b.prop('init', b.call('createRefKey'), argument, true)]);
+				const wrapper = b.object(
+					[b.prop('init', b.call(createRefKeyAlias), argument, true)]
+				);
 				return b.jsx_spread_attribute(wrapper);
 			}
 		});
@@ -1839,6 +1956,8 @@ function transform_children(children, context) {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'HeadElement') {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
+			} else if (node.type === 'TsxCompat') {
+				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'Html') {
 				const metadata = { tracking: false, await: false };
 				const expression = visit(node.expression, { ...state, metadata });
@@ -1964,9 +2083,75 @@ function transform_body(body, { visit, state }) {
 	return [...body_state.setup, ...body_state.init, ...body_state.final];
 }
 
+/**
+ * Create a TSX language handler with enhanced TypeScript support
+ * @returns {Object} TSX language handler with TypeScript return type support
+ */
+function create_tsx_with_typescript_support() {
+	const base_tsx = tsx();
+
+	// Override the ArrowFunctionExpression handler to support TypeScript return types
+	return {
+		...base_tsx,
+		ArrowFunctionExpression(node, context) {
+			if (node.async) context.write('async ');
+
+			context.write('(');
+			// Visit each parameter
+			for (let i = 0; i < node.params.length; i++) {
+				if (i > 0) context.write(', ');
+				context.visit(node.params[i]);
+			}
+			context.write(')');
+
+			// Add TypeScript return type annotation if present
+			if (node.returnType) {
+				context.visit(node.returnType);
+			}
+
+			context.write(' => ');
+
+			if (
+				node.body.type === 'ObjectExpression' ||
+				(node.body.type === 'AssignmentExpression' && node.body.left.type === 'ObjectPattern') ||
+				(node.body.type === 'LogicalExpression' && node.body.left.type === 'ObjectExpression') ||
+				(node.body.type === 'ConditionalExpression' && node.body.test.type === 'ObjectExpression')
+			) {
+				context.write('(');
+				context.visit(node.body);
+				context.write(')');
+			} else {
+				context.visit(node.body);
+			}
+		}
+	};
+}
+
 export function transform_client(filename, source, analysis, to_ts) {
+	/**
+	 * User's named imports from 'ripple' so we can reuse them in TS output
+	 * when transforming shorthand syntax. E.g., if the user has already imported
+	 * TrackedArray, we want to reuse that import instead of importing it again
+	 * if we encounter `#[]`. It's a Map of export name to local name in case the
+	 * user renamed something when importing.
+	 * @type {Map<string, string>}
+	 */
+	const ripple_user_imports = new Map(); // exported -> local
+	if (analysis && analysis.ast && Array.isArray(analysis.ast.body)) {
+		for (const stmt of analysis.ast.body) {
+			if (stmt && stmt.type === 'ImportDeclaration' && stmt.source && stmt.source.value === 'ripple') {
+				for (const spec of stmt.specifiers || []) {
+					if (spec.type === 'ImportSpecifier' && spec.imported && spec.local) {
+						ripple_user_imports.set(spec.imported.name, spec.local.name);
+					}
+				}
+			}
+		}
+	}
+
 	const state = {
 		imports: new Set(),
+		ripple_user_imports,
 		events: new Set(),
 		template: null,
 		hoisted: [],
@@ -1983,7 +2168,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 	};
 
 	const program = /** @type {Program} */ (
-		walk(/** @type {Node} */(analysis.ast), { ...state, namespace: 'html' }, visitors)
+		walk(/** @type {Node} */ (analysis.ast), { ...state, namespace: 'html' }, visitors)
 	);
 
 	for (const hoisted of state.hoisted) {
@@ -2002,7 +2187,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 		);
 	}
 
-	const js = print(program, tsx(), {
+	const js = print(program, to_ts ? create_tsx_with_typescript_support() : tsx(), {
 		sourceMapContent: source,
 		sourceMapSource: path.basename(filename),
 	});

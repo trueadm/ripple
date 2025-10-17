@@ -120,6 +120,18 @@ export interface Element extends Omit<Node, 'type'> {
 }
 
 /**
+ * TSX compatibility node for elements with namespaces like <tsx:react>
+ * Note: TsxCompat elements cannot be self-closing and must have a closing tag
+ */
+export interface TsxCompat extends Omit<Node, 'type'> {
+	type: 'TsxCompat';
+	kind: string;
+	attributes: Array<Attribute | SpreadAttribute>;
+	children: Node[];
+	metadata: any;
+}
+
+/**
  * Ripple attribute node
  */
 export interface Attribute {

@@ -15,12 +15,12 @@
     "test": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "bump:major": "node scripts/bump-version.cjs major",
-    "bump:minor": "node scripts/bump-version.cjs minor",
-    "bump:patch": "node scripts/bump-version.cjs patch",
-    "bump:vscode:major": "node scripts/bump-version.cjs major vscode",
-    "bump:vscode:minor": "node scripts/bump-version.cjs minor vscode",
-    "bump:vscode:patch": "node scripts/bump-version.cjs patch vscode"
+    "bump:major": "node scripts/bump-version.js major",
+    "bump:minor": "node scripts/bump-version.js minor",
+    "bump:patch": "node scripts/bump-version.js patch",
+    "bump:vscode:major": "node scripts/bump-version.js major vscode",
+    "bump:vscode:minor": "node scripts/bump-version.js minor vscode",
+    "bump:vscode:patch": "node scripts/bump-version.js patch vscode"
   },
   "devDependencies": {
     "jsdom": "catalog:default",

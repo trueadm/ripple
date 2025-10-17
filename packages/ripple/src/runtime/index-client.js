@@ -1,4 +1,4 @@
-/** @import { Block } from '#client' */
+/** @import { Block, CompatOptions } from '#client' */
 
 import { destroy_block, root } from './internal/client/blocks.js';
 import { handle_root_events } from './internal/client/events.js';
@@ -12,7 +12,7 @@ export { jsx, jsxs, Fragment } from '../jsx-runtime.js';
 
 /**
  * @param {(anchor: Node, props: Record<string, any>, active_block: Block | null) => void} component
- * @param {{ props?: Record<string, any>, target: HTMLElement }} options
+ * @param {{ props?: Record<string, any>, target: HTMLElement, compat?: CompatOptions }} options
  * @returns {() => void}
  */
 export function mount(component, options) {
@@ -34,7 +34,7 @@ export function mount(component, options) {
 
 	const _root = root(() => {
 		component(anchor, props, active_block);
-	});
+	}, options.compat);
 
 	return () => {
 		cleanup_events();

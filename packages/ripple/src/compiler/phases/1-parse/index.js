@@ -1,3 +1,4 @@
+// @ts-nocheck
 /** @import { Program } from 'estree' */
 /** @import {
  *   CommentWithLocation,
@@ -28,6 +29,14 @@ function convert_from_jsx(node) {
 	return node;
 }
 
+function isWhitespaceTextNode(node) {
+	if (!node || node.type !== 'Text') {
+		return false;
+	}
+	const value = typeof node.value === 'string' ? node.value : typeof node.raw === 'string' ? node.raw : '';
+	return /^\s*$/.test(value);
+}
+
 /**
  * Acorn parser plugin for Ripple syntax extensions
  * @param {RipplePluginConfig} [config] - Plugin configuration
@@ -42,6 +51,37 @@ function RipplePlugin(config) {
 		class RippleParser extends Parser {
 			/** @type {any[]} */
 			#path = [];
+			#commentContextId = 0;
+
+			#createCommentMetadata() {
+				if (this.#path.length === 0) {
+					return null;
+				}
+
+				const container = this.#path[this.#path.length - 1];
+				if (!container || container.type !== 'Element') {
+					return null;
+				}
+
+				const children = Array.isArray(container.children) ? container.children : [];
+				const hasMeaningfulChildren = children.some((child) => child && !isWhitespaceTextNode(child));
+
+				if (hasMeaningfulChildren) {
+					return null;
+				}
+
+				container.metadata ??= {};
+				if (container.metadata.commentContainerId === undefined) {
+					container.metadata.commentContainerId = ++this.#commentContextId;
+				}
+
+				return {
+					containerId: container.metadata.commentContainerId,
+					containerType: container.type,
+					childIndex: children.length,
+					beforeMeaningfulChild: !hasMeaningfulChildren,
+				};
+			}
 
 			/**
 			 * Helper method to get the element name from a JSX identifier or member expression
@@ -107,7 +147,8 @@ function RipplePlugin(config) {
 						// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
 						// At component top-level (scopeStack.length <= 4), apply JSX detection logic
 						// BUT: if the < is followed by /, it's a closing JSX tag, not a less-than operator
-						const nextChar = this.pos + 1 < this.input.length ? this.input.charCodeAt(this.pos + 1) : -1;
+						const nextChar =
+							this.pos + 1 < this.input.length ? this.input.charCodeAt(this.pos + 1) : -1;
 						const isClosingTag = nextChar === 47; // '/'
 
 						if (this.scopeStack.length >= 5 && !isClosingTag) {
@@ -169,15 +210,19 @@ function RipplePlugin(config) {
 
 						// Check if this is #Map or #Set
 						if (this.input.slice(this.pos, this.pos + 4) === '#Map') {
-							const charAfter = this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
-							if (charAfter === 40) { // ( character
+							const charAfter =
+								this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
+							if (charAfter === 40) {
+								// ( character
 								this.pos += 4; // consume '#Map'
 								return this.finishToken(tt.name, '#Map');
 							}
 						}
 						if (this.input.slice(this.pos, this.pos + 4) === '#Set') {
-							const charAfter = this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
-							if (charAfter === 40) { // ( character
+							const charAfter =
+								this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
+							if (charAfter === 40) {
+								// ( character
 								this.pos += 4; // consume '#Set'
 								return this.finishToken(tt.name, '#Set');
 							}
@@ -206,12 +251,18 @@ function RipplePlugin(config) {
 						// Check if this is an invalid #Identifier pattern
 						// Valid patterns: #[, #{, #Map(, #Set(, #server
 						// If we see # followed by an uppercase letter that isn't Map or Set, it's an error
-						if (nextChar >= 65 && nextChar <= 90) { // A-Z
+						if (nextChar >= 65 && nextChar <= 90) {
+							// A-Z
 							// Extract the identifier name
 							let identEnd = this.pos + 1;
 							while (identEnd < this.input.length) {
 								const ch = this.input.charCodeAt(identEnd);
-								if ((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122) || (ch >= 48 && ch <= 57) || ch === 95) {
+								if (
+									(ch >= 65 && ch <= 90) ||
+									(ch >= 97 && ch <= 122) ||
+									(ch >= 48 && ch <= 57) ||
+									ch === 95
+								) {
 									// A-Z, a-z, 0-9, _
 									identEnd++;
 								} else {
@@ -220,7 +271,10 @@ function RipplePlugin(config) {
 							}
 							const identName = this.input.slice(this.pos + 1, identEnd);
 							if (identName !== 'Map' && identName !== 'Set') {
-								this.raise(this.pos, `Invalid tracked syntax '#${identName}'. Only #Map and #Set are currently supported using shorthand tracked syntax.`);
+								this.raise(
+									this.pos,
+									`Invalid tracked syntax '#${identName}'. Only #Map and #Set are currently supported using shorthand tracked syntax.`,
+								);
 							}
 						}
 					}
@@ -501,10 +555,27 @@ function RipplePlugin(config) {
 			parseTrackedCollectionExpression(type) {
 				const node = this.startNode();
 				this.next(); // consume '#Map' or '#Set'
+
+				// Check if we should NOT consume the parentheses
+				// This happens when #Map/#Set appears as a callee in 'new #Map(...)'
+				// In this case, the parentheses and arguments belong to the NewExpression
+				// We detect this by checking if next token is '(' but we just consumed a token
+				// that came right after 'new' keyword (indicated by context or recent token)
+
+				// Simple heuristic: if the input around our start position looks like 'new #Map('
+				// then don't consume the parens
+				const beforeStart = this.input.substring(Math.max(0, node.start - 5), node.start);
+				const isAfterNew = /new\s*$/.test(beforeStart);
+
+				if (isAfterNew && this.type === tt.parenL) {
+					// Don't consume parens - they belong to NewExpression
+					node.arguments = [];
+					return this.finishNode(node, type);
+				}
+
 				this.expect(tt.parenL); // expect '('
 
 				node.arguments = [];
-
 				// Parse arguments similar to function call arguments
 				let first = true;
 				while (!this.eat(tt.parenR)) {
@@ -923,9 +994,13 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'JSXIdentifier');
 			}
 
-			// Override jsx_parseElementName to support @ syntax in member expressions
 			jsx_parseElementName() {
-				let node = this.jsx_parseIdentifier();
+				let node = this.jsx_parseNamespacedName();
+
+				if (node.type === 'JSXNamespacedName') {
+					return node;
+				}
+
 				if (this.eat(tt.dot)) {
 					let memberExpr = this.startNodeAt(node.start, node.loc && node.loc.start);
 					memberExpr.object = node;
@@ -1002,11 +1077,15 @@ function RipplePlugin(config) {
 			}
 
 			jsx_readToken() {
+				const inside_tsx_compat = this.#path.findLast((n) => n.type === 'TsxCompat');
+				if (inside_tsx_compat) {
+					return super.jsx_readToken();
+				}
 				let out = '',
 					chunkStart = this.pos;
 				const tok = this.acornTypeScript.tokTypes;
 
-				for (;;) {
+				while (true) {
 					if (this.pos >= this.input.length) this.raise(this.start, 'Unterminated JSX contents');
 					let ch = this.input.charCodeAt(this.pos);
 
@@ -1044,6 +1123,7 @@ function RipplePlugin(config) {
 
 								// Call onComment if it exists
 								if (this.options.onComment) {
+									const metadata = this.#createCommentMetadata();
 									this.options.onComment(
 										false,
 										commentText,
@@ -1051,6 +1131,7 @@ function RipplePlugin(config) {
 										commentEnd,
 										startLoc,
 										endLoc,
+										metadata,
 									);
 								}
 
@@ -1081,6 +1162,7 @@ function RipplePlugin(config) {
 
 								// Call onComment if it exists
 								if (this.options.onComment) {
+									const metadata = this.#createCommentMetadata();
 									this.options.onComment(
 										true,
 										commentText,
@@ -1088,6 +1170,7 @@ function RipplePlugin(config) {
 										commentEnd,
 										startLoc,
 										endLoc,
+										metadata,
 									);
 								}
 
@@ -1161,10 +1244,29 @@ function RipplePlugin(config) {
 				element.start = position.index;
 				element.loc.start = position;
 				element.metadata = {};
-				element.type = 'Element';
-				this.#path.push(element);
 				element.children = [];
 				const open = this.jsx_parseOpeningElementAt();
+
+				// Check if this is a namespaced element (tsx:react)
+				const is_tsx_compat = open.name.type === 'JSXNamespacedName';
+
+				if (is_tsx_compat) {
+					element.type = 'TsxCompat';
+					element.kind = open.name.name.name; // e.g., "react" from "tsx:react"
+
+					if (open.selfClosing) {
+						const tagName = open.name.namespace.name + ':' + open.name.name.name;
+						this.raise(
+							open.start,
+							`TSX compatibility elements cannot be self-closing. '<${tagName} />' must have a closing tag '</${tagName}>'.`,
+						);
+					}
+				} else {
+					element.type = 'Element';
+				}
+
+				this.#path.push(element);
+
 				for (const attr of open.attributes) {
 					if (attr.type === 'JSXAttribute') {
 						attr.type = 'Attribute';
@@ -1178,14 +1280,18 @@ function RipplePlugin(config) {
 						}
 					}
 				}
-				if (open.name.type === 'JSXIdentifier') {
-					open.name.type = 'Identifier';
+
+				if (!is_tsx_compat) {
+					if (open.name.type === 'JSXIdentifier') {
+						open.name.type = 'Identifier';
+					}
+					element.id = convert_from_jsx(open.name);
+					element.selfClosing = open.selfClosing;
 				}
 
-				element.id = convert_from_jsx(open.name);
 				element.attributes = open.attributes;
-				element.selfClosing = open.selfClosing;
-				element.metadata = {};
+				element.metadata ??= {};
+				element.metadata.commentContainerId = ++this.#commentContextId;
 
 				if (element.selfClosing) {
 					this.#path.pop();
@@ -1233,11 +1339,13 @@ function RipplePlugin(config) {
 						const content = input.slice(0, end);
 
 						const component = this.#path.findLast((n) => n.type === 'Component');
+						const parsed_css = parse_style(content);
+
 						if (!inside_head) {
 							if (component.css !== null) {
 								throw new Error('Components can only have one style tag');
 							}
-							component.css = parse_style(content);
+							component.css = parsed_css;
 						}
 
 						const newLines = content.match(regex_newline_characters)?.length;
@@ -1256,11 +1364,10 @@ function RipplePlugin(config) {
 							this.#path.pop();
 							this.next();
 						}
-						// This node is used for Prettier, we don't actually need
-						// the node for Ripple's transform process
-						if (!inside_head) {
-							element.children = [component.css];
-						}
+						// This node is used for Prettier - always add parsed CSS as children
+						// for proper formatting, regardless of whether it's inside head or not
+						element.children = [parsed_css];
+
 						// Ensure we escape JSX <tag></tag> context
 						const tokContexts = this.acornTypeScript.tokContexts;
 						const curContext = this.curContext();
@@ -1277,10 +1384,40 @@ function RipplePlugin(config) {
 						this.parseTemplateBody(element.children);
 						this.exitScope();
 
-						// Check if this element was properly closed
-						// If we reach here and this element is still in the path, it means it was never closed
-						if (this.#path[this.#path.length - 1] === element) {
+						if (element.type === 'TsxCompat') {
+							this.#path.pop();
+
+							const raise_error = () => {
+								this.raise(this.start, `Expected closing tag '</tsx:${element.kind}>'`);
+							};
+
+							this.next();
+							// we should expect to see </tsx:kind>
+							if (this.value !== '/') {
+								raise_error();
+							}
+							this.next();
+							if (this.value !== 'tsx') {
+								raise_error();
+							}
+							this.next();
+							if (this.type.label !== ':') {
+								raise_error();
+							}
+							this.next();
+							if (this.value !== element.kind) {
+								raise_error();
+							}
+							this.next();
+							if (this.type.label !== 'jsxTagEnd') {
+								raise_error();
+							}
+							this.next();
+						} else if (this.#path[this.#path.length - 1] === element) {
+							// Check if this element was properly closed
+							// If we reach here and this element is still in the path, it means it was never closed
 							const tagName = this.getElementName(element.id);
+
 							this.raise(
 								this.start,
 								`Unclosed tag '<${tagName}>'. Expected '</${tagName}>' before end of component.`,
@@ -1296,13 +1433,14 @@ function RipplePlugin(config) {
 					}
 				}
 
-				this.finishNode(element, 'Element');
+				this.finishNode(element, element.type);
 				return element;
 			}
 
 			parseTemplateBody(body) {
-				var inside_func =
+				const inside_func =
 					this.context.some((n) => n.token === 'function') || this.scopeStack.length > 1;
+				const inside_tsx_compat = this.#path.findLast((n) => n.type === 'TsxCompat');
 
 				if (!inside_func) {
 					if (this.type.label === 'return') {
@@ -1313,6 +1451,19 @@ function RipplePlugin(config) {
 					}
 					if (this.type.label === 'break') {
 						throw new Error('`break` statements are not allowed in components');
+					}
+				}
+
+				if (inside_tsx_compat) {
+					this.exprAllowed = true;
+
+					while (true) {
+						const node = super.parseExpression();
+						body.push(node);
+
+						if (this.input.slice(this.pos, this.pos + 5) === '/tsx:') {
+							return;
+						}
 					}
 				}
 
@@ -1332,12 +1483,32 @@ function RipplePlugin(config) {
 
 						// Validate that the closing tag matches the opening tag
 						const currentElement = this.#path[this.#path.length - 1];
-						if (!currentElement || currentElement.type !== 'Element') {
+						if (
+							!currentElement ||
+							(currentElement.type !== 'Element' && currentElement.type !== 'TsxCompat')
+						) {
 							this.raise(this.start, 'Unexpected closing tag');
 						}
 
-						const openingTagName = this.getElementName(currentElement.id);
-						const closingTagName = this.getElementName(closingTag);
+						let openingTagName;
+						let closingTagName;
+
+						if (currentElement.type === 'TsxCompat') {
+							if (closingTag.type === 'JSXNamespacedName') {
+								openingTagName = 'tsx:' + currentElement.kind;
+								closingTagName = closingTag.namespace.name + ':' + closingTag.name.name;
+							} else {
+								openingTagName = 'tsx:' + currentElement.kind;
+								closingTagName = this.getElementName(closingTag);
+							}
+						} else {
+							// Regular Element node
+							openingTagName = this.getElementName(currentElement.id);
+							closingTagName =
+								closingTag.type === 'JSXNamespacedName'
+									? closingTag.namespace.name + ':' + closingTag.name.name
+									: this.getElementName(closingTag);
+						}
 
 						if (openingTagName !== closingTagName) {
 							this.raise(
@@ -1392,7 +1563,7 @@ function RipplePlugin(config) {
 					this.next();
 					this.enterScope(0);
 					node.id = this.parseIdent();
-					this.declareName(node.id.name, 'var', node.id.start);		
+					this.declareName(node.id.name, 'var', node.id.start);
 					this.parseFunctionParams(node);
 					this.eat(tt.braceL);
 					node.body = [];
@@ -1517,7 +1688,7 @@ function RipplePlugin(config) {
  */
 function get_comment_handlers(source, comments, index = 0) {
 	return {
-		onComment: (block, value, start, end, start_loc, end_loc) => {
+		onComment: (block, value, start, end, start_loc, end_loc, metadata) => {
 			if (block && /\n/.test(value)) {
 				let a = start;
 				while (a > 0 && source[a - 1] !== '\n') a -= 1;
@@ -1538,6 +1709,7 @@ function get_comment_handlers(source, comments, index = 0) {
 					start: /** @type {import('acorn').Position} */ (start_loc),
 					end: /** @type {import('acorn').Position} */ (end_loc),
 				},
+				context: metadata ?? null,
 			});
 		},
 		add_comments: (ast) => {
@@ -1545,14 +1717,41 @@ function get_comment_handlers(source, comments, index = 0) {
 
 			comments = comments
 				.filter((comment) => comment.start >= index)
-				.map(({ type, value, start, end, loc }) => ({ type, value, start, end, loc }));
+				.map(({ type, value, start, end, loc, context }) => ({ type, value, start, end, loc, context }));
 
 			walk(ast, null, {
 				_(node, { next, path }) {
 					let comment;
 
+						const metadata = /** @type {{ commentContainerId?: number, elementLeadingComments?: CommentWithLocation[] }} */ (node?.metadata);
+
+						if (metadata && metadata.commentContainerId !== undefined) {
+							while (
+								comments[0] &&
+								comments[0].context &&
+								comments[0].context.containerId === metadata.commentContainerId &&
+								comments[0].context.beforeMeaningfulChild
+							) {
+								const elementComment = /** @type {CommentWithLocation & { context?: any }} */ (comments.shift());
+								(metadata.elementLeadingComments ||= []).push(elementComment);
+							}
+						}
+
 					while (comments[0] && comments[0].start < node.start) {
 						comment = /** @type {CommentWithLocation} */ (comments.shift());
+						if (comment.loc) {
+							const ancestorElements = path
+								.filter((ancestor) => ancestor && ancestor.type === 'Element' && ancestor.loc)
+								.sort((a, b) => a.loc.start.line - b.loc.start.line);
+
+							const targetAncestor = ancestorElements.find((ancestor) => comment.loc.start.line < ancestor.loc.start.line);
+
+							if (targetAncestor) {
+								targetAncestor.metadata ??= {};
+								(targetAncestor.metadata.elementLeadingComments ||= []).push(comment);
+								continue;
+							}
+						}
 						(node.leadingComments ||= []).push(comment);
 					}
 
@@ -1560,6 +1759,14 @@ function get_comment_handlers(source, comments, index = 0) {
 
 					if (comments[0]) {
 						if (node.type === 'BlockStatement' && node.body.length === 0) {
+							if (comments[0].start < node.end && comments[0].end < node.end) {
+								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								(node.innerComments ||= []).push(comment);
+								return;
+							}
+						}
+						// Handle empty Element nodes the same way as empty BlockStatements
+						if (node.type === 'Element' && (!node.children || node.children.length === 0)) {
 							if (comments[0].start < node.end && comments[0].end < node.end) {
 								comment = /** @type {CommentWithLocation} */ (comments.shift());
 								(node.innerComments ||= []).push(comment);
