@@ -577,7 +577,7 @@ const visitors = {
 			}),
 		);
 
-		if (normalize_children.length > 0) {
+		if (normalized_children.length > 0) {
 			props.properties.push(
 				b.prop(
 					'init',
@@ -590,7 +590,7 @@ const visitors = {
 		}
 
 		return b.call(
-			'__compat.jsx',
+			normalized_children.length > 1 ? '__compat.jsxs' : '__compat.jsx',
 			name.type === 'JSXIdentifier' && name.name[0].toLowerCase() === name.name[0]
 				? b.literal(name.name)
 				: context.visit(name),
