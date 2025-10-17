@@ -1012,6 +1012,21 @@ function test() {
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should preserve trailing comments in function parameters', async () => {
+		const expected = `function test(
+  // comment in params
+  a,
+  // comment in params
+  b,
+  // comment in params
+  c,
+  // comment in params
+) {}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should correctly handle for loops with variable declarations', async () => {
 		const input = `for (let i = 0, len = array.length; i < len; i++) {
   console.log(i);
@@ -2141,7 +2156,7 @@ export component App() {
 
     b,
 
-    c
+    c,
   ) {
     return a + b + c;
   }
@@ -2361,7 +2376,7 @@ export component App() {
 
     b,
 
-    c
+    c,
   ) {
     return a + b + c;
   }

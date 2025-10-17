@@ -16,6 +16,7 @@ const {
 	conditionalGroup,
 	breakParent,
 	indentIfBreak,
+	lineSuffix,
 } = doc.builders;
 
 // Embed function - not needed for now
@@ -116,6 +117,167 @@ function wasOriginallySingleLine(node) {
 
 function isSingleLineObjectExpression(node) {
 	return wasOriginallySingleLine(node);
+}
+
+// Prettier-style helper functions
+function hasComment(node) {
+	return !!(node.leadingComments || node.trailingComments || node.innerComments);
+}
+
+function getFunctionParameters(node) {
+	const parameters = [];
+	if (node.this) {
+		parameters.push(node.this);
+	}
+	if (node.params) {
+		parameters.push(...node.params);
+	}
+	if (node.rest) {
+		parameters.push(node.rest);
+	}
+	return parameters;
+}
+
+function iterateFunctionParametersPath(path, iteratee) {
+	const { node } = path;
+	let index = 0;
+	const callback = (paramPath) => iteratee(paramPath, index++);
+
+	if (node.this) {
+		path.call(callback, 'this');
+	}
+	if (node.params) {
+		path.each(callback, 'params');
+	}
+	if (node.rest) {
+		path.call(callback, 'rest');
+	}
+}
+
+function isNextLineEmpty(node, options) {
+	if (!node || !options || !options.originalText) {
+		return false;
+	}
+
+	const text = options.originalText;
+	const length = text.length;
+
+	const resolveEndIndex = () => {
+		if (typeof options.locEnd === 'function') {
+			const value = options.locEnd(node);
+			if (typeof value === 'number') {
+				return value;
+			}
+		}
+		if (node.loc && node.loc.end) {
+			if (typeof node.loc.end.index === 'number') {
+				return node.loc.end.index;
+			}
+			if (typeof node.loc.end.offset === 'number') {
+				return node.loc.end.offset;
+			}
+		}
+		if (typeof node.end === 'number') {
+			return node.end;
+		}
+		return null;
+	};
+
+	let index = resolveEndIndex();
+	if (typeof index !== 'number') {
+		return false;
+	}
+
+	// Advance past trailing whitespace, commas, or inline comments that may
+	// appear before we hit the end-of-line.
+	while (index < length) {
+		const char = text[index];
+		if (char === ' ' || char === '\t' || char === '\r') {
+			index++;
+			continue;
+		}
+		if (char === ',') {
+			index++;
+			continue;
+		}
+		if (char === '/' && index + 1 < length) {
+			const next = text[index + 1];
+			if (next === '/') {
+				index += 2;
+				while (index < length && text[index] !== '\n' && text[index] !== '\r') {
+					index++;
+				}
+				continue;
+			}
+			if (next === '*') {
+				index += 2;
+				while (index + 1 < length && !(text[index] === '*' && text[index + 1] === '/')) {
+					index++;
+				}
+				index += 2;
+				continue;
+			}
+		}
+		break;
+	}
+
+	// Move to the actual end-of-line.
+	while (index < length && text[index] !== '\n') {
+		if (text[index] === '\r') {
+			index++;
+			continue;
+		}
+		index++;
+	}
+
+	if (index >= length) {
+		return false;
+	}
+
+	// Skip the first newline (handle both \r\n and \n).
+	if (text[index] === '\r') {
+		index++;
+	}
+	if (index < length && text[index] === '\n') {
+		index++;
+	}
+
+	// Skip any horizontal whitespace on the following line.
+	let cursor = index;
+	while (cursor < length && (text[cursor] === ' ' || text[cursor] === '\t')) {
+		cursor++;
+	}
+
+	// If we encounter another newline (optionally preceded by \r), the next line is empty.
+	if (cursor < length) {
+		if (text[cursor] === '\r') {
+			while (cursor < length && text[cursor] === '\r') {
+				cursor++;
+			}
+		}
+		if (cursor < length && text[cursor] === '\n') {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function hasRestParameter(node) {
+	return !!(node.rest);
+}
+
+function shouldPrintComma(options, level = 'all') {
+	switch (options.trailingComma) {
+		case 'none':
+			return false;
+		case 'es5':
+			return level === 'es5' || level === 'all';
+		case 'all':
+			return level === 'all';
+		default:
+			return false;
+	}
 }
 
 function printRippleNode(node, path, options, print, args) {
@@ -1204,70 +1366,46 @@ function printRippleNode(node, path, options, print, args) {
 	// Handle trailing comments
 	if (node.trailingComments) {
 		const trailingParts = [];
+		let previousComment = null;
+
 		for (let i = 0; i < node.trailingComments.length; i++) {
 			const comment = node.trailingComments[i];
-			const nextComment = node.trailingComments[i + 1];
+			const isInlineComment = Boolean(
+				node.loc && comment.loc && node.loc.end.line === comment.loc.start.line,
+			);
 
-			// Check if this is an inline comment (on the same line as the node)
-			// Use loc information to determine if comment is on same line
-			let isInlineComment = false;
-			if (node.loc && comment.loc) {
-				isInlineComment = node.loc.end.line === comment.loc.start.line;
-			}
-			if (comment.type === 'Line') {
-				if (isInlineComment) {
-					// Inline comment - keep on same line with space
-					trailingParts.push(' //' + comment.value);
+			const commentDoc = comment.type === 'Line' ? '//' + comment.value : '/*' + comment.value + '*/';
+
+			if (isInlineComment) {
+				if (comment.type === 'Line') {
+					trailingParts.push(lineSuffix([' ', commentDoc]));
+					trailingParts.push(breakParent);
 				} else {
-					// Block comment - put on new line
-					trailingParts.push(hardline);
-
-					// Check if there should be a blank line between the node and the first comment
-					if (i === 0) {
-						const blankLinesBetween = getWhitespaceLinesBetween(node, comment);
-						if (blankLinesBetween > 0) {
-							trailingParts.push(hardline);
-						}
-					}
-
-					trailingParts.push('//' + comment.value);
-
-					// Check if there should be blank lines between this comment and the next
-					if (nextComment) {
-						const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
-						if (blankLinesBetween > 0) {
-							trailingParts.push(hardline);
-						}
-					}
+					trailingParts.push(' ' + commentDoc);
 				}
-			} else if (comment.type === 'Block') {
-				if (isInlineComment) {
-					// Inline comment - keep on same line with space
-					trailingParts.push(' /*' + comment.value + '*/');
+			} else {
+				const refs = [];
+				refs.push(hardline);
+
+				const blankLinesBetween = previousComment
+					? getWhitespaceLinesBetween(previousComment, comment)
+					: getWhitespaceLinesBetween(node, comment);
+				if (blankLinesBetween > 0) {
+					refs.push(hardline);
+				}
+
+				if (comment.type === 'Line') {
+					refs.push(commentDoc);
+					trailingParts.push(lineSuffix(refs));
 				} else {
-					// Block comment - put on new line
-					trailingParts.push(hardline);
-
-					// Check if there should be a blank line between the node and the first comment
-					if (i === 0) {
-						const blankLinesBetween = getWhitespaceLinesBetween(node, comment);
-						if (blankLinesBetween > 0) {
-							trailingParts.push(hardline);
-						}
-					}
-
-					trailingParts.push('/*' + comment.value + '*/');
-
-					// Check if there should be blank lines between this comment and the next
-					if (nextComment) {
-						const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
-						if (blankLinesBetween > 0) {
-							trailingParts.push(hardline);
-						}
-					}
+					refs.push(commentDoc);
+					trailingParts.push(lineSuffix(refs));
 				}
 			}
+
+			previousComment = comment;
 		}
+
 		if (trailingParts.length > 0) {
 			parts.push(nodeContent);
 			parts.push(...trailingParts);
@@ -1383,32 +1521,9 @@ function printComponent(node, path, options, print) {
 		}
 	}
 
-	// Always add parentheses, even if no parameters
-	if (node.params && node.params.length > 0) {
-		const paramDocs = path.map(print, 'params');
-		const lastParam = node.params[node.params.length - 1];
-		// Don't add trailing comma if the last param has a type annotation, since the
-		// type annotation is part of the parameter formatting but isn't a separate param
-		const hasTypeAnnotation = lastParam && lastParam.typeAnnotation;
-		const shouldAddTrailingComma =
-			options.trailingComma === 'all' &&
-			lastParam &&
-			lastParam.type !== 'RestElement' &&
-			!hasTypeAnnotation;
-		const trailingCommaDoc = shouldAddTrailingComma ? ifBreak(',', '') : '';
-
-		// Build params doc - keep "(" with params, ")" right after last param
-		// Params themselves handle trailing commas, so don't add one here
-		const paramsPart = join(concat([',', line]), paramDocs);
-
-		signatureParts.push(
-			group(['(', paramsPart, ')'])
-		);
-	} else {
-		signatureParts.push('()');
-	}
-
-	// Build body content using the same pattern as BlockStatement
+	// Print parameters using shared function
+	const paramsPart = printFunctionParameters(path, options, print);
+	signatureParts.push(group(paramsPart));	// Build body content using the same pattern as BlockStatement
 	const statements = [];
 
 	for (let i = 0; i < node.body.length; i++) {
@@ -1544,59 +1659,9 @@ function printFunctionExpression(node, path, options, print) {
 		parts.push(node.id.name);
 	}
 
-	// Check if there are blank lines between params
-	let hasBlankLinesBetweenParams = false;
-	if (node.params && node.params.length > 1) {
-		for (let i = 0; i < node.params.length - 1; i++) {
-			const current = node.params[i];
-			const next = node.params[i + 1];
-			if (current && next && getWhitespaceLinesBetween(current, next) > 0) {
-				hasBlankLinesBetweenParams = true;
-				break;
-			}
-		}
-	}
-
-	if (hasBlankLinesBetweenParams && node.params && node.params.length > 0) {
-		// Multi-line params with blank line preservation
-		const paramList = path.map(print, 'params');
-		const paramParts = [];
-
-		for (let i = 0; i < paramList.length; i++) {
-			if (i > 0) {
-				paramParts.push(',');
-
-				// Check for blank lines between params
-				const prevParam = node.params[i - 1];
-				const currentParam = node.params[i];
-				if (prevParam && currentParam && getWhitespaceLinesBetween(prevParam, currentParam) > 0) {
-					paramParts.push(hardline);
-					paramParts.push(hardline); // Two hardlines = blank line
-				} else {
-					paramParts.push(hardline);
-				}
-			}
-			paramParts.push(paramList[i]);
-		}
-
-		parts.push('(');
-		parts.push(indent([hardline, concat(paramParts)]));
-		parts.push(hardline);
-		parts.push(')');
-	} else if (node.params && node.params.length > 0) {
-		// Use group/line/indent for intelligent breaking like components
-		const paramDocs = path.map(print, 'params');
-		const paramsPart = join(concat([',', line]), paramDocs);
-
-		parts.push(
-			group(['(', paramsPart, ')'])
-		);
-	} else {
-		// Empty params
-		parts.push('()');
-	}
-
-	// Handle return type annotation
+	// Print parameters using shared function
+	const paramsPart = printFunctionParameters(path, options, print);
+	parts.push(group(paramsPart));	// Handle return type annotation
 	if (node.returnType) {
 		parts.push(': ', path.call(print, 'returnType'));
 	}
@@ -1613,26 +1678,18 @@ function printArrowFunction(node, path, options, print) {
 	// Handle single param without parens (when arrowParens !== 'always')
 	if (
 		options.arrowParens !== 'always' &&
+		node.params &&
 		node.params.length === 1 &&
 		node.params[0].type === 'Identifier' &&
 		!node.params[0].typeAnnotation &&
 		!node.returnType
 	) {
 		parts.push(path.call(print, 'params', 0));
-	} else if (node.params && node.params.length > 0) {
-		// Use group/line/indent for intelligent breaking like components and functions
-		const paramDocs = path.map(print, 'params');
-		const paramsPart = join(concat([',', line]), paramDocs);
-
-		parts.push(
-			group(['(', paramsPart, ')'])
-		);
 	} else {
-		// Empty params
-		parts.push('()');
-	}
-
-	// Handle return type annotation
+		// Print parameters using shared function
+		const paramsPart = printFunctionParameters(path, options, print);
+		parts.push(group(paramsPart));
+	}	// Handle return type annotation
 	if (node.returnType) {
 		parts.push(': ', path.call(print, 'returnType'));
 	}
@@ -1664,7 +1721,76 @@ function printExportDefaultDeclaration(node, path, options, print) {
 	return parts;
 }
 
-function printFunctionDeclaration(node, path, options, print) {
+function shouldHugTheOnlyFunctionParameter(node) {
+	if (!node) {
+		return false;
+	}
+	const parameters = getFunctionParameters(node);
+	if (parameters.length !== 1) {
+		return false;
+	}
+	const [parameter] = parameters;
+	return (
+		!hasComment(parameter) &&
+		(parameter.type === 'ObjectPattern' ||
+			parameter.type === 'ArrayPattern' ||
+			(parameter.type === 'Identifier' &&
+				parameter.typeAnnotation &&
+				(parameter.typeAnnotation.type === 'TypeAnnotation' ||
+					parameter.typeAnnotation.type === 'TSTypeAnnotation')))
+	);
+}
+
+function printFunctionParameters(path, options, print) {
+	const functionNode = path.node;
+	const parameters = getFunctionParameters(functionNode);
+
+	if (parameters.length === 0) {
+		return ['(', ')'];
+	}
+
+	const shouldHugParameters = shouldHugTheOnlyFunctionParameter(functionNode);
+	const printed = [];
+
+	iterateFunctionParametersPath(path, (parameterPath, index) => {
+		const isLastParameter = index === parameters.length - 1;
+
+		if (isLastParameter && functionNode.rest) {
+			printed.push('...');
+		}
+
+		printed.push(print());
+
+		if (!isLastParameter) {
+			printed.push(',');
+			if (shouldHugParameters) {
+				printed.push(' ');
+			} else if (isNextLineEmpty(parameters[index], options)) {
+				printed.push(hardline, hardline);
+			} else {
+				printed.push(line);
+			}
+		}
+	});
+
+	const hasNotParameterDecorator = parameters.every(
+		(node) => !node.decorators || node.decorators.length === 0
+	);
+
+	if (shouldHugParameters && hasNotParameterDecorator) {
+		return ['(', ...printed, ')'];
+	}
+
+	return [
+		'(',
+		indent([softline, ...printed]),
+		ifBreak(
+			shouldPrintComma(options, 'all') && !hasRestParameter(functionNode) ? ',' : ''
+		),
+		softline,
+		')'
+	];
+} function printFunctionDeclaration(node, path, options, print) {
 	const parts = [];
 
 	// Handle async functions
@@ -1682,57 +1808,9 @@ function printFunctionDeclaration(node, path, options, print) {
 	parts.push(' ');
 	parts.push(node.id.name);
 
-	// Check if there are blank lines between params
-	let hasBlankLinesBetweenParams = false;
-	if (node.params && node.params.length > 1) {
-		for (let i = 0; i < node.params.length - 1; i++) {
-			const current = node.params[i];
-			const next = node.params[i + 1];
-			if (current && next && getWhitespaceLinesBetween(current, next) > 0) {
-				hasBlankLinesBetweenParams = true;
-				break;
-			}
-		}
-	}
-
-	if (hasBlankLinesBetweenParams && node.params && node.params.length > 0) {
-		// Multi-line params with blank line preservation
-		const paramList = path.map(print, 'params');
-		const paramParts = [];
-
-		for (let i = 0; i < paramList.length; i++) {
-			if (i > 0) {
-				paramParts.push(',');
-
-				// Check for blank lines between params
-				const prevParam = node.params[i - 1];
-				const currentParam = node.params[i];
-				if (prevParam && currentParam && getWhitespaceLinesBetween(prevParam, currentParam) > 0) {
-					paramParts.push(hardline);
-					paramParts.push(hardline); // Two hardlines = blank line
-				} else {
-					paramParts.push(hardline);
-				}
-			}
-			paramParts.push(paramList[i]);
-		}
-
-		parts.push('(');
-		parts.push(indent([hardline, concat(paramParts)]));
-		parts.push(hardline);
-		parts.push(')');
-	} else if (node.params && node.params.length > 0) {
-		// Use group/line/indent for intelligent breaking like components
-		const paramDocs = path.map(print, 'params');
-		const paramsPart = join(concat([',', line]), paramDocs);
-
-		parts.push(
-			group(['(', paramsPart, ')'])
-		);
-	} else {
-		// Empty params
-		parts.push('()');
-	}
+	// Print parameters using shared function
+	const paramsPart = printFunctionParameters(path, options, print);
+	parts.push(group(paramsPart));
 
 	// Handle return type annotation
 	if (node.returnType) {

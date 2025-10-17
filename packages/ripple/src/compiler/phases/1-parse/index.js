@@ -1687,6 +1687,16 @@ function RipplePlugin(config) {
  * @returns {{ onComment: Function, add_comments: Function }} Comment handler functions
  */
 function get_comment_handlers(source, comments, index = 0) {
+	function getNextNonWhitespaceCharacter(text, startIndex) {
+		for (let i = startIndex; i < text.length; i++) {
+			const char = text[i];
+			if (char !== ' ' && char !== '\t' && char !== '\n' && char !== '\r') {
+				return char;
+			}
+		}
+		return null;
+	}
+
 	return {
 		onComment: (block, value, start, end, start_loc, end_loc, metadata) => {
 			if (block && /\n/.test(value)) {
@@ -1739,6 +1749,18 @@ function get_comment_handlers(source, comments, index = 0) {
 
 					while (comments[0] && comments[0].start < node.start) {
 						comment = /** @type {CommentWithLocation} */ (comments.shift());
+
+						// Skip leading comments for BlockStatement that is a function body
+						// These comments should be dangling on the function instead
+						if (node.type === 'BlockStatement') {
+							const parent = path.at(-1);
+							if (parent && (parent.type === 'FunctionDeclaration' || parent.type === 'FunctionExpression' || parent.type === 'ArrowFunctionExpression') && parent.body === node) {
+								// This is a function body - don't attach comment, let it be handled by function
+								(parent.comments ||= []).push(comment);
+								continue;
+							}
+						}
+
 						if (comment.loc) {
 							const ancestorElements = path
 								.filter((ancestor) => ancestor && ancestor.type === 'Element' && ancestor.loc)
@@ -1792,38 +1814,64 @@ function get_comment_handlers(source, comments, index = 0) {
 								array_prop = 'elements';
 							} else if (parent?.type === 'ObjectExpression') {
 								array_prop = 'properties';
-							}
-
-							if (array_prop && Array.isArray(parent[array_prop])) {
+							} else if (parent?.type === 'FunctionDeclaration' || parent?.type === 'FunctionExpression' || parent?.type === 'ArrowFunctionExpression') {
+								array_prop = 'params';
+							} if (array_prop && Array.isArray(parent[array_prop])) {
 								is_last_in_array = parent[array_prop].indexOf(node) === parent[array_prop].length - 1;
 							}
 
 							if (is_last_in_array) {
-								// Special case: There can be multiple trailing comments after the last node in a block,
-								// and they can be separated by newlines
-								let end = node.end;
+								const isParam = array_prop === 'params';
+								if (isParam) {
+									while (comments.length) {
+										const potentialComment = comments[0];
+										if (parent && potentialComment.start >= parent.end) {
+											break;
+										}
 
-								while (comments.length) {
-									const comment = comments[0];
-									if (parent && comment.start >= parent.end) break;
+										const nextChar = getNextNonWhitespaceCharacter(source, potentialComment.end);
+										if (nextChar === ')') {
+											(node.trailingComments ||= []).push(/** @type {CommentWithLocation} */(comments.shift()));
+											continue;
+										}
 
-									(node.trailingComments ||= []).push(comment);
-									comments.shift();
-									end = comment.end;
+										break;
+									}
+								} else {
+									// Special case: There can be multiple trailing comments after the last node in a block,
+									// and they can be separated by newlines
+									let end = node.end;
+
+									while (comments.length) {
+										const comment = comments[0];
+										if (parent && comment.start >= parent.end) break;
+
+										(node.trailingComments ||= []).push(comment);
+										comments.shift();
+										end = comment.end;
+									}
 								}
 							} else if (node.end <= comments[0].start && /^[,) \t]*$/.test(slice)) {
-								node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+								// For function parameters, only attach as trailing comment if it's on the same line
+								// Comments on next line after comma should be leading comments of next parameter
+								const isParam = array_prop === 'params';
+								if (isParam) {
+									// Check if comment is on same line as the node
+									const nodeEndLine = source.slice(0, node.end).split('\n').length;
+									const commentStartLine = source.slice(0, comments[0].start).split('\n').length;
+									if (nodeEndLine === commentStartLine) {
+										node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+									}
+									// Otherwise leave it for next parameter's leading comments
+								} else {
+									node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+								}
 							}
 						}
 					}
 				},
 			});
 
-			// Special case: Trailing comments after the root node (which can only happen for expression tags or for Program nodes).
-			// Adding them ensures that we can later detect the end of the expression tag correctly.
-			if (comments.length > 0 && (comments[0].start >= ast.end || ast.type === 'Program')) {
-				(ast.trailingComments ||= []).push(...comments.splice(0));
-			}
 		},
 	};
 }
