@@ -1029,7 +1029,7 @@ function RipplePlugin(config) {
 						var t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
-								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+							this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
 					case tok.jsxTagStart:
@@ -1202,14 +1202,14 @@ function RipplePlugin(config) {
 							this.raise(
 								this.pos,
 								'Unexpected token `' +
-									this.input[this.pos] +
-									'`. Did you mean `' +
-									(ch === 62 ? '&gt;' : '&rbrace;') +
-									'` or ' +
-									'`{"' +
-									this.input[this.pos] +
-									'"}' +
-									'`?',
+								this.input[this.pos] +
+								'`. Did you mean `' +
+								(ch === 62 ? '&gt;' : '&rbrace;') +
+								'` or ' +
+								'`{"' +
+								this.input[this.pos] +
+								'"}' +
+								'`?',
 							);
 						}
 
@@ -1723,19 +1723,19 @@ function get_comment_handlers(source, comments, index = 0) {
 				_(node, { next, path }) {
 					let comment;
 
-						const metadata = /** @type {{ commentContainerId?: number, elementLeadingComments?: CommentWithLocation[] }} */ (node?.metadata);
+					const metadata = /** @type {{ commentContainerId?: number, elementLeadingComments?: CommentWithLocation[] }} */ (node?.metadata);
 
-						if (metadata && metadata.commentContainerId !== undefined) {
-							while (
-								comments[0] &&
-								comments[0].context &&
-								comments[0].context.containerId === metadata.commentContainerId &&
-								comments[0].context.beforeMeaningfulChild
-							) {
-								const elementComment = /** @type {CommentWithLocation & { context?: any }} */ (comments.shift());
-								(metadata.elementLeadingComments ||= []).push(elementComment);
-							}
+					if (metadata && metadata.commentContainerId !== undefined) {
+						while (
+							comments[0] &&
+							comments[0].context &&
+							comments[0].context.containerId === metadata.commentContainerId &&
+							comments[0].context.beforeMeaningfulChild
+						) {
+							const elementComment = /** @type {CommentWithLocation & { context?: any }} */ (comments.shift());
+							(metadata.elementLeadingComments ||= []).push(elementComment);
 						}
+					}
 
 					while (comments[0] && comments[0].start < node.start) {
 						comment = /** @type {CommentWithLocation} */ (comments.shift());
@@ -1755,28 +1755,31 @@ function get_comment_handlers(source, comments, index = 0) {
 						(node.leadingComments ||= []).push(comment);
 					}
 
-			next();
+					next();
 
-			if (comments[0]) {
-				if (node.type === 'BlockStatement' && node.body.length === 0) {
-					// Collect all comments that fall within this empty block
-					while (comments[0] && comments[0].start < node.end && comments[0].end < node.end) {
-						comment = /** @type {CommentWithLocation} */ (comments.shift());
-						(node.innerComments ||= []).push(comment);
-					}
-					if (node.innerComments && node.innerComments.length > 0) {
-						return;
-					}
-				}
-				// Handle empty Element nodes the same way as empty BlockStatements
-				if (node.type === 'Element' && (!node.children || node.children.length === 0)) {
-					if (comments[0].start < node.end && comments[0].end < node.end) {
-						comment = /** @type {CommentWithLocation} */ (comments.shift());
-						(node.innerComments ||= []).push(comment);
-						return;
-					}
-				}
-				const parent = /** @type {any} */ (path.at(-1));						if (parent === undefined || node.end !== parent.end) {
+					if (comments[0]) {
+						if (node.type === 'BlockStatement' && node.body.length === 0) {
+							// Collect all comments that fall within this empty block
+							while (comments[0] && comments[0].start < node.end && comments[0].end < node.end) {
+								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								(node.innerComments ||= []).push(comment);
+							}
+							if (node.innerComments && node.innerComments.length > 0) {
+								return;
+							}
+						}
+						// Handle empty Element nodes the same way as empty BlockStatements
+						if (node.type === 'Element' && (!node.children || node.children.length === 0)) {
+							if (comments[0].start < node.end && comments[0].end < node.end) {
+								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								(node.innerComments ||= []).push(comment);
+								return;
+							}
+						}
+
+						const parent = /** @type {any} */ (path.at(-1));
+
+						if (parent === undefined || node.end !== parent.end) {
 							const slice = source.slice(node.end, comments[0].start);
 
 							// Check if this node is the last item in an array-like structure

@@ -54,7 +54,7 @@ describe('prettier-plugin-ripple', () => {
 	const formatWithCursorHelper = async (code, options = {}) => {
 		return await prettier.formatWithCursor(
 			code,
-			/** @type {import('prettier').CursorOptions} */ ({
+			/** @type {import('prettier').CursorOptions} */({
 				parser: 'ripple',
 				plugins: [join(__dirname, 'index.js')],
 				...options,
@@ -2688,9 +2688,9 @@ export component App() {
 			});
 		});
 
-	describe('<tsx:react>', () => {
-		it('should format JSX inside <tsx:react> tags', async () => {
-			const input = `component App() {
+		describe('<tsx:react>', () => {
+			it('should format JSX inside <tsx:react> tags', async () => {
+				const input = `component App() {
 	<div>
 		<h1>{"Hello, from Ripple!"}</h1>
 		<tsx:react>
@@ -2699,7 +2699,7 @@ export component App() {
 	</div>
 }`;
 
-			const expected = `component App() {
+				const expected = `component App() {
   <div>
     <h1>{'Hello, from Ripple!'}</h1>
     <tsx:react>
@@ -2708,9 +2708,9 @@ export component App() {
   </div>
 }`;
 
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBeWithNewline(expected);
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
 		});
 	});
-});
 });

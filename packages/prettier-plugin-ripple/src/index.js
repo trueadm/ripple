@@ -2608,7 +2608,7 @@ function printObjectPattern(node, path, options, print) {
 					'}',
 				]);
 
-				// Return combined
+			// Return combined
 			return concat([objectDoc, ': ', typeDoc]);
 		}
 
@@ -3381,12 +3381,12 @@ function printElement(node, path, options, print) {
 		tagName,
 		hasAttributes
 			? indent(
-					concat([
-						...path.map((attrPath) => {
-							return concat([attrLineBreak, print(attrPath)]);
-						}, 'attributes'),
-					]),
-				)
+				concat([
+					...path.map((attrPath) => {
+						return concat([attrLineBreak, print(attrPath)]);
+					}, 'attributes'),
+				]),
+			)
 			: '',
 		// Add line break opportunity before > or />
 		// Use line for self-closing (keeps space), softline for non-self-closing when attributes present
