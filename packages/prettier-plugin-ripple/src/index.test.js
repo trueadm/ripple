@@ -1116,7 +1116,7 @@ const obj2 = #{
 		expect(result).toBeWithNewline(expected);
 	});
 
-	it.skip('should preserve comments in arrays', async () => {
+	it('should preserve comments in arrays', async () => {
 		const input = `const arr = [
   1,
   /* comment 1 */
@@ -1132,6 +1132,26 @@ const obj2 = #{
 ];`;
 
 		const result = await format(input, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve comments in arrays width printWidth 3', async () => {
+		const input = `const arr = [
+  1,
+  /* comment 1 */
+  2,
+  3,
+  // comment 2
+];`;
+
+		const expected = `const arr = [
+  1, /* comment 1 */
+  2,
+  3,
+  // comment 2
+];`;
+
+		const result = await format(input, { singleQuote: true, printWidth: 3 });
 		expect(result).toBeWithNewline(expected);
 	});
 

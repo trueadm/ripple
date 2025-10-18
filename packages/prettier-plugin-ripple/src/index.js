@@ -312,6 +312,56 @@ function shouldPrintComma(options, level = 'all') {
 	}
 }
 
+function canAttachLeadingCommentToPreviousElement(comment, previousNode, nextNode) {
+	if (!comment || !previousNode || !nextNode) {
+		return false;
+	}
+
+	const isBlockComment = comment.type === 'Block' || comment.type === 'CommentBlock';
+	if (!isBlockComment) {
+		return false;
+	}
+
+	if (!comment.loc || !previousNode.loc || !nextNode.loc) {
+		return false;
+	}
+
+	if (getWhitespaceLinesBetween(previousNode, comment) > 0) {
+		return false;
+	}
+
+	if (getWhitespaceLinesBetween(comment, nextNode) > 0) {
+		return false;
+	}
+
+	return true;
+}
+
+function buildInlineArrayCommentDoc(comments) {
+	if (!Array.isArray(comments) || comments.length === 0) {
+		return null;
+	}
+
+	const docs = [];
+	for (let index = 0; index < comments.length; index++) {
+		const comment = comments[index];
+		if (!comment) {
+			continue;
+		}
+
+		// Ensure spacing before the first comment and between subsequent ones.
+		docs.push(' ');
+		const isBlockComment = comment.type === 'Block' || comment.type === 'CommentBlock';
+		if (isBlockComment) {
+			docs.push('/*' + comment.value + '*/');
+		} else if (comment.type === 'Line') {
+			docs.push('//' + comment.value);
+		}
+	}
+
+	return docs.length > 0 ? concat(docs) : null;
+}
+
 function printRippleNode(node, path, options, print, args) {
 	if (!node || typeof node !== 'object') {
 		return String(node || '');
@@ -501,6 +551,34 @@ function printRippleNode(node, path, options, print, args) {
 
 			// Check if this array is inside an attribute
 			const isInAttribute = args && args.isInAttribute;
+			const suppressLeadingCommentIndices = new Set();
+			const inlineCommentsBetween = new Array(Math.max(node.elements.length - 1, 0)).fill(null);
+
+			for (let index = 0; index < node.elements.length - 1; index++) {
+				const currentElement = node.elements[index];
+				const nextElement = node.elements[index + 1];
+				if (
+					!nextElement ||
+					!nextElement.leadingComments ||
+					nextElement.leadingComments.length === 0
+				) {
+					continue;
+				}
+
+				const canTransferAllLeadingComments = nextElement.leadingComments.every((comment) =>
+					canAttachLeadingCommentToPreviousElement(comment, currentElement, nextElement),
+				);
+
+				if (!canTransferAllLeadingComments) {
+					continue;
+				}
+
+				const inlineCommentDoc = buildInlineArrayCommentDoc(nextElement.leadingComments);
+				if (inlineCommentDoc) {
+					inlineCommentsBetween[index] = inlineCommentDoc;
+					suppressLeadingCommentIndices.add(index + 1);
+				}
+			}
 
 			// Check if all elements are objects with multiple properties
 			// In that case, each object should be on its own line
@@ -538,8 +616,15 @@ function printRippleNode(node, path, options, print, args) {
 				 */
 				(elPath, index) => {
 					const childNode = node.elements[index];
+					const childArgs = {};
+
+					if (suppressLeadingCommentIndices.has(index)) {
+						childArgs.suppressLeadingComments = true;
+					}
+
 					if (isInAttribute) {
-						return print(elPath, { isInAttribute: true });
+						childArgs.isInAttribute = true;
+						return print(elPath, childArgs);
 					}
 
 					if (
@@ -548,10 +633,16 @@ function printRippleNode(node, path, options, print, args) {
 						childNode.type === 'ObjectExpression' &&
 						shouldInlineObjects
 					) {
-						return print(elPath, { isInArray: true, allowInlineObject: true });
+						childArgs.isInArray = true;
+						childArgs.allowInlineObject = true;
+						return print(elPath, childArgs);
 					}
 
-					return print(elPath, { isInArray: hasObjectElements });
+					if (hasObjectElements) {
+						childArgs.isInArray = true;
+					}
+
+					return Object.keys(childArgs).length > 0 ? print(elPath, childArgs) : print(elPath);
 				},
 				'elements',
 			);
@@ -580,11 +671,25 @@ function printRippleNode(node, path, options, print, args) {
 			for (let i = 1; i < node.elements.length; i++) {
 				const prevElement = node.elements[i - 1];
 				const currentElement = node.elements[i];
-				if (
-					prevElement &&
-					currentElement &&
-					getWhitespaceLinesBetween(prevElement, currentElement) > 0
-				) {
+				if (!prevElement || !currentElement) {
+					continue;
+				}
+
+				const leadingComments = currentElement.leadingComments || [];
+				if (leadingComments.length > 0) {
+					const firstComment = leadingComments[0];
+					const lastComment = leadingComments[leadingComments.length - 1];
+
+					const linesBeforeComment = getWhitespaceLinesBetween(prevElement, firstComment);
+					const linesAfterComment = getWhitespaceLinesBetween(lastComment, currentElement);
+
+					if (linesBeforeComment > 0 || linesAfterComment > 0) {
+						elementsWithBlankLineAbove.push(i);
+					}
+					continue;
+				}
+
+				if (getWhitespaceLinesBetween(prevElement, currentElement) > 0) {
 					elementsWithBlankLineAbove.push(i);
 				}
 			}
@@ -592,13 +697,44 @@ function printRippleNode(node, path, options, print, args) {
 			const hasAnyBlankLines = elementsWithBlankLineAbove.length > 0;
 
 			if (!hasAnyBlankLines && !allObjectsHaveMultipleProperties) {
-				// No blank lines and no multi-property objects - standard compact array formatting
-				const separator = concat([',', line]);
+				const fillParts = [];
+				let skipNextSeparator = false;
+				for (let index = 0; index < elements.length; index++) {
+					if (index > 0) {
+						if (skipNextSeparator) {
+							skipNextSeparator = false;
+						} else {
+							fillParts.push(line);
+						}
+					}
+
+					if (index < elements.length - 1) {
+						const inlineCommentDoc = inlineCommentsBetween[index];
+						let commentDocWithBreak = inlineCommentDoc;
+						let shouldSkipNextSeparator = false;
+						if (inlineCommentDoc) {
+							commentDocWithBreak = concat([inlineCommentDoc, hardline]);
+							shouldSkipNextSeparator = true;
+						}
+
+						const segmentParts = [elements[index], ','];
+						if (commentDocWithBreak) {
+							segmentParts.push(commentDocWithBreak);
+						}
+
+						fillParts.push(group(concat(segmentParts)));
+						skipNextSeparator = shouldSkipNextSeparator;
+					} else {
+						fillParts.push(elements[index]);
+						skipNextSeparator = false;
+					}
+				}
+
 				const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
 				nodeContent = group(
 					concat([
 						prefix + '[',
-						indent(concat([softline, join(separator, elements), trailingDoc])),
+						indent(concat([softline, fill(fillParts), trailingDoc])),
 						softline,
 						']',
 					]),
