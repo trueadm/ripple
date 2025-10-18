@@ -1815,6 +1815,10 @@ function get_comment_handlers(source, comments, index = 0) {
 								parent?.type === 'ClassBody'
 							) {
 								array_prop = 'body';
+							} else if (parent?.type === 'SwitchStatement') {
+								array_prop = 'cases';
+							} else if (parent?.type === 'SwitchCase') {
+								array_prop = 'consequent';
 							} else if (parent?.type === 'ArrayExpression') {
 								array_prop = 'elements';
 							} else if (parent?.type === 'ObjectExpression') {
@@ -1876,6 +1880,14 @@ function get_comment_handlers(source, comments, index = 0) {
 								const commentStartLine = comments[0].loc?.start?.line ?? null;
 								const isImmediateNextLine =
 									nodeEndLine !== null && commentStartLine !== null && commentStartLine === nodeEndLine + 1;
+								const isSwitchCaseSibling = array_prop === 'cases';
+
+								if (isSwitchCaseSibling && !is_last_in_array) {
+									if (nodeEndLine !== null && commentStartLine !== null && nodeEndLine === commentStartLine) {
+										node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+									}
+									return;
+								}
 
 								if (onlySimpleWhitespace || (onlyWhitespace && !hasBlankLine && isImmediateNextLine)) {
 									// For function parameters, only attach as trailing comment if it's on the same line

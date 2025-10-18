@@ -1070,6 +1070,43 @@ function test() {
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should preserve trailing comments in tracked object expressions', async () => {
+		const expected = `const obj = {
+  /* comment 1 */
+  a: 1,
+
+  // comment 2
+  b: 2,
+  // comment 3
+};`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve trailing comments in switch statement cases', async () => {
+		const input = `switch (x) {
+  case 1:
+    foo();
+    // comment 1
+  case 2:
+    bar();
+    // comment 2
+}`;
+
+		const expected = `switch (x) {
+  case 1:
+    foo();
+  // comment 1
+  case 2:
+    bar();
+  // comment 2
+}`;
+
+		const result = await format(input, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should correctly handle for loops with variable declarations', async () => {
 		const input = `for (let i = 0, len = array.length; i < len; i++) {
   console.log(i);

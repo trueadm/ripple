@@ -2605,45 +2605,89 @@ function printTSTypeParameterInstantiation(node, path, options, print) {
 }
 
 function printSwitchStatement(node, path, options, print) {
-	const parts = [];
-	parts.push('switch (');
-	parts.push(path.call(print, 'discriminant'));
-	parts.push(') {\n');
+	const discriminantDoc = group(
+		concat([
+			'switch (',
+			indent([softline, path.call(print, 'discriminant')]),
+			softline,
+			')',
+		]),
+	);
 
+	const cases = [];
 	for (let i = 0; i < node.cases.length; i++) {
-		parts.push(path.call(print, 'cases', i));
-		if (i < node.cases.length - 1) {
-			parts.push('\n');
+		const caseDoc = [path.call(print, 'cases', i)];
+		if (i < node.cases.length - 1 && isNextLineEmpty(node.cases[i], options)) {
+			caseDoc.push(hardline);
 		}
+		cases.push(concat(caseDoc));
 	}
 
-	parts.push('\n}');
-	return parts;
+	const bodyDoc =
+		cases.length > 0
+			? concat([indent([hardline, join(hardline, cases)]), hardline])
+			: hardline;
+
+	return concat([discriminantDoc, ' {', bodyDoc, '}']);
 }
 
 function printSwitchCase(node, path, options, print) {
-	const parts = [];
+	const header = node.test ? concat(['case ', path.call(print, 'test'), ':']) : 'default:';
 
-	if (node.test) {
-		parts.push('case ');
-		parts.push(path.call(print, 'test'));
-		parts.push(':');
-	} else {
-		parts.push('default:');
+	const consequents = node.consequent || [];
+	const printedConsequents = [];
+	const referencedConsequents = [];
+
+	for (let i = 0; i < consequents.length; i++) {
+		const child = consequents[i];
+		if (!child || child.type === 'EmptyStatement') {
+			continue;
+		}
+		referencedConsequents.push(child);
+		printedConsequents.push(path.call(print, 'consequent', i));
 	}
 
-	if (node.consequent && node.consequent.length > 0) {
-		parts.push('\n');
-		for (let i = 0; i < node.consequent.length; i++) {
-			parts.push(createIndent(options));
-			parts.push(path.call(print, 'consequent', i));
-			if (i < node.consequent.length - 1) {
-				parts.push('\n');
-			}
+	let bodyDoc = null;
+	if (printedConsequents.length > 0) {
+		const singleBlock =
+			printedConsequents.length === 1 && referencedConsequents[0].type === 'BlockStatement';
+		if (singleBlock) {
+			bodyDoc = concat([' ', printedConsequents[0]]);
+		} else {
+			bodyDoc = indent([hardline, join(hardline, printedConsequents)]);
 		}
 	}
 
-	return parts;
+	let trailingDoc = null;
+	if (node.trailingComments && node.trailingComments.length > 0) {
+		const commentDocs = [];
+		let previousNode = referencedConsequents.length > 0 ? referencedConsequents[referencedConsequents.length - 1] : node;
+
+		for (let i = 0; i < node.trailingComments.length; i++) {
+			const comment = node.trailingComments[i];
+			const blankLines = previousNode ? getWhitespaceLinesBetween(previousNode, comment) : 0;
+			commentDocs.push(hardline);
+			for (let j = 0; j < blankLines; j++) {
+				commentDocs.push(hardline);
+			}
+			const commentDoc = comment.type === 'Line' ? concat(['//', comment.value]) : concat(['/*', comment.value, '*/']);
+			commentDocs.push(commentDoc);
+			previousNode = comment;
+		}
+
+		trailingDoc = concat(commentDocs);
+		delete node.trailingComments;
+	}
+
+	const parts = [header];
+	if (bodyDoc) {
+		parts.push(bodyDoc);
+	}
+	if (trailingDoc) {
+		parts.push(trailingDoc);
+	}
+
+	return concat(parts);
 }
 
 function printBreakStatement(node, path, options, print) {
