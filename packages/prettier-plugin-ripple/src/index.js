@@ -712,11 +712,8 @@ function printRippleNode(node, path, options, print, args) {
 		}
 
 		case 'ObjectExpression':
-			nodeContent = printObjectExpression(node, path, options, print, args);
-			break;
-
 		case 'TrackedObjectExpression':
-			nodeContent = printTrackedObjectExpression(node, path, options, print, args);
+			nodeContent = printObjectExpression(node, path, options, print, args);
 			break;
 
 		case 'ClassBody':
@@ -2015,8 +2012,10 @@ function printDoWhileStatement(node, path, options, print) {
 }
 
 function printObjectExpression(node, path, options, print, args) {
+	const skip_offset = node.type === 'TrackedObjectExpression' ? 2 : 1;
+	const open_brace = node.type === 'TrackedObjectExpression' ? '#{' : '{';
 	if (!node.properties || node.properties.length === 0) {
-		return '{}';
+		return open_brace + '}';
 	}
 
 	// Check if there are blank lines between any properties
@@ -2045,24 +2044,18 @@ function printObjectExpression(node, path, options, print, args) {
 
 		// Check for blank line after opening brace (before first property)
 		if (firstProp && node.loc && node.loc.start) {
-			const textBetween = options.originalText.substring(
-				node.loc.start.offset + 1, // +1 to skip the '{'
-				firstProp.loc.start.offset,
+			hasAnyBlankLines = getWhiteSpacePositionsBetween(
+				node.loc.start.offset(skip_offset),
+				firstProp.loc.start
 			);
-			if (/\n\s*\n/.test(textBetween)) {
-				hasAnyBlankLines = true;
-			}
 		}
 
 		// Check for blank line before closing brace (after last property)
 		if (!hasAnyBlankLines && lastProp && node.loc && node.loc.end) {
-			const textBetween = options.originalText.substring(
-				lastProp.loc.end.offset,
-				node.loc.end.offset - 1, // -1 to skip the '}'
+			hasAnyBlankLines = getWhiteSpacePositionsBetween(
+				lastProp.loc.end,
+				node.loc.end.offset(-1), // -1 to skip the '}'
 			);
-			if (/\n\s*\n/.test(textBetween)) {
-				hasAnyBlankLines = true;
-			}
 		}
 	}
 
@@ -2084,13 +2077,13 @@ function printObjectExpression(node, path, options, print, args) {
 		if (isInArray) {
 			if (isVerySimple) {
 				// 1-property objects: force inline with spaces
-				return concat(['{', ' ', properties[0], ' ', '}']);
+				return concat([open_brace, ' ', properties[0], ' ', '}']);
 			}
 			// 2-property objects: let normal formatting handle it (will be multiline)
 			// Fall through to default multiline formatting below
 		} else {
 			// For attributes, force inline without spaces
-			const parts = ['{'];
+			const parts = [open_brace];
 			for (let i = 0; i < properties.length; i++) {
 				if (i > 0) parts.push(', ');
 				parts.push(properties[i]);
@@ -2106,7 +2099,7 @@ function printObjectExpression(node, path, options, print, args) {
 		const spacing = options.bracketSpacing === false ? softline : line;
 		const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
 
-		return group(concat(['{', indent(concat([spacing, propertyDoc, trailingDoc])), spacing, '}']));
+		return group(concat([open_brace, indent(concat([spacing, propertyDoc, trailingDoc])), spacing, '}']));
 	}
 
 	// For objects that were originally inline (single-line) and don't have blank lines,
@@ -2119,7 +2112,7 @@ function printObjectExpression(node, path, options, print, args) {
 		const spacing = options.bracketSpacing === false ? softline : line;
 		const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
 
-		return group(concat(['{', indent(concat([spacing, propertyDoc, trailingDoc])), spacing, '}']));
+		return group(concat([open_brace, indent(concat([spacing, propertyDoc, trailingDoc])), spacing, '}']));
 	}
 
 	let content = [hardline];
@@ -2150,37 +2143,7 @@ function printObjectExpression(node, path, options, print, args) {
 		content.push(hardline);
 	}
 
-	return group(['{', indent(content.slice(0, -1)), content[content.length - 1], '}']);
-}
-
-function printTrackedObjectExpression(node, path, options, print, args) {
-	if (!node.properties || node.properties.length === 0) {
-		return '#{}';
-	}
-
-	// Use AST builders and respect trailing commas
-	const properties = path.map(print, 'properties');
-	const shouldUseTrailingComma = options.trailingComma !== 'none' && properties.length > 0;
-
-	// Build properties with proper separators
-	const propertyParts = [];
-	for (let i = 0; i < properties.length; i++) {
-		if (i > 0) {
-			propertyParts.push(',');
-			propertyParts.push(line);
-		}
-		propertyParts.push(properties[i]);
-	}
-
-	// Add trailing comma only when breaking to multiline
-	if (shouldUseTrailingComma) {
-		propertyParts.push(ifBreak(',', ''));
-	}
-
-	// Use group with proper breaking behavior
-	// When inline: #{ prop1, prop2 }
-	// When multiline: #{\n  prop1,\n  prop2,\n}
-	return group(concat(['#{', indent(concat([line, concat(propertyParts)])), line, '}']));
+	return group([open_brace, indent(content.slice(0, -1)), content[content.length - 1], '}']);
 }
 
 function printClassDeclaration(node, path, options, print) {
@@ -2728,6 +2691,15 @@ function printSequenceExpression(node, path, options, print) {
 	return parts;
 }
 
+function getWhiteSpacePositionsBetween(current_pos, next_pos) {
+	const line_gap = next_pos.line - current_pos.line;
+
+	// lineGap = 1 means adjacent lines (no blank lines)
+	// lineGap = 2 means one blank line between them
+	// lineGap = 3 means two blank lines between them, etc.
+	return Math.max(0, line_gap - 1);
+}
+
 function getWhitespaceLinesBetween(currentNode, nextNode) {
 	// Return the number of blank lines between two nodes based on their location
 	if (
@@ -2736,12 +2708,7 @@ function getWhitespaceLinesBetween(currentNode, nextNode) {
 		typeof currentNode.loc.end?.line === 'number' &&
 		typeof nextNode.loc.start?.line === 'number'
 	) {
-		const lineGap = nextNode.loc.start.line - currentNode.loc.end.line;
-		const blankLines = Math.max(0, lineGap - 1);
-		// lineGap = 1 means adjacent lines (no blank lines)
-		// lineGap = 2 means one blank line between them
-		// lineGap = 3 means two blank lines between them, etc.
-		return blankLines;
+		return getWhiteSpacePositionsBetween(currentNode.loc.end, nextNode.loc.start);
 	}
 
 	// If no location info, assume no whitespace

@@ -1070,8 +1070,17 @@ function test() {
 		expect(result).toBeWithNewline(expected);
 	});
 
-	it('should preserve trailing comments in tracked object expressions', async () => {
+	it('should preserve comments in object and tracked object expressions', async () => {
 		const expected = `const obj = {
+  /* comment 1 */
+  a: 1,
+
+  // comment 2
+  b: 2,
+  // comment 3
+};
+
+const obj2 = #{
   /* comment 1 */
   a: 1,
 
@@ -1084,7 +1093,7 @@ function test() {
 		expect(result).toBeWithNewline(expected);
 	});
 
-	it('should preserve trailing comments in switch statement cases', async () => {
+	it('should preserve comments in switch statement cases', async () => {
 		const input = `switch (x) {
   case 1:
     foo();
@@ -1102,6 +1111,25 @@ function test() {
     bar();
   // comment 2
 }`;
+
+		const result = await format(input, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it.skip('should preserve comments in arrays', async () => {
+		const input = `const arr = [
+  1,
+  /* comment 1 */
+  2,
+  3,
+  // comment 2
+];`;
+
+		const expected = `const arr = [
+  1, /* comment 1 */
+  2, 3,
+  // comment 2
+];`;
 
 		const result = await format(input, { singleQuote: true });
 		expect(result).toBeWithNewline(expected);

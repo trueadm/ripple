@@ -1821,7 +1821,10 @@ function get_comment_handlers(source, comments, index = 0) {
 								array_prop = 'consequent';
 							} else if (parent?.type === 'ArrayExpression') {
 								array_prop = 'elements';
-							} else if (parent?.type === 'ObjectExpression') {
+							} else if (
+								parent?.type === 'ObjectExpression' ||
+								parent?.type === 'TrackedObjectExpression'
+							) {
 								array_prop = 'properties';
 							} else if (
 								parent?.type === 'FunctionDeclaration' ||
