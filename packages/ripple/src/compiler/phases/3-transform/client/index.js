@@ -496,7 +496,7 @@ const visitors = {
 				}
 			}
 		} else {
-			context.next();
+			return context.next();
 		}
 	},
 
@@ -644,16 +644,16 @@ const visitors = {
 			[b.id('__compat')],
 			needs_fragment
 				? b.call(
-						'__compat._jsxs',
-						b.id('__compat.Fragment'),
-						b.object([
-							b.prop(
-								'init',
-								b.id('children'),
-								b.array(normalized_children.map((child) => visit(child, state))),
-							),
-						]),
-					)
+					'__compat._jsxs',
+					b.id('__compat.Fragment'),
+					b.object([
+						b.prop(
+							'init',
+							b.id('children'),
+							b.array(normalized_children.map((child) => visit(child, state))),
+						),
+					]),
+				)
 				: visit(normalized_children[0], state),
 		);
 
@@ -689,10 +689,9 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${
-					is_boolean_attribute(name) && value === true
-						? ''
-						: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${is_boolean_attribute(name) && value === true
+					? ''
+					: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -1211,10 +1210,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */ (context.visit(left)),
-							/** @type {Expression} */ (context.visit(right)),
-						),
+						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */(context.visit(left)),
+							/** @type {Expression} */(context.visit(right)),
+					),
 				b.id('__block'),
 			);
 		}
@@ -1230,12 +1229,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */ (
-								context.visit(left, { ...context.state, metadata: { tracking: false } })
-							),
-							/** @type {Expression} */ (context.visit(right)),
+						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */(
+							context.visit(left, { ...context.state, metadata: { tracking: false } })
 						),
+							/** @type {Expression} */(context.visit(right)),
+					),
 				b.id('__block'),
 			);
 		}
@@ -1442,12 +1441,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-											b.call(
-												b.id('__render'),
-												b.id(alternate_id),
-												node.alternate ? b.literal(false) : undefined,
-											),
-										)
+										b.call(
+											b.id('__render'),
+											b.id(alternate_id),
+											node.alternate ? b.literal(false) : undefined,
+										),
+									)
 									: undefined,
 							),
 						]),
@@ -1524,9 +1523,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-								b.block(transform_body(node.handler.body.body, context)),
-							),
+							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+							b.block(transform_body(node.handler.body.body, context)),
+						),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1652,7 +1651,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
 	}
 
 	quasi.tail = true;
@@ -1670,7 +1669,17 @@ function transform_ts_child(node, context) {
 		state.init.push(b.stmt(visit(node.expression, { ...state })));
 	} else if (node.type === 'Element') {
 		// Use capitalized name for dynamic components/elements in TypeScript output
-		const type = node.metadata?.ts_name || node.id.name;
+		// If node.id is not an Identifier (e.g., MemberExpression like props.children),
+		// we need to visit it to get the proper expression
+		let type_expression;
+		let type_is_expression = false;
+		if (node.id.type === 'MemberExpression') {
+			// For MemberExpressions, we need to create a JSXExpression, not a JSXIdentifier
+			type_expression = visit(node.id, state);
+			type_is_expression = true;
+		} else {
+			type_expression = node.metadata?.ts_name || node.id.name;
+		}
 		const children = [];
 		let has_children_props = false;
 
@@ -1733,33 +1742,40 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		const opening_type = b.jsx_id(type);
-		// Use node.id.loc if available, otherwise create a loc based on the element's position
-		opening_type.loc = node.id.loc || {
-			start: {
-				line: node.loc.start.line,
-				column: node.loc.start.column + 2, // After "<@"
-			},
-			end: {
-				line: node.loc.start.line,
-				column: node.loc.start.column + 2 + type.length,
-			},
-		};
+		let opening_type, closing_type;
 
-		let closing_type = undefined;
-
-		if (!node.selfClosing) {
-			closing_type = b.jsx_id(type);
-			closing_type.loc = {
+		if (type_is_expression) {
+			// For dynamic/expression-based components (e.g., props.children),
+			// use JSX expression instead of identifier
+			opening_type = type_expression;
+			closing_type = node.selfClosing ? undefined : type_expression;
+		} else {
+			opening_type = b.jsx_id(type_expression);
+			// Use node.id.loc if available, otherwise create a loc based on the element's position
+			opening_type.loc = node.id.loc || {
 				start: {
-					line: node.loc.end.line,
-					column: node.loc.end.column - type.length - 1,
+					line: node.loc.start.line,
+					column: node.loc.start.column + 2, // After "<@"
 				},
 				end: {
-					line: node.loc.end.line,
-					column: node.loc.end.column - 1,
+					line: node.loc.start.line,
+					column: node.loc.start.column + 2 + type_expression.length,
 				},
 			};
+
+			if (!node.selfClosing) {
+				closing_type = b.jsx_id(type_expression);
+				closing_type.loc = {
+					start: {
+						line: node.loc.end.line,
+						column: node.loc.end.column - type_expression.length - 1,
+					},
+					end: {
+						line: node.loc.end.line,
+						column: node.loc.end.column - 1,
+					},
+				};
+			}
 		}
 
 		const jsxElement = b.jsx_element(
@@ -2213,7 +2229,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 	};
 
 	const program = /** @type {Program} */ (
-		walk(/** @type {Node} */ (analysis.ast), { ...state, namespace: 'html' }, visitors)
+		walk(/** @type {Node} */(analysis.ast), { ...state, namespace: 'html' }, visitors)
 	);
 
 	for (const hoisted of state.hoisted) {

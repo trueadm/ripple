@@ -264,11 +264,30 @@ export default component App() {
 			expect(formatted).toBeWithNewline(already_formatted);
 		});
 
-		it.skip('should format a component with an object property notation component markup', async () => {
+		it('should format a component with an object property notation component markup', async () => {
 			const expected = `component Card(props) {
   <div class="card">
     <props.children />
   </div>
+}`;
+
+			const result = await format(expected, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should not change formatting for function object properties and properties in square brackets', async () => {
+			const expected = `export component App() {
+  const SYMBOL_PROP = Symbol();
+
+  const obj = {
+    count: 0,
+    increment() {
+      this.count++;
+    },
+    [SYMBOL_PROP]() {
+      this.count++;
+    },
+  };
 }`;
 
 			const result = await format(expected, { singleQuote: true });
