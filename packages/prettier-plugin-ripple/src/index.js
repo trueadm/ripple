@@ -3017,9 +3017,58 @@ function printProperty(node, path, options, print) {
 
 	const parts = [];
 
+	// Handle method shorthand: increment() {} instead of increment: function() {}
+	if (node.method && node.value.type === 'FunctionExpression') {
+		const methodParts = [];
+		const funcValue = node.value;
+
+		// Handle async and generator
+		if (funcValue.async) {
+			methodParts.push('async ');
+		}
+
+		// Print key (with computed property brackets if needed)
+		if (node.computed) {
+			methodParts.push('[', path.call(print, 'key'), ']');
+		} else if (node.key.type === 'Literal' && typeof node.key.value === 'string') {
+			// Check if the key is a valid identifier that doesn't need quotes
+			const key = node.key.value;
+			const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
+			if (isValidIdentifier) {
+				methodParts.push(key);
+			} else {
+				methodParts.push(formatStringLiteral(key, options));
+			}
+		} else {
+			methodParts.push(path.call(print, 'key'));
+		}
+
+		if (funcValue.generator) {
+			methodParts.push('*');
+		}
+
+		// Print parameters by calling into the value path
+		const paramsPart = path.call(
+			(valuePath) => printFunctionParameters(valuePath, options, print),
+			'value'
+		);
+		methodParts.push(group(paramsPart));
+
+		// Handle return type annotation
+		if (funcValue.returnType) {
+			methodParts.push(': ', path.call(print, 'value', 'returnType'));
+		}
+
+		methodParts.push(' ', path.call(print, 'value', 'body'));
+		return concat(methodParts);
+	}
+
 	// Handle property key - if it's a Literal (quoted string in source),
 	// check if it needs quotes or can be unquoted
-	if (node.key.type === 'Literal' && typeof node.key.value === 'string') {
+	if (node.computed) {
+		// Computed property: [key]
+		parts.push('[', path.call(print, 'key'), ']');
+	} else if (node.key.type === 'Literal' && typeof node.key.value === 'string') {
 		// Check if the key is a valid identifier that doesn't need quotes
 		const key = node.key.value;
 		const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
@@ -3032,7 +3081,7 @@ function printProperty(node, path, options, print) {
 			parts.push(formatStringLiteral(key, options));
 		}
 	} else {
-		// For computed properties or non-literal keys, print normally
+		// For non-literal keys, print normally
 		parts.push(path.call(print, 'key'));
 	}
 
@@ -3730,7 +3779,7 @@ function printMemberExpressionSimple(node) {
 }
 
 function printElement(node, path, options, print) {
-	const tagName = (node.id.tracked ? '@' : '') + node.id.name;
+	const tagName = (node.id.tracked ? '@' : '') + printMemberExpressionSimple(node.id);
 
 	const elementLeadingComments = getElementLeadingComments(node);
 	const metadataCommentParts =

@@ -3,7 +3,7 @@ import { track, flushSync } from 'ripple';
 describe('basic client > components & composition', () => {
 	it('renders with component composition and children', () => {
 		component Card(props) {
-			<div class='card'>
+			<div class="card">
 				<props.children />
 			</div>
 		}
@@ -27,16 +27,14 @@ describe('basic client > components & composition', () => {
 
 	it('renders with nested components and prop passing', () => {
 		component Button(props) {
-			<button class={props.variant} onClick={props.onClick}>
-				{props.label}
-			</button>
+			<button class={props.variant} onClick={props.onClick}>{props.label}</button>
 		}
 
 		component Card(props) {
-			<div class='card'>
+			<div class="card">
 				<h3>{props.title}</h3>
 				<p>{props.content}</p>
-				<Button variant='primary' label={props.buttonText} onClick={props.onAction} />
+				<Button variant="primary" label={props.buttonText} onClick={props.onAction} />
 			</div>
 		}
 
@@ -44,12 +42,12 @@ describe('basic client > components & composition', () => {
 			let clicked = track(false);
 
 			<Card
-				title='Test Card'
-				content='This is a test card'
-				buttonText='Click me'
+				title="Test Card"
+				content="This is a test card"
+				buttonText="Click me"
 				onAction={() => @clicked = true}
 			/>
-			<div class='status'>{@clicked ? 'Clicked' : 'Not clicked'}</div>
+			<div class="status">{@clicked ? 'Clicked' : 'Not clicked'}</div>
 		}
 
 		render(Basic);
@@ -74,8 +72,8 @@ describe('basic client > components & composition', () => {
 
 	it('renders with reactive component props', () => {
 		component ChildComponent(props) {
-			<div class='child-content'>{props.@text}</div>
-			<div class='child-count'>{props.@count}</div>
+			<div class="child-content">{props.@text}</div>
+			<div class="child-count">{props.@count}</div>
 		}
 
 		component Basic() {
@@ -83,10 +81,14 @@ describe('basic client > components & composition', () => {
 			let number = track(1);
 
 			<ChildComponent text={message} count={number} />
-			<button onClick={() => {
-				@message = @message === 'Hello' ? 'Goodbye' : 'Hello';
-				@number++;
-			}}>{'Update Props'}</button>
+			<button
+				onClick={() => {
+					@message = @message === 'Hello' ? 'Goodbye' : 'Hello';
+					@number++;
+				}}
+			>
+				{'Update Props'}
+			</button>
 		}
 
 		render(Basic);
@@ -139,7 +141,9 @@ describe('basic client > components & composition', () => {
 						@hasError = true;
 					}
 				}}
-			>{'Nonexistent'}</button>
+			>
+				{'Nonexistent'}
+			</button>
 			<button
 				onClick={() => {
 					@hasError = false;
@@ -149,7 +153,9 @@ describe('basic client > components & composition', () => {
 						@hasError = true;
 					}
 				}}
-			>{'Nonexistent chaining'}</button>
+			>
+				{'Nonexistent chaining'}
+			</button>
 			<button
 				onClick={() => {
 					@hasError = false;
@@ -159,7 +165,9 @@ describe('basic client > components & composition', () => {
 						@hasError = true;
 					}
 				}}
-			>{'Object null'}</button>
+			>
+				{'Object null'}
+			</button>
 			<button
 				onClick={() => {
 					@hasError = false;
@@ -169,7 +177,9 @@ describe('basic client > components & composition', () => {
 						@hasError = true;
 					}
 				}}
-			>{'Object null chained'}</button>
+			>
+				{'Object null chained'}
+			</button>
 			<button onClick={() => obj.arr[obj.arr.length - 1]()}>{'BinaryExpression prop'}</button>
 
 			<span>{obj.@count}</span>
