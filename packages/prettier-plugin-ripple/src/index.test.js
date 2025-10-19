@@ -54,7 +54,7 @@ describe('prettier-plugin-ripple', () => {
 	const formatWithCursorHelper = async (code, options = {}) => {
 		return await prettier.formatWithCursor(
 			code,
-			/** @type {import('prettier').CursorOptions} */({
+			/** @type {import('prettier').CursorOptions} */ ({
 				parser: 'ripple',
 				plugins: [join(__dirname, 'index.js')],
 				...options,
@@ -2899,6 +2899,160 @@ export component App() {
       <div className="123">Welcome from React!</div>
     </tsx:react>
   </div>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format JSXFragment inside <tsx:react> tags', async () => {
+				const input = `component App() {
+	<div>
+		<h1>{"Hello, from Ripple!"}</h1>
+		<tsx:react>
+			<div className="123">
+				<>
+					Text content
+				</>
+			</div>
+		</tsx:react>
+	</div>
+}`;
+
+				const expected = `component App() {
+  <div>
+    <h1>{'Hello, from Ripple!'}</h1>
+    <tsx:react>
+      <div className="123">
+        <>Text content</>
+      </div>
+    </tsx:react>
+  </div>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format empty JSXFragment', async () => {
+				const input = `component App() {
+	<tsx:react>
+		<div>
+			<></>
+		</div>
+	</tsx:react>
+}`;
+
+				const expected = `component App() {
+  <tsx:react>
+    <div><></></div>
+  </tsx:react>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format JSXFragment with multiple children', async () => {
+				const input = `component App() {
+	<tsx:react>
+		<>
+			<div>First</div>
+			<div>Second</div>
+			<span>Third</span>
+		</>
+	</tsx:react>
+}`;
+
+				const expected = `component App() {
+  <tsx:react>
+    <>
+      <div>First</div>
+      <div>Second</div>
+      <span>Third</span>
+    </>
+  </tsx:react>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format nested JSXFragments', async () => {
+				const input = `component App() {
+	<tsx:react>
+		<div className="wrapper">
+			<>
+				<span>Outer fragment</span>
+				<>
+					<span>Inner fragment</span>
+				</>
+			</>
+		</div>
+	</tsx:react>
+}`;
+
+				const expected = `component App() {
+  <tsx:react>
+    <div className="wrapper">
+      <>
+        <span>Outer fragment</span>
+        <>
+          <span>Inner fragment</span>
+        </>
+      </>
+    </div>
+  </tsx:react>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format JSXFragment with text and elements mixed', async () => {
+				const input = `component App() {
+	<tsx:react>
+		<>
+			Some text before
+			<div>Element in middle</div>
+			Some text after
+		</>
+	</tsx:react>
+}`;
+
+				const expected = `component App() {
+  <tsx:react>
+    <>
+      Some text before
+      <div>Element in middle</div>
+      Some text after
+    </>
+  </tsx:react>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format JSXFragment with expressions', async () => {
+				const input = `component App() {
+	<tsx:react>
+		<>
+			{value}
+			<span>Text</span>
+			{otherValue}
+		</>
+	</tsx:react>
+}`;
+
+				const expected = `component App() {
+  <tsx:react>
+    <>
+      {value}
+      <span>Text</span>
+      {otherValue}
+    </>
+  </tsx:react>
 }`;
 
 				const result = await format(input, { singleQuote: true });
