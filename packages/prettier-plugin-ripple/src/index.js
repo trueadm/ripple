@@ -326,11 +326,11 @@ function canAttachLeadingCommentToPreviousElement(comment, previousNode, nextNod
 		return false;
 	}
 
-	if (getWhitespaceLinesBetween(previousNode, comment) > 0) {
+	if (getBlankLinesBetweenNodes(previousNode, comment) > 0) {
 		return false;
 	}
 
-	if (getWhitespaceLinesBetween(comment, nextNode) > 0) {
+	if (getBlankLinesBetweenNodes(comment, nextNode) > 0) {
 		return false;
 	}
 
@@ -394,13 +394,13 @@ function printRippleNode(node, path, options, print, args) {
 
 				// Check if there should be blank lines between this comment and the next
 				if (nextComment) {
-					const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
+					const blankLinesBetween = getBlankLinesBetweenNodes(comment, nextComment);
 					if (blankLinesBetween > 0) {
 						parts.push(hardline);
 					}
 				} else if (isLastComment) {
 					// Preserve a blank line between the last comment and the node if it existed
-					const blankLinesBetween = getWhitespaceLinesBetween(comment, node);
+					const blankLinesBetween = getBlankLinesBetweenNodes(comment, node);
 					if (blankLinesBetween > 0) {
 						parts.push(hardline);
 					}
@@ -412,13 +412,13 @@ function printRippleNode(node, path, options, print, args) {
 
 					// Check if there should be blank lines between this comment and the next
 					if (nextComment) {
-						const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
+						const blankLinesBetween = getBlankLinesBetweenNodes(comment, nextComment);
 						if (blankLinesBetween > 0) {
 							parts.push(hardline);
 						}
 					} else if (isLastComment) {
 						// Preserve a blank line between the last comment and the node if it existed
-						const blankLinesBetween = getWhitespaceLinesBetween(comment, node);
+						const blankLinesBetween = getBlankLinesBetweenNodes(comment, node);
 						if (blankLinesBetween > 0) {
 							parts.push(hardline);
 						}
@@ -680,8 +680,8 @@ function printRippleNode(node, path, options, print, args) {
 					const firstComment = leadingComments[0];
 					const lastComment = leadingComments[leadingComments.length - 1];
 
-					const linesBeforeComment = getWhitespaceLinesBetween(prevElement, firstComment);
-					const linesAfterComment = getWhitespaceLinesBetween(lastComment, currentElement);
+					const linesBeforeComment = getBlankLinesBetweenNodes(prevElement, firstComment);
+					const linesAfterComment = getBlankLinesBetweenNodes(lastComment, currentElement);
 
 					if (linesBeforeComment > 0 || linesAfterComment > 0) {
 						elementsWithBlankLineAbove.push(i);
@@ -689,7 +689,7 @@ function printRippleNode(node, path, options, print, args) {
 					continue;
 				}
 
-				if (getWhitespaceLinesBetween(prevElement, currentElement) > 0) {
+				if (getBlankLinesBetweenNodes(prevElement, currentElement) > 0) {
 					elementsWithBlankLineAbove.push(i);
 				}
 			}
@@ -710,20 +710,37 @@ function printRippleNode(node, path, options, print, args) {
 
 					if (index < elements.length - 1) {
 						const inlineCommentDoc = inlineCommentsBetween[index];
-						let commentDocWithBreak = inlineCommentDoc;
-						let shouldSkipNextSeparator = false;
+
 						if (inlineCommentDoc) {
-							commentDocWithBreak = concat([inlineCommentDoc, hardline]);
-							shouldSkipNextSeparator = true;
-						}
+							// Build comment without leading space for separate-line version
+							const nextElement = node.elements[index + 1];
+							const commentParts = [];
+							if (nextElement && nextElement.leadingComments) {
+								for (const comment of nextElement.leadingComments) {
+									const isBlockComment = comment.type === 'Block' || comment.type === 'CommentBlock';
+									if (isBlockComment) {
+										commentParts.push('/*' + comment.value + '*/');
+									} else if (comment.type === 'Line') {
+										commentParts.push('//' + comment.value);
+									}
+								}
+							}
+							const commentDocNoSpace = commentParts.length > 0 ? concat(commentParts) : '';
 
-						const segmentParts = [elements[index], ','];
-						if (commentDocWithBreak) {
-							segmentParts.push(commentDocWithBreak);
+							// Provide conditional rendering: inline if it fits, otherwise on separate line
+							fillParts.push(
+								conditionalGroup([
+									// Try inline first (with space before comment)
+									concat([elements[index], ',', inlineCommentDoc, hardline]),
+									// If doesn't fit, put comment on next line (without leading space)
+									concat([elements[index], ',', hardline, commentDocNoSpace, hardline]),
+								]),
+							);
+							skipNextSeparator = true;
+						} else {
+							fillParts.push(group(concat([elements[index], ','])));
+							skipNextSeparator = false;
 						}
-
-						fillParts.push(group(concat(segmentParts)));
-						skipNextSeparator = shouldSkipNextSeparator;
 					} else {
 						fillParts.push(elements[index]);
 						skipNextSeparator = false;
@@ -832,18 +849,13 @@ function printRippleNode(node, path, options, print, args) {
 			}
 
 			// Array with blank lines - format as multi-line
-			// Use conditionalGroup to provide two alternatives:
-			// 1. Bracket stays inline (most compact)
-			// 2. Bracket breaks to new line with indent (when prefix+'[' doesn't fit)
-			nodeContent = conditionalGroup([
-				// Alternative 1: Try to keep bracket inline
-				group(concat([prefix + '[', indent(concat([line, concat(contentParts)])), line, ']'])),
-				// Alternative 2: Break bracket to new line and indent it and elements
-				concat([
-					prefix,
-					indent(concat([line, '[', indent(concat([line, concat(contentParts)])), line, ']'])),
-				]),
-			]);
+			// Use simple group that will break to fit within printWidth
+			nodeContent = group(concat([
+				prefix + '[',
+				indent(concat([line, concat(contentParts)])),
+				line,
+				']'
+			]));
 			break;
 		}
 
@@ -1496,8 +1508,8 @@ function printRippleNode(node, path, options, print, args) {
 				refs.push(hardline);
 
 				const blankLinesBetween = previousComment
-					? getWhitespaceLinesBetween(previousComment, comment)
-					: getWhitespaceLinesBetween(node, comment);
+					? getBlankLinesBetweenNodes(previousComment, comment)
+					: getBlankLinesBetweenNodes(node, comment);
 				if (blankLinesBetween > 0) {
 					refs.push(hardline);
 				}
@@ -2159,7 +2171,7 @@ function printObjectExpression(node, path, options, print, args) {
 	for (let i = 0; i < node.properties.length - 1; i++) {
 		const current = node.properties[i];
 		const next = node.properties[i + 1];
-		if (current && next && getWhitespaceLinesBetween(current, next) > 0) {
+		if (current && next && getBlankLinesBetweenNodes(current, next) > 0) {
 			hasBlankLinesBetweenProperties = true;
 			break;
 		}
@@ -2180,7 +2192,7 @@ function printObjectExpression(node, path, options, print, args) {
 
 		// Check for blank line after opening brace (before first property)
 		if (firstProp && node.loc && node.loc.start) {
-			hasAnyBlankLines = getWhiteSpacePositionsBetween(
+			hasAnyBlankLines = getBlankLinesBetweenPositions(
 				node.loc.start.offset(skip_offset),
 				firstProp.loc.start
 			);
@@ -2188,7 +2200,7 @@ function printObjectExpression(node, path, options, print, args) {
 
 		// Check for blank line before closing brace (after last property)
 		if (!hasAnyBlankLines && lastProp && node.loc && node.loc.end) {
-			hasAnyBlankLines = getWhiteSpacePositionsBetween(
+			hasAnyBlankLines = getBlankLinesBetweenPositions(
 				lastProp.loc.end,
 				node.loc.end.offset(-1), // -1 to skip the '}'
 			);
@@ -2262,7 +2274,7 @@ function printObjectExpression(node, path, options, print, args) {
 				// Check for blank lines between properties and preserve them
 				const prevProp = node.properties[i - 1];
 				const currentProp = node.properties[i];
-				if (prevProp && currentProp && getWhitespaceLinesBetween(prevProp, currentProp) > 0) {
+				if (prevProp && currentProp && getBlankLinesBetweenNodes(prevProp, currentProp) > 0) {
 					propertyParts.push(hardline);
 					propertyParts.push(hardline); // Two hardlines = blank line
 				} else {
@@ -2764,7 +2776,7 @@ function printSwitchCase(node, path, options, print) {
 
 		for (let i = 0; i < node.trailingComments.length; i++) {
 			const comment = node.trailingComments[i];
-			const blankLines = previousNode ? getWhitespaceLinesBetween(previousNode, comment) : 0;
+			const blankLines = previousNode ? getBlankLinesBetweenNodes(previousNode, comment) : 0;
 			commentDocs.push(hardline);
 			for (let j = 0; j < blankLines; j++) {
 				commentDocs.push(hardline);
@@ -2827,7 +2839,7 @@ function printSequenceExpression(node, path, options, print) {
 	return parts;
 }
 
-function getWhiteSpacePositionsBetween(current_pos, next_pos) {
+function getBlankLinesBetweenPositions(current_pos, next_pos) {
 	const line_gap = next_pos.line - current_pos.line;
 
 	// lineGap = 1 means adjacent lines (no blank lines)
@@ -2836,7 +2848,7 @@ function getWhiteSpacePositionsBetween(current_pos, next_pos) {
 	return Math.max(0, line_gap - 1);
 }
 
-function getWhitespaceLinesBetween(currentNode, nextNode) {
+function getBlankLinesBetweenNodes(currentNode, nextNode) {
 	// Return the number of blank lines between two nodes based on their location
 	if (
 		currentNode.loc &&
@@ -2844,7 +2856,7 @@ function getWhitespaceLinesBetween(currentNode, nextNode) {
 		typeof currentNode.loc.end?.line === 'number' &&
 		typeof nextNode.loc.start?.line === 'number'
 	) {
-		return getWhiteSpacePositionsBetween(currentNode.loc.end, nextNode.loc.start);
+		return getBlankLinesBetweenPositions(currentNode.loc.end, nextNode.loc.start);
 	}
 
 	// If no location info, assume no whitespace
@@ -2873,7 +2885,7 @@ function shouldAddBlankLine(currentNode, nextNode) {
 	}
 
 	// Check if there was original whitespace between the nodes
-	const originalBlankLines = getWhitespaceLinesBetween(sourceNode, targetNode);
+	const originalBlankLines = getBlankLinesBetweenNodes(sourceNode, targetNode);
 
 	// Special case: Always add blank line after import declarations when followed by non-imports
 	// This is standard Prettier behavior for separating imports from code
@@ -3030,9 +3042,52 @@ function printProperty(node, path, options, print) {
 }
 
 function printVariableDeclarator(node, path, options, print) {
-	// Follow Prettier core pattern - simple concatenation for basic cases
 	if (node.init) {
-		return concat([path.call(print, 'id'), ' = ', path.call(print, 'init')]);
+		const id = path.call(print, 'id');
+		const init = path.call(print, 'init');
+
+		// For arrays/objects with blank lines, use conditionalGroup to try both layouts
+		// Prettier will break the declaration if keeping it inline doesn't fit
+		const isArray = node.init.type === 'ArrayExpression' || node.init.type === 'TrackedArrayExpression';
+		const isObject = node.init.type === 'ObjectExpression' || node.init.type === 'TrackedObjectExpression';
+
+		if (isArray || isObject) {
+			const items = isArray ? (node.init.elements || []) : (node.init.properties || []);
+			let hasBlankLines = false;
+
+			if (isArray) {
+				for (let i = 1; i < items.length; i++) {
+					const prevElement = items[i - 1];
+					const currentElement = items[i];
+					if (prevElement && currentElement && getBlankLinesBetweenNodes(prevElement, currentElement) > 0) {
+						hasBlankLines = true;
+						break;
+					}
+				}
+			} else {
+				for (let i = 0; i < items.length - 1; i++) {
+					const current = items[i];
+					const next = items[i + 1];
+					if (current && next && getBlankLinesBetweenNodes(current, next) > 0) {
+						hasBlankLines = true;
+						break;
+					}
+				}
+			}
+
+			if (hasBlankLines) {
+				// Provide two alternatives: inline vs broken
+				// Prettier picks the broken version if inline doesn't fit
+				return conditionalGroup([
+					// Try inline first
+					concat([id, ' = ', init]),
+					// Fall back to broken with extra indent
+					concat([id, ' =', indent(concat([line, init]))]),
+				]);
+			}
+		}
+
+		return concat([id, ' = ', init]);
 	}
 
 	return path.call(print, 'id');
@@ -3464,7 +3519,7 @@ function createElementLevelCommentParts(comments) {
 		}
 
 		if (nextComment) {
-			const blankLinesBetween = getWhitespaceLinesBetween(comment, nextComment);
+			const blankLinesBetween = getBlankLinesBetweenNodes(comment, nextComment);
 			if (blankLinesBetween > 0) {
 				parts.push(hardline);
 			}
@@ -3805,7 +3860,7 @@ function printElement(node, path, options, print) {
 		finalChildren.push(childDoc);
 
 		if (nextChild) {
-			const whitespaceLinesCount = getWhitespaceLinesBetween(currentChild, nextChild);
+			const whitespaceLinesCount = getBlankLinesBetweenNodes(currentChild, nextChild);
 			const isTextOrHtmlChild =
 				currentChild.type === 'Text' ||
 				currentChild.type === 'Html' ||

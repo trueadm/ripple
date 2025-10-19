@@ -10,22 +10,16 @@
   "prettier.requireConfig": true,
   "js/ts.implicitProjectConfig.checkJs": true,
 
-  "[javascript]": {
-    "editor.insertSpaces": false
-  },
-  "[typescript]": {
-    "editor.insertSpaces": false
-  },
   "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.insertSpaces": true
   },
   "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.insertSpaces": true
   },
   "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.insertSpaces": true
-  },
-  "[ripple]": {
-    "editor.formatOnSave": true
   }
 }

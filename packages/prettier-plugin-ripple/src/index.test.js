@@ -264,6 +264,17 @@ export default component App() {
 			expect(formatted).toBeWithNewline(already_formatted);
 		});
 
+		it.skip('should format a component with an object property notation component markup', async () => {
+			const expected = `component Card(props) {
+  <div class="card">
+    <props.children />
+  </div>
+}`;
+
+			const result = await format(expected, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should handle arrow functions with block bodies', async () => {
 			const input = `export component Test(){const handler=()=>{};handler}`;
 			const expected = `export component Test() {
@@ -1116,7 +1127,7 @@ const obj2 = #{
 		expect(result).toBeWithNewline(expected);
 	});
 
-	it('should preserve comments in arrays', async () => {
+	it('should preserve comments in arrays with width 80', async () => {
 		const input = `const arr = [
   1,
   /* comment 1 */
@@ -1131,12 +1142,12 @@ const obj2 = #{
   // comment 2
 ];`;
 
-		const result = await format(input, { singleQuote: true });
+		const result = await format(input, { singleQuote: true, printWidth: 80 });
 		expect(result).toBeWithNewline(expected);
 	});
 
 	it('should preserve comments in arrays width printWidth 3', async () => {
-		const input = `const arr = [
+		const input = `const arr = #[
   1,
   /* comment 1 */
   2,
@@ -1144,14 +1155,34 @@ const obj2 = #{
   // comment 2
 ];`;
 
-		const expected = `const arr = [
-  1, /* comment 1 */
-  2,
-  3,
+		const expected = `const arr =
+  #[
+    1,
+    /* comment 1 */
+    2,
+    3,
+    // comment 2
+  ];`;
+
+		const result = await format(input, { singleQuote: true, printWidth: 3 });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve comments in arrays width printWidth 13', async () => {
+		const input = `const arr =
+  #[
+    1 /* comment 1 */,
+    2, 3,
+    // comment 2
+  ];`;
+
+		const expected = `const arr = #[
+  1 /* comment 1 */,
+  2, 3,
   // comment 2
 ];`;
 
-		const result = await format(input, { singleQuote: true, printWidth: 3 });
+		const result = await format(input, { singleQuote: true, printWidth: 13 });
 		expect(result).toBeWithNewline(expected);
 	});
 

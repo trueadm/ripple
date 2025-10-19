@@ -33,7 +33,8 @@ function isWhitespaceTextNode(node) {
 	if (!node || node.type !== 'Text') {
 		return false;
 	}
-	const value = typeof node.value === 'string' ? node.value : typeof node.raw === 'string' ? node.raw : '';
+	const value =
+		typeof node.value === 'string' ? node.value : typeof node.raw === 'string' ? node.raw : '';
 	return /^\s*$/.test(value);
 }
 
@@ -64,7 +65,9 @@ function RipplePlugin(config) {
 				}
 
 				const children = Array.isArray(container.children) ? container.children : [];
-				const hasMeaningfulChildren = children.some((child) => child && !isWhitespaceTextNode(child));
+				const hasMeaningfulChildren = children.some(
+					(child) => child && !isWhitespaceTextNode(child),
+				);
 
 				if (hasMeaningfulChildren) {
 					return null;
@@ -1029,7 +1032,7 @@ function RipplePlugin(config) {
 						var t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
-							this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
 					case tok.jsxTagStart:
@@ -1202,14 +1205,14 @@ function RipplePlugin(config) {
 							this.raise(
 								this.pos,
 								'Unexpected token `' +
-								this.input[this.pos] +
-								'`. Did you mean `' +
-								(ch === 62 ? '&gt;' : '&rbrace;') +
-								'` or ' +
-								'`{"' +
-								this.input[this.pos] +
-								'"}' +
-								'`?',
+									this.input[this.pos] +
+									'`. Did you mean `' +
+									(ch === 62 ? '&gt;' : '&rbrace;') +
+									'` or ' +
+									'`{"' +
+									this.input[this.pos] +
+									'"}' +
+									'`?',
 							);
 						}
 
@@ -1727,13 +1730,23 @@ function get_comment_handlers(source, comments, index = 0) {
 
 			comments = comments
 				.filter((comment) => comment.start >= index)
-				.map(({ type, value, start, end, loc, context }) => ({ type, value, start, end, loc, context }));
+				.map(({ type, value, start, end, loc, context }) => ({
+					type,
+					value,
+					start,
+					end,
+					loc,
+					context,
+				}));
 
 			walk(ast, null, {
 				_(node, { next, path }) {
 					let comment;
 
-					const metadata = /** @type {{ commentContainerId?: number, elementLeadingComments?: CommentWithLocation[] }} */ (node?.metadata);
+					const metadata =
+						/** @type {{ commentContainerId?: number, elementLeadingComments?: CommentWithLocation[] }} */ (
+							node?.metadata
+						);
 
 					if (metadata && metadata.commentContainerId !== undefined) {
 						while (
@@ -1742,7 +1755,9 @@ function get_comment_handlers(source, comments, index = 0) {
 							comments[0].context.containerId === metadata.commentContainerId &&
 							comments[0].context.beforeMeaningfulChild
 						) {
-							const elementComment = /** @type {CommentWithLocation & { context?: any }} */ (comments.shift());
+							const elementComment = /** @type {CommentWithLocation & { context?: any }} */ (
+								comments.shift()
+							);
 							(metadata.elementLeadingComments ||= []).push(elementComment);
 						}
 					}
@@ -1754,7 +1769,13 @@ function get_comment_handlers(source, comments, index = 0) {
 						// These comments should be dangling on the function instead
 						if (node.type === 'BlockStatement') {
 							const parent = path.at(-1);
-							if (parent && (parent.type === 'FunctionDeclaration' || parent.type === 'FunctionExpression' || parent.type === 'ArrowFunctionExpression') && parent.body === node) {
+							if (
+								parent &&
+								(parent.type === 'FunctionDeclaration' ||
+									parent.type === 'FunctionExpression' ||
+									parent.type === 'ArrowFunctionExpression') &&
+								parent.body === node
+							) {
 								// This is a function body - don't attach comment, let it be handled by function
 								(parent.comments ||= []).push(comment);
 								continue;
@@ -1766,7 +1787,9 @@ function get_comment_handlers(source, comments, index = 0) {
 								.filter((ancestor) => ancestor && ancestor.type === 'Element' && ancestor.loc)
 								.sort((a, b) => a.loc.start.line - b.loc.start.line);
 
-							const targetAncestor = ancestorElements.find((ancestor) => comment.loc.start.line < ancestor.loc.start.line);
+							const targetAncestor = ancestorElements.find(
+								(ancestor) => comment.loc.start.line < ancestor.loc.start.line,
+							);
 
 							if (targetAncestor) {
 								targetAncestor.metadata ??= {};
@@ -1819,7 +1842,10 @@ function get_comment_handlers(source, comments, index = 0) {
 								array_prop = 'cases';
 							} else if (parent?.type === 'SwitchCase') {
 								array_prop = 'consequent';
-							} else if (parent?.type === 'ArrayExpression') {
+							} else if (
+								parent?.type === 'ArrayExpression' ||
+								parent?.type === 'TrackedArrayExpression'
+							) {
 								array_prop = 'elements';
 							} else if (
 								parent?.type === 'ObjectExpression' ||
@@ -1840,7 +1866,8 @@ function get_comment_handlers(source, comments, index = 0) {
 								array_prop = 'arguments';
 							}
 							if (array_prop && Array.isArray(parent[array_prop])) {
-								is_last_in_array = parent[array_prop].indexOf(node) === parent[array_prop].length - 1;
+								is_last_in_array =
+									parent[array_prop].indexOf(node) === parent[array_prop].length - 1;
 							}
 
 							if (is_last_in_array) {
@@ -1855,7 +1882,9 @@ function get_comment_handlers(source, comments, index = 0) {
 
 										const nextChar = getNextNonWhitespaceCharacter(source, potentialComment.end);
 										if (nextChar === ')') {
-											(node.trailingComments ||= []).push(/** @type {CommentWithLocation} */(comments.shift()));
+											(node.trailingComments ||= []).push(
+												/** @type {CommentWithLocation} */ (comments.shift()),
+											);
 											continue;
 										}
 
@@ -1882,17 +1911,26 @@ function get_comment_handlers(source, comments, index = 0) {
 								const nodeEndLine = node.loc?.end?.line ?? null;
 								const commentStartLine = comments[0].loc?.start?.line ?? null;
 								const isImmediateNextLine =
-									nodeEndLine !== null && commentStartLine !== null && commentStartLine === nodeEndLine + 1;
+									nodeEndLine !== null &&
+									commentStartLine !== null &&
+									commentStartLine === nodeEndLine + 1;
 								const isSwitchCaseSibling = array_prop === 'cases';
 
 								if (isSwitchCaseSibling && !is_last_in_array) {
-									if (nodeEndLine !== null && commentStartLine !== null && nodeEndLine === commentStartLine) {
+									if (
+										nodeEndLine !== null &&
+										commentStartLine !== null &&
+										nodeEndLine === commentStartLine
+									) {
 										node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
 									}
 									return;
 								}
 
-								if (onlySimpleWhitespace || (onlyWhitespace && !hasBlankLine && isImmediateNextLine)) {
+								if (
+									onlySimpleWhitespace ||
+									(onlyWhitespace && !hasBlankLine && isImmediateNextLine)
+								) {
 									// For function parameters, only attach as trailing comment if it's on the same line
 									// Comments on next line after comma should be leading comments of next parameter
 									const isParam = array_prop === 'params';
@@ -1901,7 +1939,9 @@ function get_comment_handlers(source, comments, index = 0) {
 										const nodeEndLine = source.slice(0, node.end).split('\n').length;
 										const commentStartLine = source.slice(0, comments[0].start).split('\n').length;
 										if (nodeEndLine === commentStartLine) {
-											node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+											node.trailingComments = [
+												/** @type {CommentWithLocation} */ (comments.shift()),
+											];
 										}
 										// Otherwise leave it for next parameter's leading comments
 									} else {
@@ -1913,7 +1953,6 @@ function get_comment_handlers(source, comments, index = 0) {
 					}
 				},
 			});
-
 		},
 	};
 }
