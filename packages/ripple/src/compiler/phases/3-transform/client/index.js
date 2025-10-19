@@ -384,7 +384,7 @@ const visitors = {
 
 	TrackedArrayExpression(node, context) {
 		if (context.state.to_ts) {
-			const arrayAlias = import_from_ripple_if_needed("TrackedArray", context);
+			const arrayAlias = import_from_ripple_if_needed('TrackedArray', context);
 
 			return b.call(
 				b.member(b.id(arrayAlias), b.id('from')),
@@ -401,12 +401,9 @@ const visitors = {
 
 	TrackedObjectExpression(node, context) {
 		if (context.state.to_ts) {
-			const objectAlias = import_from_ripple_if_needed("TrackedObject", context);
+			const objectAlias = import_from_ripple_if_needed('TrackedObject', context);
 
-			return b.new(
-				b.id(objectAlias),
-				b.object(node.properties.map((prop) => context.visit(prop))),
-			);
+			return b.new(b.id(objectAlias), b.object(node.properties.map((prop) => context.visit(prop))));
 		}
 
 		return b.call(
@@ -558,6 +555,41 @@ const visitors = {
 
 	JSXExpressionContainer(node, context) {
 		return context.visit(node.expression);
+	},
+
+	JSXFragment(node, context) {
+		const attributes = node.openingFragment.attributes;
+		const normalized_children = node.children.filter((child) => {
+			return child.type !== 'JSXText' || child.value.trim() !== '';
+		});
+
+		const props = b.object(
+			attributes.map((attr) => {
+				if (attr.type === 'JSXAttribute') {
+					return b.prop('init', context.visit(attr.name), context.visit(attr.value));
+				} else if (attr.type === 'JSXSpreadAttribute') {
+					return b.spread(context.visit(attr.argument));
+				}
+			}),
+		);
+
+		if (normalized_children.length > 0) {
+			props.properties.push(
+				b.prop(
+					'init',
+					b.id('children'),
+					normalized_children.length === 1
+						? context.visit(normalized_children[0])
+						: b.array(normalized_children.map((child) => context.visit(child))),
+				),
+			);
+		}
+
+		return b.call(
+			normalized_children.length > 1 ? '__compat.jsxs' : '__compat.jsx',
+			b.id('__compat.Fragment'),
+			props,
+		);
 	},
 
 	JSXElement(node, context) {
@@ -1039,7 +1071,10 @@ const visitors = {
 				const component_scope = context.state.scopes.get(node);
 				const children_component = b.component(b.id('children'), [], children_filtered);
 
-				children_component.metadata = { ...(children_component.metadata || {}), inherited_css: true };
+				children_component.metadata = {
+					...(children_component.metadata || {}),
+					inherited_css: true,
+				};
 
 				const children = visit(children_component, {
 					...context.state,
@@ -1673,9 +1708,7 @@ function transform_ts_child(node, context) {
 				const createRefKeyAlias = import_from_ripple_if_needed('createRefKey', context);
 				const metadata = { await: false };
 				const argument = visit(attr.argument, { ...state, metadata });
-				const wrapper = b.object(
-					[b.prop('init', b.call(createRefKeyAlias), argument, true)]
-				);
+				const wrapper = b.object([b.prop('init', b.call(createRefKeyAlias), argument, true)]);
 				return b.jsx_spread_attribute(wrapper);
 			}
 		});
@@ -2130,7 +2163,7 @@ function create_tsx_with_typescript_support() {
 			} else {
 				context.visit(node.body);
 			}
-		}
+		},
 	};
 }
 
@@ -2146,7 +2179,12 @@ export function transform_client(filename, source, analysis, to_ts) {
 	const ripple_user_imports = new Map(); // exported -> local
 	if (analysis && analysis.ast && Array.isArray(analysis.ast.body)) {
 		for (const stmt of analysis.ast.body) {
-			if (stmt && stmt.type === 'ImportDeclaration' && stmt.source && stmt.source.value === 'ripple') {
+			if (
+				stmt &&
+				stmt.type === 'ImportDeclaration' &&
+				stmt.source &&
+				stmt.source.value === 'ripple'
+			) {
 				for (const spec of stmt.specifiers || []) {
 					if (spec.type === 'ImportSpecifier' && spec.imported && spec.local) {
 						ripple_user_imports.set(spec.imported.name, spec.local.name);

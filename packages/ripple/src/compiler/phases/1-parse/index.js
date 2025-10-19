@@ -998,6 +998,10 @@ function RipplePlugin(config) {
 			}
 
 			jsx_parseElementName() {
+				if (this.type?.label === 'jsxTagEnd') {
+					return '';
+				}
+
 				let node = this.jsx_parseNamespacedName();
 
 				if (node.type === 'JSXNamespacedName') {
