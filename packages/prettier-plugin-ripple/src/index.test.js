@@ -54,7 +54,7 @@ describe('prettier-plugin-ripple', () => {
 	const formatWithCursorHelper = async (code, options = {}) => {
 		return await prettier.formatWithCursor(
 			code,
-			/** @type {import('prettier').CursorOptions} */ ({
+			/** @type {import('prettier').CursorOptions} */({
 				parser: 'ripple',
 				plugins: [join(__dirname, 'index.js')],
 				...options,
@@ -997,6 +997,164 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should keep comments inside function with one statement at the top', async () => {
+		const expected = `component App() {
+  const something = 5;
+  // comment
+}
+
+function test() {
+  const something = 5;
+  // comment
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve trailing comments in function parameters', async () => {
+		const expected = `function test(
+  // comment in params
+  a,
+  // comment in params
+  b,
+  // comment in params
+  c,
+  // comment in params
+) {}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve trailing comments in call arguments', async () => {
+		const expected = `fn(
+  arg1,
+  // comment in args
+  arg2,
+  // comment in args
+  arg3,
+  // comment in args
+);`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve trailing comments in arrow function parameters', async () => {
+		const expected = `const test = (
+  // comment in params
+  a,
+  // comment in params
+  b,
+  // comment in params
+  c,
+  // comment in params
+) => {};`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve trailing comments in class body', async () => {
+		const expected = `class MyClass {
+  /* comment 1 */
+  method1() {}
+  //comment 2
+
+  method2() {}
+  // comment 3
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve comments in object and tracked object expressions', async () => {
+		const expected = `const obj = {
+  /* comment 1 */
+  a: 1,
+
+  // comment 2
+  b: 2,
+  // comment 3
+};
+
+const obj2 = #{
+  /* comment 1 */
+  a: 1,
+
+  // comment 2
+  b: 2,
+  // comment 3
+};`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve comments in switch statement cases', async () => {
+		const input = `switch (x) {
+  case 1:
+    foo();
+    // comment 1
+  case 2:
+    bar();
+    // comment 2
+}`;
+
+		const expected = `switch (x) {
+  case 1:
+    foo();
+  // comment 1
+  case 2:
+    bar();
+  // comment 2
+}`;
+
+		const result = await format(input, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve comments in arrays', async () => {
+		const input = `const arr = [
+  1,
+  /* comment 1 */
+  2,
+  3,
+  // comment 2
+];`;
+
+		const expected = `const arr = [
+  1, /* comment 1 */
+  2, 3,
+  // comment 2
+];`;
+
+		const result = await format(input, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve comments in arrays width printWidth 3', async () => {
+		const input = `const arr = [
+  1,
+  /* comment 1 */
+  2,
+  3,
+  // comment 2
+];`;
+
+		const expected = `const arr = [
+  1, /* comment 1 */
+  2,
+  3,
+  // comment 2
+];`;
+
+		const result = await format(input, { singleQuote: true, printWidth: 3 });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should correctly handle for loops with variable declarations', async () => {
 		const input = `for (let i = 0, len = array.length; i < len; i++) {
   console.log(i);
@@ -1429,6 +1587,12 @@ const items = [] as unknown[];`;
 			const input = `type V = Props["value"]; type W = Map<string, number>["size"]; type X = T[K];`;
 			const expected = `type V = Props["value"];\ntype W = Map<string, number>["size"];\ntype X = T[K];`;
 			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should properly format TSParenthesizedType', async () => {
+			const expected = `const logs: (number | undefined)[] = [];`;
+			const result = await format(expected);
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -2120,7 +2284,7 @@ export component App() {
 
     b,
 
-    c
+    c,
   ) {
     return a + b + c;
   }
@@ -2137,7 +2301,7 @@ export component App() {
 
     'second',
 
-    'third'
+    'third',
   );
 }`;
 
@@ -2147,7 +2311,7 @@ export component App() {
 
     'second',
 
-    'third'
+    'third',
   );
 }`;
 
@@ -2340,7 +2504,7 @@ export component App() {
 
     b,
 
-    c
+    c,
   ) {
     return a + b + c;
   }
@@ -2667,9 +2831,9 @@ export component App() {
 			});
 		});
 
-	describe('<tsx:react>', () => {
-		it('should format JSX inside <tsx:react> tags', async () => {
-			const input = `component App() {
+		describe('<tsx:react>', () => {
+			it('should format JSX inside <tsx:react> tags', async () => {
+				const input = `component App() {
 	<div>
 		<h1>{"Hello, from Ripple!"}</h1>
 		<tsx:react>
@@ -2678,7 +2842,7 @@ export component App() {
 	</div>
 }`;
 
-			const expected = `component App() {
+				const expected = `component App() {
   <div>
     <h1>{'Hello, from Ripple!'}</h1>
     <tsx:react>
@@ -2687,9 +2851,9 @@ export component App() {
   </div>
 }`;
 
-			const result = await format(input, { singleQuote: true });
-			expect(result).toBeWithNewline(expected);
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
 		});
 	});
-});
 });
