@@ -1,0 +1,279 @@
+==================
+Import Statements
+==================
+
+import { track } from 'ripple';
+import type { Component } from 'ripple';
+import * as Ripple from 'ripple';
+
+---
+
+(program
+  (import_statement
+    (import_clause
+      (named_imports
+        (import_specifier
+          name: (identifier))))
+    (from_clause (string)))
+  (import_statement
+    (import_clause
+      (named_imports
+        (import_specifier
+          name: (identifier))))
+    (from_clause (string)))
+  (import_statement
+    (import_clause
+      (namespace_import
+        (identifier)))
+    (from_clause (string))))
+
+==================
+Export Statements
+==================
+
+export { Counter };
+export default Counter;
+export * from 'ripple';
+
+---
+
+(program
+  (export_statement
+    (export_clause
+      (export_specifier
+        name: (identifier))))
+  (export_statement
+    (identifier))
+  (export_statement
+    (from_clause (string))))
+
+==================
+Variable Declarations
+==================
+
+let count = 0;
+const name = "Ripple";
+var value;
+
+---
+
+(program
+  (variable_declaration
+    (variable_declarator
+      name: (identifier)
+      (number)))
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      (string)))
+  (variable_declaration
+    (variable_declarator
+      name: (identifier))))
+
+==================
+Function Declarations
+==================
+
+function add(a, b) {
+  return a + b;
+}
+
+async function fetchData() {
+  return await fetch('/api');
+}
+
+---
+
+(program
+  (function_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter pattern: (identifier))
+      (required_parameter pattern: (identifier)))
+    body: (statement_block
+      (return_statement
+        (binary_expression
+          left: (identifier)
+          operator: (string)
+          right: (identifier)))))
+  (function_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (statement_block
+      (return_statement
+        (await_expression
+          (call_expression
+            function: (identifier)
+            arguments: (arguments (string))))))))
+
+==================
+Arrow Functions
+==================
+
+const add = (a, b) => a + b;
+const increment = x => x + 1;
+const log = () => { console.log('test'); };
+
+---
+
+(program
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      (arrow_function
+        parameters: (formal_parameters
+          (required_parameter pattern: (identifier))
+          (required_parameter pattern: (identifier)))
+        body: (binary_expression
+          left: (identifier)
+          operator: (string)
+          right: (identifier)))))
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      (arrow_function
+        parameter: (identifier)
+        body: (binary_expression
+          left: (identifier)
+          operator: (string)
+          right: (number)))))
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      (arrow_function
+        parameters: (formal_parameters)
+        body: (statement_block
+          (expression_statement
+            (call_expression
+              function: (member_expression
+                object: (identifier)
+                property: (identifier))
+              arguments: (arguments (string)))))))))
+
+==================
+Class Declarations
+==================
+
+class Counter {
+  count = 0;
+  
+  increment() {
+    this.count++;
+  }
+}
+
+---
+
+(program
+  (class_declaration
+    name: (identifier)
+    body: (class_body
+      (field_definition
+        property: (identifier)
+        (number))
+      (method_definition
+        name: (identifier)
+        parameters: (formal_parameters)
+        body: (statement_block
+          (expression_statement
+            (update_expression
+              argument: (member_expression
+                object: (this)
+                property: (identifier))
+              operator: (string))))))))
+
+==================
+Destructuring
+==================
+
+const { a, b } = obj;
+const [x, y] = arr;
+const { c: renamed, ...rest } = obj;
+
+---
+
+(program
+  (lexical_declaration
+    (variable_declarator
+      name: (object_pattern
+        (shorthand_property_identifier_pattern)
+        (shorthand_property_identifier_pattern))
+      (identifier)))
+  (lexical_declaration
+    (variable_declarator
+      name: (array_pattern
+        (identifier)
+        (identifier))
+      (identifier)))
+  (lexical_declaration
+    (variable_declarator
+      name: (object_pattern
+        (pair_pattern
+          key: (identifier)
+          value: (identifier))
+        (rest_pattern (identifier)))
+      (identifier))))
+
+==================
+TypeScript Type Annotations
+==================
+
+let count: number = 0;
+const name: string = "test";
+function add(a: number, b: number): number {
+  return a + b;
+}
+
+---
+
+(program
+  (variable_declaration
+    (variable_declarator
+      name: (identifier)
+      (type_annotation (predefined_type))
+      (number)))
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      (type_annotation (predefined_type))
+      (string)))
+  (function_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter
+        pattern: (identifier)
+        (type_annotation (predefined_type)))
+      (required_parameter
+        pattern: (identifier)
+        (type_annotation (predefined_type))))
+    (type_annotation (predefined_type))
+    body: (statement_block
+      (return_statement
+        (binary_expression
+          left: (identifier)
+          operator: (string)
+          right: (identifier))))))
+
+==================
+Template Strings
+==================
+
+const msg = `Hello ${name}!`;
+const multiline = `
+  Line 1
+  Line 2
+`;
+
+---
+
+(program
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      (template_string
+        (template_substitution
+          (identifier)))))
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier)
+      (template_string))))

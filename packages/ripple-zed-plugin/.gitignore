@@ -1,0 +1,12 @@
+# Rust/Cargo
+target/
+
+# Repo cloned by Zed
+grammars/ripple/
+
+# Zed extension build artifacts
+*.wasm
+
+# .scm files are located in tree-sitter-ripple
+# ignore their copies
+languages/ripple/*.scm

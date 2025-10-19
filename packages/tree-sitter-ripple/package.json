@@ -1,0 +1,42 @@
+{
+  "name": "tree-sitter-ripple",
+  "version": "0.0.1",
+  "description": "Ripple grammar for tree-sitter",
+  "main": "bindings/node",
+  "types": "bindings/node",
+  "keywords": [
+    "tree-sitter",
+    "parser",
+    "ripple"
+  ],
+  "author": "Ripple Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "node-addon-api": "^7.1.0",
+    "node-gyp-build": "^4.8.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.22.6",
+    "prebuildify": "^6.0.0",
+    "node-gyp": "^10.0.0"
+  },
+  "scripts": {
+    "generate": "tree-sitter generate",
+    "build": "tree-sitter generate && node-gyp rebuild",
+    "install": "node-gyp-build",
+    "prestart": "tree-sitter build --wasm",
+    "start": "tree-sitter playground",
+    "test": "tree-sitter test"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.ripple",
+      "file-types": [
+        "ripple"
+      ],
+      "injection-regex": "ripple"
+    }
+  ],
+  "gypfile": true
+}
+

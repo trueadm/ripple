@@ -1,0 +1,22 @@
+{
+	"name": "ripple-sublime-text-plugin",
+	"version": "1.0.0",
+	"description": "",
+	"scripts": {
+		"build": "node ./scripts/build.js && copy Ripple.sublime-package \"C:\\Users\\yusyu\\AppData\\Roaming\\Sublime Text\\Installed Packages\""
+	},
+	"author": "Dominic Gannaway",
+	"license": "MIT",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/trueadm/ripple.git",
+		"directory": "packages/ripple-language-server"
+	},
+	"devDependencies": {
+		"@types/adm-zip": "^0.5.7",
+		"@types/js-yaml": "^4.0.9",
+		"adm-zip": "^0.5.16",
+		"js-yaml": "^4.1.0"
+	}
+}

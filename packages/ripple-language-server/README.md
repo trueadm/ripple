@@ -18,9 +18,9 @@ Ripple files and can be integrated into any editor that supports LSP.
 npm install ripple-language-server -g
 ```
 
-### Editor Integration
+## Editor Integration
 
-This language server can be integrated into any editor that supports LSP:
+This language server can be integrated into any editor that supports LSP. There are also specialized plugins for popular editors.
 
 #### VS Code
 
@@ -29,15 +29,48 @@ It uses this language server internally.
 
 #### WebStorm/IntelliJ
 
-1. Install the [LSP4IJ plugin](https://plugins.jetbrains.com/plugin/23257-lsp4ij).
-2. Add a new language server in it
-3. Specify `ripple-language-server --stdio` as the command in it.
-4. Go to `Mappings` —> `File name patterns` and add a new value with `File name patterns` set to `*.ripple` and `Language Id` set to `ripple.
+1. Install the language server:
+    ```bash
+    npm install ripple-language-server -g
+    ```
+2. Install the [LSP4IJ plugin](https://plugins.jetbrains.com/plugin/23257-lsp4ij).
+3. Add a new language server in it
+4. Specify `ripple-language-server --stdio` as the command in it.
+5. Go to `Mappings` —> `File name patterns` and add a new value with `File name patterns` set to `*.ripple` and `Language Id` set to `ripple.
 
 #### Neovim
 
-TODO Write instructions
+Use the official plugin. It depends on `nvim-treesitter` and `nvim-lspconfig`.
+
+1. Install the language server:
+    ```bash
+    npm install ripple-language-server -g
+    ```
+2. Install [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) and [`nvim-lspconfig`](https://github.com/neovim/nvim-lspconfig).
+3. Install the plugin.
+
+   <details>
+   <summary>with lazy.nvim</summary>
+
+   ```lua
+   {
+     "trueadm/ripple",
+     dir = "packages/ripple-nvim-plugin",
+     config = true,
+   }
+   ```
+
+   </details>
+
+   If you're using another plugin manager and wish to share installation instructions, please consider opening a PR.
 
 #### Sublime Text
 
-TODO Write instructions
+Until the plugin lands on Package Control you need to install it from the packaged release:
+
+1. Make sure [Package Control](https://packagecontrol.io/installation) is installed, then install the [LSP](https://packagecontrol.io/packages/LSP) package (`Tools → Command Palette… → Package Control: Install Package → LSP`).
+2. Download the latest `Ripple.sublime-package` from the Ripple Sublime Text plugin (see `packages/ripple-sublime-text-plugin/README.md` in this repository for details).
+3. In Sublime Text, open `Preferences → Browse Packages…`, go up one level, and open the `Installed Packages/` directory.
+4. Copy the `Ripple.sublime-package` file into `Installed Packages/` and restart Sublime Text.
+
+Ensure Node.js `>= 18` is available on your `PATH`, then open a `.ripple` file to start receiving diagnostics, completions, and other language features.
