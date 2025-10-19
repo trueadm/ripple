@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`server exports > should handle all kinds of exports 1`] = `
+"export const a = 1;
+export let b = 2;
+export var c = 3;
+export const { d, e: f } = { d: 4, e: 5 };
+export function g() {}
+export class h {}
+
+const i = 9;
+
+export { i };
+
+export *  from './re-export.js';
+
+export { a as a2 } from './re-export.js';
+
+export default 'default-export';"
+`;

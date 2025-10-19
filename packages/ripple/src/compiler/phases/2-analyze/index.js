@@ -482,20 +482,60 @@ const visitors = {
 			return context.next();
 		}
 		const server_block = context.path.find((n) => n.type === 'ServerBlock');
+		if (!server_block) {
+			return context.next();
+		}
 		const declaration = node.declaration;
 
-		if (declaration && declaration.type === 'FunctionDeclaration') {
-			server_block.metadata.exports.push(declaration.id.name);
-		} else if (declaration && declaration.type === 'Component') {
-			// Handle exported components in server blocks
-			if (server_block) {
+		if (declaration) {
+			if (
+				declaration.type === 'FunctionDeclaration' ||
+				declaration.type === 'Component'
+			) {
 				server_block.metadata.exports.push(declaration.id.name);
+			} else if (declaration.type === 'VariableDeclaration') {
+				for (const declarator of declaration.declarations) {
+					if (declarator.id.type === 'Identifier') {
+						server_block.metadata.exports.push(declarator.id.name);
+					}
+				}
+			} else {
+				// TODO
+				throw new Error('Not implemented: Exported declaration type not supported in server blocks.');
 			}
-		} else {
-			// TODO
-			throw new Error('Not implemented: Exported declaration type not supported in server blocks.');
 		}
 
+		for (const specifier of node.specifiers) {
+			server_block.metadata.exports.push(specifier.exported.name);
+		}
+
+		return context.next();
+	},
+
+	ExportDefaultDeclaration(node, context) {
+		if (!context.state.inside_server_block) {
+			return context.next();
+		}
+		const server_block = context.path.find((n) => n.type === 'ServerBlock');
+		if (!server_block) {
+			return context.next();
+		}
+		server_block.metadata.exports.push('default');
+		return context.next();
+	},
+
+	ExportAllDeclaration(node, context) {
+		if (!context.state.inside_server_block) {
+			return context.next();
+		}
+		// We can't statically analyze this, so we'll have to do it at runtime
+		const server_block = context.path.find((n) => n.type === 'ServerBlock');
+		if (server_block) {
+			if (!server_block.metadata.reexports) {
+				server_block.metadata.reexports = [];
+			}
+			server_block.metadata.reexports.push(node);
+		}
 		return context.next();
 	},
 

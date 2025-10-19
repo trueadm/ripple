@@ -238,18 +238,94 @@ const visitors = {
 		}
 		const declaration = node.declaration;
 
-		if (declaration && declaration.type === 'FunctionDeclaration') {
-			return b.stmt(
-				b.assignment(
-					'=',
-					b.member(b.id('_$_server_$_'), b.id(declaration.id.name)),
-					context.visit(declaration),
-				),
-			);
+		if (declaration) {
+			if (
+				declaration.type === 'FunctionDeclaration' ||
+				declaration.type === 'Component'
+			) {
+				return b.stmt(
+					b.assignment(
+						'=',
+						b.member(b.id('_$_server_$_'), b.id(declaration.id.name)),
+						context.visit(declaration)
+					)
+				);
+			} else if (declaration.type === 'VariableDeclaration') {
+				const statements = [];
+				for (const declarator of declaration.declarations) {
+					if (declarator.id.type === 'Identifier') {
+						statements.push(
+							b.stmt(
+								b.assignment(
+									'=',
+									b.member(b.id('_$_server_$_'), declarator.id),
+									declarator.init ? context.visit(declarator.init) : b.id('undefined')
+								)
+							)
+						);
+					}
+				}
+				return b.block(statements);
+			} else {
+				// TODO
+				throw new Error('Not implemented');
+			}
 		} else {
-			// TODO
-			throw new Error('Not implemented');
+			const statements = [];
+			for (const specifier of node.specifiers) {
+				statements.push(
+					b.stmt(
+						b.assignment(
+							'=',
+							b.member(b.id('_$_server_$_'), specifier.exported),
+							specifier.local
+						)
+					)
+				);
+			}
+			return b.block(statements);
 		}
+	},
+
+	ExportDefaultDeclaration(node, context) {
+		if (!context.state.inside_server_block) {
+			return context.next();
+		}
+
+		return b.stmt(
+			b.assignment(
+				'=',
+				b.member(b.id('_$_server_$_'), b.id('default')),
+				context.visit(node.declaration)
+			)
+		);
+	},
+
+	ExportAllDeclaration(node, context) {
+		if (!context.state.inside_server_block) {
+			return context.next();
+		}
+
+		// Re-export all from another module
+		const re_export_module = b.id(context.state.scope.generate('re_export_module'));
+		context.state.imports.add(
+			b.import_all(re_export_module, node.source.value)
+		);
+
+		return b.for_in(
+			b.const('key'),
+			re_export_module,
+			b.if(
+				b.binary('!==', b.id('key'), b.literal('default')),
+				b.stmt(
+					b.assignment(
+						'=',
+						b.member(b.id('_$_server_$_'), b.id('key'), true),
+						b.member(re_export_module, b.id('key'), true)
+					)
+				)
+			)
+		);
 	},
 
 	VariableDeclaration(node, context) {
@@ -741,10 +817,12 @@ const visitors = {
 
 	ServerBlock(node, context) {
 		const exports = node.metadata.exports;
+		const reexports = node.metadata.reexports;
 
-		if (exports.length === 0) {
+		if (exports.length === 0 && (!reexports || reexports.length === 0)) {
 			return context.visit(node.body);
 		}
+
 		const file_path = context.state.filename;
 		const block = context.visit(node.body, { ...context.state, inside_server_block: true });
 		const rpc_modules = globalThis.rpc_modules;
