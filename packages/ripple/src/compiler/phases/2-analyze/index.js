@@ -485,28 +485,38 @@ const visitors = {
 		if (!server_block) {
 			return context.next();
 		}
-		const declaration = node.declaration;
 
-		if (declaration) {
+		// Handle declarations (export const, let, var, function, class, component)
+		if (node.declaration) {
 			if (
-				declaration.type === 'FunctionDeclaration' ||
-				declaration.type === 'Component'
+				  node.declaration.type === 'FunctionDeclaration' ||
+				  node.declaration.type === 'Component' ||
+				  node.declaration.type === 'ClassDeclaration'
 			) {
-				server_block.metadata.exports.push(declaration.id.name);
-			} else if (declaration.type === 'VariableDeclaration') {
-				for (const declarator of declaration.declarations) {
-					if (declarator.id.type === 'Identifier') {
-						server_block.metadata.exports.push(declarator.id.name);
+				server_block.metadata.exports.push(node.declaration.id.name);
+			} else if (node.declaration.type === 'VariableDeclaration') {
+				for (const declarator of node.declaration.declarations) {
+					const paths = extract_paths(declarator.id);
+					for (const path of paths) {
+						if (path.node.type === 'Identifier') {
+							server_block.metadata.exports.push(path.node.name);
+						}
 					}
 				}
 			} else {
-				// TODO
-				throw new Error('Not implemented: Exported declaration type not supported in server blocks.');
+				throw new Error(`Not implemented: Exported declaration type '${node.declaration.type}' not supported in server blocks.`);
 			}
 		}
 
 		for (const specifier of node.specifiers) {
 			server_block.metadata.exports.push(specifier.exported.name);
+		}
+
+		if (node.source) {
+			if (!server_block.metadata.reexports) {
+				server_block.metadata.reexports = [];
+			}
+			server_block.metadata.reexports.push(node);
 		}
 
 		return context.next();
@@ -584,10 +594,10 @@ const visitors = {
 		}
 	},
 	/**
-	 * 
-	 * @param {any} node 
-	 * @param {any} context 
-	 * @returns 
+	 *
+	 * @param {any} node
+	 * @param {any} context
+	 * @returns
 	 */
 	TryStatement(node, context) {
 		if (!is_inside_component(context)) {
@@ -848,9 +858,9 @@ const visitors = {
 	},
 
 	/**
-	 * 
-	 * @param {any} node 
-	 * @param {any} context 
+	 *
+	 * @param {any} node
+	 * @param {any} context
 	 */
 	AwaitExpression(node, context) {
 		if (is_inside_component(context)) {

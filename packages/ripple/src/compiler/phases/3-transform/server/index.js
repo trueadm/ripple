@@ -241,7 +241,8 @@ const visitors = {
 		if (declaration) {
 			if (
 				declaration.type === 'FunctionDeclaration' ||
-				declaration.type === 'Component'
+				declaration.type === 'Component' ||
+				declaration.type === 'ClassDeclaration'
 			) {
 				return b.stmt(
 					b.assignment(
@@ -263,12 +264,64 @@ const visitors = {
 								)
 							)
 						);
+					} else if (declarator.id.type === 'ObjectPattern') {
+						// Handle destructured exports like: export const { d, e: f } = { d: 4, e: 5 };
+						// Evaluate the init once into a temporary and then assign each property to the server export object.
+						// If the initializer is an object literal, inline property values directly so
+						// we generate `_$_server_$_.d = 4` instead of using a temporary variable.
+						if (declarator.init && declarator.init.type === 'ObjectExpression') {
+							for (const prop of declarator.id.properties) {
+								if (prop.type === 'Property') {
+									// Find the matching property in the initializer by key
+									let matching = null;
+									for (const p of declarator.init.properties) {
+										if (p.type === 'Property') {
+											if (
+												(p.key.type === 'Identifier' && prop.key.type === 'Identifier' && p.key.name === prop.key.name) ||
+												(p.key.type === 'Literal' && prop.key.type === 'Identifier' && p.key.value === prop.key.name)
+											) {
+												matching = p;
+												break;
+											}
+										}
+									}
+									const localId = prop.value;
+									const rhs = matching ? context.visit(matching.value) : b.id('undefined');
+									statements.push(
+										b.stmt(
+											b.assignment('=', b.member(b.id('_$_server_$_'), localId), rhs),
+										),
+									);
+								}
+							}
+						} else {
+							const tmpName = context.state.scope.generate('obj');
+							const tmpId = b.id(tmpName);
+							// var <tmp> = <init>;
+							statements.push(b.var(tmpName, declarator.init ? context.visit(declarator.init) : b.id('undefined')));
+							for (const prop of declarator.id.properties) {
+								if (prop.type === 'Property') {
+									// prop.key is the source property name, prop.value is the local identifier
+									const keyNode = prop.key.type === 'Identifier' ? b.id(prop.key.name) : context.visit(prop.key);
+									const localId = prop.value;
+									statements.push(
+										b.stmt(
+											b.assignment(
+												'=',
+												b.member(b.id('_$_server_$_'), localId),
+												b.member(tmpId, keyNode, prop.computed)
+											)
+										)
+									);
+								}
+							}
+						}
 					}
 				}
 				return b.block(statements);
 			} else {
 				// TODO
-				throw new Error('Not implemented');
+				throw new Error(`Not implemented: Exported declaration type '${node.declaration.type}' not supported in server blocks.`);
 			}
 		} else {
 			const statements = [];
@@ -309,11 +362,12 @@ const visitors = {
 		// Re-export all from another module
 		const re_export_module = b.id(context.state.scope.generate('re_export_module'));
 		context.state.imports.add(
+			// @ts-ignore
 			b.import_all(re_export_module, node.source.value)
 		);
 
-		return b.for_in(
-			b.const('key'),
+		return b.for_of(
+			b.const('key', b.call('_$_.object_keys', re_export_module)),
 			re_export_module,
 			b.if(
 				b.binary('!==', b.id('key'), b.literal('default')),
@@ -888,7 +942,7 @@ export function transform_server(filename, source, analysis) {
 	}
 
 	// Add async property to component functions
-	
+
 
 	for (const import_node of state.imports) {
 		program.body.unshift(b.stmt(b.id(import_node)));

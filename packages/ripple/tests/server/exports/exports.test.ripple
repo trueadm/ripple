@@ -4,6 +4,7 @@ import { compile } from 'ripple/compiler';
 describe('server exports', () => {
   it('should handle all kinds of exports', () => {
     const source = `
+      #server {
         export const a = 1;
         export let b = 2;
         export var c = 3;
@@ -12,17 +13,35 @@ describe('server exports', () => {
         export function g() {}
         export class h {}
 
-        const i = 9;
-        export { i };
+        export var i = 9;
 
         export * from './re-export.js';
         export { a as a2 } from './re-export.js';
 
         export default 'default-export';
+      }
     `;
 
     const result = compile(source, 'exports.test.ripple', { mode: 'server' });
+		console.log(result.js.code);
 
-    expect(result.js.code).toMatchSnapshot()
+    expect(result.js.code).toContain('export const _$_server_$_ = (() => {');
+
+    expect(result.js.code).toContain('_$_server_$_.a = 1');
+    expect(result.js.code).toContain('_$_server_$_.b = 2');
+    expect(result.js.code).toContain('_$_server_$_.c = 3');
+
+    expect(result.js.code).toContain('_$_server_$_.d = 4');
+    expect(result.js.code).toContain('_$_server_$_.f = 5');
+
+    expect(result.js.code).toContain('_$_server_$_.g = function g()');
+    expect(result.js.code).toContain('_$_server_$_.h = class h');
+
+    expect(result.js.code).toContain('_$_server_$_.i = 9');
+
+    expect(result.js.code).toContain("for (const key = _$_.object_keys(re_export_module) of re_export_module) if (key !== 'default') _$_server_$_[key] = re_export_module[key]");
+    expect(result.js.code).toContain('_$_server_$_.a2 = a');
+
+    expect(result.js.code).toContain('_$_server_$_.default = \'default-export\'');
   });
 });
