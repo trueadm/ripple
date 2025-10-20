@@ -297,35 +297,14 @@ export default component App() {
 			expect(result).toBeWithNewline(expected);
 		});
 
-		it.skip('should respect print width when using ternary expressions', async () => {
+		it('should respect print width when using ternary expressions', async () => {
 			const input = `function printMemberExpressionSimple(node, options, computed = false) {
   if (node.type === 'MemberExpression') {
     const prop = node.computed
       ? (node.property.tracked ? '.@[' : '[') + printMemberExpressionSimple(node.property, options, node.computed) + ']'
       : (node.property.tracked ? '.@' : '.') + printMemberExpressionSimple(node.property, options, node.computed);
   }
-}
-const openingTag = group([
-    '<',
-    tagName,
-    hasAttributes
-        ? indent(
-            concat([
-                ...path.map((attrPath) => {
-                    return concat([attrLineBreak, print(attrPath)]);
-                }, 'attributes'),
-            ]),
-        )
-        : '',
-    shouldUseSelfClosingSyntax
-        ? hasAttributes
-            ? line
-            : ''
-        : hasAttributes && !options.bracketSameLine
-            ? softline
-            : '',
-    shouldUseSelfClosingSyntax ? (hasAttributes ? '/>' : ' />') : '>',
-]);`;
+}`;
 
 			const expected = `function printMemberExpressionSimple(
   node,
@@ -348,33 +327,10 @@ const openingTag = group([
           node.computed,
         );
   }
-}
-const openingTag = group([
-  '<',
-  tagName,
-  hasAttributes
-    ? indent(
-        concat([
-          ...path.map((attrPath) => {
-            return concat([attrLineBreak, print(attrPath)]);
-          }, 'attributes'),
-        ]),
-      )
-    : '',
-  shouldUseSelfClosingSyntax
-    ? hasAttributes
-      ? line
-      : ''
-    : hasAttributes && !options.bracketSameLine
-      ? softline
-      : '',
-  shouldUseSelfClosingSyntax ? (hasAttributes ? '/>' : ' />') : '>',
-]);`;
+}`;
 
 			const result = await format(input, { singleQuote: true, printWidth: 70 });
 			expect(result).toBeWithNewline(expected);
-
-
 		});
 
 		it('should keep jsdoc on same line, spaces between, and parentheses', async () => {

@@ -1253,34 +1253,53 @@ function printRippleNode(node, path, options, print, args) {
 		}
 
 		case 'BinaryExpression':
-			nodeContent = concat([
-				path.call(print, 'left'),
-				' ',
-				node.operator,
-				' ',
-				path.call(print, 'right'),
-			]);
+			nodeContent = group(
+				concat([
+					path.call(print, 'left'),
+					' ',
+					node.operator,
+					indent(concat([line, path.call(print, 'right')])),
+				]),
+			);
 			break;
 
 		case 'LogicalExpression':
-			nodeContent = concat([
-				path.call(print, 'left'),
-				' ',
-				node.operator,
-				' ',
-				path.call(print, 'right'),
-			]);
+			nodeContent = group(
+				concat([
+					path.call(print, 'left'),
+					' ',
+					node.operator,
+					indent(concat([line, path.call(print, 'right')])),
+				]),
+			);
 			break;
 
-		case 'ConditionalExpression':
-			nodeContent = concat([
-				path.call(print, 'test'),
-				' ? ',
-				path.call(print, 'consequent'),
-				' : ',
-				path.call(print, 'alternate'),
+		case 'ConditionalExpression': {
+			// Use Prettier's grouping to handle line breaking when exceeding printWidth
+			const testDoc = path.call(print, 'test');
+			const consequentDoc = path.call(print, 'consequent');
+			const alternateDoc = path.call(print, 'alternate');
+
+			// First try inline, then multiline if it doesn't fit
+			let result = conditionalGroup([
+				// Try inline first
+				concat([testDoc, ' ? ', consequentDoc, ' : ', alternateDoc]),
+				// If inline doesn't fit, use multiline
+				concat([
+					testDoc,
+					indent(concat([line, '? ', consequentDoc])),
+					indent(concat([line, ': ', alternateDoc])),
+				]),
 			]);
+
+			// Wrap in parentheses if metadata indicates they were present
+			if (node.metadata?.parenthesized) {
+				result = concat(['(', result, ')']);
+			}
+
+			nodeContent = result;
 			break;
+		}
 
 		case 'UpdateExpression':
 			if (node.prefix) {
