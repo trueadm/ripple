@@ -36,19 +36,19 @@ describe('compiler > basics', () => {
 		expect(ast.body[0].declaration.css.source).toEqual(style3);
 	});
 
-  it('renders without crashing', () => {
+	it('renders without crashing', () => {
 		component App() {
 			let foo;
 			let bar;
 			let baz;
 
 			foo = {};
-			foo = {'test': 0};
+			foo = { test: 0 };
 			foo['abc'] = 123;
 
-			bar = { 'def': 456 };
+			bar = { def: 456 };
 
-			baz = { 'ghi': 789 };
+			baz = { ghi: 789 };
 			baz['jkl'] = 987;
 		}
 
@@ -56,18 +56,18 @@ describe('compiler > basics', () => {
 	});
 
 	it('renders without crashing using < character', () => {
-	component App() {
-		function bar() {
-			for (let i = 0; i < 10; i++) {
-				// do nothing
+		component App() {
+			function bar() {
+				for (let i = 0; i < 10; i++) {
+					// do nothing
+				}
+				const x = 1 < 1;
 			}
-			const x = 1 < 1;
+
+			let x = 5 < 10;
+
+			<div>{x}</div>
 		}
-
-		let x = 5 < 10
-
-		<div>{x}</div>
-	}
 
 		render(App);
 	});
@@ -97,28 +97,28 @@ describe('compiler > basics', () => {
 	it('renders without crashing using mapped types', () => {
 		component App() {
 			type RecordKey = 'test';
-			type RecordValue = { a: string, b: number };
+			type RecordValue = { a: string; b: number };
 
 			const config: Record<RecordKey, RecordValue> = {
 				test: {
 					a: 'test',
-					b: 1
+					b: 1,
 				},
 			};
 
 			const config2: { [key in RecordKey]: RecordValue } = {
 				test: {
 					a: 'test2',
-					b: 2
-				}
-			}
+					b: 2,
+				},
+			};
 
 			const config3: { [key: RecordKey]: RecordValue } = {
 				test: {
 					a: 'test3',
-					b: 3
-				}
-			}
+					b: 3,
+				},
+			};
 		}
 
 		render(App);
@@ -130,11 +130,14 @@ describe('compiler > basics', () => {
 			const { a, b, ...rest } = obj;
 
 			<div>
-				{'a '}{a} {'b '} {b} {'rest '} {JSON.stringify(rest)}
+				{'a '}
+				{a}
+				{'b '}
+				{b}
+				{'rest '}
+				{JSON.stringify(rest)}
 
-				<div>
-
-				</div>
+				<div />
 			</div>
 		}
 
@@ -146,11 +149,14 @@ describe('compiler > basics', () => {
 			const obj = { a: 1, b: 2, c: 3 };
 			const { a, b, ...rest } = obj;
 
-			{'a '}{a} {'b '} {b} {'rest '} {JSON.stringify(rest)}
+			{'a '}
+			{a}
+			{'b '}
+			{b}
+			{'rest '}
+			{JSON.stringify(rest)}
 
-			<div>
-
-			</div>
+			<div />
 		}
 
 		render(App);
@@ -163,10 +169,10 @@ describe('compiler > basics', () => {
 
 		function Wrapper() {
 			return {
-				unwrap: function<T>() {
+				unwrap: function() {
 					return null as unknown as T;
-				}
-			}
+				},
+			};
 		}
 
 		component App() {
@@ -180,11 +186,11 @@ describe('compiler > basics', () => {
 				value: T;
 			}
 
-			class Box<T> {
+			class Box {
 				value: T;
 
-				method<T>(): T {
-				return this.value;
+				method(): T {
+					return this.value;
 				}
 			}
 
@@ -213,7 +219,7 @@ describe('compiler > basics', () => {
 		const result = compile(source, 'test.ripple', { mode: 'client' });
 	});
 
-	it("doesn't add duplicate imports when encountering shorthand syntax", () => {
+	it('doesn\'t add duplicate imports when encountering shorthand syntax', () => {
 		const source = `
 import {
 	TrackedArray,
@@ -234,14 +240,14 @@ component App() {
 `;
 		const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-		expect(count_occurrences(result, "TrackedArray")).toBe(2);
-		expect(count_occurrences(result, "TrackedObject")).toBe(2);
-		expect(count_occurrences(result, "TrackedSet")).toBe(2);
-		expect(count_occurrences(result, "TrackedMap")).toBe(2);
-		expect(count_occurrences(result, "createRefKey")).toBe(2);
+		expect(count_occurrences(result, 'TrackedArray')).toBe(2);
+		expect(count_occurrences(result, 'TrackedObject')).toBe(2);
+		expect(count_occurrences(result, 'TrackedSet')).toBe(2);
+		expect(count_occurrences(result, 'TrackedMap')).toBe(2);
+		expect(count_occurrences(result, 'createRefKey')).toBe(2);
 	});
 
-	it("doesn't add duplicate imports for renamed imports when encountering shorthand syntax", () => {
+	it('doesn\'t add duplicate imports for renamed imports when encountering shorthand syntax', () => {
 		const source = `
 import {
 	TrackedArray as TA,
@@ -262,16 +268,16 @@ component App() {
 `;
 		const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-		expect(count_occurrences(result, "TrackedArray")).toBe(1);
-		expect(count_occurrences(result, "TA")).toBe(2);
-		expect(count_occurrences(result, "TrackedObject")).toBe(1);
-		expect(count_occurrences(result, "TO")).toBe(2);
-		expect(count_occurrences(result, "TrackedSet")).toBe(1);
-		expect(count_occurrences(result, "TS")).toBe(2);
-		expect(count_occurrences(result, "TrackedMap")).toBe(1);
-		expect(count_occurrences(result, "TM")).toBe(2);
-		expect(count_occurrences(result, "createRefKey")).toBe(1);
-		expect(count_occurrences(result, "crk")).toBe(2);
+		expect(count_occurrences(result, 'TrackedArray')).toBe(1);
+		expect(count_occurrences(result, 'TA')).toBe(2);
+		expect(count_occurrences(result, 'TrackedObject')).toBe(1);
+		expect(count_occurrences(result, 'TO')).toBe(2);
+		expect(count_occurrences(result, 'TrackedSet')).toBe(1);
+		expect(count_occurrences(result, 'TS')).toBe(2);
+		expect(count_occurrences(result, 'TrackedMap')).toBe(1);
+		expect(count_occurrences(result, 'TM')).toBe(2);
+		expect(count_occurrences(result, 'createRefKey')).toBe(1);
+		expect(count_occurrences(result, 'crk')).toBe(2);
 	});
 
 	it('adds missing imports for shorthand syntax', () => {
@@ -287,11 +293,11 @@ component App() {
 `;
 		const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-		expect(count_occurrences(result, "TrackedArray")).toBe(2);
-		expect(count_occurrences(result, "TrackedObject")).toBe(2);
-		expect(count_occurrences(result, "TrackedSet")).toBe(2);
-		expect(count_occurrences(result, "TrackedMap")).toBe(2);
-		expect(count_occurrences(result, "createRefKey")).toBe(2);
+		expect(count_occurrences(result, 'TrackedArray')).toBe(2);
+		expect(count_occurrences(result, 'TrackedObject')).toBe(2);
+		expect(count_occurrences(result, 'TrackedSet')).toBe(2);
+		expect(count_occurrences(result, 'TrackedMap')).toBe(2);
+		expect(count_occurrences(result, 'createRefKey')).toBe(2);
 	});
 
 	it('only adds missing imports for shorthand syntax, reusing existing ones', () => {
@@ -309,11 +315,34 @@ component App() {
 `;
 		const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-		expect(count_occurrences(result, "TrackedArray")).toBe(2);
-		expect(count_occurrences(result, "TrackedObject")).toBe(2);
-		expect(count_occurrences(result, "TrackedSet")).toBe(2);
-		expect(count_occurrences(result, "TrackedMap")).toBe(2);
-		expect(count_occurrences(result, "createRefKey")).toBe(1);
-		expect(count_occurrences(result, "crk")).toBe(2);
+		expect(count_occurrences(result, 'TrackedArray')).toBe(2);
+		expect(count_occurrences(result, 'TrackedObject')).toBe(2);
+		expect(count_occurrences(result, 'TrackedSet')).toBe(2);
+		expect(count_occurrences(result, 'TrackedMap')).toBe(2);
+		expect(count_occurrences(result, 'createRefKey')).toBe(1);
+		expect(count_occurrences(result, 'crk')).toBe(2);
+	});
+
+	it('should not error on having js below markup in the same scope', () => {
+		const code = `
+component Card(props) {
+	<div class="card">
+		<props.children />
+	</div>
+}
+
+export component App() {
+	<Card>
+		component children() {
+			<p>{'Card content here'}</p>
+		}
+	</Card>
+
+	const test = 5;
+
+	<div>{test}</div>
+}
+`;
+		expect(() => compile(code, 'test.ripple')).not.toThrow();
 	});
 });
