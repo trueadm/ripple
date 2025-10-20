@@ -1,8 +1,18 @@
 export type Component<T = Record<string, any>> = (props: T) => void;
 
+export type CompatApi = {
+	createRoot: () => void;
+	createComponent: (node: any, children_fn: () => any) => void;
+	jsx: (type: any, props: any) => any;
+};
+
+export type CompatOptions = {
+	[key: string]: CompatApi;
+};
+
 export declare function mount(
 	component: () => void,
-	options: { target: HTMLElement; props?: Record<string, any> },
+	options: { target: HTMLElement; props?: Record<string, any>; compat?: CompatOptions },
 ): () => void;
 
 export declare function tick(): Promise<void>;

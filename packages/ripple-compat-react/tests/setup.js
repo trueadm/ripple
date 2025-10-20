@@ -1,5 +1,6 @@
 import { beforeEach, afterEach } from 'vitest';
 import { mount } from 'ripple';
+import { createReactCompat } from '../src/index.js';
 
 /**
  * @param {() => void} component
@@ -7,6 +8,9 @@ import { mount } from 'ripple';
 globalThis.render = function render(component) {
 	mount(component, {
 		target: /** @type {HTMLDivElement} */ (globalThis.container),
+		compat: {
+			react: createReactCompat(),
+		},
 	});
 };
 

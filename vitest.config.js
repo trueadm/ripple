@@ -68,6 +68,17 @@ export default defineConfig({
 					globals: true,
 				},
 			},
+			{
+				name: 'ripple-compat-react',
+				test: {
+					include: ['packages/ripple-compat-react/tests/**/*.test.ripple'],
+					environment: 'jsdom',
+					setupFiles: ['packages/ripple-compat-react/tests/setup.js'],
+					globals: true,
+				},
+				plugins: [ripple()],
+				resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
+			},
 		],
 	},
 });
