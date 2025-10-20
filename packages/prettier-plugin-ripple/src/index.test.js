@@ -963,6 +963,23 @@ type GetRootNode = () => RootNode;`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should preserve a blank line between components and js declarations if one is provided', async () => {
+			const expected = `export component App() {
+  <Card>
+    component children() {
+      <p class="highlighted">{'Card content here'}</p>
+    }
+  </Card>
+
+  const test = 5;
+
+  <div>{test}</div>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should preserve blank lines between components and various TS declarations', async () => {
 			const expected = `export component App() {
   console.log('test');

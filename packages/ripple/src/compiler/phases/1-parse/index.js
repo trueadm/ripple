@@ -29,6 +29,28 @@ function convert_from_jsx(node) {
 	return node;
 }
 
+const regex_whitespace_only = /\s/;
+
+/**
+ * Skip whitespace characters without skipping comments.
+ * This is needed because Acorn's skipSpace() also skips comments, which breaks
+ * parsing in certain contexts. Updates parser position and line tracking.
+ * @param {acorn.Parser} parser
+ */
+function skipWhitespace(parser) {
+	const originalStart = parser.start;
+	while (parser.start < parser.input.length && regex_whitespace_only.test(parser.input[parser.start])) {
+		parser.start++;
+	}
+	// Update line tracking if whitespace was skipped
+	if (parser.start !== originalStart) {
+		const lineInfo = acorn.getLineInfo(parser.input, parser.start);
+		parser.curLine = lineInfo.line;
+		parser.lineStart = parser.start - lineInfo.column;
+		parser.startLoc = lineInfo;
+	}
+}
+
 function isWhitespaceTextNode(node) {
 	if (!node || node.type !== 'Text') {
 		return false;
@@ -1576,6 +1598,7 @@ function RipplePlugin(config) {
 
 						this.#path.pop();
 						this.next();
+						skipWhitespace(this);
 						return;
 					}
 					const node = this.parseElement();
