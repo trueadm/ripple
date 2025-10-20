@@ -754,6 +754,23 @@ export function jsx_element(
 }
 
 /**
+ * @param {Array<ESTree.JSXText | ESTree.JSXExpressionContainer | ESTree.JSXSpreadChild | ESTree.JSXElement | ESTree.JSXFragment>} children
+ * @returns {ESTree.JSXFragment}
+ */
+export function jsx_fragment(children = []) {
+	return {
+		type: 'JSXFragment',
+		openingFragment: {
+			type: 'JSXOpeningFragment',
+		},
+		closingFragment: {
+			type: 'JSXClosingFragment',
+		},
+		children,
+	};
+}
+
+/**
  * @param {ESTree.Expression | ESTree.JSXEmptyExpression} expression
  * @returns {ESTree.JSXExpressionContainer}
  */

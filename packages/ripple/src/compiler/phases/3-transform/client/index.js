@@ -549,18 +549,30 @@ const visitors = {
 	},
 
 	JSXText(node, context) {
+		if (context.state.to_ts) {
+			return context.next();
+		}
 		return b.literal(node.value + '');
 	},
 
 	JSXIdentifier(node, context) {
+		if (context.state.to_ts) {
+			return context.next();
+		}
 		return b.id(node.name);
 	},
 
 	JSXExpressionContainer(node, context) {
+		if (context.state.to_ts) {
+			return context.next();
+		}
 		return context.visit(node.expression);
 	},
 
 	JSXFragment(node, context) {
+		if (context.state.to_ts) {
+			return context.next();
+		}
 		const attributes = node.openingFragment.attributes;
 		const normalized_children = node.children.filter((child) => {
 			return child.type !== 'JSXText' || child.value.trim() !== '';
@@ -596,6 +608,9 @@ const visitors = {
 	},
 
 	JSXElement(node, context) {
+		if (context.state.to_ts) {
+			return context.next();
+		}
 		const name = node.openingElement.name;
 		const attributes = node.openingElement.attributes;
 		const normalized_children = node.children.filter((child) => {
@@ -647,16 +662,16 @@ const visitors = {
 			[b.id('__compat')],
 			needs_fragment
 				? b.call(
-					'__compat._jsxs',
-					b.id('__compat.Fragment'),
-					b.object([
-						b.prop(
-							'init',
-							b.id('children'),
-							b.array(normalized_children.map((child) => visit(child, state))),
-						),
-					]),
-				)
+						'__compat._jsxs',
+						b.id('__compat.Fragment'),
+						b.object([
+							b.prop(
+								'init',
+								b.id('children'),
+								b.array(normalized_children.map((child) => visit(child, state))),
+							),
+						]),
+					)
 				: visit(normalized_children[0], state),
 		);
 
@@ -692,9 +707,10 @@ const visitors = {
 
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
-				` ${name}${is_boolean_attribute(name) && value === true
-					? ''
-					: `="${value === true ? '' : escape_html(value, true)}"`
+				` ${name}${
+					is_boolean_attribute(name) && value === true
+						? ''
+						: `="${value === true ? '' : escape_html(value, true)}"`
 				}`,
 			);
 
@@ -1202,7 +1218,7 @@ const visitors = {
 			const operator = node.operator;
 			const right = node.right;
 
-			if (operator !== '=') {
+			if (operator !== '=' && context.state.metadata?.tracking === false) {
 				context.state.metadata.tracking = true;
 			}
 
@@ -1213,10 +1229,10 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */(context.visit(left)),
-							/** @type {Expression} */(context.visit(right)),
-					),
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */ (context.visit(left)),
+							/** @type {Expression} */ (context.visit(right)),
+						),
 				b.id('__block'),
 			);
 		}
@@ -1232,12 +1248,12 @@ const visitors = {
 				operator === '='
 					? context.visit(right)
 					: b.binary(
-						operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */(
-							context.visit(left, { ...context.state, metadata: { tracking: false } })
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {Expression} */ (
+								context.visit(left, { ...context.state, metadata: { tracking: false } })
+							),
+							/** @type {Expression} */ (context.visit(right)),
 						),
-							/** @type {Expression} */(context.visit(right)),
-					),
 				b.id('__block'),
 			);
 		}
@@ -1256,7 +1272,9 @@ const visitors = {
 			(argument.tracked || (argument.property.type === 'Identifier' && argument.property.tracked))
 		) {
 			add_ripple_internal_import(context);
-			context.state.metadata.tracking = true;
+			if (context.state.metadata?.tracking === false) {
+				context.state.metadata.tracking = true;
+			}
 
 			return b.call(
 				node.prefix ? '_$_.update_pre_property' : '_$_.update_property',
@@ -1444,12 +1462,12 @@ const visitors = {
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
-										b.call(
-											b.id('__render'),
-											b.id(alternate_id),
-											node.alternate ? b.literal(false) : undefined,
-										),
-									)
+											b.call(
+												b.id('__render'),
+												b.id(alternate_id),
+												node.alternate ? b.literal(false) : undefined,
+											),
+										)
 									: undefined,
 							),
 						]),
@@ -1526,9 +1544,9 @@ const visitors = {
 					node.handler === null
 						? b.literal(null)
 						: b.arrow(
-							[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-							b.block(transform_body(node.handler.body.body, context)),
-						),
+								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
+								b.block(transform_body(node.handler.body.body, context)),
+							),
 					node.pending === null
 						? undefined
 						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
@@ -1654,7 +1672,7 @@ function join_template(items) {
 	}
 
 	for (const quasi of template.quasis) {
-		quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
+		quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
 	}
 
 	quasi.tail = true;
@@ -1893,8 +1911,14 @@ function transform_ts_child(node, context) {
 		state.init.push(component);
 	} else if (node.type === 'BreakStatement') {
 		state.init.push(b.break);
-	} else {
+	} else if (node.type === 'TsxCompat') {
+		const children = node.children
+			.map((child) => visit(child, state))
+			.filter((child) => child.type !== 'JSXText' || child.value.trim() !== '');
+
 		debugger;
+		state.init.push(b.stmt(b.jsx_fragment(children)));
+	} else {
 		throw new Error('TODO');
 	}
 }
@@ -2282,7 +2306,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 	};
 
 	const program = /** @type {Program} */ (
-		walk(/** @type {Node} */(analysis.ast), { ...state, namespace: 'html' }, visitors)
+		walk(/** @type {Node} */ (analysis.ast), { ...state, namespace: 'html' }, visitors)
 	);
 
 	for (const hoisted of state.hoisted) {
