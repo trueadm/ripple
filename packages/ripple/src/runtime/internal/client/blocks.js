@@ -124,17 +124,32 @@ export function ref(element, get_fn) {
 }
 
 /**
- * @param {() => void} fn
+ * @param {() => (void | (() => void))} fn
  * @param {CompatOptions} [compat]
  * @returns {Block}
  */
 export function root(fn, compat) {
+	var target_fn = fn;
+
 	if (compat != null) {
+		/** @type {Array<void | (() => void)>} */
+		var unmounts = [];
 		for (var key in compat) {
 			var api = compat[key];
-			api.createRoot();
+			unmounts.push(api.createRoot());
 		}
+		target_fn = () => {
+			var component_unmount = fn();
+
+			return () => {
+				component_unmount?.();
+				for (var unmount of unmounts) {
+					unmount?.();
+				}
+			};
+		};
 	}
+
 	return block(ROOT_BLOCK, fn, { compat });
 }
 

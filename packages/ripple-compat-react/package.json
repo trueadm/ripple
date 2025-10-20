@@ -1,0 +1,25 @@
+{
+  "name": "ripple-compat-react",
+  "version": "0.2.134",
+  "description": "Ripple compatibility layer for React",
+  "main": "src/index.js",
+  "author": "Dominic Gannaway",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/ripple-compat-react"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./types": "./types/index.d.ts"
+  },
+  "dependencies": {
+    "ripple": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "typescript": "catalog:default"
+  }
+}

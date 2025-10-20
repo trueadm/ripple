@@ -25,8 +25,7 @@
     "vitest": "catalog:default"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "tailwindcss": "catalog:peer"
+    "tailwindcss": "catalog:peer",
+    "ripple-compat-react": "workspace:*"
   }
 }
