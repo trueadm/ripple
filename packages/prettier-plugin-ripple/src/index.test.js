@@ -333,6 +333,55 @@ export default component App() {
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should respect print width when using conditional expressions with arrays', async () => {
+			const input = `const openingTag = group([
+    '<',
+    tagName,
+    hasAttributes
+        ? indent(
+            concat([
+                ...path.map((attrPath) => {
+                    return concat([attrLineBreak, print(attrPath)]);
+                }, 'attributes'),
+            ]),
+        )
+        : '',
+    shouldUseSelfClosingSyntax
+        ? hasAttributes
+            ? line
+            : ''
+        : hasAttributes && !options.bracketSameLine
+            ? softline
+            : '',
+    shouldUseSelfClosingSyntax ? (hasAttributes ? '/>' : ' />') : '>',
+]);`;
+
+			const expected = `const openingTag = group([
+  '<',
+  tagName,
+  hasAttributes
+    ? indent(
+        concat([
+          ...path.map((attrPath) => {
+            return concat([attrLineBreak, print(attrPath)]);
+          }, 'attributes'),
+        ]),
+      )
+    : '',
+  shouldUseSelfClosingSyntax
+    ? hasAttributes
+      ? line
+      : ''
+    : hasAttributes && !options.bracketSameLine
+      ? softline
+      : '',
+  shouldUseSelfClosingSyntax ? (hasAttributes ? '/>' : ' />') : '>',
+]);`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 70 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should keep jsdoc on same line, spaces between, and parentheses', async () => {
 			const input = `/** @type {import('prettier').CursorOptions} */({});
 const start = /** @type {any} */ (node).start;

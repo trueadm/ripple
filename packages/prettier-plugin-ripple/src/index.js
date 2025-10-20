@@ -714,7 +714,16 @@ function printRippleNode(node, path, options, print, args) {
 
 			const hasAnyBlankLines = elementsWithBlankLineAbove.length > 0;
 
-			if (!hasAnyBlankLines && !allObjectsHaveMultipleProperties) {
+			// Check if any elements contain hard breaks (like multiline ternaries)
+			// Don't check willBreak() as that includes soft breaks from groups
+			// Only check for actual multiline content that forces breaking
+			const hasHardBreakingElements = node.elements.some((el) => {
+				if (!el) return false;
+				// Multiline ternaries are the main case that should force all elements on separate lines
+				return el.type === 'ConditionalExpression';
+			});
+
+			if (!hasAnyBlankLines && !allObjectsHaveMultipleProperties && !hasHardBreakingElements) {
 				const fillParts = [];
 				let skipNextSeparator = false;
 				for (let index = 0; index < elements.length; index++) {
@@ -771,6 +780,26 @@ function printRippleNode(node, path, options, print, args) {
 					concat([
 						prefix + '[',
 						indent(concat([softline, fill(fillParts), trailingDoc])),
+						softline,
+						']',
+					]),
+				);
+				break;
+			}
+
+			// If array has breaking elements (multiline ternaries, functions, etc.)
+			// use join() to put each element on its own line, per Prettier spec
+			if (hasHardBreakingElements) {
+				const separator = concat([',', line]);
+				const parts = [];
+				for (let index = 0; index < elements.length; index++) {
+					parts.push(elements[index]);
+				}
+				const trailingDoc = shouldUseTrailingComma ? ifBreak(',', '') : '';
+				nodeContent = group(
+					concat([
+						prefix + '[',
+						indent(concat([softline, join(separator, parts), trailingDoc])),
 						softline,
 						']',
 					]),
@@ -948,6 +977,7 @@ function printRippleNode(node, path, options, print, args) {
 			parts.push(argsDoc);
 
 			let callContent = concat(parts);
+
 			// Preserve parentheses for type-annotated call expressions
 			if (node.metadata?.parenthesized) {
 				callContent = concat(['(', callContent, ')']);
@@ -1130,8 +1160,8 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 
 		case 'SpreadElement': {
-			const parts = ['...', path.call(print, 'argument')];
-			nodeContent = concat(parts);
+			const argumentDoc = path.call(print, 'argument');
+			nodeContent = concat(['...', argumentDoc]);
 			break;
 		}
 		case 'RestElement': {
@@ -1277,20 +1307,49 @@ function printRippleNode(node, path, options, print, args) {
 		case 'ConditionalExpression': {
 			// Use Prettier's grouping to handle line breaking when exceeding printWidth
 			const testDoc = path.call(print, 'test');
-			const consequentDoc = path.call(print, 'consequent');
-			const alternateDoc = path.call(print, 'alternate');
 
-			// First try inline, then multiline if it doesn't fit
-			let result = conditionalGroup([
-				// Try inline first
-				concat([testDoc, ' ? ', consequentDoc, ' : ', alternateDoc]),
-				// If inline doesn't fit, use multiline
-				concat([
+			// Check if we have nested ternaries (but not if they're parenthesized, which keeps them inline)
+			const hasUnparenthesizedNestedConditional =
+				(node.consequent.type === 'ConditionalExpression' && !node.consequent.metadata?.parenthesized) ||
+				(node.alternate.type === 'ConditionalExpression' && !node.alternate.metadata?.parenthesized);
+
+			// If we have unparenthesized nested ternaries, tell the children they're nested
+			const consequentDoc = hasUnparenthesizedNestedConditional &&
+				node.consequent.type === 'ConditionalExpression' &&
+				!node.consequent.metadata?.parenthesized
+				? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'consequent')
+				: path.call(print, 'consequent');
+			const alternateDoc = hasUnparenthesizedNestedConditional &&
+				node.alternate.type === 'ConditionalExpression' &&
+				!node.alternate.metadata?.parenthesized
+				? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'alternate')
+				: path.call(print, 'alternate');
+
+			// Check if the consequent or alternate will break
+			const consequentBreaks = willBreak(consequentDoc);
+			const alternateBreaks = willBreak(alternateDoc);
+
+			let result;
+			// If either branch breaks OR we have unparenthesized nested ternaries OR we're already nested, use multiline format
+			if (consequentBreaks || alternateBreaks || hasUnparenthesizedNestedConditional || args?.isNestedConditional) {
+				result = concat([
 					testDoc,
-					indent(concat([line, '? ', consequentDoc])),
-					indent(concat([line, ': ', alternateDoc])),
-				]),
-			]);
+					indent(concat([line, '? ', consequentBreaks ? indent(consequentDoc) : consequentDoc])),
+					indent(concat([line, ': ', alternateBreaks ? indent(alternateDoc) : alternateDoc])),
+				]);
+			} else {
+				// Otherwise try inline first, then multiline if it doesn't fit
+				result = conditionalGroup([
+					// Try inline first
+					concat([testDoc, ' ? ', consequentDoc, ' : ', alternateDoc]),
+					// If inline doesn't fit, use multiline
+					concat([
+						testDoc,
+						indent(concat([line, '? ', consequentDoc])),
+						indent(concat([line, ': ', alternateDoc])),
+					]),
+				]);
+			}
 
 			// Wrap in parentheses if metadata indicates they were present
 			if (node.metadata?.parenthesized) {
@@ -2017,6 +2076,16 @@ function shouldHugLastArgument(args, argumentBreakFlags) {
 	return true;
 }
 
+// Check if arguments contain arrow functions with block bodies that should be hugged
+function shouldHugArrowFunctions(args) {
+	if (!args || args.length === 0) {
+		return false;
+	}
+
+	// If any argument is an arrow function with a block body, we should hug
+	return args.some((arg) => isBlockLikeFunction(arg));
+}
+
 function printCallArguments(path, options, print) {
 	const { node } = path;
 	const args = node.arguments || [];
@@ -2036,7 +2105,11 @@ function printCallArguments(path, options, print) {
 		const argumentDoc = print(argumentPath, { isInlineContext: true });
 
 		argumentDocs.push(argumentDoc);
-		argumentBreakFlags.push(willBreak(argumentDoc));
+		// Arrow functions with block bodies have internal breaks but shouldn't
+		// cause the call arguments to break - they stay inline with the call
+		const shouldTreatAsBreaking = willBreak(argumentDoc) &&
+			!isBlockLikeFunction(argumentNode);
+		argumentBreakFlags.push(shouldTreatAsBreaking);
 
 		if (!isLast) {
 			if (isNextLineEmpty(argumentNode, options)) {
@@ -2052,6 +2125,42 @@ function printCallArguments(path, options, print) {
 
 	const trailingComma = shouldPrintComma(options, 'all') ? ',' : '';
 
+	// Special case: single array argument should keep opening bracket inline
+	const isSingleArrayArgument = args.length === 1 &&
+		args[0] &&
+		(args[0].type === 'ArrayExpression' || args[0].type === 'TrackedArrayExpression');
+
+	if (isSingleArrayArgument) {
+		// Don't use group() - just concat to allow array to control its own breaking
+		// For single argument, no trailing comma needed
+		return concat([
+			'(',
+			argumentDocs[0],
+			')',
+		]);
+	}	// Check if we should hug arrow functions (keep params inline even when body breaks)
+	const shouldHugArrows = shouldHugArrowFunctions(args);
+
+	// For arrow functions, we want to keep params on same line as opening paren
+	// but allow the block body to break naturally
+	if (shouldHugArrows && !anyArgumentHasEmptyLine) {
+		// Build a version that keeps arguments inline with opening paren
+		const huggedParts = ['('];
+
+		for (let index = 0; index < args.length; index++) {
+			if (index > 0) {
+				huggedParts.push(', ');
+			}
+			huggedParts.push(argumentDocs[index]);
+		}
+
+		huggedParts.push(')');
+
+		// Don't use group - just concat to allow arrow function blocks to control breaking
+		return concat(huggedParts);
+	}
+
+	// Build standard breaking version with indentation
 	const contents = [
 		'(',
 		indent([softline, ...printedArguments]),
@@ -2060,14 +2169,12 @@ function printCallArguments(path, options, print) {
 		')',
 	];
 
-	const shouldForceBreak =
-		anyArgumentHasEmptyLine || printedArguments.some((docPart) => willBreak(docPart));
+	// Force break only if there are explicit empty lines between arguments
+	const shouldForceBreak = anyArgumentHasEmptyLine;
 
 	const groupedContents = group(contents, {
 		shouldBreak: shouldForceBreak,
-	});
-
-	if (!anyArgumentHasEmptyLine && shouldHugLastArgument(args, argumentBreakFlags)) {
+	}); if (!anyArgumentHasEmptyLine && shouldHugLastArgument(args, argumentBreakFlags)) {
 		const lastIndex = args.length - 1;
 		const inlineParts = ['('];
 
