@@ -1585,13 +1585,16 @@ function RipplePlugin(config) {
 				} else {
 					const node = this.parseStatement(null);
 					body.push(node);
-				}
 
-				// Ensure we're not in JSX context before recursing
-				// This is important when elements are parsed at statement level
-				const tokContexts = this.acornTypeScript.tokContexts;
-				while (this.curContext() === tokContexts.tc_expr) {
-					this.context.pop();
+					// Ensure we're not in JSX context before recursing
+					// This is important when elements are parsed at statement level
+					const tokContexts = this.acornTypeScript?.tokContexts;
+					if (tokContexts && this.curContext) {
+						const curContext = this.curContext();
+						if (curContext === tokContexts.tc_expr) {
+							this.context.pop();
+						}
+					}
 				}
 
 				this.parseTemplateBody(body);
