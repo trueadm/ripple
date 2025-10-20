@@ -317,21 +317,21 @@ const visitors = {
 		if (!context.state.to_ts) {
 			return b.empty;
 		}
-		context.next();
+		return context.next();
 	},
 
 	TSInterfaceDeclaration(_, context) {
 		if (!context.state.to_ts) {
 			return b.empty;
 		}
-		context.next();
+		return context.next();
 	},
 
 	TSMappedType(_, context) {
 		if (!context.state.to_ts) {
 			return b.empty;
 		}
-		context.next();
+		return context.next();
 	},
 
 	NewExpression(node, context) {
@@ -2150,6 +2150,56 @@ function create_tsx_with_typescript_support() {
 			context.write('(');
 			context.visit(node.typeAnnotation);
 			context.write(')');
+		},
+		// Custom handler for TSMappedType: { [K in keyof T]: T[K] }
+		TSMappedType(node, context) {
+			context.write('{ ');
+			if (node.readonly) {
+				if (node.readonly === '+' || node.readonly === true) {
+					context.write('readonly ');
+				} else if (node.readonly === '-') {
+					context.write('-readonly ');
+				}
+			}
+			context.write('[');
+			// Visit the entire type parameter (TSTypeParameter node)
+			if (node.typeParameter) {
+				context.visit(node.typeParameter);
+			}
+			context.write(']');
+			if (node.optional) {
+				if (node.optional === '+' || node.optional === true) {
+					context.write('?');
+				} else if (node.optional === '-') {
+					context.write('-?');
+				}
+			}
+			context.write(': ');
+			// Visit the value type - could be either typeAnnotation or nameType
+			if (node.typeAnnotation) {
+				context.visit(node.typeAnnotation);
+			} else if (node.nameType) {
+				context.visit(node.nameType);
+			}
+			context.write(' }');
+		},
+		// Custom handler for TSTypeParameter: K in T (for mapped types)
+		// acord ts has a bug where `in` is printed as `extends`, so we override it here
+		TSTypeParameter(node, context) {
+			// For mapped types, the name is just a string, not an Identifier node
+			if (typeof node.name === 'string') {
+				context.write(node.name);
+			} else if (node.name && node.name.name) {
+				context.write(node.name.name);
+			}
+			if (node.constraint) {
+				context.write(' in ');
+				context.visit(node.constraint);
+			}
+			if (node.default) {
+				context.write(' = ');
+				context.visit(node.default);
+			}
 		},
 		// Override the ArrowFunctionExpression handler to support TypeScript return types
 		ArrowFunctionExpression(node, context) {
