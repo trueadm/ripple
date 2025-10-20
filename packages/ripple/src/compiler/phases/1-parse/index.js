@@ -1011,8 +1011,39 @@ function RipplePlugin(config) {
 				if (this.eat(tt.dot)) {
 					let memberExpr = this.startNodeAt(node.start, node.loc && node.loc.start);
 					memberExpr.object = node;
-					memberExpr.property = this.jsx_parseIdentifier();
-					memberExpr.computed = false;
+
+					// Check for .@[expression] syntax for tracked computed member access
+					// After eating the dot, check if the current token is @ followed by [
+					if (this.type.label === '@') {
+						// Check if the next character after @ is [
+						const nextChar = this.input.charCodeAt(this.pos);
+
+						if (nextChar === 91) { // [ character
+							memberExpr.computed = true;
+
+							// Consume the @ token
+							this.next();
+
+							// Now this.type should be bracketL
+							// Consume the [ and parse the expression inside
+							this.expect(tt.bracketL);
+
+							// Parse the expression inside brackets
+							memberExpr.property = this.parseExpression();
+							memberExpr.property.tracked = true;
+
+							// Expect closing bracket
+							this.expect(tt.bracketR);
+						} else {
+							// @ not followed by [, treat as regular tracked identifier
+							memberExpr.property = this.jsx_parseIdentifier();
+							memberExpr.computed = false;
+						}
+					} else {
+						// Regular dot notation
+						memberExpr.property = this.jsx_parseIdentifier();
+						memberExpr.computed = false;
+					}
 					while (this.eat(tt.dot)) {
 						let newMemberExpr = this.startNodeAt(
 							memberExpr.start,

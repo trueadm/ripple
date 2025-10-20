@@ -463,14 +463,17 @@ const visitors = {
 		}
 
 		if (node.tracked || (node.property.type === 'Identifier' && node.property.tracked)) {
+			// In TypeScript mode, skip the transformation and let transform_ts_child handle it
 			add_ripple_internal_import(context);
 
-			return b.call(
-				'_$_.get_property',
-				context.visit(node.object),
-				node.computed ? context.visit(node.property) : b.literal(node.property.name),
-				node.optional ? b.true : undefined,
-			);
+			if (!context.state.to_ts) {
+				return b.call(
+					'_$_.get_property',
+					context.visit(node.object),
+					node.computed ? context.visit(node.property) : b.literal(node.property.name),
+					node.optional ? b.true : undefined,
+				);
+			}
 		}
 
 		if (node.object.type === 'MemberExpression' && node.object.optional) {

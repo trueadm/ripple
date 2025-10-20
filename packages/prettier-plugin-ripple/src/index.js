@@ -3786,7 +3786,7 @@ function printJSXAttribute(attr, path, options, print, index) {
 		} else if (exprValue.type === 'Identifier') {
 			exprStr = exprValue.name;
 		} else if (exprValue.type === 'MemberExpression') {
-			exprStr = printMemberExpressionSimple(exprValue);
+			exprStr = printMemberExpressionSimple(exprValue, options);
 		} else {
 			// For complex expressions, try to stringify
 			exprStr = '...';
@@ -3808,25 +3808,27 @@ function printJSXMemberExpression(node) {
 	return 'Unknown';
 }
 
-function printMemberExpressionSimple(node) {
+function printMemberExpressionSimple(node, options, computed = false) {
 	if (node.type === 'Identifier') {
 		return node.name;
 	}
+
 	if (node.type === 'MemberExpression') {
-		const obj = printMemberExpressionSimple(node.object);
+		const obj = printMemberExpressionSimple(node.object, options);
 		const prop = node.computed
-			? '[' + printMemberExpressionSimple(node.property) + ']'
-			: '.' + printMemberExpressionSimple(node.property);
+			? (node.property.tracked ? '.@[' : '[') + printMemberExpressionSimple(node.property, options, node.computed) + ']'
+			: (node.property.tracked ? '.@' : '.') + printMemberExpressionSimple(node.property, options, node.computed);
 		return obj + prop;
 	}
+
 	if (node.type === 'Literal') {
-		return JSON.stringify(node.value);
+		return computed ? formatStringLiteral(node.value, options) : JSON.stringify(node.value);
 	}
 	return '';
 }
 
 function printElement(node, path, options, print) {
-	const tagName = (node.id.tracked ? '@' : '') + printMemberExpressionSimple(node.id);
+	const tagName = (node.id.tracked ? '@' : '') + printMemberExpressionSimple(node.id, options);
 
 	const elementLeadingComments = getElementLeadingComments(node);
 	const metadataCommentParts =
