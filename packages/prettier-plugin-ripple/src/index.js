@@ -417,7 +417,15 @@ function printRippleNode(node, path, options, print, args) {
 				}
 			} else if (comment.type === 'Block') {
 				parts.push('/*' + comment.value + '*/');
-				if (!isInlineContext) {
+
+				// Check if comment and node are on the same line (for inline JSDoc comments)
+				const isCommentOnSameLine =
+					isLastComment &&
+					comment.loc &&
+					node.loc &&
+					comment.loc.end.line === node.loc.start.line;
+
+				if (!isInlineContext && !isCommentOnSameLine) {
 					parts.push(hardline);
 
 					// Check if there should be blank lines between this comment and the next
@@ -888,15 +896,21 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = '#' + node.name;
 			break;
 
-		case 'AssignmentExpression':
+		case 'AssignmentExpression': {
+			let leftPart = path.call(print, 'left');
+			// Preserve parentheses around the left side when present
+			if (node.left.metadata?.parenthesized) {
+				leftPart = concat(['(', leftPart, ')']);
+			}
 			nodeContent = concat([
-				path.call(print, 'left'),
+				leftPart,
 				' ',
 				node.operator,
 				' ',
 				path.call(print, 'right'),
 			]);
 			break;
+		}
 
 		case 'MemberExpression':
 			nodeContent = printMemberExpression(node, path, options, print);
@@ -916,7 +930,8 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'CallExpression': {
 			const parts = [];
-			parts.push(path.call(print, 'callee'));
+			const calleePart = path.call(print, 'callee');
+			parts.push(calleePart);
 
 			if (node.optional) {
 				parts.push('?.');
@@ -932,7 +947,12 @@ function printRippleNode(node, path, options, print, args) {
 			const argsDoc = printCallArguments(path, options, print);
 			parts.push(argsDoc);
 
-			nodeContent = concat(parts);
+			let callContent = concat(parts);
+			// Preserve parentheses for type-annotated call expressions
+			if (node.metadata?.parenthesized) {
+				callContent = concat(['(', callContent, ')']);
+			}
+			nodeContent = callContent;
 			break;
 		}
 
@@ -1123,9 +1143,17 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printVariableDeclaration(node, path, options, print);
 			break;
 
-		case 'ExpressionStatement':
-			nodeContent = concat([path.call(print, 'expression'), semi(options)]);
+		case 'ExpressionStatement': {
+			// Object literals at statement position need parentheses to avoid ambiguity with blocks
+			const needsParens = node.expression.type === 'ObjectExpression' ||
+				node.expression.type === 'TrackedObjectExpression';
+			if (needsParens) {
+				nodeContent = concat(['(', path.call(print, 'expression'), ')', semi(options)]);
+			} else {
+				nodeContent = concat([path.call(print, 'expression'), semi(options)]);
+			}
 			break;
+		}
 		case 'RefAttribute':
 			nodeContent = concat(['{ref ', path.call(print, 'argument'), '}']);
 			break;
@@ -2466,7 +2494,11 @@ function printMethodDefinition(node, path, options, print) {
 }
 
 function printMemberExpression(node, path, options, print) {
-	const objectPart = path.call(print, 'object');
+	let objectPart = path.call(print, 'object');
+	// Preserve parentheses around the object when present
+	if (node.object.metadata?.parenthesized) {
+		objectPart = concat(['(', objectPart, ')']);
+	}
 	const propertyPart = path.call(print, 'property');
 
 	if (node.computed) {
@@ -3860,12 +3892,12 @@ function printElement(node, path, options, print) {
 		tagName,
 		hasAttributes
 			? indent(
-					concat([
-						...path.map((attrPath) => {
-							return concat([attrLineBreak, print(attrPath)]);
-						}, 'attributes'),
-					]),
-				)
+				concat([
+					...path.map((attrPath) => {
+						return concat([attrLineBreak, print(attrPath)]);
+					}, 'attributes'),
+				]),
+			)
 			: '',
 		// Add line break opportunity before > or />
 		// Use line for self-closing (keeps space), softline for non-self-closing when attributes present

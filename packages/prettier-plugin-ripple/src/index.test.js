@@ -304,7 +304,28 @@ export default component App() {
       ? (node.property.tracked ? '.@[' : '[') + printMemberExpressionSimple(node.property, options, node.computed) + ']'
       : (node.property.tracked ? '.@' : '.') + printMemberExpressionSimple(node.property, options, node.computed);
   }
-}`;
+}
+const openingTag = group([
+    '<',
+    tagName,
+    hasAttributes
+        ? indent(
+            concat([
+                ...path.map((attrPath) => {
+                    return concat([attrLineBreak, print(attrPath)]);
+                }, 'attributes'),
+            ]),
+        )
+        : '',
+    shouldUseSelfClosingSyntax
+        ? hasAttributes
+            ? line
+            : ''
+        : hasAttributes && !options.bracketSameLine
+            ? softline
+            : '',
+    shouldUseSelfClosingSyntax ? (hasAttributes ? '/>' : ' />') : '>',
+]);`;
 
 			const expected = `function printMemberExpressionSimple(
   node,
@@ -327,12 +348,59 @@ export default component App() {
           node.computed,
         );
   }
-}`;
+}
+const openingTag = group([
+  '<',
+  tagName,
+  hasAttributes
+    ? indent(
+        concat([
+          ...path.map((attrPath) => {
+            return concat([attrLineBreak, print(attrPath)]);
+          }, 'attributes'),
+        ]),
+      )
+    : '',
+  shouldUseSelfClosingSyntax
+    ? hasAttributes
+      ? line
+      : ''
+    : hasAttributes && !options.bracketSameLine
+      ? softline
+      : '',
+  shouldUseSelfClosingSyntax ? (hasAttributes ? '/>' : ' />') : '>',
+]);`;
 
 			const result = await format(input, { singleQuote: true, printWidth: 70 });
 			expect(result).toBeWithNewline(expected);
 
 
+		});
+
+		it('should keep jsdoc on same line, spaces between, and parentheses', async () => {
+			const input = `/** @type {import('prettier').CursorOptions} */({});
+const start = /** @type {any} */ (node).start;
+/** @type {SomeType} */ (a) = 5;
+function test() {
+  /** @type {SomeType} */ (a) = 5;
+}
+(node.trailingComments ||= []).push(
+  /** @type {CommentWithLocation} */(comments.shift()),
+);
+/** @type {number} */ (char.codePointAt(0)) >= 160`;
+			const expected = `/** @type {import('prettier').CursorOptions} */ ({});
+const start = /** @type {any} */ (node).start;
+/** @type {SomeType} */ (a) = 5;
+function test() {
+  /** @type {SomeType} */ (a) = 5;
+}
+(node.trailingComments ||= []).push(
+  /** @type {CommentWithLocation} */ (comments.shift()),
+);
+/** @type {number} */ (char.codePointAt(0)) >= 160;`;
+
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
 		});
 
 		it('should not change formatting for function object properties and properties in square brackets', async () => {

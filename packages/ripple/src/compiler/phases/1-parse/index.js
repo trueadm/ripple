@@ -500,6 +500,25 @@ function RipplePlugin(config) {
 
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
 			}
+
+			/**
+			 * Override to track parenthesized expressions in metadata
+			 * This allows the prettier plugin to preserve parentheses where they existed
+			 */
+			parseParenAndDistinguishExpression(canBeArrow, forInit) {
+				const startPos = this.start;
+				const expr = super.parseParenAndDistinguishExpression(canBeArrow, forInit);
+
+				// If the expression's start position is after the opening paren,
+				// it means it was wrapped in parentheses. Mark it in metadata.
+				if (expr && expr.start > startPos) {
+					expr.metadata ??= {};
+					expr.metadata.parenthesized = true;
+				}
+
+				return expr;
+			}
+
 			/**
 			 * Parse `@(expression)` syntax for unboxing tracked values
 			 * Creates a TrackedExpression node with the argument property
@@ -1067,7 +1086,7 @@ function RipplePlugin(config) {
 						var t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
-								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+							this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
 					case tok.jsxTagStart:
@@ -1240,14 +1259,14 @@ function RipplePlugin(config) {
 							this.raise(
 								this.pos,
 								'Unexpected token `' +
-									this.input[this.pos] +
-									'`. Did you mean `' +
-									(ch === 62 ? '&gt;' : '&rbrace;') +
-									'` or ' +
-									'`{"' +
-									this.input[this.pos] +
-									'"}' +
-									'`?',
+								this.input[this.pos] +
+								'`. Did you mean `' +
+								(ch === 62 ? '&gt;' : '&rbrace;') +
+								'` or ' +
+								'`{"' +
+								this.input[this.pos] +
+								'"}' +
+								'`?',
 							);
 						}
 
@@ -1918,7 +1937,7 @@ function get_comment_handlers(source, comments, index = 0) {
 										const nextChar = getNextNonWhitespaceCharacter(source, potentialComment.end);
 										if (nextChar === ')') {
 											(node.trailingComments ||= []).push(
-												/** @type {CommentWithLocation} */ (comments.shift()),
+												/** @type {CommentWithLocation} */(comments.shift()),
 											);
 											continue;
 										}
@@ -1966,6 +1985,30 @@ function get_comment_handlers(source, comments, index = 0) {
 									onlySimpleWhitespace ||
 									(onlyWhitespace && !hasBlankLine && isImmediateNextLine)
 								) {
+									// Check if this is a block comment that's inline with the next statement
+									// e.g., /** @type {SomeType} */ (a) = 5;
+									// These should be leading comments, not trailing
+									if (
+										comments[0].type === 'Block' &&
+										!is_last_in_array &&
+										array_prop &&
+										parent[array_prop]
+									) {
+										const currentIndex = parent[array_prop].indexOf(node);
+										const nextSibling = parent[array_prop][currentIndex + 1];
+
+										if (nextSibling && nextSibling.loc) {
+											const commentEndLine = comments[0].loc?.end?.line;
+											const nextSiblingStartLine = nextSibling.loc?.start?.line;
+
+											// If comment ends on same line as next sibling starts, it's inline with next
+											if (commentEndLine === nextSiblingStartLine) {
+												// Leave it for next sibling's leading comments
+												return;
+											}
+										}
+									}
+
 									// For function parameters, only attach as trailing comment if it's on the same line
 									// Comments on next line after comma should be leading comments of next parameter
 									const isParam = array_prop === 'params';
