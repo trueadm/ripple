@@ -1914,6 +1914,10 @@ function printFunctionExpression(node, path, options, print) {
 function printArrowFunction(node, path, options, print) {
 	const parts = [];
 
+	if (node.async) {
+		parts.push('async ');
+	}
+
 	// Handle single param without parens (when arrowParens !== 'always')
 	if (
 		options.arrowParens !== 'always' &&
