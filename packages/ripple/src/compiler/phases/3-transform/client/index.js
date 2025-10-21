@@ -1156,11 +1156,15 @@ const visitors = {
 				}),
 			];
 
-			return b.function(
+			const func = b.function(
 				node.id,
 				node.params.map((param) => context.visit(param, { ...context.state, metadata })),
 				b.block(body_statements),
 			);
+			// Mark that this function was originally a component
+			func.metadata = { ...func.metadata, was_component: true };
+			func.loc = node.loc; // Copy source location for Volar mappings
+			return func;
 		}
 
 		let props = b.id('__props');
@@ -1189,7 +1193,7 @@ const visitors = {
 			context.state.stylesheets.push(node.css);
 		}
 
-		return b.function(
+		const func = b.function(
 			node.id,
 			node.params.length > 0
 				? [b.id('__anchor'), props, b.id('__block')]
@@ -1201,6 +1205,10 @@ const visitors = {
 					: body_statements),
 			]),
 		);
+		// Mark that this function was originally a component
+		func.metadata = { ...func.metadata, was_component: true };
+		func.loc = node.loc; // Copy source location for Volar mappings
+		return func;
 	},
 
 	AssignmentExpression(node, context) {

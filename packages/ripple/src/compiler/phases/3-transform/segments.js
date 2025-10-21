@@ -354,6 +354,13 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 
 				return;
 			} else if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+				// Map function/component keywords
+				if (node.metadata?.was_component && node.loc) {
+					tokens.push({ source: 'component', generated: 'function' });
+				} else if (node.loc && node.type === 'FunctionDeclaration') {
+					tokens.push('function');
+				}
+
 				// Visit in source order: id, params, body
 				if (node.id) {
 					visit(node.id);
