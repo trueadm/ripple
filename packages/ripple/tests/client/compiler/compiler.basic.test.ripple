@@ -169,7 +169,7 @@ describe('compiler > basics', () => {
 
 		function Wrapper() {
 			return {
-				unwrap: function() {
+				unwrap: function <T>() {
 					return null as unknown as T;
 				},
 			};
@@ -186,10 +186,10 @@ describe('compiler > basics', () => {
 				value: T;
 			}
 
-			class Box {
+			class Box<T> {
 				value: T;
 
-				method(): T {
+				method<T>(): T {
 					return this.value;
 				}
 			}

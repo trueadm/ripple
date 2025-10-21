@@ -1805,6 +1805,43 @@ const items = [] as unknown[];`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should retain templated declarations', async () => {
+			const expected = `function Wrapper() {
+  return {
+    unwrap: function <T>() {
+      return null as unknown as T;
+    },
+  };
+}
+
+class Box<T> {
+  value: T;
+
+  method<T>(): T {
+    return this.value;
+  }
+}
+
+function Wrapper2<T>(arg: T) {
+  let x: T = arg;
+  return {
+    unwrap: function <T>() {
+      return null as unknown as T;
+    },
+    do: function (): T {
+      return x;
+    },
+  };
+}
+
+const fn = <T>(arg: T): T => arg;`;
+
+			const result = await format(expected, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+
+
 		it('respects arrowParens option', async () => {
 			const input = `function inputRef(node) {
 	const removeListener = on(node, 'input', e => { value = e.target.value; console.log(value) });

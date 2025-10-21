@@ -1898,6 +1898,23 @@ function printFunctionExpression(node, path, options, print) {
 		parts.push(node.id.name);
 	}
 
+	// Add TypeScript generics if present
+	if (node.typeParameters) {
+		// Only add space if there's no function name
+		if (!node.id) {
+			parts.push(' ');
+		}
+		const typeParams = path.call(print, 'typeParameters');
+		if (Array.isArray(typeParams)) {
+			parts.push(...typeParams);
+		} else {
+			parts.push(typeParams);
+		}
+	} else if (!node.id) {
+		// If no name and no type parameters, add space before params
+		parts.push(' ');
+	}
+
 	// Print parameters using shared function
 	const paramsPart = printFunctionParameters(path, options, print);
 	parts.push(group(paramsPart)); // Handle return type annotation
@@ -1918,14 +1935,26 @@ function printArrowFunction(node, path, options, print) {
 		parts.push('async ');
 	}
 
+	// Add TypeScript generics if present
+	if (node.typeParameters) {
+		const typeParams = path.call(print, 'typeParameters');
+		if (Array.isArray(typeParams)) {
+			parts.push(...typeParams);
+		} else {
+			parts.push(typeParams);
+		}
+	}
+
 	// Handle single param without parens (when arrowParens !== 'always')
+	// Note: can't use single param syntax if there are type parameters or return type
 	if (
 		options.arrowParens !== 'always' &&
 		node.params &&
 		node.params.length === 1 &&
 		node.params[0].type === 'Identifier' &&
 		!node.params[0].typeAnnotation &&
-		!node.returnType
+		!node.returnType &&
+		!node.typeParameters
 	) {
 		parts.push(path.call(print, 'params', 0));
 	} else {
@@ -2220,6 +2249,16 @@ function printFunctionDeclaration(node, path, options, print) {
 	parts.push(' ');
 	parts.push(node.id.name);
 
+	// Add TypeScript generics if present
+	if (node.typeParameters) {
+		const typeParams = path.call(print, 'typeParameters');
+		if (Array.isArray(typeParams)) {
+			parts.push(...typeParams);
+		} else {
+			parts.push(typeParams);
+		}
+	}
+
 	// Print parameters using shared function
 	const paramsPart = printFunctionParameters(path, options, print);
 	parts.push(group(paramsPart));
@@ -2469,6 +2508,16 @@ function printClassDeclaration(node, path, options, print) {
 	parts.push('class ');
 	parts.push(node.id.name);
 
+	// Add TypeScript generics if present
+	if (node.typeParameters) {
+		const typeParams = path.call(print, 'typeParameters');
+		if (Array.isArray(typeParams)) {
+			parts.push(...typeParams);
+		} else {
+			parts.push(typeParams);
+		}
+	}
+
 	if (node.superClass) {
 		parts.push(' extends ');
 		parts.push(path.call(print, 'superClass'));
@@ -2594,6 +2643,16 @@ function printMethodDefinition(node, path, options, print) {
 		parts.push(path.call(print, 'key'));
 	} else {
 		parts.push(path.call(print, 'key'));
+	}
+
+	// Add TypeScript generics if present (always on the method node, not on value)
+	if (node.typeParameters) {
+		const typeParams = path.call(print, 'typeParameters');
+		if (Array.isArray(typeParams)) {
+			parts.push(...typeParams);
+		} else {
+			parts.push(typeParams);
+		}
 	}
 
 	// Parameters - use proper path.map for TypeScript support
