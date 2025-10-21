@@ -662,7 +662,7 @@ const visitors = {
 			[b.id('__compat')],
 			needs_fragment
 				? b.call(
-						'__compat._jsxs',
+						'__compat.jsxs',
 						b.id('__compat.Fragment'),
 						b.object([
 							b.prop(
