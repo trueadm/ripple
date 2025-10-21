@@ -732,6 +732,7 @@ function RipplePlugin(config) {
 					this.exitScope();
 
 					this.next();
+					skipWhitespace(this);
 					this.finishNode(node, 'Component');
 					this.awaitPos = 0;
 
@@ -1662,6 +1663,7 @@ function RipplePlugin(config) {
 					this.exitScope();
 
 					this.next();
+					skipWhitespace(this);
 					this.finishNode(node, 'Component');
 					this.awaitPos = 0;
 

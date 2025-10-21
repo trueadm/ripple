@@ -980,6 +980,31 @@ type GetRootNode = () => RootNode;`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should preserve blank line between component with nested markup and js', async () => {
+			const expected = `component App() {
+  <div>
+    const a = 1;
+    <div>
+      const b = 1;
+    </div>
+    <div>
+      const b = 1;
+    </div>
+  </div>
+  <div>
+    const a = 2;
+    <div>
+      const b = 1;
+    </div>
+  </div>
+}
+
+render(App);`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should not remove async from arrow functions', async () => {
 			const expected = `describe('ripple-compat-react', async () => {
   const something = 10;
