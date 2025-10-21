@@ -31,7 +31,7 @@ to improve runtime performance.
 ```ripple
 import { track } from 'ripple';
 
-component EventExample() {
+export component EventExample() {
 	let message = track("");
 
 	<div>

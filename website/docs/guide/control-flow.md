@@ -13,7 +13,7 @@ reason with.
 <Code>
 
 ```ripple
-component Truthy({ x }) {
+export component Truthy({ x }) {
   <div>
     if (x) {
       <span>{'x is truthy'}</span>
@@ -33,7 +33,7 @@ Switch statements let you conditionally render content based on a value. They wo
 <Code>
 
 ```ripple
-component StatusIndicator({ status }) {
+export component StatusIndicator({ status }) {
   <div>
     switch (status) {
       case 'loading':
@@ -61,7 +61,7 @@ You can also use reactive values with switch statements.
 ```ripple
 import { track } from 'ripple';
 
-component InteractiveStatus() {
+export component InteractiveStatus() {
   let status = track('loading');
 
   <button onClick={() => @status = 'success'}>{'Success'}</button>
@@ -148,7 +148,7 @@ You can use Ripple's reactive arrays to easily compose contents of an array.
 ```ripple
 import { TrackedArray } from 'ripple';
 
-component Numbers() {
+export component Numbers() {
   const array = new TrackedArray(1, 2, 3);
 
   for (const item of array; index i) {
@@ -177,7 +177,7 @@ in the `catch` block.
 ```ripple
 import { reportError } from 'some-library';
 
-component ErrorBoundary() {
+export component ErrorBoundary() {
   <div>
     try {
       <ComponentThatFails />
@@ -206,7 +206,7 @@ export component App() {
 ## Async (Suspense boundaries) <Badge type="warning" text="Experimental" />
 
 ```ripple
-component SuspenseBoundary() {
+export component SuspenseBoundary() {
 	try {
 		<AsyncComponent />
 	} pending {
