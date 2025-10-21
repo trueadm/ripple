@@ -27,8 +27,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	/** @type {Array<{sourceOffsets: number[], generatedOffsets: number[], lengths: number[], data: any}>} */
 	const mappings = [];
 
-	// Maintain indices that walk through source and generated code
-	let source_index = 0;
+	// Maintain index that walks through generated code
 	let generated_index = 0;
 
 	// Build line offset maps for source and generated code
@@ -43,7 +42,6 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 		return offsets;
 	};
 	const source_line_offsets = build_line_offsets(source);
-	const generated_line_offsets = build_line_offsets(generated_code);
 
 	// Convert line/column to byte offset
 	const loc_to_offset = (line, column, line_offsets) => {
@@ -81,66 +79,6 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	};
 
 	/**
-	 * Check if a position is inside a comment
-	 * @param {number} pos - Position to check
-	 * @returns {boolean}
-	 */
-	const is_in_comment = (pos) => {
-		// Check for single-line comment: find start of line and check if there's // before this position
-		let lineStart = source.lastIndexOf('\n', pos - 1) + 1;
-		const lineBeforePos = source.substring(lineStart, pos);
-		if (lineBeforePos.includes('//')) {
-			return true;
-		}
-		// Check for multi-line comment: look backwards for /* and forwards for */
-		const lastCommentStart = source.lastIndexOf('/*', pos);
-		if (lastCommentStart !== -1) {
-			const commentEnd = source.indexOf('*/', lastCommentStart);
-			if (commentEnd === -1 || commentEnd > pos) {
-				return true; // We're inside an unclosed or open comment
-			}
-		}
-		return false;
-	};
-
-	/**
-	 * Find text in source string, searching character by character from sourceIndex
-	 * @param {string} text - Text to find
-	 * @returns {number|null} - Source position or null
-	 */
-	const find_in_source = (text) => {
-		for (let i = source_index; i <= source.length - text.length; i++) {
-			let match = true;
-			for (let j = 0; j < text.length; j++) {
-				if (source[i + j] !== text[j]) {
-					match = false;
-					break;
-				}
-			}
-			if (match) {
-				// Skip if this match is inside a comment
-				if (is_in_comment(i)) {
-					continue;
-				}
-
-				// Check word boundaries for identifier-like tokens
-				const isIdentifierLike = /^[a-zA-Z_$]/.test(text);
-				if (isIdentifierLike) {
-					const charBefore = source[i - 1];
-					const charAfter = source[i + text.length];
-					if (!is_word_boundary(charBefore) || !is_word_boundary(charAfter)) {
-						continue; // Not a whole word match, keep searching
-					}
-				}
-
-				source_index = i + text.length;
-				return i;
-			}
-		}
-		return null;
-	};
-
-	/**
 	 * Find text in generated code, searching character by character from generated_index
 	 * @param {string} text - Text to find
 	 * @returns {number|null} - Generated position or null
@@ -173,8 +111,8 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	};
 
 	// Collect text tokens from AST nodes
-	// Tokens can be either strings or objects with source/generated properties and optional loc
-	/** @type {Array<string | {source: string, generated: string, loc?: any}>} */
+	// All tokens must have source/generated text and loc property for accurate positioning
+	/** @type {Array<{source: string, generated: string, loc: {start: {line: number, column: number}, end: {line: number, column: number}}}>} */
 	const tokens = [];
 
 	// Collect import declarations for full-statement mappings
@@ -185,7 +123,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	walk(ast, null, {
 		_(node, { visit }) {
 			// Collect key node types: Identifiers, Literals, and JSX Elements
-			// Only collect tokens from nodes with .loc (skip synthesized nodes like children attribute)
+			// Skip nodes without .loc (synthesized during transformation, not in original source)
 			if (node.type === 'Identifier' && node.name) {
 				if (node.loc) {
 					// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
@@ -235,7 +173,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'Literal' && node.raw) {
 				if (node.loc) {
-					tokens.push(node.raw);
+					tokens.push({ source: node.raw, generated: node.raw, loc: node.loc });
 				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
@@ -355,33 +293,33 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 					}
 				}
 
-				// 3. Push closing tag name (not visited by AST walker)
-				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
-					const closingName = node.closingElement.name.name;
-					// Check if this was capitalized (reverse lookup)
-					const originalName = reverse_capitalized_names.get(closingName);
-					if (originalName) {
-						tokens.push({ source: originalName, generated: closingName });
+			// 3. Push closing tag name (not visited by AST walker)
+			if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
+				const closingNameNode = node.closingElement.name;
+				const closingName = closingNameNode.name;
+				// Check if this was capitalized (reverse lookup)
+				const originalName = reverse_capitalized_names.get(closingName);
+				if (originalName) {
+					tokens.push({ source: originalName, generated: closingName, loc: closingNameNode.loc });
+				} else {
+					// Check if this should be capitalized (forward lookup)
+					const capitalizedName = capitalized_names.get(closingName);
+					if (capitalizedName) {
+						tokens.push({ source: closingName, generated: capitalizedName, loc: closingNameNode.loc });
 					} else {
-						// Check if this should be capitalized (forward lookup)
-						const capitalizedName = capitalized_names.get(closingName);
-						if (capitalizedName) {
-							tokens.push({ source: closingName, generated: capitalizedName });
-						} else {
-							tokens.push(closingName);
-						}
+						tokens.push({ source: closingName, generated: closingName, loc: closingNameNode.loc });
 					}
 				}
-
-				return;
+			}				return;
 			} else if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
-				// Map function/component keywords
-				if (node.metadata?.was_component && node.loc) {
-					tokens.push({ source: 'component', generated: 'function' });
-				} else if (node.loc && node.type === 'FunctionDeclaration') {
-					tokens.push('function');
+				// Map function/component keywords (only if node has .loc - skip synthesized functions)
+				if (node.loc) {
+					if (node.metadata?.was_component) {
+						tokens.push({ source: 'component', generated: 'function', loc: node.loc });
+					} else if (node.type === 'FunctionDeclaration') {
+						tokens.push({ source: 'function', generated: 'function', loc: node.loc });
+					}
 				}
-
 				// Visit in source order: id, params, body
 				if (node.id) {
 					visit(node.id);
@@ -1231,27 +1169,13 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	});
 
 	// Process each token in order
+	// All tokens now have .loc property - no need for fallback logic
 	for (const token of tokens) {
-		let source_text, generated_text, token_loc;
+		const source_text = token.source;
+		const generated_text = token.generated;
 
-		if (typeof token === 'string') {
-			source_text = token;
-			generated_text = token;
-			token_loc = null;
-		} else {
-			// Token with different source and generated names and optional .loc
-			source_text = token.source;
-			generated_text = token.generated;
-			token_loc = token.loc;
-		}
-
-		// If we have .loc information, use it to get the exact source position
-		let source_pos;
-		if (token_loc && token_loc.start && token_loc.start.line !== undefined && token_loc.start.column !== undefined) {
-			source_pos = loc_to_offset(token_loc.start.line, token_loc.start.column, source_line_offsets);
-		} else {
-			source_pos = find_in_source(source_text);
-		}
+		// Use .loc to get the exact source position
+		const source_pos = loc_to_offset(token.loc.start.line, token.loc.start.column, source_line_offsets);
 
 		const gen_pos = find_in_generated(generated_text);
 
