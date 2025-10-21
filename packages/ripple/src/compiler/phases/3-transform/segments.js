@@ -31,6 +31,26 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	let source_index = 0;
 	let generated_index = 0;
 
+	// Build line offset maps for source and generated code
+	// This allows us to convert line/column positions to byte offsets
+	const build_line_offsets = (text) => {
+		const offsets = [0]; // Line 1 starts at offset 0
+		for (let i = 0; i < text.length; i++) {
+			if (text[i] === '\n') {
+				offsets.push(i + 1);
+			}
+		}
+		return offsets;
+	};
+	const source_line_offsets = build_line_offsets(source);
+	const generated_line_offsets = build_line_offsets(generated_code);
+
+	// Convert line/column to byte offset
+	const loc_to_offset = (line, column, line_offsets) => {
+		if (line < 1 || line > line_offsets.length) return null;
+		return line_offsets[line - 1] + column;
+	};
+
 	// Map to track capitalized names: original name -> capitalized name
 	/** @type {Map<string, string>} */
 	const capitalized_names = new Map();
@@ -153,8 +173,8 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	};
 
 	// Collect text tokens from AST nodes
-	// Tokens can be either strings or objects with source/generated properties
-	/** @type {Array<string | {source: string, generated: string}>} */
+	// Tokens can be either strings or objects with source/generated properties and optional loc
+	/** @type {Array<string | {source: string, generated: string, loc?: any}>} */
 	const tokens = [];
 
 	// Collect import declarations for full-statement mappings
@@ -170,25 +190,26 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				if (node.loc) {
 					// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
 					if (node.metadata?.tracked_shorthand) {
-						tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name });
+						tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name, loc: node.loc });
 					} else {
 						// Check if this identifier was capitalized (reverse lookup)
 						const original_name = reverse_capitalized_names.get(node.name);
 						if (original_name) {
 							// This is a capitalized name in generated code, map to lowercase in source
-							tokens.push({ source: original_name, generated: node.name });
+							tokens.push({ source: original_name, generated: node.name, loc: node.loc });
 						} else {
 							// Check if this identifier should be capitalized (forward lookup)
 							const cap_name = capitalized_names.get(node.name);
 							if (cap_name) {
-								tokens.push({ source: node.name, generated: cap_name });
+								tokens.push({ source: node.name, generated: cap_name, loc: node.loc });
 							} else {
 								// Check if this identifier should be capitalized (forward lookup)
 								const cap_name = capitalized_names.get(node.name);
 								if (cap_name) {
-									tokens.push({ source: node.name, generated: cap_name });
+									tokens.push({ source: node.name, generated: cap_name, loc: node.loc });
 								} else {
-									tokens.push(node.name);
+									// Store token with .loc for accurate positioning
+									tokens.push({ source: node.name, generated: node.name, loc: node.loc });
 								}
 							}
 						}
@@ -200,14 +221,14 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 					// Check if this was capitalized (reverse lookup)
 					const originalName = reverse_capitalized_names.get(node.name);
 					if (originalName) {
-						tokens.push({ source: originalName, generated: node.name });
+						tokens.push({ source: originalName, generated: node.name, loc: node.loc });
 					} else {
 						// Check if this should be capitalized (forward lookup)
 						const capitalizedName = capitalized_names.get(node.name);
 						if (capitalizedName) {
-							tokens.push({ source: node.name, generated: capitalizedName });
+							tokens.push({ source: node.name, generated: capitalizedName, loc: node.loc });
 						} else {
-							tokens.push(node.name);
+							tokens.push({ source: node.name, generated: node.name, loc: node.loc });
 						}
 					}
 				}
@@ -857,8 +878,12 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				if (node.typeName) {
 					visit(node.typeName);
 				}
+				// Check both typeParameters and typeArguments (different parsers use different names)
 				if (node.typeParameters) {
 					visit(node.typeParameters);
+				}
+				if (node.typeArguments) {
+					visit(node.typeArguments);
 				}
 				return;
 			} else if (node.type === 'TSQualifiedName') {
@@ -900,6 +925,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				if (node.parameters) {
 					for (const param of node.parameters) {
 						visit(param);
+						// Visit type annotation on the parameter
+						if (param.typeAnnotation) {
+							visit(param.typeAnnotation);
+						}
 					}
 				}
 				if (node.typeAnnotation) {
@@ -934,6 +963,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				if (node.parameters) {
 					for (const param of node.parameters) {
 						visit(param);
+						// Visit type annotation on the parameter
+						if (param.typeAnnotation) {
+							visit(param.typeAnnotation);
+						}
 					}
 				}
 				if (node.typeAnnotation) {
@@ -945,6 +978,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				if (node.parameters) {
 					for (const param of node.parameters) {
 						visit(param);
+						// Visit type annotation on the parameter
+						if (param.typeAnnotation) {
+							visit(param.typeAnnotation);
+						}
 					}
 				}
 				if (node.typeAnnotation) {
@@ -959,6 +996,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				if (node.parameters) {
 					for (const param of node.parameters) {
 						visit(param);
+						// Visit type annotation on the parameter
+						if (param.typeAnnotation) {
+							visit(param.typeAnnotation);
+						}
 					}
 				}
 				if (node.typeAnnotation) {
@@ -1191,18 +1232,27 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 
 	// Process each token in order
 	for (const token of tokens) {
-		let source_text, generated_text;
+		let source_text, generated_text, token_loc;
 
 		if (typeof token === 'string') {
 			source_text = token;
 			generated_text = token;
+			token_loc = null;
 		} else {
-			// Token with different source and generated names
+			// Token with different source and generated names and optional .loc
 			source_text = token.source;
 			generated_text = token.generated;
+			token_loc = token.loc;
 		}
 
-		const source_pos = find_in_source(source_text);
+		// If we have .loc information, use it to get the exact source position
+		let source_pos;
+		if (token_loc && token_loc.start && token_loc.start.line !== undefined && token_loc.start.column !== undefined) {
+			source_pos = loc_to_offset(token_loc.start.line, token_loc.start.column, source_line_offsets);
+		} else {
+			source_pos = find_in_source(source_text);
+		}
+
 		const gen_pos = find_in_generated(generated_text);
 
 		if (source_pos !== null && gen_pos !== null) {
