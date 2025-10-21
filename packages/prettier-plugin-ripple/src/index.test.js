@@ -54,7 +54,7 @@ describe('prettier-plugin-ripple', () => {
 	const formatWithCursorHelper = async (code, options = {}) => {
 		return await prettier.formatWithCursor(
 			code,
-			/** @type {import('prettier').CursorOptions} */({
+			/** @type {import('prettier').CursorOptions} */ ({
 				parser: 'ripple',
 				plugins: [join(__dirname, 'index.js')],
 				...options,
@@ -541,6 +541,25 @@ import { Something, type Props, track } from 'ripple';`;
     }
   </div>
 }`;
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve @ symbol in JSX attributes and shorthand syntax', async () => {
+			const input = `component App() {
+	const count = track(0);
+
+	<Counter count={@count} />
+	<Counter {@count} />
+}`;
+
+			const expected = `component App() {
+  const count = track(0);
+
+  <Counter {@count} />
+  <Counter {@count} />
+}`;
+
 			const result = await format(input, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
 		});
@@ -1864,8 +1883,6 @@ const fn = <T>(arg: T): T => arg;`;
 			const result = await format(expected, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
 		});
-
-
 
 		it('respects arrowParens option', async () => {
 			const input = `function inputRef(node) {
@@ -3274,6 +3291,33 @@ export component App() {
       {otherValue}
     </>
   </tsx:react>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should preserve @ symbol in JSX attributes inside <tsx:react>', async () => {
+				const input = `component App() {
+	const count = track(0);
+
+	<div>
+		<h1>{'Hello, from Ripple!'}</h1>
+		<tsx:react>
+			<Counter count={@count} />
+		</tsx:react>
+	</div>
+}`;
+
+				const expected = `component App() {
+  const count = track(0);
+
+  <div>
+    <h1>{'Hello, from Ripple!'}</h1>
+    <tsx:react>
+      <Counter count={@count} />
+    </tsx:react>
+  </div>
 }`;
 
 				const result = await format(input, { singleQuote: true });

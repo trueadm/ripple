@@ -420,10 +420,7 @@ function printRippleNode(node, path, options, print, args) {
 
 				// Check if comment and node are on the same line (for inline JSDoc comments)
 				const isCommentOnSameLine =
-					isLastComment &&
-					comment.loc &&
-					node.loc &&
-					comment.loc.end.line === node.loc.start.line;
+					isLastComment && comment.loc && node.loc && comment.loc.end.line === node.loc.start.line;
 
 				if (!isInlineContext && !isCommentOnSameLine) {
 					parts.push(hardline);
@@ -931,13 +928,7 @@ function printRippleNode(node, path, options, print, args) {
 			if (node.left.metadata?.parenthesized) {
 				leftPart = concat(['(', leftPart, ')']);
 			}
-			nodeContent = concat([
-				leftPart,
-				' ',
-				node.operator,
-				' ',
-				path.call(print, 'right'),
-			]);
+			nodeContent = concat([leftPart, ' ', node.operator, ' ', path.call(print, 'right')]);
 			break;
 		}
 
@@ -1175,7 +1166,8 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'ExpressionStatement': {
 			// Object literals at statement position need parentheses to avoid ambiguity with blocks
-			const needsParens = node.expression.type === 'ObjectExpression' ||
+			const needsParens =
+				node.expression.type === 'ObjectExpression' ||
 				node.expression.type === 'TrackedObjectExpression';
 			if (needsParens) {
 				nodeContent = concat(['(', path.call(print, 'expression'), ')', semi(options)]);
@@ -1310,20 +1302,24 @@ function printRippleNode(node, path, options, print, args) {
 
 			// Check if we have nested ternaries (but not if they're parenthesized, which keeps them inline)
 			const hasUnparenthesizedNestedConditional =
-				(node.consequent.type === 'ConditionalExpression' && !node.consequent.metadata?.parenthesized) ||
-				(node.alternate.type === 'ConditionalExpression' && !node.alternate.metadata?.parenthesized);
+				(node.consequent.type === 'ConditionalExpression' &&
+					!node.consequent.metadata?.parenthesized) ||
+				(node.alternate.type === 'ConditionalExpression' &&
+					!node.alternate.metadata?.parenthesized);
 
 			// If we have unparenthesized nested ternaries, tell the children they're nested
-			const consequentDoc = hasUnparenthesizedNestedConditional &&
+			const consequentDoc =
+				hasUnparenthesizedNestedConditional &&
 				node.consequent.type === 'ConditionalExpression' &&
 				!node.consequent.metadata?.parenthesized
-				? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'consequent')
-				: path.call(print, 'consequent');
-			const alternateDoc = hasUnparenthesizedNestedConditional &&
+					? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'consequent')
+					: path.call(print, 'consequent');
+			const alternateDoc =
+				hasUnparenthesizedNestedConditional &&
 				node.alternate.type === 'ConditionalExpression' &&
 				!node.alternate.metadata?.parenthesized
-				? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'alternate')
-				: path.call(print, 'alternate');
+					? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'alternate')
+					: path.call(print, 'alternate');
 
 			// Check if the consequent or alternate will break
 			const consequentBreaks = willBreak(consequentDoc);
@@ -1331,7 +1327,12 @@ function printRippleNode(node, path, options, print, args) {
 
 			let result;
 			// If either branch breaks OR we have unparenthesized nested ternaries OR we're already nested, use multiline format
-			if (consequentBreaks || alternateBreaks || hasUnparenthesizedNestedConditional || args?.isNestedConditional) {
+			if (
+				consequentBreaks ||
+				alternateBreaks ||
+				hasUnparenthesizedNestedConditional ||
+				args?.isNestedConditional
+			) {
 				result = concat([
 					testDoc,
 					indent(concat([line, '? ', consequentBreaks ? indent(consequentDoc) : consequentDoc])),
@@ -2140,8 +2141,7 @@ function printCallArguments(path, options, print) {
 		argumentDocs.push(argumentDoc);
 		// Arrow functions with block bodies have internal breaks but shouldn't
 		// cause the call arguments to break - they stay inline with the call
-		const shouldTreatAsBreaking = willBreak(argumentDoc) &&
-			!isBlockLikeFunction(argumentNode);
+		const shouldTreatAsBreaking = willBreak(argumentDoc) && !isBlockLikeFunction(argumentNode);
 		argumentBreakFlags.push(shouldTreatAsBreaking);
 
 		if (!isLast) {
@@ -2159,19 +2159,16 @@ function printCallArguments(path, options, print) {
 	const trailingComma = shouldPrintComma(options, 'all') ? ',' : '';
 
 	// Special case: single array argument should keep opening bracket inline
-	const isSingleArrayArgument = args.length === 1 &&
+	const isSingleArrayArgument =
+		args.length === 1 &&
 		args[0] &&
 		(args[0].type === 'ArrayExpression' || args[0].type === 'TrackedArrayExpression');
 
 	if (isSingleArrayArgument) {
 		// Don't use group() - just concat to allow array to control its own breaking
 		// For single argument, no trailing comma needed
-		return concat([
-			'(',
-			argumentDocs[0],
-			')',
-		]);
-	}	// Check if we should hug arrow functions (keep params inline even when body breaks)
+		return concat(['(', argumentDocs[0], ')']);
+	} // Check if we should hug arrow functions (keep params inline even when body breaks)
 	const shouldHugArrows = shouldHugArrowFunctions(args);
 
 	// For arrow functions, we want to keep params on same line as opening paren
@@ -2207,7 +2204,8 @@ function printCallArguments(path, options, print) {
 
 	const groupedContents = group(contents, {
 		shouldBreak: shouldForceBreak,
-	}); if (!anyArgumentHasEmptyLine && shouldHugLastArgument(args, argumentBreakFlags)) {
+	});
+	if (!anyArgumentHasEmptyLine && shouldHugLastArgument(args, argumentBreakFlags)) {
 		const lastIndex = args.length - 1;
 		const inlineParts = ['('];
 
@@ -4005,7 +4003,7 @@ function printJSXAttribute(attr, path, options, print, index) {
 		if (exprValue.type === 'Literal' || exprValue.type === 'StringLiteral') {
 			exprStr = JSON.stringify(exprValue.value);
 		} else if (exprValue.type === 'Identifier') {
-			exprStr = exprValue.name;
+			exprStr = (exprValue.tracked ? '@' : '') + exprValue.name;
 		} else if (exprValue.type === 'MemberExpression') {
 			exprStr = printMemberExpressionSimple(exprValue, options);
 		} else {
@@ -4037,8 +4035,11 @@ function printMemberExpressionSimple(node, options, computed = false) {
 	if (node.type === 'MemberExpression') {
 		const obj = printMemberExpressionSimple(node.object, options);
 		const prop = node.computed
-			? (node.property.tracked ? '.@[' : '[') + printMemberExpressionSimple(node.property, options, node.computed) + ']'
-			: (node.property.tracked ? '.@' : '.') + printMemberExpressionSimple(node.property, options, node.computed);
+			? (node.property.tracked ? '.@[' : '[') +
+				printMemberExpressionSimple(node.property, options, node.computed) +
+				']'
+			: (node.property.tracked ? '.@' : '.') +
+				printMemberExpressionSimple(node.property, options, node.computed);
 		return obj + prop;
 	}
 
@@ -4081,12 +4082,12 @@ function printElement(node, path, options, print) {
 		tagName,
 		hasAttributes
 			? indent(
-				concat([
-					...path.map((attrPath) => {
-						return concat([attrLineBreak, print(attrPath)]);
-					}, 'attributes'),
-				]),
-			)
+					concat([
+						...path.map((attrPath) => {
+							return concat([attrLineBreak, print(attrPath)]);
+						}, 'attributes'),
+					]),
+				)
 			: '',
 		// Add line break opportunity before > or />
 		// Use line for self-closing (keeps space), softline for non-self-closing when attributes present
@@ -4280,7 +4281,9 @@ function printAttribute(node, path, options, print) {
 
 	if (isShorthand) {
 		parts.push('{');
-		parts.push(node.name.name);
+		// Check if the value has tracked property for @count syntax
+		const trackedPrefix = node.value && node.value.tracked ? '@' : '';
+		parts.push(trackedPrefix + node.name.name);
 		parts.push('}');
 		return parts;
 	}
