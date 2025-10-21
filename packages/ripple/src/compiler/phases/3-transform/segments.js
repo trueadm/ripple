@@ -1,4 +1,4 @@
-	import { walk } from 'zimmerframe';
+import { walk } from 'zimmerframe';
 
 export const mapping_data = {
 	verification: true,
@@ -368,6 +368,9 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				if (node.params) {
 					for (const param of node.params) {
 						visit(param);
+						if (param.typeAnnotation) {
+							visit(param.typeAnnotation);
+						}
 					}
 				}
 				if (node.body) {
@@ -1267,11 +1270,11 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 			sourceOffsets: [0],
 			generatedOffsets: [0],
 			lengths: [1],
-				data: {
-					...mapping_data,
-					codeActions: true, // auto-import
-					rename: false, // avoid rename for a “dummy” mapping
-				}
+			data: {
+				...mapping_data,
+				codeActions: true, // auto-import
+				rename: false, // avoid rename for a “dummy” mapping
+			}
 		});
 	}
 
