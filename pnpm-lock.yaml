@@ -347,6 +347,9 @@ importers:
         specifier: workspace:*
         version: link:../ripple
     devDependencies:
+      '@types/react':
+        specifier: ^19.2.2
+        version: 19.2.2
       typescript:
         specifier: catalog:default
         version: 5.9.2
@@ -1331,6 +1334,9 @@ packages:
 
   '@types/prompts@2.4.9':
     resolution: {integrity: sha512-qTxFi6Buiu8+50/+3DGIWLHM6QuWsEKugJnnP6iv2Mc4ncxE4A/OJkjuVOA+5X0X1S/nq5VJRa8Lu+nwcvbrKA==}
+
+  '@types/react@19.2.2':
+    resolution: {integrity: sha512-6mDvHUFSjyT2B2yeNx2nUgMxh9LtOWvkhIU3uePn2I2oyNymUAX1NIsdgviM4CH+JSrp2D2hsMvJOkxY+0wNRA==}
 
   '@types/sarif@2.1.7':
     resolution: {integrity: sha512-kRz0VEkJqWLf1LLVN4pT1cg1Z9wAuvI6L97V3m2f5B76Tg8d413ddvLBPTEHAZJlnn4XSvu0FkZtViCQGVyrXQ==}
@@ -4418,6 +4424,10 @@ snapshots:
     dependencies:
       '@types/node': 24.3.0
       kleur: 3.0.3
+
+  '@types/react@19.2.2':
+    dependencies:
+      csstype: 3.1.3
 
   '@types/sarif@2.1.7': {}
 

@@ -1,8 +1,5 @@
 import { track, flushSync } from 'ripple';
-
-async function waitForNextTick() {
-	return new Promise((resolve) => setTimeout(resolve, 0));
-}
+import { act } from 'react';
 
 describe('ripple-compat-react', () => {
 	it('should render basic React JSX inside tsx:react tags', async () => {
@@ -17,8 +14,9 @@ describe('ripple-compat-react', () => {
 			</div>
 		}
 
-		render(App);
-		await waitForNextTick();
+		await act(async () => {
+			render(App);
+		});
 
 		const rippleHeading = container.querySelector('h1');
 		const reactDiv = container.querySelector('.react-content');
@@ -43,8 +41,10 @@ describe('ripple-compat-react', () => {
 				</tsx:react>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const first = container.querySelector('.first');
 		const second = container.querySelector('.second');
@@ -68,8 +68,10 @@ describe('ripple-compat-react', () => {
 				</tsx:react>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const wrapper = container.querySelector('.wrapper');
 		const inner = container.querySelector('.inner');
@@ -92,8 +94,10 @@ describe('ripple-compat-react', () => {
 				<div class="ripple-2">{'Back to Ripple'}</div>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const rippleDiv = container.querySelector('.ripple');
 		const reactDiv = container.querySelector('.react');
@@ -122,8 +126,10 @@ describe('ripple-compat-react', () => {
 				</tsx:react>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const react1 = container.querySelector('.react-1');
 		const middle = container.querySelector('.ripple-middle');
@@ -148,8 +154,10 @@ describe('ripple-compat-react', () => {
 				</tsx:react>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const reactDiv = container.querySelector('.react');
 		expect(reactDiv).toBeTruthy();
@@ -174,8 +182,10 @@ describe('ripple-compat-react', () => {
 				</tsx:react>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const outer = container.querySelector('.outer');
 		const inner = container.querySelector('.inner');
@@ -205,8 +215,10 @@ describe('ripple-compat-react', () => {
 				</tsx:react>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const list = container.querySelector('.list');
 		const items = container.querySelectorAll('li');
@@ -226,8 +238,10 @@ describe('ripple-compat-react', () => {
 				<div class="after">{'After empty fragment'}</div>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const after = container.querySelector('.after');
 		expect(after).toBeTruthy();
@@ -247,8 +261,10 @@ describe('ripple-compat-react', () => {
 				</tsx:react>
 			</div>
 		}
-		render(App);
-		await waitForNextTick();
+
+		await act(async () => {
+			render(App);
+		});
 
 		const rippleCount = container.querySelector('.ripple-count');
 		const button = container.querySelector('button');
