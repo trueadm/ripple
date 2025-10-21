@@ -61,7 +61,7 @@ export component App() {
 
 Passing data between components:
 
-<Code>
+<Code console>
 
 ```ripple
 import { Context } from 'ripple';
@@ -76,7 +76,7 @@ component Child() {
   console.log(value);
 }
 
-component Parent() {
+export component Parent() {
   const value = MyContext.get();
 
   // Context is read in the Parent component, but hasn't yet
