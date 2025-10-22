@@ -12,7 +12,7 @@ import { convert_source_map_to_mappings } from './phases/3-transform/segments.js
  * @returns {Program}
  */
 export function parse(source) {
-  return parse_module(source);
+	return parse_module(source);
 }
 
 /**
@@ -23,13 +23,13 @@ export function parse(source) {
  * @returns {object}
  */
 export function compile(source, filename, options = {}) {
-  const ast = parse_module(source);
-  const analysis = analyze(ast, filename, options);
-  const result = options.mode === 'server'
-      ? transform_server(filename, source, analysis)
-      : transform_client(filename, source, analysis, false);
+	const ast = parse_module(source);
+	const analysis = analyze(ast, filename, options);
+	const result = options.mode === 'server'
+		? transform_server(filename, source, analysis)
+		: transform_client(filename, source, analysis, false);
 
-  return result;
+	return result;
 }
 
 /** @import { PostProcessingChanges, LineOffsets } from './phases/3-transform/client/index.js' */
@@ -41,17 +41,17 @@ export function compile(source, filename, options = {}) {
  * @returns {object} Volar mappings object
  */
 export function compile_to_volar_mappings(source, filename) {
-  const ast = parse_module(source);
-  const analysis = analyze(ast, filename, {});
-  const transformed = transform_client(filename, source, analysis, true);
+	const ast = parse_module(source);
+	const analysis = analyze(ast, filename, { to_ts: true });
+	const transformed = transform_client(filename, source, analysis, true);
 
-  // Create volar mappings with esrap source map for accurate positioning
-  return convert_source_map_to_mappings(
-    transformed.ast,
-    source,
-    transformed.js.code,
-    transformed.js.map,
-    /** @type {PostProcessingChanges} */ (transformed.js.post_processing_changes),
-    /** @type {LineOffsets} */ (transformed.js.line_offsets)
-  );
+	// Create volar mappings with esrap source map for accurate positioning
+	return convert_source_map_to_mappings(
+		transformed.ast,
+		source,
+		transformed.js.code,
+		transformed.js.map,
+    /** @type {PostProcessingChanges} */(transformed.js.post_processing_changes),
+    /** @type {LineOffsets} */(transformed.js.line_offsets)
+	);
 }

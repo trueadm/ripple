@@ -436,9 +436,13 @@ const visitors = {
 			const pattern = node.left.declarations[0].id;
 			const paths = extract_paths(pattern);
 			const scope = state.scopes.get(node);
-			const pattern_id = b.id(scope.generate('pattern'));
-
-			node.left.declarations[0].id = pattern_id;
+			let pattern_id;
+			if (state.to_ts) {
+				pattern_id = pattern;
+			} else {
+				pattern_id = b.id(scope.generate('pattern'));
+				node.left.declarations[0].id = pattern_id;
+			}
 
 			for (const path of paths) {
 				const name = path.node.name;
@@ -544,10 +548,10 @@ const visitors = {
 		}
 	},
 	/**
-	 * 
-	 * @param {any} node 
-	 * @param {any} context 
-	 * @returns 
+	 *
+	 * @param {any} node
+	 * @param {any} context
+	 * @returns
 	 */
 	TryStatement(node, context) {
 		if (!is_inside_component(context)) {
@@ -808,9 +812,9 @@ const visitors = {
 	},
 
 	/**
-	 * 
-	 * @param {any} node 
-	 * @param {any} context 
+	 *
+	 * @param {any} node
+	 * @param {any} context
 	 */
 	AwaitExpression(node, context) {
 		if (is_inside_component(context)) {
@@ -862,6 +866,7 @@ export function analyze(ast, filename, options = {}) {
 			analysis,
 			inside_head: false,
 			inside_server_block: options.mode === 'server',
+			to_ts: options.to_ts ?? false,
 		},
 		visitors,
 	);
