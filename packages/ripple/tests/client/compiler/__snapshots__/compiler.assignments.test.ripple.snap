@@ -4,9 +4,9 @@ exports[`compiler > assignments > compiles tracked values in effect with assignm
 
 exports[`compiler > assignments > compiles tracked values in effect with update expressions 1`] = `
 "_$_.with_scope(__block, () => untrack(() => {
-			state.preIncrement = _$_.update_pre(count, __block);
-			state.postIncrement = _$_.update(count, __block);
-			state.preDecrement = _$_.update_pre(count, __block, -1);
-			state.postDecrement = _$_.update(count, __block, -1);
+			state.preIncrement = _$_.update_pre(count);
+			state.postIncrement = _$_.update(count);
+			state.preDecrement = _$_.update_pre(count, -1);
+			state.postDecrement = _$_.update(count, -1);
 		}));"
 `;

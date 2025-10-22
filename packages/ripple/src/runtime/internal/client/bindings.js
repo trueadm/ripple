@@ -175,7 +175,7 @@ export function bindValue(maybe_tracked) {
 					value = selected_option && get_option_value(selected_option);
 				}
 
-				set(tracked, value, block);
+				set(tracked, value);
 			});
 
 			effect(() => {
@@ -189,7 +189,7 @@ export function bindValue(maybe_tracked) {
 					var selected_option = select.querySelector(':checked');
 					if (selected_option !== null) {
 						value = get_option_value(selected_option);
-						set(tracked, value, block);
+						set(tracked, value);
 					}
 				}
 
@@ -202,7 +202,7 @@ export function bindValue(maybe_tracked) {
 				/** @type {any} */
 				var value = input.value;
 				value = is_numberlike_input(input) ? to_number(value) : value;
-				set(tracked, value, block);
+				set(tracked, value);
 
 				await tick();
 
@@ -254,7 +254,7 @@ export function bindChecked(maybe_tracked) {
 
 	return (input) => {
 		const clear_event = on(input, 'change', () => {
-			set(tracked, input.checked, block);
+			set(tracked, input.checked);
 		});
 
 		return clear_event;
@@ -277,11 +277,11 @@ function bind_element_size(maybe_tracked, type) {
 
 	return (/** @type {HTMLElement} */ element) => {
 		var unsubscribe = resize_observer_border_box.observe(element, () =>
-			set(tracked, element[type], block),
+			set(tracked, element[type]),
 		);
 
 		effect(() => {
-			untrack(() => set(tracked, element[type], block));
+			untrack(() => set(tracked, element[type]));
 			return unsubscribe;
 		});
 	};
@@ -342,7 +342,7 @@ function bind_element_rect(maybe_tracked, type) {
 	return (/** @type {HTMLElement} */ element) => {
 		var unsubscribe = observer.observe(
 			element,
-			/** @param {any} entry */ (entry) => set(tracked, entry[type], block),
+			/** @param {any} entry */ (entry) => set(tracked, entry[type]),
 		);
 
 		effect(() => unsubscribe);
@@ -398,7 +398,7 @@ export function bind_content_editable(maybe_tracked, property) {
 
 	return (element) => {
 		const clear_event = on(element, 'input', () => {
-			set(tracked, element[property], block);
+			set(tracked, element[property]);
 		});
 
 		render(() => {
@@ -408,7 +408,7 @@ export function bind_content_editable(maybe_tracked, property) {
 				if (value == null) {
 					// @ts-ignore
 					var non_null_value = element[property];
-					set(tracked, non_null_value, block);
+					set(tracked, non_null_value);
 				} else {
 					// @ts-ignore
 					element[property] = value + '';

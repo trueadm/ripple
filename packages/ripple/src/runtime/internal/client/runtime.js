@@ -345,6 +345,9 @@ export function track(v, get, set, b) {
 	if (is_tracked_object(v)) {
 		return v;
 	}
+	if (b === null) {
+		throw new TypeError('track() requires a valid component context');
+	}
 
 	if (typeof v === 'function') {
 		return derived(v, b, get, set);
@@ -509,7 +512,7 @@ export function async_computed(fn, block) {
 				if (t.__v === UNINITIALIZED) {
 					t.__v = v;
 				} else {
-					set(t, v, block);
+					set(t, v);
 				}
 			}
 
@@ -803,15 +806,14 @@ export function get_tracked(tracked) {
  * @param {any} value
  */
 export function public_set(tracked, value) {
-	set(tracked, value, safe_scope());
+	set(tracked, value);
 }
 
 /**
  * @param {Derived | Tracked} tracked
  * @param {any} value
- * @param {Block} block
  */
-export function set(tracked, value, block) {
+export function set(tracked, value) {
 	if (!is_mutating_allowed) {
 		throw new Error(
 			'Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation',
@@ -823,7 +825,7 @@ export function set(tracked, value, block) {
 	if (value !== old_value) {
 		var tracked_block = tracked.b;
 
-		if ((block.f & CONTAINS_TEARDOWN) !== 0) {
+		if ((tracked_block.f & CONTAINS_TEARDOWN) !== 0) {
 			if (teardown) {
 				old_values.set(tracked, value);
 			} else {
@@ -991,85 +993,78 @@ export function get_property(obj, property, chain = false) {
  * @param {any} obj
  * @param {string | number | symbol} property
  * @param {any} value
- * @param {Block} block
  * @returns {void}
  */
-export function set_property(obj, property, value, block) {
+export function set_property(obj, property, value) {
 	var tracked = obj[property];
-	set(tracked, value, block);
+	set(tracked, value);
 }
 
 /**
  * @param {Tracked} tracked
- * @param {Block} block
  * @param {number} [d]
  * @returns {number}
  */
-export function update(tracked, block, d = 1) {
+export function update(tracked, d = 1) {
 	var value = get(tracked);
 	var result = d === 1 ? value++ : value--;
-	set(tracked, value, block);
+	set(tracked, value);
 	return result;
 }
 
 /**
  * @param {Tracked} tracked
- * @param {Block} block
  * @returns {void}
  */
-export function increment(tracked, block) {
-	set(tracked, tracked.__v + 1, block);
+export function increment(tracked) {
+	set(tracked, tracked.__v + 1);
 }
 
 /**
  * @param {Tracked} tracked
- * @param {Block} block
  * @returns {void}
  */
-export function decrement(tracked, block) {
-	set(tracked, tracked.__v - 1, block);
+export function decrement(tracked) {
+	set(tracked, tracked.__v - 1);
 }
 
 /**
  * @param {Tracked} tracked
- * @param {Block} block
  * @param {number} [d]
  * @returns {number}
  */
-export function update_pre(tracked, block, d = 1) {
+export function update_pre(tracked, d = 1) {
 	var value = get(tracked);
 	var new_value = d === 1 ? ++value : --value;
-	set(tracked, new_value, block);
+	set(tracked, new_value);
 	return new_value;
 }
 
 /**
  * @param {any} obj
  * @param {string | number | symbol} property
- * @param {Block} block
  * @param {number} [d=1]
  * @returns {number}
  */
-export function update_property(obj, property, block, d = 1) {
+export function update_property(obj, property, d = 1) {
 	var tracked = obj[property];
 	var value = get(tracked);
 	var new_value = d === 1 ? value++ : value--;
-	set(tracked, value, block);
+	set(tracked, value);
 	return new_value;
 }
 
 /**
  * @param {any} obj
  * @param {string | number | symbol} property
- * @param {Block} block
  * @param {number} [d=1]
  * @returns {number}
  */
-export function update_pre_property(obj, property, block, d = 1) {
+export function update_pre_property(obj, property, d = 1) {
 	var tracked = obj[property];
 	var value = get(tracked);
 	var new_value = d === 1 ? ++value : --value;
-	set(tracked, new_value, block);
+	set(tracked, new_value);
 	return new_value;
 }
 

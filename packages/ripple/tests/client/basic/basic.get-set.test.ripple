@@ -39,11 +39,15 @@ describe('basic client > get/set functions', () => {
 			let count = track(0);
 
 			<p>{get(count)}</p>
-			<button onClick={() => {
-				@count++;
-				@count++;
-				@count++;
-			}}>{'increment'}</button>
+			<button
+				onClick={() => {
+					@count++;
+					@count++;
+					@count++;
+				}}
+			>
+				{'increment'}
+			</button>
 		}
 
 		render(Test);
@@ -83,11 +87,15 @@ describe('basic client > get/set functions', () => {
 			let count = track(0);
 
 			<p>{get(count)}</p>
-			<button onClick={() => {
-				set(count, 5);
-				set(count, 15);
-				set(count, 25);
-			}}>{'set multiple times'}</button>
+			<button
+				onClick={() => {
+					set(count, 5);
+					set(count, 15);
+					set(count, 25);
+				}}
+			>
+				{'set multiple times'}
+			</button>
 		}
 
 		render(Test);
@@ -133,11 +141,15 @@ describe('basic client > get/set functions', () => {
 			let count = track(0);
 
 			<p>{get(count)}</p>
-			<button onClick={() => {
-				set(count, get(count) + 5);
-				set(count, get(count) + 15);
-				set(count, get(count) + 25);
-			}}>{'add multiple times'}</button>
+			<button
+				onClick={() => {
+					set(count, get(count) + 5);
+					set(count, get(count) + 15);
+					set(count, get(count) + 25);
+				}}
+			>
+				{'add multiple times'}
+			</button>
 		}
 
 		render(Test);
@@ -158,11 +170,11 @@ describe('basic client > get/set functions', () => {
 		expect(p.textContent).toBe('90');
 	});
 
-	function store() {
-		return track(0);
-	}
-
 	it('gets value declared outside Ripple component', () => {
+		function store() {
+			return track(0);
+		}
+
 		component Test() {
 			let count = store();
 			<p>{get(count)}</p>
@@ -175,6 +187,10 @@ describe('basic client > get/set functions', () => {
 	});
 
 	it('sets value declared outside Ripple component', () => {
+		function store() {
+			return track(0);
+		}
+
 		component Test() {
 			let count = store();
 
@@ -257,35 +273,7 @@ describe('basic client > get/set functions', () => {
 		expect(p.textContent).toBe('2');
 	});
 
-	it("get isn't reactive when declared outside Ripple context", () => {
-		let count = store();
-
-		component Test() {
-			<p>{get(count)}</p>
-			<button onClick={() => { set(count, get(count) + 1) }}>{'increment'}</button>
-		}
-
-		expect(get(count)).toBe(0);
-
-		render(Test);
-
-		const p = container.querySelector('p');
-		expect(p.textContent).toBe('0');
-		expect(get(count)).toBe(0);
-
-		const button = container.querySelector('button');
-		button.click();
-		flushSync();
-
-		expect(p.textContent).toBe('0');
-		expect(get(count)).toBe(1);
-	});
-
-	it('throws on trying to set a value outside Ripple component', () => {
-		let count = store();
-
-		expect(get(count)).toBe(0);
-		expect(() => set(count, 1)).toThrow();
-		expect(get(count)).toBe(0);
+	it('throws on trying to create tracked Ripple component', () => {
+		expect(() => track(0)).toThrow();
 	});
 });

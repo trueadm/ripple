@@ -1244,7 +1244,6 @@ const visitors = {
 							/** @type {Expression} */ (context.visit(left)),
 							/** @type {Expression} */ (context.visit(right)),
 						),
-				b.id('__block'),
 			);
 		}
 
@@ -1265,7 +1264,6 @@ const visitors = {
 							),
 							/** @type {Expression} */ (context.visit(right)),
 						),
-				b.id('__block'),
 			);
 		}
 
@@ -1291,7 +1289,6 @@ const visitors = {
 				node.prefix ? '_$_.update_pre_property' : '_$_.update_property',
 				context.visit(argument.object, { ...context.state, metadata: { tracking: false } }),
 				argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
-				b.id('__block'),
 				node.operator === '--' ? b.literal(-1) : undefined,
 			);
 		}
@@ -1300,7 +1297,6 @@ const visitors = {
 			return b.call(
 				node.prefix ? '_$_.update_pre' : '_$_.update',
 				context.visit(argument, { ...context.state, metadata: { tracking: null } }),
-				b.id('__block'),
 				node.operator === '--' ? b.literal(-1) : undefined,
 			);
 		}
@@ -1309,7 +1305,6 @@ const visitors = {
 			return b.call(
 				node.prefix ? '_$_.update_pre' : '_$_.update',
 				context.visit(argument.argument, { ...context.state, metadata: { tracking: null } }),
-				b.id('__block'),
 				node.operator === '--' ? b.literal(-1) : undefined,
 			);
 		}
@@ -2396,12 +2391,13 @@ export function transform_client(filename, source, analysis, to_ts) {
 
 	const language_handler = to_ts ? create_tsx_with_typescript_support() : tsx();
 
-	const js = /** @type {ReturnType<typeof print> & { post_processing_changes?: PostProcessingChanges, line_offsets?: number[] }} */ (
-		print(program, language_handler, {
-			sourceMapContent: source,
-			sourceMapSource: path.basename(filename),
-		})
-	);
+	const js =
+		/** @type {ReturnType<typeof print> & { post_processing_changes?: PostProcessingChanges, line_offsets?: number[] }} */ (
+			print(program, language_handler, {
+				sourceMapContent: source,
+				sourceMapSource: path.basename(filename),
+			})
+		);
 
 	// Post-process TypeScript output to remove 'declare' from function overload signatures
 	// Function overload signatures in regular .ts files should not have 'declare' keyword
@@ -2427,7 +2423,10 @@ export function transform_client(filename, source, analysis, to_ts) {
 		 */
 		const offset_to_line = (offset) => {
 			for (let i = 0; i < line_offsets.length; i++) {
-				if (offset >= line_offsets[i] && (i === line_offsets.length - 1 || offset < line_offsets[i + 1])) {
+				if (
+					offset >= line_offsets[i] &&
+					(i === line_offsets.length - 1 || offset < line_offsets[i + 1])
+				) {
 					return i + 1;
 				}
 			}
@@ -2440,22 +2439,25 @@ export function transform_client(filename, source, analysis, to_ts) {
 		// Remove 'export declare function' -> 'export function' (for overloads only, not implementations)
 		// Match: export declare function name(...): type;
 		// Don't match: export declare function name(...): type { (has body)
-		js.code = js.code.replace(/^(export\s+)declare\s+(function\s+\w+[^{\n]*;)$/gm, (match, p1, p2, offset) => {
-			const replacement = p1 + p2;
-			const line = offset_to_line(offset);
-			const delta = replacement.length - match.length; // negative (removing 'declare ')
+		js.code = js.code.replace(
+			/^(export\s+)declare\s+(function\s+\w+[^{\n]*;)$/gm,
+			(match, p1, p2, offset) => {
+				const replacement = p1 + p2;
+				const line = offset_to_line(offset);
+				const delta = replacement.length - match.length; // negative (removing 'declare ')
 
-			// Track first change offset and total delta per line
-			if (!line_deltas.has(line)) {
-				line_deltas.set(line, { offset, delta });
-			} else {
-				// Additional change on same line - accumulate delta
-				// @ts-ignore
-				line_deltas.get(line).delta += delta;
-			}
+				// Track first change offset and total delta per line
+				if (!line_deltas.has(line)) {
+					line_deltas.set(line, { offset, delta });
+				} else {
+					// Additional change on same line - accumulate delta
+					// @ts-ignore
+					line_deltas.get(line).delta += delta;
+				}
 
-			return replacement;
-		});
+				return replacement;
+			},
+		);
 
 		post_processing_changes = line_deltas;
 	}

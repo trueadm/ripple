@@ -186,7 +186,7 @@ function reconcile_fast_clear(anchor, block, array) {
  * @returns {void}
  */
 function update_index(block, index) {
-	set(block.s.i, index, block);
+	set(block.s.i, index);
 }
 
 /**
@@ -195,7 +195,7 @@ function update_index(block, index) {
  * @returns {void}
  */
 function update_value(block, value) {
-	set(block.s.v, value, block);
+	set(block.s.v, value);
 }
 
 /**
