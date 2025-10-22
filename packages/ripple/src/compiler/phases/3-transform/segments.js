@@ -70,26 +70,6 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 		return line_offsets[line - 1] + column;
 	};
 
-	// Map to track capitalized names: original name -> capitalized name
-	/** @type {Map<string, string>} */
-	const capitalized_names = new Map();
-	// Reverse map: capitalized name -> original name
-	/** @type {Map<string, string>} */
-	const reverse_capitalized_names = new Map();
-
-	// Pre-walk to collect capitalized names from JSXElement nodes (transformed AST)
-	// These are identifiers that are used as dynamic components/elements
-	walk(ast, null, {
-		_(node, { next }) {
-			// Check JSXElement nodes with metadata (preserved from Element nodes)
-			if (node.type === 'JSXElement' && node.metadata?.ts_name && node.metadata?.original_name) {
-				capitalized_names.set(node.metadata.original_name, node.metadata.ts_name);
-				reverse_capitalized_names.set(node.metadata.ts_name, node.metadata.original_name);
-			}
-			next();
-		}
-	});
-
 	const adjusted_source_map = build_source_to_generated_map(
 		esrap_source_map,
 		post_processing_changes,
@@ -110,51 +90,26 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 	walk(ast, null, {
 		_(node, { visit }) {
 			// Collect key node types: Identifiers, Literals, and JSX Elements
-			// Skip nodes without .loc (synthesized during transformation, not in original source)
-			if (node.type === 'Identifier' && node.name) {
-				if (node.loc) {
-					// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
-					if (node.metadata?.tracked_shorthand) {
-						tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name, loc: node.loc });
-					} else {
-						// Check if this identifier was capitalized (reverse lookup)
-						const original_name = reverse_capitalized_names.get(node.name);
-						if (original_name) {
-							// This is a capitalized name in generated code, map to lowercase in source
-							tokens.push({ source: original_name, generated: node.name, loc: node.loc });
-						} else {
-							// Check if this identifier should be capitalized (forward lookup)
-							const cap_name = capitalized_names.get(node.name);
-							if (cap_name) {
-								tokens.push({ source: node.name, generated: cap_name, loc: node.loc });
-							} else {
-								// Check if this identifier should be capitalized (forward lookup)
-								const cap_name = capitalized_names.get(node.name);
-								if (cap_name) {
-									tokens.push({ source: node.name, generated: cap_name, loc: node.loc });
-								} else {
-									// Store token with .loc for accurate positioning
-									tokens.push({ source: node.name, generated: node.name, loc: node.loc });
-								}
-							}
-						}
-					}
+			if (node.type === 'Identifier' && node.name && node.loc) {
+				// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
+				if (node.metadata?.tracked_shorthand) {
+					tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name, loc: node.loc });
+				} else if (node.metadata?.is_capitalized) {
+					// This identifier was capitalized during transformation
+					// Map the original lowercase name to the capitalized generated name
+					tokens.push({ source: node.metadata.original_name, generated: node.name, loc: node.loc });
+				} else {
+					// No transformation - source and generated names are the same
+					tokens.push({ source: node.name, generated: node.name, loc: node.loc });
 				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'JSXIdentifier' && node.name) {
+				// JSXIdentifiers can also be capitalized (for dynamic components)
 				if (node.loc) {
-					// Check if this was capitalized (reverse lookup)
-					const originalName = reverse_capitalized_names.get(node.name);
-					if (originalName) {
-						tokens.push({ source: originalName, generated: node.name, loc: node.loc });
+					if (node.metadata?.is_capitalized) {
+						tokens.push({ source: node.metadata.original_name, generated: node.name, loc: node.loc });
 					} else {
-						// Check if this should be capitalized (forward lookup)
-						const capitalizedName = capitalized_names.get(node.name);
-						if (capitalizedName) {
-							tokens.push({ source: node.name, generated: capitalizedName, loc: node.loc });
-						} else {
-							tokens.push({ source: node.name, generated: node.name, loc: node.loc });
-						}
+						tokens.push({ source: node.name, generated: node.name, loc: node.loc });
 					}
 				}
 				return; // Leaf node, don't traverse further
@@ -242,11 +197,18 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 				return;
 			} else if (node.type === 'JSXAttribute') {
 				// Visit name and value in source order
-				if (node.name) {
-					visit(node.name);
-				}
-				if (node.value) {
-					visit(node.value);
+				// For shorthand attributes ({ count }), key and value are the same node, only visit once
+				if (node.shorthand) {
+					if (node.value) {
+						visit(node.value);
+					}
+				} else {
+					if (node.name) {
+						visit(node.name);
+					}
+					if (node.value) {
+						visit(node.value);
+					}
 				}
 				return;
 			} else if (node.type === 'JSXSpreadAttribute') {
@@ -282,19 +244,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 				// 3. Push closing tag name (not visited by AST walker)
 				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
 					const closingNameNode = node.closingElement.name;
-					const closingName = closingNameNode.name;
-					// Check if this was capitalized (reverse lookup)
-					const originalName = reverse_capitalized_names.get(closingName);
-					if (originalName) {
-						tokens.push({ source: originalName, generated: closingName, loc: closingNameNode.loc });
+					if (closingNameNode.metadata?.is_capitalized) {
+						tokens.push({ source: closingNameNode.metadata.original_name, generated: closingNameNode.name, loc: closingNameNode.loc });
 					} else {
-						// Check if this should be capitalized (forward lookup)
-						const capitalizedName = capitalized_names.get(closingName);
-						if (capitalizedName) {
-							tokens.push({ source: closingName, generated: capitalizedName, loc: closingNameNode.loc });
-						} else {
-							tokens.push({ source: closingName, generated: closingName, loc: closingNameNode.loc });
-						}
+						tokens.push({ source: closingNameNode.name, generated: closingNameNode.name, loc: closingNameNode.loc });
 					}
 				}
 
