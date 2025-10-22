@@ -244,7 +244,9 @@ import { track } from 'ripple';
 component ComponentThatMayFail(props: { shouldFail: boolean }) {
   if (props.shouldFail) {
     throw new Error('Component failed!');
+    {'This will never render'}
   }
+
   <div>{"Component working fine"}</div>
 }
 
