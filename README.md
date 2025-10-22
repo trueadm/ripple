@@ -107,7 +107,7 @@ Create reactive state with `track` and access it with the `@` operator:
 ```jsx
 import { track } from 'ripple';
 
-export component Counter() {
+export component App() {
   let count = track(0);
 
   <div>
@@ -120,19 +120,36 @@ export component Counter() {
 **Derived values** automatically update:
 
 ```jsx
-let count = track(0);
-let double = track(() => @count * 2);
-let quadruple = track(() => @double * 2);
+import { track } from 'ripple';
+
+export component App() {
+  let count = track(0);
+  let double = track(() => @count * 2);
+  let quadruple = track(() => @double * 2);
+
+  <div>
+    <p>{"Count: "}{@count}</p>
+    <p>{"Double: "}{@double}</p>
+    <p>{"Quadruple: "}{@quadruple}</p>
+    <button onClick={() => @count++}>{"Increment"}</button>
+  </div>
+}
 ```
 
 **Reactive collections** with shorthand syntax:
 
 ```jsx
-const items = #[1, 2, 3];  // TrackedArray
-const obj = #{a: 1, b: 2}; // TrackedObject
+export component App() {
+  const items = #[1, 2, 3];  // TrackedArray
+  const obj = #{a: 1, b: 2}; // TrackedObject
 
-items.push(4);  // Reactive!
-obj.c = 3;      // Reactive!
+  <div>
+    <p>{"Items: "}{items.join(', ')}</p>
+    <p>{"Object: a="}{obj.a}{", b="}{obj.b}</p>
+    <button onClick={() => items.push(items.length + 1)}>{"Add Item"}</button>
+    <button onClick={() => obj.c = (obj.c ?? 0) + 1}>{"Increment c"}</button>
+  </div>
+}
 ```
 
 **[→ Reactivity Guide](https://www.ripplejs.com/docs/guide/reactivity)**
@@ -151,7 +168,7 @@ function createDouble(count) {
 export component App() {
   let count = track(0);
   const double = createDouble(count);
-  
+
   <div>
     <p>{"Double: "}{@double}</p>
     <button onClick={() => @count++}>{"Increment"}</button>
@@ -184,28 +201,64 @@ export component App() {
 **Conditionals:**
 
 ```jsx
-if (condition) {
-  <div>{'True'}</div>;
-} else {
-  <div>{'False'}</div>;
+import { track } from 'ripple';
+
+export component App() {
+  let condition = track(true);
+
+  <div>
+    if (@condition) {
+      <div>{'True'}</div>
+    } else {
+      <div>{'False'}</div>
+    }
+    <button onClick={() => @condition = !@condition}>{"Toggle"}</button>
+  </div>
 }
 ```
 
 **Loops:**
 
 ```jsx
-for (const item of items; index i; key item.id) {
-  <div>{item.name}</div>
+export component App() {
+  const items = #[
+    {id: 1, name: 'Item 1'},
+    {id: 2, name: 'Item 2'},
+    {id: 3, name: 'Item 3'}
+  ];
+
+  <div>
+    for (const item of items; index i; key item.id) {
+      <div>{item.name}{" (index: "}{i}{")"}</div>
+    }
+    <button onClick={() => items.push({id: items.length + 1, name: `Item ${items.length + 1}`})}>{"Add Item"}</button>
+  </div>
 }
 ```
 
 **Error Boundaries:**
 
 ```jsx
-try {
-  <ComponentThatMayFail />;
-} catch (e) {
-  <div>{'Error: ' + e.message}</div>;
+import { track } from 'ripple';
+
+component ComponentThatMayFail(props: { shouldFail: boolean }) {
+  if (props.shouldFail) {
+    throw new Error('Component failed!');
+  }
+  <div>{"Component working fine"}</div>
+}
+
+export component App() {
+  let shouldFail = track(false);
+
+  <div>
+    try {
+      <ComponentThatMayFail shouldFail={@shouldFail} />
+    } catch (e) {
+      <div>{'Error: ' + e.message}</div>
+    }
+    <button onClick={() => @shouldFail = !@shouldFail}>{"Toggle Error"}</button>
+  </div>
 }
 ```
 
@@ -228,8 +281,17 @@ export component App() {
 Use React-style event handlers:
 
 ```jsx
-<button onClick={() => console.log('Clicked')}>{'Click'}</button>
-<input onInput={(e) => console.log(e.target.value)} />
+import { track } from 'ripple';
+
+export component App() {
+  let value = track('');
+
+  <div>
+    <button onClick={() => console.log('Clicked')}>{'Click'}</button>
+    <input onInput={(e) => @value = e.target.value} />
+    <p>{"You typed: "}{@value}</p>
+  </div>
+}
 ```
 
 **[→ Events Guide](https://www.ripplejs.com/docs/guide/events)**
@@ -239,11 +301,15 @@ Use React-style event handlers:
 **Scoped CSS:**
 
 ```jsx
-component MyComponent() {
+export component App() {
   <div class="container">{"Content"}</div>
 
   <style>
-    .container { padding: 1rem; }
+    .container {
+      padding: 1rem;
+      background: lightblue;
+      border-radius: 8px;
+    }
   </style>
 }
 ```
@@ -251,8 +317,16 @@ component MyComponent() {
 **Dynamic styles:**
 
 ```jsx
-let color = track('red');
-<div style={{ color: @color, fontWeight: 'bold' }}></div>
+import { track } from 'ripple';
+
+export component App() {
+  let color = track('red');
+
+  <div>
+    <div style={{ color: @color, fontWeight: 'bold' }}>{"Styled text"}</div>
+    <button onClick={() => @color = @color === 'red' ? 'blue' : 'red'}>{"Toggle Color"}</button>
+  </div>
+}
 ```
 
 **[→ Styling Guide](https://www.ripplejs.com/docs/guide/styling)**
@@ -268,14 +342,20 @@ import { Context, track } from 'ripple';
 
 const ThemeContext = new Context('light');
 
-component Parent() {
-  ThemeContext.set('dark');
-  <Child />
-}
-
 component Child() {
   const theme = ThemeContext.get();
   <div>{"Theme: " + theme}</div>
+}
+
+export component App() {
+  let theme = track('light');
+
+  ThemeContext.set(@theme);
+
+  <div>
+    <Child />
+    <button onClick={() => @theme = @theme === 'light' ? 'dark' : 'light'}>{"Toggle Theme"}</button>
+  </div>
 }
 ```
 
@@ -286,11 +366,24 @@ component Child() {
 Render content outside the component hierarchy:
 
 ```jsx
-import { Portal } from 'ripple';
+import { Portal, track } from 'ripple';
 
-<Portal target={document.body}>
-  <div class="modal">{'Modal content'}</div>
-</Portal>;
+export component App() {
+  let showModal = track(false);
+
+  <div>
+    <button onClick={() => @showModal = !@showModal}>{"Toggle Modal"}</button>
+
+    if (@showModal) {
+      <Portal target={document.body}>
+        <div class="modal">
+          <p>{'Modal content'}</p>
+          <button onClick={() => @showModal = false}>{"Close"}</button>
+        </div>
+      </Portal>
+    }
+  </div>
+}
 ```
 
 **[→ Portal & Component Guide](https://www.ripplejs.com/docs/guide/components#portal-component)**
