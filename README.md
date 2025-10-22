@@ -145,7 +145,7 @@ export component App() {
 
   <div>
     <p>{"Items: "}{items.join(', ')}</p>
-    <p>{"Object: a="}{obj.a}{", b="}{obj.b}</p>
+    <p>{"Object: a="}{obj.a}{", b="}{obj.b}{", c="}{obj.c}</p>
     <button onClick={() => items.push(items.length + 1)}>{"Add Item"}</button>
     <button onClick={() => obj.c = (obj.c ?? 0) + 1}>{"Increment c"}</button>
   </div>
