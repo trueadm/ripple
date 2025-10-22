@@ -342,17 +342,17 @@ Share state across the component tree:
 ```jsx
 import { Context, track } from 'ripple';
 
-const ThemeContext = new Context('light');
+const ThemeContext = new Context();
 
 component Child() {
   const theme = ThemeContext.get();
-  <div>{"Theme: " + theme}</div>
+  <div>{"Theme: " + @theme}</div>
 }
 
 export component App() {
   let theme = track('light');
 
-  ThemeContext.set(@theme);
+  ThemeContext.set(theme);
 
   <div>
     <Child />
