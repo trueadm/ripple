@@ -90,8 +90,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 		}
 	});
 
-	// Build source map from esrap with post-processing adjustments applied in one pass
-		const adjusted_source_map = build_source_to_generated_map(
+	const adjusted_source_map = build_source_to_generated_map(
 		esrap_source_map,
 		post_processing_changes,
 		line_offsets
