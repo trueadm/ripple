@@ -1,5 +1,8 @@
 /** @import {Expression, FunctionExpression, Node, Program} from 'estree' */
 
+/** @typedef {Map<number, {offset: number, delta: number}>} PostProcessingChanges */
+/** @typedef {number[]} LineOffsets */
+
 import { walk } from 'zimmerframe';
 import path from 'node:path';
 import { print } from 'esrap';
@@ -2175,8 +2178,57 @@ function create_tsx_with_typescript_support() {
 	const base_tsx = tsx();
 
 	// Add custom TypeScript node handlers that aren't in tsx
+
+	// Shared handler for function-like nodes to support component->function mapping
+	// Creates source maps for 'function' keyword by passing node to context.write()
+	const handle_function = (node, context) => {
+		if (node.async) {
+			context.write('async ');
+		}
+		// Write 'function' keyword with node location for source mapping
+		// This creates a mapping from the source position (which may have 'component')
+		// to the generated 'function' keyword
+		context.write('function', node);
+		if (node.generator) {
+			context.write('*');
+		}
+		// FunctionDeclaration always has a space before id, FunctionExpression only if id exists
+		if (node.type === 'FunctionDeclaration' || node.id) {
+			context.write(' ');
+		}
+		if (node.id) {
+			context.visit(node.id);
+		}
+		if (node.typeParameters) {
+			context.visit(node.typeParameters);
+		}
+		context.write('(');
+		for (let i = 0; i < node.params.length; i++) {
+			if (i > 0) context.write(', ');
+			context.visit(node.params[i]);
+		}
+		context.write(')');
+		if (node.returnType) {
+			context.visit(node.returnType);
+		}
+		context.write(' ');
+		if (node.body) {
+			context.visit(node.body);
+		}
+	};
+
 	return {
 		...base_tsx,
+		// Custom handler for FunctionDeclaration to support component->function mapping
+		// Needed for volar mappings and intellisense on function or component keyword
+		FunctionDeclaration(node, context) {
+			handle_function(node, context);
+		},
+		// Custom handler for FunctionExpression to support component->function mapping
+		// This is used for components transformed by the Component visitor
+		FunctionExpression(node, context) {
+			handle_function(node, context);
+		},
 		// Custom handler for TSParenthesizedType: (Type)
 		TSParenthesizedType(node, context) {
 			context.write('(');
@@ -2216,13 +2268,14 @@ function create_tsx_with_typescript_support() {
 			context.write(' }');
 		},
 		// Custom handler for TSTypeParameter: K in T (for mapped types)
-		// acord ts has a bug where `in` is printed as `extends`, so we override it here
+		// acorn-ts has a bug where `in` is printed as `extends`, so we override it here
 		TSTypeParameter(node, context) {
 			// For mapped types, the name is just a string, not an Identifier node
+			// Pass the node as second parameter to context.write() to create source map entry
 			if (typeof node.name === 'string') {
-				context.write(node.name);
+				context.write(node.name, node);
 			} else if (node.name && node.name.name) {
-				context.write(node.name.name);
+				context.write(node.name.name, node.name);
 			}
 			if (node.constraint) {
 				context.write(' in ');
@@ -2268,6 +2321,14 @@ function create_tsx_with_typescript_support() {
 	};
 }
 
+/**
+ * Transform Ripple AST to JavaScript/TypeScript
+ * @param {string} filename - Source filename
+ * @param {string} source - Original source code
+ * @param {any} analysis - Analysis result
+ * @param {boolean} to_ts - Whether to generate TypeScript output
+ * @returns {{ ast: any, js: { code: string, map: any, post_processing_changes?: PostProcessingChanges, line_offsets?: LineOffsets }, css: any }}
+ */
 export function transform_client(filename, source, analysis, to_ts) {
 	/**
 	 * User's named imports from 'ripple' so we can reuse them in TS output
@@ -2333,18 +2394,78 @@ export function transform_client(filename, source, analysis, to_ts) {
 		);
 	}
 
-	const js = print(program, to_ts ? create_tsx_with_typescript_support() : tsx(), {
-		sourceMapContent: source,
-		sourceMapSource: path.basename(filename),
-	});
+	const language_handler = to_ts ? create_tsx_with_typescript_support() : tsx();
+
+	const js = /** @type {ReturnType<typeof print> & { post_processing_changes?: PostProcessingChanges, line_offsets?: number[] }} */ (
+		print(program, language_handler, {
+			sourceMapContent: source,
+			sourceMapSource: path.basename(filename),
+		})
+	);
 
 	// Post-process TypeScript output to remove 'declare' from function overload signatures
 	// Function overload signatures in regular .ts files should not have 'declare' keyword
+	// Track changes for source map adjustment - organize them for efficient lookup
+	/** @type {PostProcessingChanges | null} */
+	let post_processing_changes = null;
+	/** @type {LineOffsets} */
+	let line_offsets = [];
+
 	if (to_ts) {
+		// Build line offset map for converting byte offset to line:column
+		line_offsets = [0];
+		for (let i = 0; i < js.code.length; i++) {
+			if (js.code[i] === '\n') {
+				line_offsets.push(i + 1);
+			}
+		}
+
+		/**
+		 * Convert byte offset to line number (1-based)
+		 * @param {number} offset
+		 * @returns {number}
+		 */
+		const offset_to_line = (offset) => {
+			for (let i = 0; i < line_offsets.length; i++) {
+				if (offset >= line_offsets[i] && (i === line_offsets.length - 1 || offset < line_offsets[i + 1])) {
+					return i + 1;
+				}
+			}
+			return 1;
+		};
+
+		/** @type {Map<number, {offset: number, delta: number}>} */
+		const line_deltas = new Map(); // line -> {offset: first change offset, delta: total delta for line}
+
 		// Remove 'export declare function' -> 'export function' (for overloads only, not implementations)
 		// Match: export declare function name(...): type;
 		// Don't match: export declare function name(...): type { (has body)
-		js.code = js.code.replace(/^(export\s+)declare\s+(function\s+\w+[^{\n]*;)$/gm, '$1$2');
+		js.code = js.code.replace(/^(export\s+)declare\s+(function\s+\w+[^{\n]*;)$/gm, (match, p1, p2, offset) => {
+			const replacement = p1 + p2;
+			const line = offset_to_line(offset);
+			const delta = replacement.length - match.length; // negative (removing 'declare ')
+
+			// Track first change offset and total delta per line
+			if (!line_deltas.has(line)) {
+				line_deltas.set(line, { offset, delta });
+			} else {
+				// Additional change on same line - accumulate delta
+				// @ts-ignore
+				line_deltas.get(line).delta += delta;
+			}
+
+			return replacement;
+		});
+
+		post_processing_changes = line_deltas;
+	}
+
+	if (post_processing_changes) {
+		js.post_processing_changes = post_processing_changes;
+	}
+
+	if (line_offsets.length > 0) {
+		js.line_offsets = line_offsets;
 	}
 
 	const css = render_stylesheets(state.stylesheets);

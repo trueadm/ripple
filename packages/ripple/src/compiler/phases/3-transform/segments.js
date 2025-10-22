@@ -1,4 +1,5 @@
 import { walk } from 'zimmerframe';
+import { build_source_to_generated_map, get_generated_position } from '../../source-map-utils.js';
 
 export const mapping_data = {
 	verification: true,
@@ -16,19 +17,22 @@ export const mapping_data = {
 };
 
 /**
+ * @import { PostProcessingChanges } from './client/index.js';
+ */
+
+/**
  * Create Volar mappings by walking the transformed AST
  * @param {any} ast - The transformed AST
  * @param {string} source - Original source code
- * @param {string} generated_code - Generated code from esrap
- * @param {Map<string, {start: number, end: number}>} [source_import_map] - Map of __volar_id strings to source positions
- * @returns {object}
+ * @param {string} generated_code - Generated code (returned in output, not used for searching)
+ * @param {object} esrap_source_map - Esrap source map for accurate position lookup
+ * @param {PostProcessingChanges } post_processing_changes - Optional post-processing changes
+ * @param {number[]} line_offsets - Pre-computed line offsets array for generated code
+ * @returns {{ code: string, mappings: Array<{sourceOffsets: number[], generatedOffsets: number[], lengths: number[], data: any}> }}
  */
-export function convert_source_map_to_mappings(ast, source, generated_code, source_import_map) {
+export function convert_source_map_to_mappings(ast, source, generated_code, esrap_source_map, post_processing_changes, line_offsets) {
 	/** @type {Array<{sourceOffsets: number[], generatedOffsets: number[], lengths: number[], data: any}>} */
 	const mappings = [];
-
-	// Maintain index that walks through generated code
-	let generated_index = 0;
 
 	// Build line offset maps for source and generated code
 	// This allows us to convert line/column positions to byte offsets
@@ -43,9 +47,26 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	};
 	const source_line_offsets = build_line_offsets(source);
 
-	// Convert line/column to byte offset
+	/**
+	 * Convert line/column to byte offset
+	 * @param {number} line
+	 * @param {number} column
+	 * @param {number[]} line_offsets
+	 * @returns {number | null}
+	 */
 	const loc_to_offset = (line, column, line_offsets) => {
 		if (line < 1 || line > line_offsets.length) return null;
+		return line_offsets[line - 1] + column;
+	};
+
+	/**
+	 * Convert generated line/column to byte offset using pre-computed line_offsets
+	 * @param {number} line
+	 * @param {number} column
+	 * @returns {number}
+	 */
+	const gen_loc_to_offset = (line, column) => {
+		if (line === 1) return column;
 		return line_offsets[line - 1] + column;
 	};
 
@@ -69,55 +90,22 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 		}
 	});
 
-	/**
-	 * Check if character is a word boundary (not alphanumeric or underscore)
-	 * @param {string} char
-	 * @returns {boolean}
-	 */
-	const is_word_boundary = (char) => {
-		return char === undefined || !/[a-zA-Z0-9_$]/.test(char);
-	};
-
-	/**
-	 * Find text in generated code, searching character by character from generated_index
-	 * @param {string} text - Text to find
-	 * @returns {number|null} - Generated position or null
-	 */
-	const find_in_generated = (text) => {
-		for (let i = generated_index; i <= generated_code.length - text.length; i++) {
-			let match = true;
-			for (let j = 0; j < text.length; j++) {
-				if (generated_code[i + j] !== text[j]) {
-					match = false;
-					break;
-				}
-			}
-			if (match) {
-				// Check word boundaries for identifier-like tokens
-				const isIdentifierLike = /^[a-zA-Z_$]/.test(text);
-				if (isIdentifierLike) {
-					const charBefore = generated_code[i - 1];
-					const charAfter = generated_code[i + text.length];
-					if (!is_word_boundary(charBefore) || !is_word_boundary(charAfter)) {
-						continue; // Not a whole word match, keep searching
-					}
-				}
-
-				generated_index = i + text.length;
-				return i;
-			}
-		}
-		return null;
-	};
+	// Build source map from esrap with post-processing adjustments applied in one pass
+		const adjusted_source_map = build_source_to_generated_map(
+		esrap_source_map,
+		post_processing_changes,
+		line_offsets
+	);
 
 	// Collect text tokens from AST nodes
 	// All tokens must have source/generated text and loc property for accurate positioning
-	/** @type {Array<{source: string, generated: string, loc: {start: {line: number, column: number}, end: {line: number, column: number}}}>} */
+	/** @type {Array<{
+		source: string,
+		generated: string,
+		is_import_statement?: boolean,
+		loc: {start: {line: number, column: number}, end: {line: number, column: number}}
+	}>} */
 	const tokens = [];
-
-	// Collect import declarations for full-statement mappings
-	/** @type {Array<{id: string, node: any}>} */
-	const import_declarations = [];
 
 	// We have to visit everything in generated order to maintain correct indices
 	walk(ast, null, {
@@ -177,15 +165,14 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
-				// Collect import declaration for full-statement mapping
+				// Add import declaration as a special token for full-statement mapping
 				// TypeScript reports unused imports with diagnostics covering the entire statement
-				// Store the __volar_id - we'll find the generated position later by searching
-				const volar_id = /** @type {any} */ (node).__volar_id;
-				if (volar_id) {
-					import_declarations.push({
-						id: volar_id,
-						// We'll calculate genStart/genEnd later by searching in generated code
-						node: node
+				if (node.loc) {
+					tokens.push({
+						source: '',
+						generated: '',
+						loc: node.loc,
+						is_import_statement: true
 					});
 				}
 
@@ -293,33 +280,41 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 					}
 				}
 
-			// 3. Push closing tag name (not visited by AST walker)
-			if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
-				const closingNameNode = node.closingElement.name;
-				const closingName = closingNameNode.name;
-				// Check if this was capitalized (reverse lookup)
-				const originalName = reverse_capitalized_names.get(closingName);
-				if (originalName) {
-					tokens.push({ source: originalName, generated: closingName, loc: closingNameNode.loc });
-				} else {
-					// Check if this should be capitalized (forward lookup)
-					const capitalizedName = capitalized_names.get(closingName);
-					if (capitalizedName) {
-						tokens.push({ source: closingName, generated: capitalizedName, loc: closingNameNode.loc });
+				// 3. Push closing tag name (not visited by AST walker)
+				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
+					const closingNameNode = node.closingElement.name;
+					const closingName = closingNameNode.name;
+					// Check if this was capitalized (reverse lookup)
+					const originalName = reverse_capitalized_names.get(closingName);
+					if (originalName) {
+						tokens.push({ source: originalName, generated: closingName, loc: closingNameNode.loc });
 					} else {
-						tokens.push({ source: closingName, generated: closingName, loc: closingNameNode.loc });
+						// Check if this should be capitalized (forward lookup)
+						const capitalizedName = capitalized_names.get(closingName);
+						if (capitalizedName) {
+							tokens.push({ source: closingName, generated: capitalizedName, loc: closingNameNode.loc });
+						} else {
+							tokens.push({ source: closingName, generated: closingName, loc: closingNameNode.loc });
+						}
 					}
 				}
-			}				return;
+
+				return;
 			} else if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
-				// Map function/component keywords (only if node has .loc - skip synthesized functions)
-				if (node.loc) {
-					if (node.metadata?.was_component) {
-						tokens.push({ source: 'component', generated: 'function', loc: node.loc });
-					} else if (node.type === 'FunctionDeclaration') {
-						tokens.push({ source: 'function', generated: 'function', loc: node.loc });
-					}
+				// Add function/component keyword token
+				if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
+					const source_keyword = node.metadata?.was_component ? 'component' : 'function';
+					// Add token for the keyword - esrap already mapped it via context.write('function', node)
+					tokens.push({
+						source: source_keyword,
+						generated: 'function',
+						loc: {
+							start: { line: node.loc.start.line, column: node.loc.start.column },
+							end: { line: node.loc.start.line, column: node.loc.start.column + source_keyword.length }
+						}
+					});
 				}
+
 				// Visit in source order: id, params, body
 				if (node.id) {
 					visit(node.id);
@@ -1176,12 +1171,51 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 	// All tokens now have .loc property - no need for fallback logic
 	for (const token of tokens) {
 		const source_text = token.source;
-		const generated_text = token.generated;
+
+		// Handle import statement full-statement mapping
+		if (token.is_import_statement) {
+			// Get source position from start
+			const source_start = loc_to_offset(token.loc.start.line, token.loc.start.column, source_line_offsets);
+			const source_end = loc_to_offset(token.loc.end.line, token.loc.end.column, source_line_offsets);
+
+			// Get generated positions using source map
+			const gen_start_pos = get_generated_position(token.loc.start.line, token.loc.start.column, adjusted_source_map);
+			const gen_end_pos = get_generated_position(token.loc.end.line, token.loc.end.column, adjusted_source_map);
+
+			if (source_start !== null && source_end !== null && gen_start_pos && gen_end_pos) {
+				// Convert generated line:col to byte offsets
+				const gen_start = gen_loc_to_offset(gen_start_pos.line, gen_start_pos.column);
+				const gen_end = gen_loc_to_offset(gen_end_pos.line, gen_end_pos.column);
+
+				const source_length = source_end - source_start;
+				const gen_length = gen_end - gen_start;
+
+				mappings.push({
+					sourceOffsets: [source_start],
+					generatedOffsets: [gen_start],
+					lengths: [Math.min(source_length, gen_length)],
+					data: {
+						// only verification (diagnostics) to avoid duplicate hover/completion
+						verification: true
+					},
+				});
+			}
+			continue;
+		}
 
 		// Use .loc to get the exact source position
 		const source_pos = loc_to_offset(token.loc.start.line, token.loc.start.column, source_line_offsets);
 
-		const gen_pos = find_in_generated(generated_text);
+		// Get generated position using source map
+		const gen_line_col = get_generated_position(token.loc.start.line, token.loc.start.column, adjusted_source_map);
+		let gen_pos = null;
+		if (gen_line_col) {
+			// Convert generated line:col to byte offset
+			gen_pos = gen_loc_to_offset(gen_line_col.line, gen_line_col.column);
+		} else {
+			// No mapping found in source map - this shouldn't happen since all tokens should have mappings
+			console.warn(`[segments.js] No source map entry for token "${source_text}" at ${token.loc.start.line}:${token.loc.start.column}`);
+		}
 
 		if (source_pos !== null && gen_pos !== null) {
 			mappings.push({
@@ -1193,52 +1227,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, sour
 		}
 	}
 
-	// Add full-statement mappings for import declarations
-	// TypeScript reports unused import diagnostics covering the entire import statement
-	// Use verification-only mapping to avoid duplicate hover/completion
-
-	// Use the source import map from the original AST (before transformation)
-	// The __volar_id property is preserved through transformation via object spread
-	if (source_import_map && import_declarations.length > 0) {
-		// We need to find where each import appears in the generated code
-		// Search for "import" keywords and match them to our collected imports
-		let gen_search_index = 0;
-
-		for (const import_decl of import_declarations) {
-			// Look up the source position using the __volar_id
-			const source_range = source_import_map.get(import_decl.id);
-			if (!source_range) continue; // Skip if we don't have source info for this ID
-
-			// Find this import statement in the generated code
-			// Search for "import " starting from our last position
-			const import_keyword_index = generated_code.indexOf('import ', gen_search_index);
-			if (import_keyword_index === -1) continue; // Couldn't find it
-
-			// Find the semicolon or end of line for this import
-			let gen_end = generated_code.indexOf(';', import_keyword_index);
-			if (gen_end === -1) gen_end = generated_code.indexOf('\n', import_keyword_index);
-			if (gen_end === -1) gen_end = generated_code.length;
-			else gen_end += 1; // Include the semicolon
-
-			const get_start = import_keyword_index;
-			gen_search_index = gen_end; // Next search starts after this import
-
-			const source_length = source_range.end - source_range.start;
-			const get_length = gen_end - get_start;
-
-			mappings.push({
-				sourceOffsets: [source_range.start],
-				generatedOffsets: [get_start],
-				lengths: [Math.min(source_length, get_length)],
-				data: {
-					// only verification (diagnostics) to avoid duplicate hover/completion
-					verification: true
-				},
-			});
-		}
-	}
-
-	// Sort mappings by source offset
+	// Sort mappings by source offset	// Sort mappings by source offset
 	mappings.sort((a, b) => a.sourceOffsets[0] - b.sourceOffsets[0]);
 
 	// Add a mapping for the very beginning of the file to handle import additions
