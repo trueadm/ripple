@@ -90,22 +90,26 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 	walk(ast, null, {
 		_(node, { visit }) {
 			// Collect key node types: Identifiers, Literals, and JSX Elements
-			if (node.type === 'Identifier' && node.name && node.loc) {
-				// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
-				if (node.metadata?.tracked_shorthand) {
-					tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name, loc: node.loc });
-				} else if (node.metadata?.is_capitalized) {
-					// This identifier was capitalized during transformation
-					// Map the original lowercase name to the capitalized generated name
-					tokens.push({ source: node.metadata.original_name, generated: node.name, loc: node.loc });
-				} else {
-					// No transformation - source and generated names are the same
-					tokens.push({ source: node.name, generated: node.name, loc: node.loc });
+			if (node.type === 'Identifier') {
+				// Only create mappings for identifiers with location info (from source)
+				// Synthesized identifiers (created by builders) don't have .loc and are skipped
+				if (node.name && node.loc) {
+					// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
+					if (node.metadata?.tracked_shorthand) {
+						tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name, loc: node.loc });
+					} else if (node.metadata?.is_capitalized) {
+						// This identifier was capitalized during transformation
+						// Map the original lowercase name to the capitalized generated name
+						tokens.push({ source: node.metadata.original_name, generated: node.name, loc: node.loc });
+					} else {
+						// No transformation - source and generated names are the same
+						tokens.push({ source: node.name, generated: node.name, loc: node.loc });
+					}
 				}
 				return; // Leaf node, don't traverse further
-			} else if (node.type === 'JSXIdentifier' && node.name) {
+			} else if (node.type === 'JSXIdentifier') {
 				// JSXIdentifiers can also be capitalized (for dynamic components)
-				if (node.loc) {
+				if (node.loc && node.name) {
 					if (node.metadata?.is_capitalized) {
 						tokens.push({ source: node.metadata.original_name, generated: node.name, loc: node.loc });
 					} else {
