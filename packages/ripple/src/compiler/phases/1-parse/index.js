@@ -987,6 +987,7 @@ function RipplePlugin(config) {
 						this.finishNode(id, 'Identifier');
 						node.name = id;
 						node.value = id;
+						node.shorthand = true; // Mark as shorthand since name and value are the same
 						this.next();
 						this.expect(tt.braceR);
 						return this.finishNode(node, 'Attribute');

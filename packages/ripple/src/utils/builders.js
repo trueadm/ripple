@@ -714,6 +714,7 @@ export function jsx_attribute(name, value = null) {
 		type: 'JSXAttribute',
 		name,
 		value,
+		shorthand: false,
 	};
 }
 

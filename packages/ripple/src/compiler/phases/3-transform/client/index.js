@@ -190,9 +190,17 @@ const visitors = {
 					const binding = context.state.scope.get(node.name);
 					if (binding?.metadata?.is_dynamic_component) {
 						// Capitalize the identifier for TypeScript
-						const capitalizedName = node.name.charAt(0).toUpperCase() + node.name.slice(1);
-						const capitalizedNode = { ...node, name: capitalizedName };
-						return b.member(capitalizedNode, b.literal('#v'), true);
+						const capitalized_name = node.name.charAt(0).toUpperCase() + node.name.slice(1);
+						const capitalized_node = {
+							...node,
+							name: capitalized_name,
+							metadata: {
+								...node.metadata,
+								original_name: node.name,
+								is_capitalized: true,
+							}
+						};
+						return b.member(capitalized_node, b.literal('#v'), true);
 					}
 					return b.member(node, b.literal('#v'), true);
 				}
@@ -525,13 +533,74 @@ const visitors = {
 
 	VariableDeclarator(node, context) {
 		// In TypeScript mode, capitalize identifiers that are used as dynamic components
-		if (context.state.to_ts && node.id.type === 'Identifier') {
-			const binding = context.state.scope.get(node.id.name);
-			if (binding?.metadata?.is_dynamic_component) {
-				const capitalizedName = node.id.name.charAt(0).toUpperCase() + node.id.name.slice(1);
+		if (context.state.to_ts) {
+			/**
+			 * Recursively capitalize identifiers in patterns (ArrayPattern, ObjectPattern)
+			 * @param {any} pattern - The pattern node to process
+			 * @returns {any} The transformed pattern
+			 */
+			const capitalize_pattern = (pattern) => {
+				if (pattern.type === 'Identifier') {
+					const binding = context.state.scope.get(pattern.name);
+					if (binding?.metadata?.is_dynamic_component) {
+						const capitalized_name = pattern.name.charAt(0).toUpperCase() + pattern.name.slice(1);
+						// Add metadata to track the original name for Volar mappings
+						return {
+							...pattern,
+							name: capitalized_name,
+							metadata: {
+								...pattern.metadata,
+								original_name: pattern.name,
+								is_capitalized: true,
+							}
+						};
+					}
+					return pattern;
+				} else if (pattern.type === 'ArrayPattern') {
+					return {
+						...pattern,
+						elements: pattern.elements.map((element) =>
+							element ? capitalize_pattern(element) : element
+						),
+					};
+				} else if (pattern.type === 'ObjectPattern') {
+					return {
+						...pattern,
+						properties: pattern.properties.map((prop) => {
+							if (prop.type === 'Property') {
+								return {
+									...prop,
+									value: capitalize_pattern(prop.value),
+								};
+							} else if (prop.type === 'RestElement') {
+								return {
+									...prop,
+									argument: capitalize_pattern(prop.argument),
+								};
+							}
+							return prop;
+						}),
+					};
+				} else if (pattern.type === 'RestElement') {
+					return {
+						...pattern,
+						argument: capitalize_pattern(pattern.argument),
+					};
+				} else if (pattern.type === 'AssignmentPattern') {
+					return {
+						...pattern,
+						left: capitalize_pattern(pattern.left),
+						right: context.visit(pattern.right),
+					};
+				}
+				return pattern;
+			};
+
+			const transformed_id = capitalize_pattern(node.id);
+			if (transformed_id !== node.id) {
 				return {
 					...node,
-					id: { ...node.id, name: capitalizedName },
+					id: transformed_id,
 					init: node.init ? context.visit(node.init) : null,
 				};
 			}
@@ -1740,7 +1809,10 @@ function transform_ts_child(node, context) {
 				}
 				jsx_name.loc = attr.name.loc || name.loc;
 
-				return b.jsx_attribute(jsx_name, b.jsx_expression_container(value));
+				const jsx_attr = b.jsx_attribute(jsx_name, b.jsx_expression_container(value));
+				// Preserve shorthand flag from parser (set for {identifier} syntax)
+				jsx_attr.shorthand = attr.shorthand ?? false;
+				return jsx_attr;
 			} else if (attr.type === 'SpreadAttribute') {
 				const metadata = { await: false };
 				const argument = visit(attr.argument, { ...state, metadata });
@@ -1783,30 +1855,74 @@ function transform_ts_child(node, context) {
 			closing_type = node.selfClosing ? undefined : type_expression;
 		} else {
 			opening_type = b.jsx_id(type_expression);
-			// Use node.id.loc if available, otherwise create a loc based on the element's position
-			opening_type.loc = node.id.loc || {
-				start: {
-					line: node.loc.start.line,
-					column: node.loc.start.column + 2, // After "<@"
-				},
-				end: {
-					line: node.loc.start.line,
-					column: node.loc.start.column + 2 + type_expression.length,
-				},
-			};
+			// For tracked identifiers (dynamic components), adjust the loc to skip the '@' prefix
+			// and add metadata for mapping
+			if (node.id.tracked && node.id.loc) {
+				// The original identifier loc includes the '@', so we need to skip it
+				opening_type.loc = {
+					start: {
+						line: node.id.loc.start.line,
+						column: node.id.loc.start.column + 1, // Skip '@'
+					},
+					end: node.id.loc.end,
+				};
+				// Add metadata if this was capitalized
+				if (node.metadata?.ts_name && node.metadata?.original_name) {
+					opening_type.metadata = {
+						original_name: node.metadata.original_name,
+						is_capitalized: true,
+					};
+				}
+			} else {
+				// Use node.id.loc if available, otherwise create a loc based on the element's position
+				opening_type.loc = node.id.loc || {
+					start: {
+						line: node.loc.start.line,
+						column: node.loc.start.column + 2, // After "<@"
+					},
+					end: {
+						line: node.loc.start.line,
+						column: node.loc.start.column + 2 + type_expression.length,
+					},
+				};
+			}
 
 			if (!node.selfClosing) {
 				closing_type = b.jsx_id(type_expression);
-				closing_type.loc = {
-					start: {
-						line: node.loc.end.line,
-						column: node.loc.end.column - type_expression.length - 1,
-					},
-					end: {
-						line: node.loc.end.line,
-						column: node.loc.end.column - 1,
-					},
-				};
+				// For tracked identifiers, also adjust closing tag location
+				if (node.id.tracked && node.id.loc) {
+					// Calculate position relative to closing tag
+					// Format: </@identifier>
+					const closing_tag_start = node.loc.end.column - type_expression.length - 3; // </@
+					closing_type.loc = {
+						start: {
+							line: node.loc.end.line,
+							column: closing_tag_start + 3, // Skip '</@'
+						},
+						end: {
+							line: node.loc.end.line,
+							column: closing_tag_start + 3 + (node.metadata?.original_name?.length || type_expression.length),
+						},
+					};
+					// Add metadata if this was capitalized
+					if (node.metadata?.ts_name && node.metadata?.original_name) {
+						closing_type.metadata = {
+							original_name: node.metadata.original_name,
+							is_capitalized: true,
+						};
+					}
+				} else {
+					closing_type.loc = {
+						start: {
+							line: node.loc.end.line,
+							column: node.loc.end.column - type_expression.length - 1,
+						},
+						end: {
+							line: node.loc.end.line,
+							column: node.loc.end.column - 1,
+						},
+					};
+				}
 			}
 		}
 
