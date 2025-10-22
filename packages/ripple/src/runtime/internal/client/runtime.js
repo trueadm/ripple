@@ -440,7 +440,7 @@ function is_tracking_dirty(tracking) {
 		var tracked = tracking.t;
 
 		if ((tracked.f & DERIVED) !== 0) {
-			update_derived(/** @type {Derived} **/(tracked));
+			update_derived(/** @type {Derived} **/ (tracked));
 		}
 
 		if (tracked.c > tracking.c) {
@@ -500,7 +500,7 @@ export function async_computed(fn, block) {
 		}
 
 		promise.then((v) => {
-			if (parent && is_destroyed(/** @type {Block} */(parent))) {
+			if (parent && is_destroyed(/** @type {Block} */ (parent))) {
 				return;
 			}
 			if (promise === current && t.__v !== v) {
@@ -774,7 +774,7 @@ export function get(tracked) {
 	}
 
 	return (tracked.f & DERIVED) !== 0
-		? get_derived(/** @type {Derived} */(tracked))
+		? get_derived(/** @type {Derived} */ (tracked))
 		: get_tracked(tracked);
 }
 
@@ -1093,7 +1093,7 @@ export function with_scope(block, fn) {
  * @returns {Block | null}
  */
 export function scope() {
-	return active_scope;
+	return active_scope || active_block;
 }
 
 /**
@@ -1206,7 +1206,7 @@ export async function maybe_tracked(v) {
 		} else {
 			value = await async_computed(async () => {
 				return await get_tracked(v);
-			}, /** @type {Block} */(active_block));
+			}, /** @type {Block} */ (active_block));
 		}
 	} else {
 		value = await v;
