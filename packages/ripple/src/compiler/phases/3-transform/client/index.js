@@ -2330,6 +2330,22 @@ function create_tsx_with_typescript_support() {
 
 	return {
 		...base_tsx,
+		// Custom handler for ArrayPattern to ensure typeAnnotation is visited
+		// esrap's TypeScript handler doesn't visit typeAnnotation for ArrayPattern (only for ObjectPattern)
+		ArrayPattern(node, context) {
+			context.write('[');
+			for (let i = 0; i < node.elements.length; i++) {
+				if (i > 0) context.write(', ');
+				if (node.elements[i]) {
+					context.visit(node.elements[i]);
+				}
+			}
+			context.write(']');
+			// Visit type annotation if present
+			if (node.typeAnnotation) {
+				context.visit(node.typeAnnotation);
+			}
+		},
 		// Custom handler for FunctionDeclaration to support component->function mapping
 		// Needed for volar mappings and intellisense on function or component keyword
 		FunctionDeclaration(node, context) {
