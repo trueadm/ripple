@@ -30,7 +30,7 @@ import {
 import { capture, suspend } from './try.js';
 import {
 	define_property,
-	get_descriptors,
+	get_descriptor,
 	get_own_property_symbols,
 	is_array,
 	is_tracked_object,
@@ -372,35 +372,34 @@ export function track_split(v, l, b) {
 	var out = [];
 	/** @type {Record<string|symbol, any>} */
 	var rest = {};
-	/** @type {Record<PropertyKey, any | null>} */
-	var descriptors = get_descriptors(v);
+	/** @type {Record<PropertyKey, 1>} */
+	var done = {};
+	var props = Reflect.ownKeys(v);
 
-	for (let i = 0, key, t, exists = true; i < l.length; i++) {
+	for (let i = 0, key, t; i < l.length; i++) {
 		key = l[i];
 
-		if (is_tracked_object(v[key])) {
-			t = v[key];
+		if (props.includes(key)) {
+			if (is_tracked_object(v[key])) {
+				t = v[key];
+			} else {
+				t = tracked(undefined, b);
+				t = define_property(t, '__v', /** @type {PropertyDescriptor} */ (get_descriptor(v, key)));
+			}
 		} else {
 			t = tracked(undefined, b);
-			exists = !!descriptors[key];
-			if (exists) {
-				t = define_property(t, '__v', descriptors[key]);
-			}
 		}
 
 		out[i] = t;
-		if (exists) {
-			descriptors[key] = null;
-		}
+		done[key] = 1;
 	}
 
-	var props = Reflect.ownKeys(descriptors);
 	for (let i = 0, key; i < props.length; i++) {
 		key = props[i];
-		if (descriptors[key] === null) {
+		if (done[key]) {
 			continue;
 		}
-		define_property(rest, key, descriptors[key]);
+		define_property(rest, key,  /** @type {PropertyDescriptor} */ (get_descriptor(v, key)));
 	}
 
 	out.push(tracked(rest, b));
@@ -907,22 +906,22 @@ export function spread_props(fn, block) {
 	return new Proxy(
 		{},
 		{
-			get(target, property) {
+			get(_, property) {
 				const obj = get_derived(computed);
 				return obj[property];
 			},
-			has(target, property) {
+			has(_, property) {
 				if (property === TRACKED_OBJECT) {
 					return true;
 				}
 				const obj = get_derived(computed);
 				return property in obj;
 			},
-			getOwnPropertyDescriptor(target, key) {
+			getOwnPropertyDescriptor(_, key) {
 				const obj = get_derived(computed);
 
 				if (key in obj) {
-					return Object.getOwnPropertyDescriptor(obj, key);
+					return get_descriptor(obj, key);
 				}
 			},
 			ownKeys() {
