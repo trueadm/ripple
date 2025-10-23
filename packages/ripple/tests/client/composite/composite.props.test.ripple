@@ -1,4 +1,4 @@
-import { track, effect, flushSync } from 'ripple';
+import { track, trackSplit, effect, flushSync, type Props } from 'ripple';
 
 describe('composite > props', () => {
 	it('correctly handles default prop values', () => {
@@ -102,5 +102,47 @@ describe('composite > props', () => {
 		flushSync();
 
 		expect(logs).toEqual([0, 1]);
-	})
+	});
+
+	it('correctly retains prop accessors and reactivity when using rest props', () => {
+		component Button(props: Props) {
+			const [children, rest] = trackSplit(props, ['children']);
+			<button {...@rest}>
+				<@children />
+			</button>
+			<style>
+				.on {
+					color: blue;
+				}
+				.off {
+					color: red;
+				}
+			</style>
+		}
+
+		component Toggle(props) {
+			const [pressed, rest] = trackSplit(props, ['pressed']);
+			const onClick = () => @pressed = !@pressed;
+			<Button {...@rest} class={@pressed ? 'on' : 'off'} {onClick}>{'button 1'}</Button>
+			<Button class={@pressed ? 'on' : 'off'} {onClick}>{'button 2'}</Button>
+		}
+
+		component App() {
+			const pressed = track(true);
+			<Toggle {pressed} />
+		}
+
+		render(App);
+		const button1 = container.querySelectorAll('button')[0];;
+		const button2 = container.querySelectorAll('button')[1];
+
+		expect(button1.className).toContain('on');
+		expect(button2.className).toContain('on');
+
+		button1.click();
+		flushSync();
+
+		expect(button1.className).toContain('off');
+		expect(button2.className).toContain('off');
+	});
 });
