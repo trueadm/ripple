@@ -398,15 +398,6 @@ export component App() {
 - 💬 **[Discord Community](https://discord.gg/JBF2ySrh2W)** - Get help and discuss Ripple
 - 📦 **[npm Package](https://www.npmjs.com/package/ripple)** - Install from npm
 
-## Examples
-
-Check out example projects and patterns:
-
-- **[Basic Counter](https://www.ripplejs.com/docs/examples#counter)** - Simple state management
-- **[Todo App](https://www.ripplejs.com/docs/examples#todo-app)** - CRUD operations
-- **[Fetch Data](https://www.ripplejs.com/docs/examples#data-fetching)** - API integration
-- **[More Examples](https://www.ripplejs.com/docs/examples)** - See all examples
-
 ## Contributing
 
 Contributions are welcome! Please see our [contributing guidelines](CONTRIBUTING.md).
