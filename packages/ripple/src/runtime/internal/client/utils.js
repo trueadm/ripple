@@ -1,3 +1,5 @@
+import { TRACKED_OBJECT } from "./constants.js";
+
 /** @type {typeof Object.getOwnPropertyDescriptor} */
 export var get_descriptor = Object.getOwnPropertyDescriptor;
 /** @type {typeof Object.getOwnPropertyDescriptors} */
@@ -41,5 +43,5 @@ export function create_anchor() {
  * @returns {boolean}
  */
 export function is_tracked_object(v) {
-	return typeof v === 'object' && v !== null && typeof (/** @type {any} */ (v).f) === 'number';
+	return typeof v === 'object' && v !== null && !(TRACKED_OBJECT in v) && typeof (/** @type {any} */ (v).f) === 'number';
 }

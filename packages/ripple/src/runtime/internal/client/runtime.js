@@ -922,11 +922,7 @@ export function spread_props(fn, block) {
 				const obj = get_derived(computed);
 
 				if (key in obj) {
-					return {
-						enumerable: true,
-						configurable: true,
-						value: obj[key],
-					};
+					return Object.getOwnPropertyDescriptor(obj, key);
 				}
 			},
 			ownKeys() {
