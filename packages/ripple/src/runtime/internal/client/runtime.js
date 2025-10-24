@@ -136,6 +136,20 @@ export function run_teardown(block) {
 }
 
 /**
+ * @param {Block} block
+ * @param {() => void} fn
+ */
+export function with_block(block, fn) {
+	var prev_block = active_block;
+	active_block = block;
+	try {
+		return fn();
+	} finally {
+		active_block = prev_block;
+	}
+}
+
+/**
  * @param {Derived} computed
  */
 function update_derived(computed) {
@@ -399,7 +413,7 @@ export function track_split(v, l, b) {
 		if (done[key]) {
 			continue;
 		}
-		define_property(rest, key,  /** @type {PropertyDescriptor} */ (get_descriptor(v, key)));
+		define_property(rest, key, /** @type {PropertyDescriptor} */ (get_descriptor(v, key)));
 	}
 
 	out.push(tracked(rest, b));
@@ -902,30 +916,37 @@ export function flush_sync(fn) {
  */
 export function spread_props(fn, block) {
 	var computed = derived(fn, block);
+	return proxy_tracked(computed);
+}
 
+/**
+ * @param {Tracked | Derived} tracked
+ * @returns {Object}
+ */
+export function proxy_tracked(tracked) {
 	return new Proxy(
 		{},
 		{
 			get(_, property) {
-				const obj = get_derived(computed);
+				const obj = get(tracked);
 				return obj[property];
 			},
 			has(_, property) {
 				if (property === TRACKED_OBJECT) {
 					return true;
 				}
-				const obj = get_derived(computed);
+				const obj = get(tracked);
 				return property in obj;
 			},
 			getOwnPropertyDescriptor(_, key) {
-				const obj = get_derived(computed);
+				const obj = get(tracked);
 
 				if (key in obj) {
 					return get_descriptor(obj, key);
 				}
 			},
 			ownKeys() {
-				const obj = get_derived(computed);
+				const obj = get(tracked);
 				return Reflect.ownKeys(obj);
 			},
 		},

@@ -14,7 +14,7 @@ export {
 	set_selected,
 } from './render.js';
 
-export { render, render_spread, async, ref } from './blocks.js';
+export { render, render_spread, async, ref, branch } from './blocks.js';
 
 export { event, delegate } from './events.js';
 
@@ -47,6 +47,8 @@ export {
 	derived,
 	maybe_tracked,
 	tick,
+	proxy_tracked,
+	with_block,
 } from './runtime.js';
 
 export { composite } from './composite.js';
