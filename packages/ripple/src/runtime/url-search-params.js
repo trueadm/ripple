@@ -37,7 +37,7 @@ export class TrackedURLSearchParams extends URLSearchParams {
 			super.append(key, value);
 		}
 
-		increment(this.#version, this.#block);
+		increment(this.#version);
 		this.#updating = false;
 	}
 
@@ -49,7 +49,7 @@ export class TrackedURLSearchParams extends URLSearchParams {
 	append(name, value) {
 		super.append(name, value);
 		this.#update_url();
-		increment(this.#version, this.#block);
+		increment(this.#version);
 	}
 
 	/**
@@ -62,7 +62,7 @@ export class TrackedURLSearchParams extends URLSearchParams {
 		super.delete(name, value);
 		if (has_value) {
 			this.#update_url();
-			increment(this.#version, this.#block);
+			increment(this.#version);
 		}
 	}
 
@@ -111,14 +111,14 @@ export class TrackedURLSearchParams extends URLSearchParams {
 		// if you set `foo` to 1, then foo=3 gets deleted whilst `has("foo", "1")` returns true
 		if (previous !== super.getAll(name).join('')) {
 			this.#update_url();
-			increment(this.#version, this.#block);
+			increment(this.#version);
 		}
 	}
 
 	sort() {
 		super.sort();
 		this.#update_url();
-		increment(this.#version, this.#block);
+		increment(this.#version);
 	}
 
 	toString() {

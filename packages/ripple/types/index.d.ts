@@ -76,7 +76,7 @@ declare global {
 		scope(): any;
 		get_tracked(node: any): any;
 		get_derived(node: any): any;
-		set(node: any, value: any, block?: any): any;
+		set(node: any, value: any): any;
 		// Add other runtime functions as needed for TypeScript analysis
 	};
 }

@@ -32,7 +32,7 @@ export function MediaQuery(query, fallback) {
 		() => on(q, 'change', () => {
 			// skip wrapping in untrack as createSubscriber already does it
 			if (q.matches !== get(matches)) {
-				set(matches, q.matches, block)
+				set(matches, q.matches)
 			}
 		})
 	);

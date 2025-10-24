@@ -39,7 +39,7 @@ export class TrackedURL extends URL {
 
 	set hash(value) {
 		super.hash = value;
-		set(this.#hash, super.hash, this.#block);
+		set(this.#hash, super.hash);
 	}
 
 	get host() {
@@ -50,8 +50,8 @@ export class TrackedURL extends URL {
 
 	set host(value) {
 		super.host = value;
-		set(this.#hostname, super.hostname, this.#block);
-		set(this.#port, super.port, this.#block);
+		set(this.#hostname, super.hostname);
+		set(this.#port, super.port);
 	}
 
 	get hostname() {
@@ -60,7 +60,7 @@ export class TrackedURL extends URL {
 
 	set hostname(value) {
 		super.hostname = value;
-		set(this.#hostname, super.hostname, this.#block);
+		set(this.#hostname, super.hostname);
 	}
 
 	get href() {
@@ -77,14 +77,14 @@ export class TrackedURL extends URL {
 
 	set href(value) {
 		super.href = value;
-		set(this.#protocol, super.protocol, this.#block);
-		set(this.#username, super.username, this.#block);
-		set(this.#password, super.password, this.#block);
-		set(this.#hostname, super.hostname, this.#block);
-		set(this.#port, super.port, this.#block);
-		set(this.#pathname, super.pathname, this.#block);
-		set(this.#hash, super.hash, this.#block);
-		set(this.#search, super.search, this.#block);
+		set(this.#protocol, super.protocol);
+		set(this.#username, super.username);
+		set(this.#password, super.password);
+		set(this.#hostname, super.hostname);
+		set(this.#port, super.port);
+		set(this.#pathname, super.pathname);
+		set(this.#hash, super.hash);
+		set(this.#search, super.search);
 		this.#searchParams[REPLACE](super.searchParams);
 	}
 
@@ -94,7 +94,7 @@ export class TrackedURL extends URL {
 
 	set password(value) {
 		super.password = value;
-		set(this.#password, super.password, this.#block);
+		set(this.#password, super.password);
 	}
 
 	get pathname() {
@@ -103,7 +103,7 @@ export class TrackedURL extends URL {
 
 	set pathname(value) {
 		super.pathname = value;
-		set(this.#pathname, super.pathname, this.#block);
+		set(this.#pathname, super.pathname);
 	}
 
 	get port() {
@@ -112,7 +112,7 @@ export class TrackedURL extends URL {
 
 	set port(value) {
 		super.port = value;
-		set(this.#port, super.port, this.#block);
+		set(this.#port, super.port);
 	}
 
 	get protocol() {
@@ -121,7 +121,7 @@ export class TrackedURL extends URL {
 
 	set protocol(value) {
 		super.protocol = value;
-		set(this.#protocol, super.protocol, this.#block);
+		set(this.#protocol, super.protocol);
 	}
 
 	get search() {
@@ -130,7 +130,7 @@ export class TrackedURL extends URL {
 
 	set search(value) {
 		super.search = value;
-		set(this.#search, value, this.#block);
+		set(this.#search, value);
 		this.#searchParams[REPLACE](super.searchParams);
 	}
 
@@ -140,7 +140,7 @@ export class TrackedURL extends URL {
 
 	set username(value) {
 		super.username = value;
-		set(this.#username, super.username, this.#block);
+		set(this.#username, super.username);
 	}
 
 	get origin() {

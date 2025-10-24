@@ -15,183 +15,183 @@ let init = false;
  * @returns {TrackedSet<T>}
  */
 export class TrackedSet extends Set {
-  /** @type {Tracked} */
-  #tracked_size;
-  /** @type {Map<T, Tracked>} */
-  #tracked_items = new Map();
-  /** @type {Block} */
-  #block;
+	/** @type {Tracked} */
+	#tracked_size;
+	/** @type {Map<T, Tracked>} */
+	#tracked_items = new Map();
+	/** @type {Block} */
+	#block;
 
-  /**
-   * @param {Iterable<T>} [iterable]
-   */
-  constructor(iterable) {
-    super();
+	/**
+	 * @param {Iterable<T>} [iterable]
+	 */
+	constructor(iterable) {
+		super();
 
-    var block = this.#block = safe_scope();
+		var block = this.#block = safe_scope();
 
-    if (iterable) {
-      for (var item of iterable) {
-        super.add(item);
-        this.#tracked_items.set(item, tracked(0, block));
-      }
-    }
+		if (iterable) {
+			for (var item of iterable) {
+				super.add(item);
+				this.#tracked_items.set(item, tracked(0, block));
+			}
+		}
 
-    this.#tracked_size = tracked(super.size, block);
+		this.#tracked_size = tracked(super.size, block);
 
-    if (!init) {
-      init = true;
-      this.#init();
-    }
-  }
+		if (!init) {
+			init = true;
+			this.#init();
+		}
+	}
 
-  /**
-   * @returns {void}
-   */
-  #init() {
-    var proto = TrackedSet.prototype;
-    var set_proto = Set.prototype;
+	/**
+	 * @returns {void}
+	 */
+	#init() {
+		var proto = TrackedSet.prototype;
+		var set_proto = Set.prototype;
 
-    for (const method of introspect_methods) {
-      if (!(method in set_proto)) {
-        continue;
-      }
+		for (const method of introspect_methods) {
+			if (!(method in set_proto)) {
+				continue;
+			}
 
       /** @type {any} */ (proto)[method] = function (/** @type {...any} */ ...v) {
-        this.size;
+				this.size;
 
-        return /** @type {any} */ (set_proto)[method].apply(this, v);
-      };
-    }
+				return /** @type {any} */ (set_proto)[method].apply(this, v);
+			};
+		}
 
-    for (const method of compare_other_methods) {
-      if (!(method in set_proto)) {
-        continue;
-      }
-
-      /** @type {any} */ (proto)[method] = function (/** @type {any} */ other, /** @type {...any} */ ...v) {
-        this.size;
-
-        if (other instanceof TrackedSet) {
-          other.size;
-        }
-
-        return /** @type {any} */ (set_proto)[method].apply(this, [other, ...v]);
-      };
-    }
-
-    for (const method of new_other_methods) {
-      if (!(method in set_proto)) {
-        continue;
-      }
+		for (const method of compare_other_methods) {
+			if (!(method in set_proto)) {
+				continue;
+			}
 
       /** @type {any} */ (proto)[method] = function (/** @type {any} */ other, /** @type {...any} */ ...v) {
-        this.size;
+				this.size;
 
-        if (other instanceof TrackedSet) {
-          other.size;
-        }
+				if (other instanceof TrackedSet) {
+					other.size;
+				}
 
-        return new TrackedSet(/** @type {any} */ (set_proto)[method].apply(this, [other, ...v]));
-      };
-    }
-  }
+				return /** @type {any} */ (set_proto)[method].apply(this, [other, ...v]);
+			};
+		}
 
-  /**
-   * @param {T} value
-   * @returns {this}
-   */
-  add(value) {
-    var block = this.#block;
+		for (const method of new_other_methods) {
+			if (!(method in set_proto)) {
+				continue;
+			}
 
-    if (!super.has(value)) {
-      super.add(value);
-      this.#tracked_items.set(value, tracked(0, block));
-      set(this.#tracked_size, super.size, block);
-    }
+      /** @type {any} */ (proto)[method] = function (/** @type {any} */ other, /** @type {...any} */ ...v) {
+				this.size;
 
-    return this;
-  }
+				if (other instanceof TrackedSet) {
+					other.size;
+				}
 
-  /**
-   * @param {T} value
-   * @returns {boolean}
-   */
-  delete(value) {
-    var block = this.#block;
+				return new TrackedSet(/** @type {any} */(set_proto)[method].apply(this, [other, ...v]));
+			};
+		}
+	}
 
-    if (!super.delete(value)) {
-      return false;
-    }
+	/**
+	 * @param {T} value
+	 * @returns {this}
+	 */
+	add(value) {
+		var block = this.#block;
 
-    var t = this.#tracked_items.get(value);
+		if (!super.has(value)) {
+			super.add(value);
+			this.#tracked_items.set(value, tracked(0, block));
+			set(this.#tracked_size, super.size);
+		}
 
-    if (t) {
-      increment(t, block);
-    }
-    this.#tracked_items.delete(value);
-    set(this.#tracked_size, super.size, block);
+		return this;
+	}
 
-    return true;
-  }
+	/**
+	 * @param {T} value
+	 * @returns {boolean}
+	 */
+	delete(value) {
+		var block = this.#block;
 
-  /**
-   * @param {T} value
-   * @return {boolean}
-  */
-  has(value) {
+		if (!super.delete(value)) {
+			return false;
+		}
 
-    var has = super.has(value);
-    var tracked_items = this.#tracked_items;
-    var t = tracked_items.get(value);
+		var t = this.#tracked_items.get(value);
 
-    if (t === undefined) {
-      // if no tracked it also means super didn't have it
-      // It's not possible to have a disconnect, we track each value
-      // If the value doesn't exist, track the size in case it's added later
-      // but don't create tracked entries willy-nilly to track all possible values
-      this.size;
-    } else {
-      get(t);
-    }
+		if (t) {
+			increment(t);
+		}
+		this.#tracked_items.delete(value);
+		set(this.#tracked_size, super.size);
 
-    return has;
-  }
+		return true;
+	}
 
-  /**
-   * @returns {void}
-   */
-  clear() {
-    var block = this.#block;
+	/**
+	 * @param {T} value
+	 * @return {boolean}
+	*/
+	has(value) {
 
-    if (super.size === 0) {
-      return;
-    }
+		var has = super.has(value);
+		var tracked_items = this.#tracked_items;
+		var t = tracked_items.get(value);
 
-    for (var [_, t] of this.#tracked_items) {
-      increment(t, block);
-    }
+		if (t === undefined) {
+			// if no tracked it also means super didn't have it
+			// It's not possible to have a disconnect, we track each value
+			// If the value doesn't exist, track the size in case it's added later
+			// but don't create tracked entries willy-nilly to track all possible values
+			this.size;
+		} else {
+			get(t);
+		}
 
-    super.clear();
-    this.#tracked_items.clear();
-    set(this.#tracked_size, 0, block);
-  }
+		return has;
+	}
 
-  /**
-   * @returns {number}
-   */
-  get size() {
-    return get(this.#tracked_size);
-  }
+	/**
+	 * @returns {void}
+	 */
+	clear() {
+		var block = this.#block;
 
-  /**
-   * @returns {T[]}
-   */
-  toJSON() {
-    this.size;
+		if (super.size === 0) {
+			return;
+		}
 
-    return [...this];
-  }
+		for (var [_, t] of this.#tracked_items) {
+			increment(t);
+		}
+
+		super.clear();
+		this.#tracked_items.clear();
+		set(this.#tracked_size, 0);
+	}
+
+	/**
+	 * @returns {number}
+	 */
+	get size() {
+		return get(this.#tracked_size);
+	}
+
+	/**
+	 * @returns {T[]}
+	 */
+	toJSON() {
+		this.size;
+
+		return [...this];
+	}
 }
 
 /**
@@ -201,5 +201,5 @@ export class TrackedSet extends Set {
  * @returns {TrackedSet<V>}
  */
 export function tracked_set(block, ...args) {
-  return with_scope(block, () => new TrackedSet(...args));
+	return with_scope(block, () => new TrackedSet(...args));
 }

@@ -64,7 +64,7 @@ export class TrackedDate extends Date {
 				proto[method] = function (...args) {
 					// @ts-ignore
 					var result = date_proto[method].apply(this, args);
-					set(this.#time, date_proto.getTime.call(this), this.#block);
+					set(this.#time, date_proto.getTime.call(this));
 					return result;
 				};
 			}
