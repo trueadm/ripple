@@ -1275,30 +1275,59 @@ function printRippleNode(node, path, options, print, args) {
 		}
 
 		case 'BinaryExpression':
-			nodeContent = group(
-				concat([
-					path.call(print, 'left'),
-					' ',
-					node.operator,
-					indent(concat([line, path.call(print, 'right')])),
-				]),
-			);
+			// Don't add indent if we're in a conditional test context
+			if (args?.isConditionalTest) {
+				nodeContent = group(
+					concat([
+						path.call((childPath) => print(childPath, { isConditionalTest: true }), 'left'),
+						' ',
+						node.operator,
+						concat([line, path.call((childPath) => print(childPath, { isConditionalTest: true }), 'right')]),
+					]),
+				);
+			} else {
+				nodeContent = group(
+					concat([
+						path.call(print, 'left'),
+						' ',
+						node.operator,
+						indent(concat([line, path.call(print, 'right')])),
+					]),
+				);
+			}
 			break;
 
 		case 'LogicalExpression':
-			nodeContent = group(
-				concat([
-					path.call(print, 'left'),
-					' ',
-					node.operator,
-					indent(concat([line, path.call(print, 'right')])),
-				]),
-			);
+			// Don't add indent if we're in a conditional test context
+			if (args?.isConditionalTest) {
+				nodeContent = group(
+					concat([
+						path.call((childPath) => print(childPath, { isConditionalTest: true }), 'left'),
+						' ',
+						node.operator,
+						concat([line, path.call((childPath) => print(childPath, { isConditionalTest: true }), 'right')]),
+					]),
+				);
+			} else {
+				nodeContent = group(
+					concat([
+						path.call(print, 'left'),
+						' ',
+						node.operator,
+						indent(concat([line, path.call(print, 'right')])),
+					]),
+				);
+			}
 			break;
 
 		case 'ConditionalExpression': {
 			// Use Prettier's grouping to handle line breaking when exceeding printWidth
-			const testDoc = path.call(print, 'test');
+			// For the test expression, if it's a LogicalExpression or BinaryExpression,
+			// tell it not to add its own indentation since we're in a conditional context
+			const testNeedsContext = node.test.type === 'LogicalExpression' || node.test.type === 'BinaryExpression';
+			const testDoc = testNeedsContext
+				? path.call((childPath) => print(childPath, { isConditionalTest: true }), 'test')
+				: path.call(print, 'test');
 
 			// Check if we have nested ternaries (but not if they're parenthesized, which keeps them inline)
 			const hasUnparenthesizedNestedConditional =
@@ -1310,20 +1339,25 @@ function printRippleNode(node, path, options, print, args) {
 			// If we have unparenthesized nested ternaries, tell the children they're nested
 			const consequentDoc =
 				hasUnparenthesizedNestedConditional &&
-				node.consequent.type === 'ConditionalExpression' &&
-				!node.consequent.metadata?.parenthesized
+					node.consequent.type === 'ConditionalExpression' &&
+					!node.consequent.metadata?.parenthesized
 					? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'consequent')
 					: path.call(print, 'consequent');
 			const alternateDoc =
 				hasUnparenthesizedNestedConditional &&
-				node.alternate.type === 'ConditionalExpression' &&
-				!node.alternate.metadata?.parenthesized
+					node.alternate.type === 'ConditionalExpression' &&
+					!node.alternate.metadata?.parenthesized
 					? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'alternate')
 					: path.call(print, 'alternate');
 
 			// Check if the consequent or alternate will break
 			const consequentBreaks = willBreak(consequentDoc);
 			const alternateBreaks = willBreak(alternateDoc);
+
+			// Helper to determine if a node type already handles its own indentation
+			const hasOwnIndentation = (nodeType) => {
+				return nodeType === 'BinaryExpression' || nodeType === 'LogicalExpression';
+			};
 
 			let result;
 			// If either branch breaks OR we have unparenthesized nested ternaries OR we're already nested, use multiline format
@@ -1333,21 +1367,61 @@ function printRippleNode(node, path, options, print, args) {
 				hasUnparenthesizedNestedConditional ||
 				args?.isNestedConditional
 			) {
+				// Only add extra indent if the expression doesn't handle its own indentation
+				// AND it's not a nested conditional (which already gets indented by its parent)
+				const shouldIndentConsequent =
+					!hasOwnIndentation(node.consequent.type) &&
+					node.consequent.type !== 'ConditionalExpression';
+				const shouldIndentAlternate =
+					!hasOwnIndentation(node.alternate.type) &&
+					node.alternate.type !== 'ConditionalExpression';
+
 				result = concat([
 					testDoc,
-					indent(concat([line, '? ', consequentBreaks ? indent(consequentDoc) : consequentDoc])),
-					indent(concat([line, ': ', alternateBreaks ? indent(alternateDoc) : alternateDoc])),
+					indent(
+						concat([
+							line,
+							'? ',
+							shouldIndentConsequent ? indent(consequentDoc) : consequentDoc,
+						]),
+					),
+					indent(
+						concat([
+							line,
+							': ',
+							shouldIndentAlternate ? indent(alternateDoc) : alternateDoc,
+						]),
+					),
 				]);
 			} else {
 				// Otherwise try inline first, then multiline if it doesn't fit
+				const shouldIndentConsequent =
+					!hasOwnIndentation(node.consequent.type) &&
+					node.consequent.type !== 'ConditionalExpression';
+				const shouldIndentAlternate =
+					!hasOwnIndentation(node.alternate.type) &&
+					node.alternate.type !== 'ConditionalExpression';
+
 				result = conditionalGroup([
 					// Try inline first
 					concat([testDoc, ' ? ', consequentDoc, ' : ', alternateDoc]),
 					// If inline doesn't fit, use multiline
 					concat([
 						testDoc,
-						indent(concat([line, '? ', consequentDoc])),
-						indent(concat([line, ': ', alternateDoc])),
+						indent(
+							concat([
+								line,
+								'? ',
+								shouldIndentConsequent ? indent(consequentDoc) : consequentDoc,
+							]),
+						),
+						indent(
+							concat([
+								line,
+								': ',
+								shouldIndentAlternate ? indent(alternateDoc) : alternateDoc,
+							]),
+						),
 					]),
 				]);
 			}
@@ -2763,14 +2837,41 @@ function printTemplateLiteral(node, path, options, print) {
 	const parts = [];
 	parts.push('`');
 
-	for (let i = 0; i < node.quasis.length; i++) {
+	for (let i = 0; i < node.expressions.length; i++) {
 		parts.push(node.quasis[i].value.raw);
 
-		if (i < node.expressions.length) {
+		const expression = node.expressions[i];
+		const expressionDoc = path.call(print, 'expressions', i);
+
+		// Check if the expression will break (e.g., ternary, binary, logical)
+		const needsBreaking = expression.type === 'ConditionalExpression' ||
+			expression.type === 'BinaryExpression' ||
+			expression.type === 'LogicalExpression' ||
+			willBreak(expressionDoc);
+
+		if (needsBreaking) {
+			// For expressions that break, use group with indent to format nicely
+			parts.push(
+				group(
+					concat([
+						'${',
+						indent(concat([softline, expressionDoc])),
+						softline,
+						'}'
+					])
+				)
+			);
+		} else {
+			// For simple expressions, keep them inline
 			parts.push('${');
-			parts.push(path.call(print, 'expressions', i));
+			parts.push(expressionDoc);
 			parts.push('}');
 		}
+	}
+
+	// Add the final quasi (text after the last expression)
+	if (node.quasis.length > node.expressions.length) {
+		parts.push(node.quasis[node.quasis.length - 1].value.raw);
 	}
 
 	parts.push('`');
@@ -3309,6 +3410,23 @@ function printVariableDeclarator(node, path, options, print) {
 	if (node.init) {
 		const id = path.call(print, 'id');
 		const init = path.call(print, 'init');
+
+		// For conditional expressions that will break, put them on a new line
+		const isTernary = node.init.type === 'ConditionalExpression';
+		if (isTernary) {
+			// Check if the ternary will break by checking if it has complex branches
+			// or if the doc builder indicates it will break
+			const ternaryWillBreak = willBreak(init);
+
+			// Also check if either branch is a CallExpression (which typically breaks)
+			const hasComplexBranch =
+				node.init.consequent.type === 'CallExpression' ||
+				node.init.alternate.type === 'CallExpression';
+
+			if (ternaryWillBreak || hasComplexBranch) {
+				return concat([id, ' =', indent(concat([line, init]))]);
+			}
+		}
 
 		// For arrays/objects with blank lines, use conditionalGroup to try both layouts
 		// Prettier will break the declaration if keeping it inline doesn't fit

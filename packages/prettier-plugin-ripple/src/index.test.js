@@ -54,7 +54,7 @@ describe('prettier-plugin-ripple', () => {
 	const formatWithCursorHelper = async (code, options = {}) => {
 		return await prettier.formatWithCursor(
 			code,
-			/** @type {import('prettier').CursorOptions} */ ({
+			/** @type {import('prettier').CursorOptions} */({
 				parser: 'ripple',
 				plugins: [join(__dirname, 'index.js')],
 				...options,
@@ -330,6 +330,124 @@ export default component App() {
 }`;
 
 			const result = await format(input, { singleQuote: true, printWidth: 70 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should print nested ternary expressions with indentation', async () => {
+			const input = `const children_fn = b.arrow(
+    [b.id('__compat')],
+    needs_fragment
+        ? b.call(
+            '__compat._jsxs',
+            b.id('__compat.Fragment'),
+            b.object([
+                b.prop(
+                    'init',
+                    b.id('children'),
+                    b.array(normalized_children.map((child) => visit(child, state))),
+                ),
+            ]),
+        )
+        : visit(normalized_children[0], state),
+);`;
+
+			const expected = `const children_fn = b.arrow(
+  [b.id('__compat')],
+  needs_fragment
+    ? b.call(
+        '__compat._jsxs',
+        b.id('__compat.Fragment'),
+        b.object([
+          b.prop(
+            'init',
+            b.id('children'),
+            b.array(normalized_children.map((child) => visit(child, state))),
+          ),
+        ]),
+      )
+    : visit(normalized_children[0], state),
+);`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 80 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should properly format template literals with ternaries', async () => {
+			const input = `const handle_static_attr = (name, value) => {
+  const attr_str = \` \${name}\${is_boolean_attribute(name) && value === true
+      ? ''
+      : \`="\${value === true ? '' : escape_html(value, true)}"\`
+    }\`;
+
+  if (is_spreading) {
+    // For spread attributes, store just the actual value, not the full attribute string
+    const actual_value =
+      is_boolean_attribute(name) && value === true
+        ? b.literal(true)
+        : b.literal(value === true ? '' : value);
+    spread_attributes.push(b.prop('init', b.literal(name), actual_value));
+  } else {
+    state.init.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(attr_str))));
+  }
+};`;
+
+			const expected = `const handle_static_attr = (name, value) => {
+  const attr_str = \` \${name}\${
+    is_boolean_attribute(name) && value === true
+      ? ''
+      : \`="\${value === true ? '' : escape_html(value, true)}"\`
+  }\`;
+
+  if (is_spreading) {
+    // For spread attributes, store just the actual value, not the full attribute string
+    const actual_value =
+      is_boolean_attribute(name) && value === true
+        ? b.literal(true)
+        : b.literal(value === true ? '' : value);
+    spread_attributes.push(b.prop('init', b.literal(name), actual_value));
+  } else {
+    state.init.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(attr_str))));
+  }
+};`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format conditional expressions correctly', async () => {
+			const expected = `const consequentDoc =
+  hasUnparenthesizedNestedConditional &&
+  node.consequent.type === 'ConditionalExpression' &&
+  !node.consequent.metadata?.parenthesized
+    ? path.call(
+        (childPath) => print(childPath, { isNestedConditional: true }),
+        'consequent',
+      )
+    : path.call(print, 'consequent');
+const alternateDoc =
+  hasUnparenthesizedNestedConditional &&
+  node.alternate.type === 'ConditionalExpression' &&
+  !node.alternate.metadata?.parenthesized
+    ? path.call(
+        (childPath) => print(childPath, { isNestedConditional: true }),
+        'alternate',
+      )
+    : path.call(print, 'alternate');`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 80 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format nested template literals correctly', async () => {
+			const expected = `const handle_static_attr = (name, value) => {
+  const attr_str = \` \${name}\${
+    is_boolean_attribute(name) && value === true
+      ? ''
+      : \`="\${value === true ? '' : escape_html(value, true)}"\`
+  }\`;
+};`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 80 });
 			expect(result).toBeWithNewline(expected);
 		});
 
