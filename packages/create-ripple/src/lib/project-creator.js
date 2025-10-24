@@ -249,9 +249,9 @@ export default defineConfig({
 function updateDependencyVersions(packageJson) {
 	// Use the latest versions for Ripple packages
 	const latestVersions = {
-		ripple: '^0.2.140',
-		'vite-plugin-ripple': '^0.2.140',
-		'prettier-plugin-ripple': '^0.2.140',
+		ripple: '^latest',
+		'vite-plugin-ripple': '^latest',
+		'prettier-plugin-ripple': '^latest',
 	};
 
 	// Update dependencies
