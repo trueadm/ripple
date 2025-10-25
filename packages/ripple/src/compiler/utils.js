@@ -283,9 +283,7 @@ export function get_delegated_event(event_name, handler, state) {
 		if (local_binding.node !== binding.node) {
 			return unhoisted;
 		}
-		const is_tracked =
-			ref_nodes.filter(({ node }) => node.tracked).length === ref_nodes.length &&
-			ref_nodes.length > 0;
+		const is_tracked = ref_nodes.some(({ node }) => node.tracked);
 
 		if (
 			binding !== null &&
