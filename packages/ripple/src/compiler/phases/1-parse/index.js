@@ -1615,13 +1615,6 @@ function RipplePlugin(config) {
 					const node = this.parseStatement(null);
 					body.push(node);
 
-					// Automatic semicolon insertion: if we just parsed a statement and the next
-					// token is a JSX start tag, consume an optional semicolon
-					// This allows: const id = row.id \n <tr>...</tr>
-					if (this.type.label === 'jsxTagStart' || this.type.label === '{') {
-						this.eat(tt.semi);
-					}
-
 					// Ensure we're not in JSX context before recursing
 					// This is important when elements are parsed at statement level
 					if (this.curContext() === this.acornTypeScript.tokContexts.tc_expr) {
