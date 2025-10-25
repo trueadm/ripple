@@ -109,7 +109,7 @@ const visitors = {
 		const parent = context.path.at(-1);
 
 		if (
-			is_reference(node, /** @type {Node} */(parent)) &&
+			is_reference(node, /** @type {Node} */ (parent)) &&
 			binding &&
 			context.state.inside_server_block &&
 			context.state.scope.server_block
@@ -144,7 +144,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */(parent)) &&
+			is_reference(node, /** @type {Node} */ (parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -155,7 +155,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */(parent)) &&
+			is_reference(node, /** @type {Node} */ (parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -191,7 +191,7 @@ const visitors = {
 					error(
 						`Directly accessing internal property "${propertyName}" of a tracked object is not allowed. Use \`get(${node.object.name})\` or \`@${node.object.name}\` instead.`,
 						context.state.analysis.module.filename,
-						node.property
+						node.property,
 					);
 				}
 			}
@@ -205,7 +205,7 @@ const visitors = {
 					`Accessing a tracked object directly is not allowed, use the \`@\` prefix to read the value inside a tracked object - for example \`@${node.object.name}${node.property.type === 'Identifier' ? `.${node.property.name}` : ''}\``,
 					context.state.analysis.module.filename,
 					node,
-				)
+				);
 			}
 		}
 
@@ -259,8 +259,11 @@ const visitors = {
 					const callee = declarator.init.callee;
 					// Check if it's a call to `track` or `tracked`
 					if (
-						(callee.type === 'Identifier' && (callee.name === 'track' || callee.name === 'tracked')) ||
-						(callee.type === 'MemberExpression' && callee.property.type === 'Identifier' && (callee.property.name === 'track' || callee.property.name === 'tracked'))
+						(callee.type === 'Identifier' &&
+							(callee.name === 'track' || callee.name === 'tracked')) ||
+						(callee.type === 'MemberExpression' &&
+							callee.property.type === 'Identifier' &&
+							(callee.property.name === 'track' || callee.property.name === 'tracked'))
 					) {
 						binding.metadata = { ...binding.metadata, is_tracked_object: true };
 					}
@@ -623,7 +626,6 @@ const visitors = {
 			context.state.analysis.module.filename,
 			node,
 		);
-
 	},
 
 	Element(node, context) {
@@ -829,7 +831,7 @@ const visitors = {
 				error(
 					'`await` is not allowed in client-side control-flow statements',
 					context.state.analysis.module.filename,
-					node
+					node,
 				);
 			}
 		}

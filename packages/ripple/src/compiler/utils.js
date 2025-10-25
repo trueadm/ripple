@@ -201,7 +201,9 @@ export function get_delegated_event(event_name, handler, state) {
 		if (binding != null) {
 			for (const { path } of binding.references) {
 				const parent = path.at(-1);
-				if (parent === undefined) return unhoisted;
+				if (parent === undefined) {
+					return unhoisted;
+				}
 
 				const grandparent = path.at(-2);
 
@@ -227,7 +229,11 @@ export function get_delegated_event(event_name, handler, state) {
 					) {
 						return unhoisted;
 					}
-				} else if (parent.type !== 'FunctionDeclaration' && parent.type !== 'VariableDeclarator') {
+				} else if (
+					parent.type !== 'FunctionDeclaration' &&
+					parent.type !== 'VariableDeclarator' &&
+					parent.type !== 'Attribute'
+				) {
 					return unhoisted;
 				}
 			}
@@ -262,24 +268,31 @@ export function get_delegated_event(event_name, handler, state) {
 
 	const visited_references = new Set();
 	const scope = target_function.metadata.scope;
-	for (const [reference] of scope.references) {
+	for (const [reference, ref_nodes] of scope.references) {
 		// Bail out if the arguments keyword is used or $host is referenced
 		if (reference === 'arguments') return unhoisted;
 
 		const binding = scope.get(reference);
 		const local_binding = state.scope.get(reference);
 
-		// If we are referencing a binding that is shadowed in another scope then bail out.
-		if (local_binding !== null && binding !== null && local_binding.node !== binding.node) {
+		if (local_binding === null || binding == null) {
 			return unhoisted;
 		}
+
+		// If we are referencing a binding that is shadowed in another scope then bail out.
+		if (local_binding.node !== binding.node) {
+			return unhoisted;
+		}
+		const is_tracked =
+			ref_nodes.filter(({ node }) => node.tracked).length === ref_nodes.length &&
+			ref_nodes.length > 0;
 
 		if (
 			binding !== null &&
 			// Bail out if the the binding is a rest param
 			(binding.declaration_kind === 'rest_param' || // or any normal not reactive bindings that are mutated.
 				// Bail out if we reference anything from the EachBlock (for now) that mutates in non-runes mode,
-				(binding.kind === 'normal' && binding.updated))
+				(binding.kind === 'normal' && !is_tracked && binding.updated))
 		) {
 			return unhoisted;
 		}
@@ -352,7 +365,7 @@ export function build_hoisted_params(node, context) {
 		}
 	} else {
 		for (const param of node.params) {
-			params.push(/** @type {Pattern} */(context.visit(param)));
+			params.push(/** @type {Pattern} */ (context.visit(param)));
 		}
 	}
 
@@ -554,7 +567,7 @@ export function is_ripple_import(callee, context) {
  * @returns {boolean}
  */
 export function is_declared_function_within_component(node, context) {
-	const component = context.path?.find(/** @param {RippleNode} n */(n) => n.type === 'Component');
+	const component = context.path?.find(/** @param {RippleNode} n */ (n) => n.type === 'Component');
 
 	if (node.type === 'Identifier' && component) {
 		const binding = context.state.scope.get(node.name);
@@ -611,8 +624,8 @@ export function visit_assignment_expression(node, context, build_assignment) {
 				assignment ??
 				b.assignment(
 					'=',
-					/** @type {Pattern} */(context.visit(path.node)),
-					/** @type {Expression} */(context.visit(value)),
+					/** @type {Pattern} */ (context.visit(path.node)),
+					/** @type {Expression} */ (context.visit(value)),
 				)
 			);
 		});
@@ -702,8 +715,8 @@ export function build_assignment(operator, left, right, context) {
 			object,
 			b.assignment(
 				operator,
-				/** @type {Pattern} */(context.visit(left)),
-				/** @type {Expression} */(context.visit(right)),
+				/** @type {Pattern} */ (context.visit(left)),
+				/** @type {Expression} */ (context.visit(right)),
 			),
 		);
 	}
