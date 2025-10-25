@@ -1,7 +1,7 @@
-import { join, basename } from 'node:path';
-import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { dim, green } from 'kleur/colors';
 import { execSync } from 'node:child_process';
-import { green, dim } from 'kleur/colors';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import ora from 'ora';
 
 import { downloadTemplate, getLocalTemplatePath, isLocalDevelopment } from './templates.js';
@@ -22,7 +22,7 @@ export async function createProject({
 	template,
 	packageManager = 'npm',
 	gitInit = false,
-	stylingFramework = 'vanilla'
+	stylingFramework = 'vanilla',
 }) {
 	console.log(dim(`Creating project: ${projectName}`));
 	console.log(dim(`Template: ${template}`));
@@ -81,7 +81,7 @@ export async function createProject({
 					!relativePath.includes('yarn.lock') &&
 					!relativePath.includes('pnpm-lock.yaml')
 				);
-			}
+			},
 		});
 		spinner3.succeed('Template files copied');
 	} catch (error) {
@@ -117,8 +117,6 @@ export async function createProject({
 		}
 		throw error;
 	}
-
-
 
 	// Step 6: Initialize Git (if requested)
 	if (gitInit) {
@@ -177,18 +175,18 @@ function updatePackageJson(projectPath, projectName, packageManager, stylingFram
 	}
 
 	// Add styling dependencies
-    if (stylingFramework === 'tailwind') {
-        packageJson.devDependencies = {
-            ...packageJson.devDependencies,
-            'tailwindcss': '^4.1.12',
-            '@tailwindcss/vite': '^4.1.12'
-        };
-    } else if (stylingFramework === 'bootstrap') {
-        packageJson.dependencies = {
-            ...packageJson.dependencies,
-            'bootstrap': '^5.3.0'
-        };
-    }
+	if (stylingFramework === 'tailwind') {
+		packageJson.devDependencies = {
+			...packageJson.devDependencies,
+			tailwindcss: '^4.1.12',
+			'@tailwindcss/vite': '^4.1.12',
+		};
+	} else if (stylingFramework === 'bootstrap') {
+		packageJson.dependencies = {
+			...packageJson.dependencies,
+			bootstrap: '^5.3.0',
+		};
+	}
 
 	// Ensure we're using the latest versions
 	updateDependencyVersions(packageJson);
@@ -200,7 +198,7 @@ function updatePackageJson(projectPath, projectName, packageManager, stylingFram
 }
 
 function configureStyling(projectPath, stylingFramework) {
-    if (stylingFramework === 'tailwind') {
+	if (stylingFramework === 'tailwind') {
 		const tailwindConfig = `import type { Config } from 'tailwindcss';
 export default {
 	content: [
@@ -221,7 +219,7 @@ export default {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
 		const newMainTs = "import './index.css';\n" + mainTs;
 		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
-		
+
 		if (existsSync(join(projectPath, 'vite.config.js'))) {
 			rmSync(join(projectPath, 'vite.config.js'));
 		}
@@ -237,12 +235,11 @@ export default defineConfig({
 });
 `;
 		writeFileSync(join(projectPath, 'vite.config.js'), viteConfig);
-
-    } else if (stylingFramework === 'bootstrap') {
+	} else if (stylingFramework === 'bootstrap') {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
 		const newMainTs = "import 'bootstrap/dist/css/bootstrap.min.css';\n" + mainTs;
 		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
-    }
+	}
 }
 
 /**
@@ -252,9 +249,9 @@ export default defineConfig({
 function updateDependencyVersions(packageJson) {
 	// Use the latest versions for Ripple packages
 	const latestVersions = {
-		ripple: '^0.2.35',
-		'vite-plugin-ripple': '^0.2.29',
-		'prettier-plugin-ripple': '^0.2.29'
+		ripple: '^latest',
+		'vite-plugin-ripple': '^latest',
+		'prettier-plugin-ripple': '^latest',
 	};
 
 	// Update dependencies
@@ -288,7 +285,7 @@ function updateScripts(packageJson, packageManager) {
 	const pmCommands = {
 		npm: 'npm run',
 		yarn: 'yarn',
-		pnpm: 'pnpm'
+		pnpm: 'pnpm',
 	};
 
 	const pm = pmCommands[packageManager] || 'npm run';
@@ -310,7 +307,7 @@ function updateScripts(packageJson, packageManager) {
 function getPackageManagerVersion(packageManager) {
 	const versions = {
 		yarn: 'yarn@4.0.0',
-		pnpm: 'pnpm@9.0.0'
+		pnpm: 'pnpm@9.0.0',
 	};
 	return versions[packageManager] || packageManager;
 }

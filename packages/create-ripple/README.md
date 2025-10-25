@@ -35,7 +35,9 @@ npx create-ripple my-app
 ## Templates
 
 ### Basic
+
 A minimal Ripple application with:
+
 - Vite for development and building
 - TypeScript support
 - Prettier for code formatting
@@ -43,7 +45,7 @@ A minimal Ripple application with:
 
 ## Requirements
 
-- Node.js 18.0.0 or higher
+- Node.js 20.0.0 or higher
 
 ## License
 
