@@ -169,14 +169,18 @@ function RipplePlugin(config) {
 					}
 
 					if (inComponent) {
-						// Inside nested functions (scopeStack.length >= 5), treat < as relational/generic operator
-						// At component top-level (scopeStack.length <= 4), apply JSX detection logic
+						// Check if we're inside a nested function (arrow function, function expression, etc.)
+						// We need to distinguish between being inside a function vs just being in nested scopes
+						// (like for loops, if blocks, JSX elements, etc.)
+						const nestedFunctionContext = this.context.some((ctx) => ctx.token === 'function');
+
+						// Inside nested functions, treat < as relational/generic operator
 						// BUT: if the < is followed by /, it's a closing JSX tag, not a less-than operator
 						const nextChar =
 							this.pos + 1 < this.input.length ? this.input.charCodeAt(this.pos + 1) : -1;
 						const isClosingTag = nextChar === 47; // '/'
 
-						if (this.scopeStack.length >= 5 && !isClosingTag) {
+						if (nestedFunctionContext && !isClosingTag) {
 							// Inside function - treat as TypeScript generic, not JSX
 							++this.pos;
 							return this.finishToken(tt.relational, '<');
@@ -1610,6 +1614,13 @@ function RipplePlugin(config) {
 				} else {
 					const node = this.parseStatement(null);
 					body.push(node);
+
+					// Automatic semicolon insertion: if we just parsed a statement and the next
+					// token is a JSX start tag, consume an optional semicolon
+					// This allows: const id = row.id \n <tr>...</tr>
+					if (this.type.label === 'jsxTagStart' || this.type.label === '{') {
+						this.eat(tt.semi);
+					}
 
 					// Ensure we're not in JSX context before recursing
 					// This is important when elements are parsed at statement level
