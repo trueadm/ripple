@@ -163,29 +163,29 @@ export function set_attributes(element, attributes) {
  * @param {Element} element
  * @param {string} key
  * @param {any} value
-*/
+ */
 function set_attribute_helper(element, key, value) {
-  if (key === 'class') {
-    const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
-    set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
-  } else if (key === '#class') {
-    // Special case for static class when spreading props
-    element.classList.add(value);
-  } else if (typeof key === 'string' && is_event_attribute(key)) {
-    // Handle event handlers in spread props
-    const event_name = get_attribute_event_name(key);
+	if (key === 'class') {
+		const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
+		set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
+	} else if (key === '#class') {
+		// Special case for static class when spreading props
+		element.classList.add(value);
+	} else if (typeof key === 'string' && is_event_attribute(key)) {
+		// Handle event handlers in spread props
+		const event_name = get_attribute_event_name(key);
 
-    if (is_delegated(event_name)) {
-      // Use delegation for delegated events
-      /** @type {any} */ (element)['__' + event_name] = value;
-      delegate([event_name]);
-    } else {
-      // Use addEventListener for non-delegated events
-      event(event_name, element, value);
-    }
-  } else {
-    set_attribute(element, key, value);
-  }
+		if (is_delegated(event_name)) {
+			// Use delegation for delegated events
+			/** @type {any} */ (element)['__' + event_name] = value;
+			delegate([event_name]);
+		} else {
+			// Use addEventListener for non-delegated events
+			event(event_name, element, value);
+		}
+	} else {
+		set_attribute(element, key, value);
+	}
 }
 
 /**
@@ -312,7 +312,7 @@ export function apply_element_spread(element, fn) {
 		for (const symbol of get_own_property_symbols(next)) {
 			// Ensure we are not trying to write to a proxied object
 			if (TRACKED_OBJECT in next) {
-				next = {...next};
+				next = { ...next };
 			}
 			var ref_fn = next[symbol];
 

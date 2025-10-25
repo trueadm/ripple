@@ -198,7 +198,7 @@ const visitors = {
 								...node.metadata,
 								original_name: node.name,
 								is_capitalized: true,
-							}
+							},
 						};
 						return b.member(capitalized_node, b.literal('#v'), true);
 					}
@@ -552,7 +552,7 @@ const visitors = {
 								...pattern.metadata,
 								original_name: pattern.name,
 								is_capitalized: true,
-							}
+							},
 						};
 					}
 					return pattern;
@@ -560,7 +560,7 @@ const visitors = {
 					return {
 						...pattern,
 						elements: pattern.elements.map((element) =>
-							element ? capitalize_pattern(element) : element
+							element ? capitalize_pattern(element) : element,
 						),
 					};
 				} else if (pattern.type === 'ObjectPattern') {
@@ -1007,7 +1007,7 @@ const visitors = {
 					let expression = visit(class_attribute.value, { ...state, metadata });
 
 					const hash_arg = scoping_hash ? b.literal(scoping_hash) : undefined;
-					const is_html = context.state.metadata.namespace === 'html' && node.id.name !== 'svg';
+					const is_html = context.state.namespace === 'html' && node.id.name !== 'svg';
 
 					if (metadata.tracking) {
 						local_updates.push(
@@ -1896,7 +1896,10 @@ function transform_ts_child(node, context) {
 						},
 						end: {
 							line: node.loc.end.line,
-							column: closing_tag_start + 3 + (node.metadata?.original_name?.length || type_expression.length),
+							column:
+								closing_tag_start +
+								3 +
+								(node.metadata?.original_name?.length || type_expression.length),
 						},
 					};
 					// Add metadata if this was capitalized
