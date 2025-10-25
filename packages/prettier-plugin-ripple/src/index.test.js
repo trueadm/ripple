@@ -737,6 +737,23 @@ export component Test({ a, b }: Props) {}`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should keep semi with tables in a for of loop', async () => {
+			const expected = `<table>
+  <tbody>
+    for (const row of items) {
+      const id = row.id;
+
+      <tr>
+        <td class="col-md-6" />
+      </tr>
+    }
+  </tbody>
+</table>`;
+
+			const result = await format(expected, { singleQuote: true, semi: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should break up attributes on new lines if line length exceeds printWidth', async () => {
 			const expected = `component One() {
   <button
@@ -1545,7 +1562,9 @@ const obj2 = #{
 }`;
 
 		const expected = `export component App() {
-  <div><Expand name="" startingLength={20} /></div>
+  <div>
+    <Expand name="" startingLength={20} />
+  </div>
 }`;
 
 		const result = await format(input);

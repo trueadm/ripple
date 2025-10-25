@@ -1931,21 +1931,18 @@ function printComponent(node, path, options, print) {
 function printVariableDeclaration(node, path, options, print) {
 	const kind = node.kind || 'let';
 
-	// Don't add semicolon if this is inside a for-loop (ForStatement or ForOfStatement)
-	// We can detect this by checking if there's a parent ForStatement or ForOfStatement
-	const hasForLoopParent =
-		path.stack &&
-		path.stack.some(
-			(item) =>
-				item &&
-				typeof item === 'object' &&
-				(item.type === 'ForStatement' || item.type === 'ForOfStatement'),
-		);
+	// Don't add semicolon ONLY if this is part of a for loop header
+	// - ForStatement: the init part
+	// - ForOfStatement: the left part
+	const parentNode = path.getParentNode();
+	const isForLoopInit =
+		(parentNode && parentNode.type === 'ForStatement' && parentNode.init === node) ||
+		(parentNode && parentNode.type === 'ForOfStatement' && parentNode.left === node);
 
 	const declarations = path.map(print, 'declarations');
 	const declarationParts = join(', ', declarations);
 
-	if (!hasForLoopParent) {
+	if (!isForLoopInit) {
 		return concat([kind, ' ', declarationParts, semi(options)]);
 	}
 
@@ -3865,8 +3862,15 @@ function shouldInlineSingleChild(parentNode, firstChild, childDoc) {
 		return childDoc.length <= 20 && !childDoc.includes('\n');
 	}
 
-	if (firstChild.type === 'Text' || firstChild.type === 'Html') {
+	// Always inline simple text content and JSX expressions if they fit
+	if (firstChild.type === 'Text' || firstChild.type === 'Html' || firstChild.type === 'JSXExpressionContainer') {
 		return true;
+	}
+
+	// Respect original formatting for elements: if parent was originally multi-line, keep it multi-line
+	// This follows Prettier's philosophy for decorators and objects
+	if (!wasOriginallySingleLine(parentNode)) {
+		return false;
 	}
 
 	if (
