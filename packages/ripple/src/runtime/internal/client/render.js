@@ -212,24 +212,27 @@ function to_class(value, hash) {
 export function set_class(dom, value, hash, is_html = true) {
 	// @ts-expect-error need to add __className to patched prototype
 	var prev_class_name = dom.__className;
-	var next_class_name = to_class(value, hash);
 
-	if (prev_class_name !== next_class_name) {
-		// Removing the attribute when the value is only an empty string causes
-		// peformance issues vs simply making the className an empty string. So
-		// we should only remove the class if the the value is nullish.
-		if (value == null && !hash) {
-			dom.removeAttribute('class');
-		} else {
-			if (is_html) {
-				dom.className = next_class_name;
+	if (prev_class_name !== value) {
+		var next_class_name = to_class(value, hash);
+
+		if (prev_class_name !== next_class_name) {
+			// Removing the attribute when the value is only an empty string causes
+			// peformance issues vs simply making the className an empty string. So
+			// we should only remove the class if the the value is nullish.
+			if (value == null && !hash) {
+				dom.removeAttribute('class');
 			} else {
-				dom.setAttribute('class', next_class_name);
+				if (is_html) {
+					dom.className = next_class_name;
+				} else {
+					dom.setAttribute('class', next_class_name);
+				}
 			}
 		}
 
 		// @ts-expect-error need to add __className to patched prototype
-		dom.__className = next_class_name;
+		dom.__className = value;
 	}
 }
 
