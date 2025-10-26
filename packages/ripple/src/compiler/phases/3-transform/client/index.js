@@ -925,8 +925,10 @@ const visitors = {
 									const args = [handler, b.id('__block'), ...hoisted_params];
 									delegated_assignment = b.array(args);
 								} else if (
-									handler.type === 'Identifier' &&
-									is_declared_function_within_component(handler, context)
+									(handler.type === 'Identifier' &&
+										is_declared_function_within_component(handler, context)) ||
+									handler.type === 'ArrowFunctionExpression' ||
+									handler.type === 'FunctionExpression'
 								) {
 									delegated_assignment = handler;
 								} else {
