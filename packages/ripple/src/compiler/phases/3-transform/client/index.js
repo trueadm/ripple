@@ -1379,7 +1379,7 @@ const visitors = {
 		}
 
 		const left = object(argument);
-		const binding = context.state.scope.get(left.name);
+		const binding = left && context.state.scope.get(left.name);
 		const transformers = left && binding?.transform;
 
 		if (left === argument) {

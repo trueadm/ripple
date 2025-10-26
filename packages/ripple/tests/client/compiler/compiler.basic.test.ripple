@@ -345,4 +345,21 @@ export component App() {
 `;
 		expect(() => compile(code, 'test.ripple')).not.toThrow();
 	});
+
+	it('should not error on `this` MemberExpression with a UpdateExpression', () => {
+		const code = `
+class Test {
+	constructor() {
+		this.count = 0;
+		this.count++; // This should not fail
+	}
+}
+
+export component App() {
+	const test = new Test();
+	<div>{test.count}</div>
+}
+`;
+		expect(() => compile(code, 'test.ripple')).not.toThrow();
+	});
 });
