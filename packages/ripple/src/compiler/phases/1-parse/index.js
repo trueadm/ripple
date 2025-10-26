@@ -491,6 +491,7 @@ function RipplePlugin(config) {
 					forInit,
 				);
 			}
+
 			/**
 			 * Parse expression atom - handles TrackedArray and TrackedObject literals
 			 * @param {any} [refDestructuringErrors]
@@ -522,6 +523,11 @@ function RipplePlugin(config) {
 					return this.parseTrackedArrayExpression();
 				} else if (this.type === tt.braceL && this.value === '#{') {
 					return this.parseTrackedObjectExpression();
+				}
+
+				// Check if this is a component expression (e.g., in object literal values)
+				if (this.type === tt.name && this.value === 'component') {
+					return this.parseComponent();
 				}
 
 				return super.parseExprAtom(refDestructuringErrors, forNew, forInit);
@@ -714,33 +720,55 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'TrackedObjectExpression');
 			}
 
+			/**
+			 * Parse a component - common implementation used by statements, expressions, and export defaults
+			 * @param {Object} options - Parsing options
+			 * @param {boolean} [options.requireName=false] - Whether component name is required
+			 * @param {boolean} [options.isDefault=false] - Whether this is an export default component
+			 * @param {boolean} [options.declareName=false] - Whether to declare the name in scope
+			 * @returns {any} Component node
+			 */
+			parseComponent({ requireName = false, isDefault = false, declareName = false } = {}) {
+				const node = this.startNode();
+				node.type = 'Component';
+				node.css = null;
+				node.default = isDefault;
+				this.next(); // consume 'component'
+				this.enterScope(0);
+
+				if (requireName) {
+					node.id = this.parseIdent();
+					if (declareName) {
+						this.declareName(node.id.name, 'var', node.id.start);
+					}
+				} else {
+					node.id = this.type.label === 'name' ? this.parseIdent() : null;
+					if (declareName && node.id) {
+						this.declareName(node.id.name, 'var', node.id.start);
+					}
+				}
+
+				this.parseFunctionParams(node);
+				this.eat(tt.braceL);
+				node.body = [];
+				this.#path.push(node);
+
+				this.parseTemplateBody(node.body);
+				this.#path.pop();
+				this.exitScope();
+
+				this.next();
+				skipWhitespace(this);
+				this.finishNode(node, 'Component');
+				this.awaitPos = 0;
+
+				return node;
+			}
+
 			parseExportDefaultDeclaration() {
 				// Check if this is "export default component"
 				if (this.value === 'component') {
-					const node = this.startNode();
-					node.type = 'Component';
-					node.css = null;
-					node.default = true;
-					this.next();
-					this.enterScope(0);
-
-					node.id = this.type.label === 'name' ? this.parseIdent() : null;
-
-					this.parseFunctionParams(node);
-					this.eat(tt.braceL);
-					node.body = [];
-					this.#path.push(node);
-
-					this.parseTemplateBody(node.body);
-					this.#path.pop();
-					this.exitScope();
-
-					this.next();
-					skipWhitespace(this);
-					this.finishNode(node, 'Component');
-					this.awaitPos = 0;
-
-					return node;
+					return this.parseComponent({ isDefault: true });
 				}
 
 				return super.parseExportDefaultDeclaration();
@@ -1650,31 +1678,8 @@ function RipplePlugin(config) {
 
 				if (this.value === 'component') {
 					this.awaitPos = 0;
-					const node = this.startNode();
-					node.type = 'Component';
-					node.css = null;
-					this.next();
-					this.enterScope(0);
-					node.id = this.parseIdent();
-					this.declareName(node.id.name, 'var', node.id.start);
-					this.parseFunctionParams(node);
-					this.eat(tt.braceL);
-					node.body = [];
-					this.#path.push(node);
-
-					this.parseTemplateBody(node.body);
-
-					this.#path.pop();
-					this.exitScope();
-
-					this.next();
-					skipWhitespace(this);
-					this.finishNode(node, 'Component');
-					this.awaitPos = 0;
-
-					return node;
+					return this.parseComponent({ requireName: true, declareName: true });
 				}
-
 				if (this.type.label === '@') {
 					// Try to parse as an expression statement first using tryParse
 					// This allows us to handle Ripple @ syntax like @count++ without
