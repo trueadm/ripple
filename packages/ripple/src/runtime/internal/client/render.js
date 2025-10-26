@@ -194,7 +194,12 @@ function set_attribute_helper(element, key, value) {
  * @returns {string}
  */
 function to_class(value, hash) {
-	return value == null ? (hash ?? '') : clsx([value, hash]);
+	return value == null
+		? (hash ?? '')
+		: // Fast-path for string values
+			typeof value === 'string'
+			? value + (hash ? ' ' + hash : '')
+			: clsx([value, hash]);
 }
 
 /**
