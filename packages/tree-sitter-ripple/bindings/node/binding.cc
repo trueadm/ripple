@@ -1,5 +1,7 @@
 #include "napi.h"
 
+typedef struct TSLanguage TSLanguage;
+
 extern "C" TSLanguage *tree_sitter_ripple();
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
