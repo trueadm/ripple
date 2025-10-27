@@ -456,5 +456,5 @@ export function bindNode(maybe_tracked) {
 	/** @param {HTMLElement} node */
 	return (node) => {
 		set(tracked, node);
-	}
+	};
 }

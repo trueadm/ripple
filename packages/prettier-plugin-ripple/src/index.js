@@ -1189,10 +1189,29 @@ function printRippleNode(node, path, options, print, args) {
 		case 'Identifier': {
 			// Simple case - just return the name directly like Prettier core
 			const trackedPrefix = node.tracked ? '@' : '';
+			let identifierContent;
 			if (node.typeAnnotation) {
-				nodeContent = concat([trackedPrefix + node.name, ': ', path.call(print, 'typeAnnotation')]);
+				identifierContent = concat([
+					trackedPrefix + node.name,
+					': ',
+					path.call(print, 'typeAnnotation'),
+				]);
 			} else {
-				nodeContent = trackedPrefix + node.name;
+				identifierContent = trackedPrefix + node.name;
+			}
+			// Preserve parentheses for type-cast identifiers, but only if:
+			// 1. The identifier itself is marked as parenthesized
+			// 2. The parent is NOT handling parentheses itself (MemberExpression, AssignmentExpression, etc.)
+			const parent = path.getParentNode();
+			const parentHandlesParens =
+				parent &&
+				(parent.type === 'MemberExpression' ||
+					(parent.type === 'AssignmentExpression' && parent.left === node));
+			const shouldAddParens = node.metadata?.parenthesized && !parentHandlesParens;
+			if (shouldAddParens) {
+				nodeContent = concat(['(', identifierContent, ')']);
+			} else {
+				nodeContent = identifierContent;
 			}
 			break;
 		}
@@ -1282,7 +1301,10 @@ function printRippleNode(node, path, options, print, args) {
 						path.call((childPath) => print(childPath, { isConditionalTest: true }), 'left'),
 						' ',
 						node.operator,
-						concat([line, path.call((childPath) => print(childPath, { isConditionalTest: true }), 'right')]),
+						concat([
+							line,
+							path.call((childPath) => print(childPath, { isConditionalTest: true }), 'right'),
+						]),
 					]),
 				);
 			} else {
@@ -1305,7 +1327,10 @@ function printRippleNode(node, path, options, print, args) {
 						path.call((childPath) => print(childPath, { isConditionalTest: true }), 'left'),
 						' ',
 						node.operator,
-						concat([line, path.call((childPath) => print(childPath, { isConditionalTest: true }), 'right')]),
+						concat([
+							line,
+							path.call((childPath) => print(childPath, { isConditionalTest: true }), 'right'),
+						]),
 					]),
 				);
 			} else {
@@ -1324,7 +1349,8 @@ function printRippleNode(node, path, options, print, args) {
 			// Use Prettier's grouping to handle line breaking when exceeding printWidth
 			// For the test expression, if it's a LogicalExpression or BinaryExpression,
 			// tell it not to add its own indentation since we're in a conditional context
-			const testNeedsContext = node.test.type === 'LogicalExpression' || node.test.type === 'BinaryExpression';
+			const testNeedsContext =
+				node.test.type === 'LogicalExpression' || node.test.type === 'BinaryExpression';
 			const testDoc = testNeedsContext
 				? path.call((childPath) => print(childPath, { isConditionalTest: true }), 'test')
 				: path.call(print, 'test');
@@ -1339,14 +1365,14 @@ function printRippleNode(node, path, options, print, args) {
 			// If we have unparenthesized nested ternaries, tell the children they're nested
 			const consequentDoc =
 				hasUnparenthesizedNestedConditional &&
-					node.consequent.type === 'ConditionalExpression' &&
-					!node.consequent.metadata?.parenthesized
+				node.consequent.type === 'ConditionalExpression' &&
+				!node.consequent.metadata?.parenthesized
 					? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'consequent')
 					: path.call(print, 'consequent');
 			const alternateDoc =
 				hasUnparenthesizedNestedConditional &&
-					node.alternate.type === 'ConditionalExpression' &&
-					!node.alternate.metadata?.parenthesized
+				node.alternate.type === 'ConditionalExpression' &&
+				!node.alternate.metadata?.parenthesized
 					? path.call((childPath) => print(childPath, { isNestedConditional: true }), 'alternate')
 					: path.call(print, 'alternate');
 
@@ -1379,19 +1405,9 @@ function printRippleNode(node, path, options, print, args) {
 				result = concat([
 					testDoc,
 					indent(
-						concat([
-							line,
-							'? ',
-							shouldIndentConsequent ? indent(consequentDoc) : consequentDoc,
-						]),
+						concat([line, '? ', shouldIndentConsequent ? indent(consequentDoc) : consequentDoc]),
 					),
-					indent(
-						concat([
-							line,
-							': ',
-							shouldIndentAlternate ? indent(alternateDoc) : alternateDoc,
-						]),
-					),
+					indent(concat([line, ': ', shouldIndentAlternate ? indent(alternateDoc) : alternateDoc])),
 				]);
 			} else {
 				// Otherwise try inline first, then multiline if it doesn't fit
@@ -1409,18 +1425,10 @@ function printRippleNode(node, path, options, print, args) {
 					concat([
 						testDoc,
 						indent(
-							concat([
-								line,
-								'? ',
-								shouldIndentConsequent ? indent(consequentDoc) : consequentDoc,
-							]),
+							concat([line, '? ', shouldIndentConsequent ? indent(consequentDoc) : consequentDoc]),
 						),
 						indent(
-							concat([
-								line,
-								': ',
-								shouldIndentAlternate ? indent(alternateDoc) : alternateDoc,
-							]),
+							concat([line, ': ', shouldIndentAlternate ? indent(alternateDoc) : alternateDoc]),
 						),
 					]),
 				]);
@@ -2853,23 +2861,15 @@ function printTemplateLiteral(node, path, options, print) {
 		const expressionDoc = path.call(print, 'expressions', i);
 
 		// Check if the expression will break (e.g., ternary, binary, logical)
-		const needsBreaking = expression.type === 'ConditionalExpression' ||
+		const needsBreaking =
+			expression.type === 'ConditionalExpression' ||
 			expression.type === 'BinaryExpression' ||
 			expression.type === 'LogicalExpression' ||
 			willBreak(expressionDoc);
 
 		if (needsBreaking) {
 			// For expressions that break, use group with indent to format nicely
-			parts.push(
-				group(
-					concat([
-						'${',
-						indent(concat([softline, expressionDoc])),
-						softline,
-						'}'
-					])
-				)
-			);
+			parts.push(group(concat(['${', indent(concat([softline, expressionDoc])), softline, '}'])));
 		} else {
 			// For simple expressions, keep them inline
 			parts.push('${');
@@ -3439,7 +3439,16 @@ function printVariableDeclarator(node, path, options, print) {
 				node.init.consequent.type === 'CallExpression' ||
 				node.init.alternate.type === 'CallExpression';
 
-			if (ternaryWillBreak || hasComplexBranch) {
+			// Check if test is a LogicalExpression or BinaryExpression with complex operators
+			const hasComplexTest =
+				node.init.test.type === 'LogicalExpression' || node.init.test.type === 'BinaryExpression';
+
+			// Check if there are nested ternaries
+			const hasNestedTernary =
+				node.init.consequent.type === 'ConditionalExpression' ||
+				node.init.alternate.type === 'ConditionalExpression';
+
+			if (ternaryWillBreak || hasComplexBranch || hasComplexTest || hasNestedTernary) {
 				return concat([id, ' =', indent(concat([line, init]))]);
 			}
 		}
@@ -3882,7 +3891,11 @@ function shouldInlineSingleChild(parentNode, firstChild, childDoc) {
 	}
 
 	// Always inline simple text content and JSX expressions if they fit
-	if (firstChild.type === 'Text' || firstChild.type === 'Html' || firstChild.type === 'JSXExpressionContainer') {
+	if (
+		firstChild.type === 'Text' ||
+		firstChild.type === 'Html' ||
+		firstChild.type === 'JSXExpressionContainer'
+	) {
 		return true;
 	}
 

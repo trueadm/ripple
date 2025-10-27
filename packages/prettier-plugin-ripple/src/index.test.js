@@ -1221,6 +1221,38 @@ import { GetRootNode } from './somewhere';`;
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should preserve ternaries and jsdoc type assertions with parens and space', async () => {
+			const expected = `/**
+ * @param {unknown} maybe_tracked
+ * @param {'contentRect' | 'contentBoxSize' | 'borderBoxSize' | 'devicePixelContentBoxSize'} type
+ */
+function bind_element_rect(maybe_tracked, type) {
+  if (!is_tracked_object(maybe_tracked)) {
+    throw not_tracked_type_error(\`bind\${type.charAt(0).toUpperCase() + type.slice(1)}()\`);
+  }
+
+  var tracked = /** @type {Tracked<any>} */ (maybe_tracked);
+  var observer =
+    type === 'contentRect' || type === 'contentBoxSize'
+      ? resize_observer_content_box
+      : type === 'borderBoxSize'
+        ? resize_observer_border_box
+        : resize_observer_device_pixel_content_box;
+
+  return (/** @type {HTMLElement} */ element) => {
+    var unsubscribe = observer.observe(
+      element,
+      /** @param {any} entry */ (entry) => set(tracked, entry[type]),
+    );
+
+    effect(() => unsubscribe);
+  };
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
