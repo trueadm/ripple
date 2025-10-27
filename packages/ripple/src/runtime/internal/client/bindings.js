@@ -62,7 +62,7 @@ class ResizeObserverSingleton {
 		return (
 			this.#observer ??
 			(this.#observer = new ResizeObserver(
-				/** @param {any} entries */(entries) => {
+				/** @param {any} entries */ (entries) => {
 					for (var entry of entries) {
 						ResizeObserverSingleton.entries.set(entry.target, entry);
 						for (var listener of this.#listeners.get(entry.target) || []) {
@@ -342,7 +342,7 @@ function bind_element_rect(maybe_tracked, type) {
 	return (/** @type {HTMLElement} */ element) => {
 		var unsubscribe = observer.observe(
 			element,
-			/** @param {any} entry */(entry) => set(tracked, entry[type]),
+			/** @param {any} entry */ (entry) => set(tracked, entry[type]),
 		);
 
 		effect(() => unsubscribe);

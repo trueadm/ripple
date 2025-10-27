@@ -30,7 +30,7 @@ export interface TrackedArrayConstructor {
 	fromAsync<T>(iterable: AsyncIterable<T>): Promise<TrackedArray<T>>;
 }
 
-export interface TrackedArray<T> extends Array<T> { }
+export interface TrackedArray<T> extends Array<T> {}
 
 export declare const TrackedArray: TrackedArrayConstructor;
 
@@ -186,22 +186,22 @@ export type TrackedObjectDeep<T> = T extends
 	| bigint
 	? T | Tracked<T>
 	: T extends TrackedArray<infer U>
-	? TrackedArray<U> | Tracked<TrackedArray<U>>
-	: T extends TrackedSet<infer U>
-	? TrackedSet<U> | Tracked<TrackedSet<U>>
-	: T extends TrackedMap<infer K, infer V>
-	? TrackedMap<K, V> | Tracked<TrackedMap<K, V>>
-	: T extends Array<infer U>
-	? Array<TrackedObjectDeep<U>> | Tracked<Array<TrackedObjectDeep<U>>>
-	: T extends Set<infer U>
-	? Set<TrackedObjectDeep<U>> | Tracked<Set<TrackedObjectDeep<U>>>
-	: T extends Map<infer K, infer V>
-	?
-	| Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>>
-	| Tracked<Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>>>
-	: T extends object
-	? { [K in keyof T]: TrackedObjectDeep<T[K]> | Tracked<TrackedObjectDeep<T[K]>> }
-	: T | Tracked<T>;
+		? TrackedArray<U> | Tracked<TrackedArray<U>>
+		: T extends TrackedSet<infer U>
+			? TrackedSet<U> | Tracked<TrackedSet<U>>
+			: T extends TrackedMap<infer K, infer V>
+				? TrackedMap<K, V> | Tracked<TrackedMap<K, V>>
+				: T extends Array<infer U>
+					? Array<TrackedObjectDeep<U>> | Tracked<Array<TrackedObjectDeep<U>>>
+					: T extends Set<infer U>
+						? Set<TrackedObjectDeep<U>> | Tracked<Set<TrackedObjectDeep<U>>>
+						: T extends Map<infer K, infer V>
+							?
+									| Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>>
+									| Tracked<Map<TrackedObjectDeep<K>, TrackedObjectDeep<V>>>
+							: T extends object
+								? { [K in keyof T]: TrackedObjectDeep<T[K]> | Tracked<TrackedObjectDeep<T[K]>> }
+								: T | Tracked<T>;
 
 export type TrackedObject<T extends object> = T & {};
 
@@ -231,19 +231,19 @@ export class TrackedURL extends URL {
 export function createSubscriber(start: () => void | (() => void)): () => void;
 
 interface ReactiveValue<V> extends Tracked<V> {
-	new(fn: () => Tracked<V>, start: () => void | (() => void)): Tracked<V>;
+	new (fn: () => Tracked<V>, start: () => void | (() => void)): Tracked<V>;
 	/** @private */
 	_brand: void;
 }
 
 export interface MediaQuery extends Tracked<boolean> {
-	new(query: string, fallback?: boolean | undefined): Tracked<boolean>;
+	new (query: string, fallback?: boolean | undefined): Tracked<boolean>;
 	/** @private */
 	_brand: void;
 }
 
 export declare const MediaQuery: {
-	new(query: string, fallback?: boolean | undefined): Tracked<boolean>;
+	new (query: string, fallback?: boolean | undefined): Tracked<boolean>;
 };
 
 export function Portal<V = HTMLElement>({
