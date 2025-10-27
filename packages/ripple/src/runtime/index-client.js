@@ -90,4 +90,5 @@ export {
 	bindInnerHTML,
 	bindInnerText,
 	bindTextContent,
+	bindNode,
 } from './internal/client/bindings.js';
