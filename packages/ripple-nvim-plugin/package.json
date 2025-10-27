@@ -11,7 +11,7 @@
 		"url": "git+https://github.com/trueadm/ripple.git",
 		"directory": "packages/ripple-nvim-plugin"
 	},
-	"dependencies": {
+	"config": {
 		"ripple-language-server": "0.2.144"
 	},
 	"files": [

@@ -43,9 +43,9 @@ local function resolve_required_version()
 		return nil, "unable to read plugin package.json"
 	end
 
-	local deps = package_json.dependencies or {}
+	local config = package_json.config or {}
 
-	local spec = deps["ripple-language-server"]
+	local spec = config["ripple-language-server"]
 
 	if type(spec) ~= "string" or spec == "" then
 		return nil, "missing config.rippleLanguageServerVersion field in package.json"
