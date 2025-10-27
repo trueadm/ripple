@@ -2335,6 +2335,32 @@ function create_tsx_with_typescript_support() {
 
 	return {
 		...base_tsx,
+		// Custom handler for Property nodes to prevent method shorthand for components
+		// When a component is transformed to a FunctionExpression, we want to preserve
+		// the explicit syntax (key: function name() {}) instead of method shorthand (key() {})
+		// This ensures proper source mapping for the 'function'/'component' keyword
+		Property(node, context) {
+			// Check if the value is a function that was originally a component
+			const isComponent =
+				node.value?.type === 'FunctionExpression' && node.value.metadata?.was_component;
+
+			if (isComponent) {
+				// Manually print as non-method property to preserve 'function' keyword
+				// This ensures esrap creates proper source map entries for the component->function transformation
+				if (node.computed) {
+					context.write('[');
+					context.visit(node.key);
+					context.write(']');
+				} else {
+					context.visit(node.key);
+				}
+				context.write(': ');
+				context.visit(node.value);
+			} else {
+				// Use default handler for non-component properties
+				base_tsx.Property(node, context);
+			}
+		},
 		// Custom handler for ArrayPattern to ensure typeAnnotation is visited
 		// esrap's TypeScript handler doesn't visit typeAnnotation for ArrayPattern (only for ObjectPattern)
 		ArrayPattern(node, context) {
