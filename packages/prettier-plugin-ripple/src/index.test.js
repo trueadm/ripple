@@ -1214,6 +1214,13 @@ import { GetRootNode } from './somewhere';`;
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should preserve export interface with extends as provided', async () => {
+			const expected = `export interface TrackedArray<T> extends Array<T> {}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {

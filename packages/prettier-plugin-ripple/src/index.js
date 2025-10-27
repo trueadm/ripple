@@ -1582,6 +1582,18 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'TSExpressionWithTypeArguments': {
+			const parts = [];
+			parts.push(path.call(print, 'expression'));
+
+			if (node.typeParameters) {
+				parts.push(path.call(print, 'typeParameters'));
+			}
+
+			nodeContent = concat(parts);
+			break;
+		}
+
 		case 'Element':
 			nodeContent = printElement(node, path, options, print);
 			break;
@@ -2897,6 +2909,13 @@ function printTSInterfaceDeclaration(node, path, options, print) {
 
 	if (node.typeParameters) {
 		parts.push(path.call(print, 'typeParameters'));
+	}
+
+	// Handle extends clause
+	if (node.extends && node.extends.length > 0) {
+		parts.push(' extends ');
+		const extendsTypes = path.map(print, 'extends');
+		parts.push(join(', ', extendsTypes));
 	}
 
 	parts.push(' ');
