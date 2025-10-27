@@ -4,10 +4,9 @@ Neovim integration for the [Ripple](https://github.com/trueadm/ripple) language.
 
 ## Requirements
 
-- Neovim 0.9 or newer
+- Neovim 0.11 or newer
 - [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
-- [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)
-- [`ripple-language-server`](https://www.npmjs.com/package/ripple-language-server) (`npm install -g ripple-language-server` or project-local)
+- Node.js v18 or newer
 
 ## Installation
 
@@ -33,8 +32,3 @@ If you're using another plugin manager and wish to share installation instructio
 - Repository: `https://github.com/trueadm/ripple`
 - Subdirectory: `packages/tree-sitter-ripple`
 - Files: `src/parser.c`, `src/scanner.c`
-
-### Language Server
-
-The plugin registers a `ripple` server in `lspconfig` that uses the existing `ripple-language-server`.
-You can keep the npm package either globally (`npm install -g ripple-language-server`) or locally within your project (`npm install --save-dev ripple-language-server`).

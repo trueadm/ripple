@@ -38,16 +38,12 @@ It uses this language server internally.
 4. Specify `ripple-language-server --stdio` as the command in it.
 5. Go to `Mappings` —> `File name patterns` and add a new value with `File name patterns` set to `*.ripple` and `Language Id` set to `ripple.
 
-#### Neovim
+#### Neovim (v0.11+)
 
-Use the official plugin. It depends on `nvim-treesitter` and `nvim-lspconfig`.
+Use the official plugin.
 
-1. Install the language server:
-    ```bash
-    npm install ripple-language-server -g
-    ```
-2. Install [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) and [`nvim-lspconfig`](https://github.com/neovim/nvim-lspconfig).
-3. Install the plugin.
+1. Install [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter).
+2. Install the plugin.
 
    <details>
    <summary>with lazy.nvim</summary>
