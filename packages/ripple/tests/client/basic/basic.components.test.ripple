@@ -232,4 +232,40 @@ describe('basic client > components & composition', () => {
 		flushSync();
 		expect(countSpan.textContent).toBe('1');
 	});
+
+	it('renders components as named and anonymous properties', () => {
+		const UI = {
+			span: component Span(){
+				<span>{'Hello from Span'}</span>
+			},
+			button: component({ children }) {
+				<button>
+					<children />
+				</button>
+			}
+		};
+
+		component App(){
+			<div>
+				<h1>{'Component as Property Test'}</h1>
+				<UI.span />
+				<UI.button>
+					component children() {
+						<span>{'Click me!'}</span>
+					}
+				</UI.button>
+			</div>
+		}
+
+		render(App);
+
+		const heading = container.querySelector('h1');
+		const span = container.querySelector('span');
+		const button = container.querySelector('button');
+		const buttonSpan = button.querySelector('span');
+
+		expect(heading.textContent).toBe('Component as Property Test');
+		expect(span.textContent).toBe('Hello from Span');
+		expect(buttonSpan.textContent).toBe('Click me!');
+	});
 });

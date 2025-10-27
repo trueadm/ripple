@@ -150,7 +150,10 @@ export function create_scopes(ast, root, parent) {
 			const scope = state.scope.child();
 			scopes.set(node, scope);
 
-			scope.declare(node.id, 'normal', 'component');
+			// Only declare the component name if it has an id (not anonymous)
+			if (node.id) {
+				scope.declare(node.id, 'normal', 'component');
+			}
 
 			add_params(scope, node.params);
 			next({ scope });

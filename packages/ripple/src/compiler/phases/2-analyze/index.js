@@ -356,10 +356,13 @@ const visitors = {
 		}
 
 		// Store component metadata in analysis
-		context.state.analysis.component_metadata.push({
-			id: node.id.name,
-			async: metadata.await,
-		});
+		// Only add metadata if component has a name (not anonymous)
+		if (node.id) {
+			context.state.analysis.component_metadata.push({
+				id: node.id.name,
+				async: metadata.await,
+			});
+		}
 	},
 
 	ForStatement(node, context) {
