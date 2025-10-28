@@ -1,97 +1,96 @@
 import type { Rule } from 'eslint';
-import type { ForOfStatement, ObjectPattern, ArrayPattern, CallExpression, MemberExpression } from 'estree';
+import type { ForOfStatement } from 'estree';
 
 // List of methods that stringify or transform data
 const STRINGIFICATION_METHODS = new Set([
-  'join',
-  'toString',
-  'toJSON',
-  'toLocaleString',
-  'map',
-  'filter',
-  'reduce',
-  'flat',
-  'flatMap',
-  'split',
-  'concat',
-  'slice',
-  'splice',
-  'sort',
-  'reverse',
-  'fill',
-  'entries',
-  'keys',
-  'values',
+	'join',
+	'toString',
+	'toJSON',
+	'toLocaleString',
+	'map',
+	'filter',
+	'reduce',
+	'flat',
+	'flatMap',
+	'split',
+	'concat',
+	'slice',
+	'splice',
+	'sort',
+	'reverse',
+	'fill',
+	'entries',
+	'keys',
+	'values',
 ]);
 
 function isStringificationCall(node: any): boolean {
-  if (node.type === 'CallExpression') {
-    const callee = node.callee;
-    // Check if it's a method call like array.join()
-    if (callee.type === 'MemberExpression' && callee.property.type === 'Identifier') {
-      return STRINGIFICATION_METHODS.has(callee.property.name);
-    }
-  }
+	if (node.type === 'CallExpression') {
+		const callee = node.callee;
+		if (callee.type === 'MemberExpression' && callee.property.type === 'Identifier') {
+			return STRINGIFICATION_METHODS.has(callee.property.name);
+		}
+	}
 
-  // Recursively check if wrapped in another call
-  if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression') {
-    return isStringificationCall(node.callee.object);
-  }
+	// Recursively check if wrapped in another call
+	if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression') {
+		return isStringificationCall(node.callee.object);
+	}
 
-  return false;
+	return false;
 }
 
 const rule: Rule.RuleModule = {
-  meta: {
-    type: 'problem',
-    docs: {
-      description: 'Disallow destructuring objects or arrays in for-of loops without stringification',
-      category: 'Possible Errors',
-      recommended: true,
-    },
-    messages: {
-      objectDestructuring: 'Object destructuring in for-of loops requires stringified iterables. Use methods like .join(), .map(), etc. on the iterable. Example: for (const key of [item.id, item.name].join(\':\')) { }',
-      arrayDestructuring: 'Array destructuring in for-of loops requires stringified iterables. Use methods like .join(), .map(), etc. on the iterable. Example: for (const [id, name] of items.map(i => `${i.id},${i.name}`.split(\',\'))) { }',
-    },
-    schema: [],
-  },
-  create(context) {
-    return {
-      ForOfStatement(node: ForOfStatement) {
-        const left = node.left;
-        let pattern = left;
+	meta: {
+		type: 'problem',
+		docs: {
+			description:
+				'Disallow destructuring objects or arrays in for-of loops without stringification',
+			category: 'Possible Errors',
+			recommended: true,
+		},
+		messages: {
+			objectDestructuring:
+				"Object destructuring in for-of loops requires stringified iterables. Use methods like .join(), .map(), etc. on the iterable. Example: for (const key of [item.id, item.name].join(':')) { }",
+			arrayDestructuring:
+				"Array destructuring in for-of loops requires stringified iterables. Use methods like .join(), .map(), etc. on the iterable. Example: for (const [id, name] of items.map(i => `${i.id},${i.name}`.split(','))) { }",
+		},
+		schema: [],
+	},
+	create(context) {
+		return {
+			ForOfStatement(node: ForOfStatement) {
+				const left = node.left;
+				let pattern = left;
 
-        // If left is a VariableDeclaration, get the pattern from the declarator
-        if ((left as any).type === 'VariableDeclaration') {
-          pattern = (left as any).declarations[0]?.id;
-        }
+				if ((left as any).type === 'VariableDeclaration') {
+					pattern = (left as any).declarations[0]?.id;
+				}
 
-        if (!pattern) {
-          return;
-        }
+				if (!pattern) {
+					return;
+				}
 
-        // Check if the loop variable is a destructuring pattern
-        const isObjectDestructure = (pattern as any).type === 'ObjectPattern';
-        const isArrayDestructure = (pattern as any).type === 'ArrayPattern';
+				const isObjectDestructure = (pattern as any).type === 'ObjectPattern';
+				const isArrayDestructure = (pattern as any).type === 'ArrayPattern';
 
-        if (!isObjectDestructure && !isArrayDestructure) {
-          return;
-        }
+				if (!isObjectDestructure && !isArrayDestructure) {
+					return;
+				}
 
-        // Check if the right side (iterable) uses stringification
-        const right = node.right;
-        const isStringified = isStringificationCall(right);
+				const right = node.right;
+				const isStringified = isStringificationCall(right);
 
-        if (!isStringified) {
-          const messageId = isObjectDestructure ? 'objectDestructuring' : 'arrayDestructuring';
-          context.report({
-            node,
-            messageId,
-          });
-        }
-      },
-    };
-  },
+				if (!isStringified) {
+					const messageId = isObjectDestructure ? 'objectDestructuring' : 'arrayDestructuring';
+					context.report({
+						node,
+						messageId,
+					});
+				}
+			},
+		};
+	},
 };
 
 export default rule;
