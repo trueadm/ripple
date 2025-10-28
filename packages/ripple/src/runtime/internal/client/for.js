@@ -114,15 +114,19 @@ export function for_block(node, get_collection, render_fn, flags) {
 		anchor = node.appendChild(create_text());
 	}
 
-	render(() => {
-		var block = /** @type {Block} */ (active_block);
-		var collection = get_collection();
-		var array = collection_to_array(collection);
+	render(
+		() => {
+			var block = /** @type {Block} */ (active_block);
+			var collection = get_collection();
+			var array = collection_to_array(collection);
 
-		untrack(() => {
-			reconcile_by_ref(anchor, block, array, render_fn, is_controlled, is_indexed);
-		});
-	}, FOR_BLOCK);
+			untrack(() => {
+				reconcile_by_ref(anchor, block, array, render_fn, is_controlled, is_indexed);
+			});
+		},
+		null,
+		FOR_BLOCK,
+	);
 }
 
 /**
@@ -144,23 +148,27 @@ export function for_block_keyed(node, get_collection, render_fn, flags, get_key)
 		anchor = node.appendChild(create_text());
 	}
 
-	render(() => {
-		var block = /** @type {Block} */ (active_block);
-		var collection = get_collection();
-		var array = collection_to_array(collection);
+	render(
+		() => {
+			var block = /** @type {Block} */ (active_block);
+			var collection = get_collection();
+			var array = collection_to_array(collection);
 
-		untrack(() => {
-			reconcile_by_key(
-				anchor,
-				block,
-				array,
-				render_fn,
-				is_controlled,
-				is_indexed,
-				/** @type {(item: V) => K} */ (get_key),
-			);
-		});
-	}, FOR_BLOCK);
+			untrack(() => {
+				reconcile_by_key(
+					anchor,
+					block,
+					array,
+					render_fn,
+					is_controlled,
+					is_indexed,
+					/** @type {(item: V) => K} */ (get_key),
+				);
+			});
+		},
+		null,
+		FOR_BLOCK,
+	);
 }
 
 /**

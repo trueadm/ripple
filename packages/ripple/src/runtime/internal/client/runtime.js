@@ -255,7 +255,7 @@ export function run_block(block) {
 
 		tracking = (block.f & (ROOT_BLOCK | BRANCH_BLOCK)) === 0;
 		active_dependency = null;
-		var res = block.fn();
+		var res = block.fn(block.s);
 
 		if (typeof res === 'function') {
 			block.t = res;
@@ -499,51 +499,55 @@ export function async_computed(fn, block) {
 	/** @type {Map<Tracked, {v: any, c: number}>} */
 	var new_values = new Map();
 
-	render(() => {
-		var [current, deferred] = capture_deferred(() => (promise = fn()));
+	render(
+		() => {
+			var [current, deferred] = capture_deferred(() => (promise = fn()));
 
-		var restore = capture();
-		/** @type {(() => void) | undefined} */
-		var unuspend;
-
-		if (deferred === null) {
-			unuspend = suspend();
-		} else {
-			for (var i = 0; i < deferred.length; i++) {
-				var tracked = deferred[i];
-				new_values.set(tracked, { v: tracked.__v, c: tracked.c });
-			}
-		}
-
-		promise.then((v) => {
-			if (parent && is_destroyed(/** @type {Block} */ (parent))) {
-				return;
-			}
-			if (promise === current && t.__v !== v) {
-				restore();
-
-				if (t.__v === UNINITIALIZED) {
-					t.__v = v;
-				} else {
-					set(t, v);
-				}
-			}
+			var restore = capture();
+			/** @type {(() => void) | undefined} */
+			var unuspend;
 
 			if (deferred === null) {
-				unuspend?.();
-			} else if (promise === current) {
+				unuspend = suspend();
+			} else {
 				for (var i = 0; i < deferred.length; i++) {
 					var tracked = deferred[i];
-					var stored = /** @type {{ v: any, c: number }} */ (new_values.get(tracked));
-					var { v, c } = stored;
-					tracked.__v = v;
-					tracked.c = c;
-					schedule_update(tracked.b);
+					new_values.set(tracked, { v: tracked.__v, c: tracked.c });
 				}
-				new_values.clear();
 			}
-		});
-	}, ASYNC_BLOCK);
+
+			promise.then((v) => {
+				if (parent && is_destroyed(/** @type {Block} */ (parent))) {
+					return;
+				}
+				if (promise === current && t.__v !== v) {
+					restore();
+
+					if (t.__v === UNINITIALIZED) {
+						t.__v = v;
+					} else {
+						set(t, v);
+					}
+				}
+
+				if (deferred === null) {
+					unuspend?.();
+				} else if (promise === current) {
+					for (var i = 0; i < deferred.length; i++) {
+						var tracked = deferred[i];
+						var stored = /** @type {{ v: any, c: number }} */ (new_values.get(tracked));
+						var { v, c } = stored;
+						tracked.__v = v;
+						tracked.c = c;
+						schedule_update(tracked.b);
+					}
+					new_values.clear();
+				}
+			});
+		},
+		null,
+		ASYNC_BLOCK,
+	);
 
 	return new Promise(async (resolve) => {
 		var p;

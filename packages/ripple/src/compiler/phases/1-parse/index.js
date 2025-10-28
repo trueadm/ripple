@@ -39,7 +39,10 @@ const regex_whitespace_only = /\s/;
  */
 function skipWhitespace(parser) {
 	const originalStart = parser.start;
-	while (parser.start < parser.input.length && regex_whitespace_only.test(parser.input[parser.start])) {
+	while (
+		parser.start < parser.input.length &&
+		regex_whitespace_only.test(parser.input[parser.start])
+	) {
 		parser.start++;
 	}
 	// Update line tracking if whitespace was skipped
@@ -1093,7 +1096,8 @@ function RipplePlugin(config) {
 						// Check if the next character after @ is [
 						const nextChar = this.input.charCodeAt(this.pos);
 
-						if (nextChar === 91) { // [ character
+						if (nextChar === 91) {
+							// [ character
 							memberExpr.computed = true;
 
 							// Consume the @ token
@@ -1142,7 +1146,7 @@ function RipplePlugin(config) {
 						var t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
-							this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
 							t
 						);
 					case tok.jsxTagStart:
@@ -1315,14 +1319,14 @@ function RipplePlugin(config) {
 							this.raise(
 								this.pos,
 								'Unexpected token `' +
-								this.input[this.pos] +
-								'`. Did you mean `' +
-								(ch === 62 ? '&gt;' : '&rbrace;') +
-								'` or ' +
-								'`{"' +
-								this.input[this.pos] +
-								'"}' +
-								'`?',
+									this.input[this.pos] +
+									'`. Did you mean `' +
+									(ch === 62 ? '&gt;' : '&rbrace;') +
+									'` or ' +
+									'`{"' +
+									this.input[this.pos] +
+									'"}' +
+									'`?',
 							);
 						}
 
@@ -1584,7 +1588,9 @@ function RipplePlugin(config) {
 					const node = this.jsx_parseExpressionContainer();
 					node.type = node.html ? 'Html' : 'Text';
 					delete node.html;
-					body.push(node);
+					if (node.expression.type !== 'JSXEmptyExpression') {
+						body.push(node);
+					}
 				} else if (this.type.label === '}') {
 					return;
 				} else if (this.type.label === 'jsxTagStart') {
@@ -1979,7 +1985,7 @@ function get_comment_handlers(source, comments, index = 0) {
 										const nextChar = getNextNonWhitespaceCharacter(source, potentialComment.end);
 										if (nextChar === ')') {
 											(node.trailingComments ||= []).push(
-												/** @type {CommentWithLocation} */(comments.shift()),
+												/** @type {CommentWithLocation} */ (comments.shift()),
 											);
 											continue;
 										}

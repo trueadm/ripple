@@ -913,3 +913,20 @@ export function determine_namespace_for_children(element_name, current_namespace
 
 	return current_namespace;
 }
+
+/**
+ * Converts and index to a key string, where the starting character is a
+ * letter.
+ * @param {number} index
+ */
+export function index_to_key(index) {
+	const letters = 'abcdefghijklmnopqrstuvwxyz';
+	let key = '';
+
+	do {
+		key = letters[index % 26] + key;
+		index = Math.floor(index / 26) - 1;
+	} while (index >= 0);
+
+	return key;
+}

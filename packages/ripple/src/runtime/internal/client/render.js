@@ -189,50 +189,32 @@ function set_attribute_helper(element, key, value) {
 }
 
 /**
- * @param {import('clsx').ClassValue} value
- * @param {string} [hash]
- * @returns {string}
- */
-function to_class(value, hash) {
-	return value == null
-		? (hash ?? '')
-		: // Fast-path for string values
-			typeof value === 'string'
-			? value + (hash ? ' ' + hash : '')
-			: clsx([value, hash]);
-}
-
-/**
  * @param {HTMLElement} dom
- * @param {import('clsx').ClassValue} value
+ * @param {string} value
  * @param {string} [hash]
  * @param {boolean} [is_html]
  * @returns {void}
  */
 export function set_class(dom, value, hash, is_html = true) {
-	// @ts-expect-error need to add __className to patched prototype
-	var prev_class_name = dom.__className;
+	var class_value =
+		value == null
+			? (hash ?? '')
+			: // Fast-path for string values
+				typeof value === 'string'
+				? value + (hash ? ' ' + hash : '')
+				: clsx([value, hash]);
 
-	if (prev_class_name !== value) {
-		var next_class_name = to_class(value, hash);
-
-		if (prev_class_name !== next_class_name) {
-			// Removing the attribute when the value is only an empty string causes
-			// peformance issues vs simply making the className an empty string. So
-			// we should only remove the class if the the value is nullish.
-			if (value == null && !hash) {
-				dom.removeAttribute('class');
-			} else {
-				if (is_html) {
-					dom.className = next_class_name;
-				} else {
-					dom.setAttribute('class', next_class_name);
-				}
-			}
+	// Removing the attribute when the value is only an empty string causes
+	// peformance issues vs simply making the className an empty string. So
+	// we should only remove the class if the the value is nullish.
+	if (value == null && hash === undefined) {
+		dom.removeAttribute('class');
+	} else {
+		if (is_html) {
+			dom.className = class_value;
+		} else {
+			dom.setAttribute('class', class_value);
 		}
-
-		// @ts-expect-error need to add __className to patched prototype
-		dom.__className = value;
 	}
 }
 

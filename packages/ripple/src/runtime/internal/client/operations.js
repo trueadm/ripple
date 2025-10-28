@@ -28,8 +28,6 @@ export function init_operations() {
 	// @ts-expect-error
 	element_prototype.__click = undefined;
 	// @ts-expect-error
-	element_prototype.__className = '';
-	// @ts-expect-error
 	element_prototype.__attributes = null;
 	// @ts-expect-error
 	element_prototype.__styles = null;

@@ -35,6 +35,7 @@ import {
 	normalize_children,
 	build_getter,
 	determine_namespace_for_children,
+	index_to_key,
 } from '../../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
@@ -127,7 +128,77 @@ function visit_head_element(node, context) {
 
 	if (init.length > 0 || update.length > 0 || final.length > 0) {
 		context.state.init.push(
-			b.call('_$_.head', b.arrow([b.id('__anchor')], b.block([...init, ...update, ...final]))),
+			b.call(
+				'_$_.head',
+				b.arrow(
+					[b.id('__anchor')],
+					b.block([
+						...init,
+						...update.map((u) => {
+							debugger;
+						}),
+						...final,
+					]),
+				),
+			),
+		);
+	}
+}
+
+function apply_updates(init, update) {
+	if (update.length === 1) {
+		init.push(
+			b.stmt(
+				b.call(
+					'_$_.render',
+					b.thunk(
+						b.block(
+							update.map((u) => {
+								if (u.initial) {
+									return u.operation(u.expression);
+								}
+								return u.operation;
+							}),
+						),
+						!!update.async,
+					),
+				),
+			),
+		);
+	} else {
+		const index_map = new Map();
+		const initial = [];
+		const render_statements = [];
+		let index = 0;
+
+		for (const u of update) {
+			if (u.initial) {
+				const key = index_to_key(index);
+				index_map.set(u.operation, key);
+				initial.push(b.prop('init', b.id(key), u.initial));
+				render_statements.push(
+					b.var('__' + key, u.expression),
+					b.if(
+						b.binary('!==', b.member(b.id('__prev'), b.id(key)), b.id('__' + key)),
+						b.block([
+							u.operation(b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key))),
+						]),
+					),
+				);
+				index++;
+			} else {
+				render_statements.push(u.operation);
+			}
+		}
+
+		init.push(
+			b.stmt(
+				b.call(
+					'_$_.render',
+					b.arrow([b.id('__prev')], b.block(render_statements), !!update.async),
+					b.object(initial),
+				),
+			),
 		);
 	}
 }
@@ -862,7 +933,7 @@ const visitors = {
 							const expression = visit(attr.value, { ...state, metadata });
 
 							if (metadata.tracking) {
-								local_updates.push(b.stmt(b.call('_$_.set_value', id, expression)));
+								local_updates.push({ operation: b.stmt(b.call('_$_.set_value', id, expression)) });
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_value', id, expression)));
 							}
@@ -876,7 +947,9 @@ const visitors = {
 							const expression = visit(attr.value, { ...state, metadata });
 
 							if (name === '$checked' || metadata.tracking) {
-								local_updates.push(b.stmt(b.call('_$_.set_checked', id, expression)));
+								local_updates.push({
+									operation: b.stmt(b.call('_$_.set_checked', id, expression)),
+								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_checked', id, expression)));
 							}
@@ -889,7 +962,9 @@ const visitors = {
 							const expression = visit(attr.value, { ...state, metadata });
 
 							if (metadata.tracking) {
-								local_updates.push(b.stmt(b.call('_$_.set_selected', id, expression)));
+								local_updates.push({
+									operation: b.stmt(b.call('_$_.set_selected', id, expression)),
+								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_selected', id, expression)));
 							}
@@ -968,11 +1043,15 @@ const visitors = {
 							const id = state.flush_node();
 
 							if (is_dom_property(attribute)) {
-								local_updates.push(b.stmt(b.assignment('=', b.member(id, attribute), expression)));
+								local_updates.push({
+									operation: b.stmt(b.assignment('=', b.member(id, attribute), expression)),
+								});
 							} else {
-								local_updates.push(
-									b.stmt(b.call('_$_.set_attribute', id, b.literal(attribute), expression)),
-								);
+								local_updates.push({
+									operation: b.stmt(
+										b.call('_$_.set_attribute', id, b.literal(attribute), expression),
+									),
+								});
 							}
 						} else {
 							const id = state.flush_node();
@@ -1012,9 +1091,12 @@ const visitors = {
 					const is_html = context.state.namespace === 'html' && node.id.name !== 'svg';
 
 					if (metadata.tracking) {
-						local_updates.push(
-							b.stmt(b.call('_$_.set_class', id, expression, hash_arg, b.literal(is_html))),
-						);
+						local_updates.push({
+							operation: (key) =>
+								b.stmt(b.call('_$_.set_class', id, key, hash_arg, b.literal(is_html))),
+							expression,
+							initial: b.literal(''),
+						});
 					} else {
 						state.init.push(
 							b.stmt(b.call('_$_.set_class', id, expression, hash_arg, b.literal(is_html))),
@@ -1037,7 +1119,7 @@ const visitors = {
 					const statement = b.stmt(b.call('_$_.set_attribute', id, b.literal(name), expression));
 
 					if (metadata.tracking) {
-						local_updates.push(statement);
+						local_updates.push({ operation: statement });
 					} else {
 						state.init.push(statement);
 					}
@@ -1069,7 +1151,7 @@ const visitors = {
 
 			if (update.length > 0) {
 				if (state.scope.parent.declarations.size > 0) {
-					init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(update), !!update.async))));
+					apply_updates(init, update);
 				} else {
 					state.update.push(...update);
 				}
@@ -2168,8 +2250,8 @@ function transform_children(children, context) {
 				context.state.template.push('<!>');
 
 				const id = flush_node();
-				state.update.push(
-					b.stmt(
+				state.update.push({
+					operation: b.stmt(
 						b.call(
 							'_$_.html',
 							id,
@@ -2178,7 +2260,7 @@ function transform_children(children, context) {
 							state.namespace === 'mathml' && b.true,
 						),
 					),
-				);
+				});
 			} else if (node.type === 'Text') {
 				const metadata = { tracking: false, await: false };
 				const expression = visit(node.expression, { ...state, metadata });
@@ -2186,7 +2268,11 @@ function transform_children(children, context) {
 				if (metadata.tracking) {
 					state.template.push(' ');
 					const id = flush_node();
-					state.update.push(b.stmt(b.call('_$_.set_text', id, expression)));
+					state.update.push({
+						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
+						expression,
+						initial: b.literal(' '),
+					});
 					if (metadata.await) {
 						state.update.async = true;
 					}
@@ -2203,7 +2289,11 @@ function transform_children(children, context) {
 					// Handle Text nodes in fragments
 					state.template.push(' ');
 					const id = flush_node();
-					state.update.push(b.stmt(b.call('_$_.set_text', id, expression)));
+					state.update.push({
+						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
+						expression,
+						initial: b.literal(' '),
+					});
 					if (metadata.await) {
 						state.update.async = true;
 					}
@@ -2279,7 +2369,7 @@ function transform_body(body, { visit, state }) {
 			// In TypeScript mode, just add the update statements directly
 			body_state.init.push(...body_state.update);
 		} else {
-			body_state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(body_state.update)))));
+			apply_updates(body_state.init, body_state.update);
 		}
 	}
 
