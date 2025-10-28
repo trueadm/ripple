@@ -132,13 +132,7 @@ function visit_head_element(node, context) {
 				'_$_.head',
 				b.arrow(
 					[b.id('__anchor')],
-					b.block([
-						...init,
-						...update.map((u) => {
-							debugger;
-						}),
-						...final,
-					]),
+					b.block([...init, ...update.map((u) => u.operation), ...final]),
 				),
 			),
 		);
@@ -2125,7 +2119,6 @@ function transform_ts_child(node, context) {
 			.map((child) => visit(child, state))
 			.filter((child) => child.type !== 'JSXText' || child.value.trim() !== '');
 
-		debugger;
 		state.init.push(b.stmt(b.jsx_fragment(children)));
 	} else {
 		throw new Error('TODO');
