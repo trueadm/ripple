@@ -5,6 +5,7 @@ import noReturnInComponent from './rules/no-return-in-component.js';
 import unboxTrackedValues from './rules/unbox-tracked-values.js';
 import controlFlowJsx from './rules/control-flow-jsx.js';
 import noIntrospectInModules from './rules/no-introspect-in-modules.js';
+import noPlainObjectsArraysForof from './rules/no-plain-objects-arrays-forof.js';
 
 const plugin = {
 	meta: {
@@ -18,6 +19,7 @@ const plugin = {
 		'unbox-tracked-values': unboxTrackedValues,
 		'control-flow-jsx': controlFlowJsx,
 		'no-introspect-in-modules': noIntrospectInModules,
+		'no-plain-objects-arrays-forof': noPlainObjectsArraysForof,
 	},
 	configs: {} as any,
 };
@@ -57,6 +59,7 @@ function createConfig(name: string, files: string[], parser: any) {
 			'ripple/unbox-tracked-values': 'error',
 			'ripple/control-flow-jsx': 'error',
 			'ripple/no-introspect-in-modules': 'error',
+			'ripple/no-plain-objects-arrays-forof': 'error',
 		},
 	};
 
