@@ -1734,6 +1734,14 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printCSSNestingSelector(node, path, options, print);
 			break;
 
+		case 'PseudoClassSelector':
+			nodeContent = printCSSPseudoClassSelector(node, path, options, print);
+			break;
+
+		case 'PseudoElementSelector':
+			nodeContent = printCSSPseudoElementSelector(node, path, options, print);
+			break;
+
 		case 'Block':
 			nodeContent = printCSSBlock(node, path, options, print);
 			break;
@@ -3933,6 +3941,30 @@ function printCSSClassSelector(node, path, options, print) {
 function printCSSNestingSelector(node, path, options, print) {
 	// NestingSelector for & (parent reference in nested CSS)
 	return '&';
+}
+
+function printCSSPseudoClassSelector(node, path, options, print) {
+	// PseudoClassSelector for :hover, :global(), etc.
+	const parts = [':', node.name || ''];
+
+	// If it has args (like :global(.classname)), print them
+	if (node.args !== null && node.args !== undefined) {
+		parts.push('(', node.args, ')');
+	}
+
+	return concat(parts);
+}
+
+function printCSSPseudoElementSelector(node, path, options, print) {
+	// PseudoElementSelector for ::before, ::after, etc.
+	const parts = ['::', node.name || ''];
+
+	// If it has args (like ::slotted(span)), print them
+	if (node.args !== null && node.args !== undefined) {
+		parts.push('(', node.args, ')');
+	}
+
+	return concat(parts);
 }
 
 function printCSSBlock(node, path, options, print) {

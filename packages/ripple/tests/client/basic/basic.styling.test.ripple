@@ -3,9 +3,9 @@ import { compile } from 'ripple/compiler';
 describe('basic client > styling', () => {
 	it('renders with styling scoped to component', () => {
 		component Basic() {
-			<div class='styled-container'>
+			<div class="styled-container">
 				<h1>{'Styled heading'}</h1>
-				<p class='text'>{'Styled paragraph'}</p>
+				<p class="text">{'Styled paragraph'}</p>
 			</div>
 
 			<style>
@@ -59,5 +59,248 @@ describe('basic client > styling', () => {
 		const { css } = compile(source, 'test.ripple');
 		const name = css.match(/@keyframes\s+([a-zA-Z0-9_-]+)\s*\{/)[1];
 		expect(css.match(new RegExp(name, 'g'))?.length).toEqual(3);
+	});
+
+	it('handles multiple components with inline styles in single file', () => {
+		component ComponentA() {
+			<div class="box-a">{'Component A'}</div>
+
+			<style>
+				.box-a {
+					background-color: red;
+					padding: 10px;
+				}
+			</style>
+		}
+
+		component ComponentB() {
+			<div class="box-b">{'Component B'}</div>
+
+			<style>
+				.box-b {
+					background-color: blue;
+					padding: 20px;
+				}
+			</style>
+		}
+
+		component App() {
+			<div>
+				<ComponentA />
+				<ComponentB />
+			</div>
+		}
+
+		render(App);
+
+		const boxA = container.querySelector('.box-a');
+		const boxB = container.querySelector('.box-b');
+
+		expect(boxA).toBeTruthy();
+		expect(boxB).toBeTruthy();
+		expect(boxA.textContent).toBe('Component A');
+		expect(boxB.textContent).toBe('Component B');
+
+		const classesA = Array.from(boxA.classList);
+		const classesB = Array.from(boxB.classList);
+
+		const hasScopedClassA = classesA.some((cls) => cls.startsWith('ripple-'));
+		const hasScopedClassB = classesB.some((cls) => cls.startsWith('ripple-'));
+
+		expect(hasScopedClassA).toBe(true);
+		expect(hasScopedClassB).toBe(true);
+
+		const scopedClassA = classesA.find((cls) => cls.startsWith('ripple-'));
+		const scopedClassB = classesB.find((cls) => cls.startsWith('ripple-'));
+
+		expect(scopedClassA).not.toBe(scopedClassB);
+	});
+
+	it('handles multiple components with same class names but different styles', () => {
+		component RedMessage() {
+			<div class="message">{'Red Message'}</div>
+
+			<style>
+				.message {
+					color: red;
+					font-weight: bold;
+				}
+			</style>
+		}
+
+		component BlueMessage() {
+			<div class="message">{'Blue Message'}</div>
+
+			<style>
+				.message {
+					color: blue;
+					font-weight: bold;
+				}
+			</style>
+		}
+
+		component App() {
+			<div>
+				<RedMessage />
+				<BlueMessage />
+			</div>
+		}
+
+		render(App);
+
+		const messages = container.querySelectorAll('.message');
+		expect(messages.length).toBe(2);
+
+		const redMessage = messages[0];
+		const blueMessage = messages[1];
+
+		expect(redMessage.textContent).toBe('Red Message');
+		expect(blueMessage.textContent).toBe('Blue Message');
+
+		expect(redMessage.classList.contains('message')).toBe(true);
+		expect(blueMessage.classList.contains('message')).toBe(true);
+
+		const classesRed = Array.from(redMessage.classList);
+		const classesBlue = Array.from(blueMessage.classList);
+
+		const scopedClassRed = classesRed.find((cls) => cls.startsWith('ripple-'));
+		const scopedClassBlue = classesBlue.find((cls) => cls.startsWith('ripple-'));
+
+		expect(scopedClassRed).toBeTruthy();
+		expect(scopedClassBlue).toBeTruthy();
+		expect(scopedClassRed).not.toBe(scopedClassBlue);
+	});
+
+	it('supports :global selector for unscoped styles', () => {
+		const source = `export component GlobalStyleTest() {
+			<div class="scoped-box">
+				<p class="global-text">{'Global text'}</p>
+			</div>
+
+			<style>
+				.scoped-box {
+					padding: 20px;
+				}
+
+				:global(.global-text) {
+					color: purple;
+					font-size: 18px;
+				}
+			</style>
+		}`;
+
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('.scoped-box.ripple-');
+		expect(css).toContain('.global-text');
+		expect(css).not.toContain('.global-text.ripple-');
+	});
+
+	it('supports :global with multiple components in same file', () => {
+		const source = `component CompA() {
+			<div class="local">
+				<span class="shared">{'A'}</span>
+			</div>
+
+			<style>
+				.local {
+					background: red;
+				}
+
+				:global(.shared) {
+					font-weight: bold;
+				}
+			</style>
+		}
+
+		component CompB() {
+			<div class="local">
+				<span class="shared">{'B'}</span>
+			</div>
+
+			<style>
+				.local {
+					background: blue;
+				}
+
+				:global(.shared) {
+					font-size: 20px;
+				}
+			</style>
+		}
+
+		export component App() {
+			<div>
+				<CompA />
+				<CompB />
+			</div>
+		}`;
+
+		const { css } = compile(source, 'test.ripple');
+
+		const localMatches = css.match(/\.local\.ripple-[a-z0-9]+/g);
+		expect(localMatches).toBeTruthy();
+		expect(localMatches?.length).toBe(2);
+		expect(localMatches?.[0]).not.toBe(localMatches?.[1]);
+
+		expect(css).toContain('.shared');
+		expect(css).toContain('font-weight: bold');
+		expect(css).toContain('font-size: 20px');
+	});
+
+	it('supports :global() with parentheses syntax', () => {
+		const source = `export component ParenGlobal() {
+			<div class="container">
+				<button class="btn primary">{'Click me'}</button>
+			</div>
+
+			<style>
+				.container {
+					padding: 10px;
+				}
+
+				:global(.btn.primary) {
+					background-color: green;
+					color: white;
+				}
+			</style>
+		}`;
+
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('.container.ripple-');
+		expect(css).toContain('.btn.primary');
+		expect(css).not.toContain('.btn.primary.ripple-');
+	});
+
+	it('supports :global block syntax', () => {
+		const source = `export component GlobalBlock() {
+			<div class="local-box">
+				<p class="global-para">{'Text'}</p>
+			</div>
+
+			<style>
+				.local-box {
+					margin: 10px;
+				}
+
+				:global {
+					.global-para {
+						line-height: 1.5;
+					}
+
+					body {
+						margin: 0;
+					}
+				}
+			</style>
+		}`;
+
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('.local-box.ripple-');
+		expect(css).toContain('.global-para');
+		expect(css).not.toContain('.global-para.ripple-');
+		expect(css).toContain('body');
 	});
 });

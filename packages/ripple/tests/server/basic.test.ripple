@@ -12,4 +12,126 @@ describe('basic client', () => {
 		expect(head).toBe('');
 		expect(body).toBe('<div>Hello World</div>');
 	});
+
+	it('handles multiple components with inline styles in single file', async () => {
+		component ComponentA() {
+			<div class="box-a">{'Component A'}</div>
+
+			<style>
+				.box-a {
+					background-color: red;
+					padding: 10px;
+				}
+			</style>
+		}
+
+		component ComponentB() {
+			<div class="box-b">{'Component B'}</div>
+
+			<style>
+				.box-b {
+					background-color: blue;
+					padding: 20px;
+				}
+			</style>
+		}
+
+		component App() {
+			<div>
+				<ComponentA />
+				<ComponentB />
+			</div>
+		}
+
+		const { body, css } = await render(App);
+
+		expect(body).toContain('Component A');
+		expect(body).toContain('Component B');
+		expect(body).toContain('box-a');
+		expect(body).toContain('box-b');
+
+		expect(css.size).toBe(2);
+
+		const cssArray = Array.from(css);
+		expect(cssArray.length).toBe(2);
+		expect(cssArray.some((hash) => body.includes(hash))).toBe(true);
+	});
+
+	it('renders components with same class names but different styles', async () => {
+		component RedMessage() {
+			<div class="message">{'Red Message'}</div>
+
+			<style>
+				.message {
+					color: red;
+					font-weight: bold;
+				}
+			</style>
+		}
+
+		component BlueMessage() {
+			<div class="message">{'Blue Message'}</div>
+
+			<style>
+				.message {
+					color: blue;
+					font-weight: bold;
+				}
+			</style>
+		}
+
+		component App() {
+			<div>
+				<RedMessage />
+				<BlueMessage />
+			</div>
+		}
+
+		const { body, css } = await render(App);
+
+		expect(body).toContain('Red Message');
+		expect(body).toContain('Blue Message');
+		expect(body).toContain('class="ripple-');
+		expect(body).toContain('message');
+		expect(css.size).toBe(2);
+
+		const cssArray = Array.from(css);
+		expect(body.includes(cssArray[0])).toBe(true);
+		expect(body.includes(cssArray[1])).toBe(true);
+	});
+
+	it('handles multiple inline components with global styles', async () => {
+		component CompA() {
+			<div class="local-a">{'Component A'}</div>
+
+			<style>
+				.local-a {
+					background: red;
+				}
+			</style>
+		}
+
+		component CompB() {
+			<div class="local-b">{'Component B'}</div>
+
+			<style>
+				.local-b {
+					background: blue;
+				}
+			</style>
+		}
+
+		component App() {
+			<div>
+				<CompA />
+				<CompB />
+			</div>
+		}
+
+		const { body, css } = await render(App);
+
+		expect(body).toContain('Component A');
+		expect(body).toContain('Component B');
+		expect(css.size).toBe(2);
+	});
 });
