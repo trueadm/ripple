@@ -3,9 +3,9 @@ import { compile } from 'ripple/compiler';
 describe('basic client > styling', () => {
 	it('renders with styling scoped to component', () => {
 		component Basic() {
-			<div class='styled-container'>
+			<div class="styled-container">
 				<h1>{'Styled heading'}</h1>
-				<p class='text'>{'Styled paragraph'}</p>
+				<p class="text">{'Styled paragraph'}</p>
 			</div>
 
 			<style>
@@ -59,5 +59,62 @@ describe('basic client > styling', () => {
 		const { css } = compile(source, 'test.ripple');
 		const name = css.match(/@keyframes\s+([a-zA-Z0-9_-]+)\s*\{/)[1];
 		expect(css.match(new RegExp(name, 'g'))?.length).toEqual(3);
+	});
+
+	it('handles multiple components with inline styles in single file', () => {
+		component ComponentA() {
+			<div class="box-a">{'Component A'}</div>
+
+			<style>
+				.box-a {
+					background-color: red;
+					padding: 10px;
+				}
+			</style>
+		}
+
+		component ComponentB() {
+			<div class="box-b">{'Component B'}</div>
+
+			<style>
+				.box-b {
+					background-color: blue;
+					padding: 20px;
+				}
+			</style>
+		}
+
+		component App() {
+			<div>
+				<ComponentA />
+				<ComponentB />
+			</div>
+		}
+
+		render(App);
+
+		const boxA = container.querySelector('.box-a');
+		const boxB = container.querySelector('.box-b');
+
+		expect(boxA).toBeTruthy();
+		expect(boxB).toBeTruthy();
+		expect(boxA.textContent).toBe('Component A');
+		expect(boxB.textContent).toBe('Component B');
+
+		// Check that both components have their scoped class applied
+		const classesA = Array.from(boxA.classList);
+		const classesB = Array.from(boxB.classList);
+
+		const hasScopedClassA = classesA.some((cls) => cls.startsWith('ripple-'));
+		const hasScopedClassB = classesB.some((cls) => cls.startsWith('ripple-'));
+
+		expect(hasScopedClassA).toBe(true);
+		expect(hasScopedClassB).toBe(true);
+
+		// Check that they have different scoped classes (different hashes)
+		const scopedClassA = classesA.find((cls) => cls.startsWith('ripple-'));
+		const scopedClassB = classesB.find((cls) => cls.startsWith('ripple-'));
+
+		expect(scopedClassA).not.toBe(scopedClassB);
 	});
 });
