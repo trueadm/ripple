@@ -1,7 +1,7 @@
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.detectIndentation": false,
-  "editor.formatOnSave": true,
+  "editor.formatOnSave": false,
   "editor.insertSpaces": false,
   "editor.tabSize": 2,
   "files.insertFinalNewline": true,
@@ -23,6 +23,9 @@
     "editor.insertSpaces": true
   },
   "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[ripple]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }

@@ -54,7 +54,7 @@ describe('prettier-plugin-ripple', () => {
 	const formatWithCursorHelper = async (code, options = {}) => {
 		return await prettier.formatWithCursor(
 			code,
-			/** @type {import('prettier').CursorOptions} */({
+			/** @type {import('prettier').CursorOptions} */ ({
 				parser: 'ripple',
 				plugins: [join(__dirname, 'index.js')],
 				...options,
@@ -1253,6 +1253,25 @@ function bind_element_rect(maybe_tracked, type) {
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should preserve block comments formatting inside curly braces and inside markup', async () => {
+			const expected = `<div class="container">{/* Dynamic SVG - the original problem case */}</div>`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve block comments formatting inside curly braces and inside nested markup', async () => {
+			const expected = `<div class="container">
+  {/* Dynamic SVG - the original problem case */}
+  <span>{'Content'}</span>
+  {/* Static SVG - always worked */}
+  <span>{'More Content'}</span>
+</div>`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
@@ -1579,6 +1598,20 @@ const obj2 = #{
 ];`;
 
 		const result = await format(input, { singleQuote: true, printWidth: 13 });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should properly format array with various sized strings and 100 printWidth', async () => {
+		const expected = `component App() {
+  const d = [
+    'm14 12 4 4 4-4',
+    'M18 16V7',
+    'm2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16',
+    'M3.304 13h6.392',
+  ];
+}`;
+
+		const result = await format(expected, { singleQuote: true, printWidth: 100 });
 		expect(result).toBeWithNewline(expected);
 	});
 

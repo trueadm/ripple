@@ -976,6 +976,15 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'JSXExpressionContainer');
 			}
 
+			jsx_parseEmptyExpression() {
+				// Override to properly handle the range for JSXEmptyExpression
+				// The range should be from after { to before }
+				const node = this.startNodeAt(this.lastTokEnd, this.lastTokEndLoc);
+				node.end = this.start;
+				node.loc.end = this.startLoc;
+				return this.finishNodeAt(node, 'JSXEmptyExpression', this.start, this.startLoc);
+			}
+
 			jsx_parseTupleContainer() {
 				var t = this.startNode();
 				return (
@@ -1908,6 +1917,17 @@ function get_comment_handlers(source, comments, index = 0) {
 						if (node.type === 'BlockStatement' && node.body.length === 0) {
 							// Collect all comments that fall within this empty block
 							while (comments[0] && comments[0].start < node.end && comments[0].end < node.end) {
+								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								(node.innerComments ||= []).push(comment);
+							}
+							if (node.innerComments && node.innerComments.length > 0) {
+								return;
+							}
+						}
+						// Handle JSXEmptyExpression - these represent {/* comment */} in JSX
+						if (node.type === 'JSXEmptyExpression') {
+							// Collect all comments that fall within this JSXEmptyExpression
+							while (comments[0] && comments[0].start >= node.start && comments[0].end <= node.end) {
 								comment = /** @type {CommentWithLocation} */ (comments.shift());
 								(node.innerComments ||= []).push(comment);
 							}

@@ -683,6 +683,38 @@ function printRippleNode(node, path, options, print, args) {
 
 			// Check which elements have blank lines above them
 			const elementsWithBlankLineAbove = [];
+
+			// Check for blank line after opening bracket (before first element)
+			// This indicates the array should be collapsed, not preserved as multiline
+			let hasBlankLineAfterOpening = false;
+			if (node.elements.length > 0 && node.elements[0]) {
+				const firstElement = node.elements[0];
+				// Check if first element starts on a different line than the opening bracket
+				// and there's a blank line between them
+				if (firstElement.loc && node.loc) {
+					const bracketLine = node.loc.start.line;
+					const firstElementLine = firstElement.loc.start.line;
+					// If there's more than one line between bracket and first element, there's a blank line
+					if (firstElementLine - bracketLine > 1) {
+						hasBlankLineAfterOpening = true;
+					}
+				}
+			}
+
+			// Check for blank line before closing bracket (after last element)
+			let hasBlankLineBeforeClosing = false;
+			if (node.elements.length > 0 && node.elements[node.elements.length - 1]) {
+				const lastElement = node.elements[node.elements.length - 1];
+				if (lastElement.loc && node.loc) {
+					const lastElementLine = lastElement.loc.end.line;
+					const closingBracketLine = node.loc.end.line;
+					// If there's more than one line between last element and closing bracket, there's a blank line
+					if (closingBracketLine - lastElementLine > 1) {
+						hasBlankLineBeforeClosing = true;
+					}
+				}
+			}
+
 			for (let i = 1; i < node.elements.length; i++) {
 				const prevElement = node.elements[i - 1];
 				const currentElement = node.elements[i];
@@ -721,6 +753,33 @@ function printRippleNode(node, path, options, print, args) {
 			});
 
 			if (!hasAnyBlankLines && !allObjectsHaveMultipleProperties && !hasHardBreakingElements) {
+				// Check if array has inline comments between elements
+				const hasInlineComments = inlineCommentsBetween.some((comment) => comment !== null);
+
+				// For arrays originally formatted with one element per line (no blank lines between),
+				// preserve that formatting using join() with hardline - BUT only if no inline comments
+				// and no blank lines at boundaries
+				if (
+					!arrayWasSingleLine &&
+					!hasBlankLineAfterOpening &&
+					!hasBlankLineBeforeClosing &&
+					!hasInlineComments
+				) {
+					const separator = concat([',', hardline]);
+					const trailingDoc = shouldUseTrailingComma ? ',' : '';
+					nodeContent = group(
+						concat([
+							prefix + '[',
+							indent(concat([hardline, join(separator, elements), trailingDoc])),
+							hardline,
+							']',
+						]),
+					);
+					break;
+				}
+
+				// For arrays that should collapse (single-line or blank after opening) or have comments,
+				// use fill() to pack elements
 				const fillParts = [];
 				let skipNextSeparator = false;
 				for (let index = 0; index < elements.length; index++) {
@@ -1620,6 +1679,16 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'JSXText':
 			nodeContent = node.value;
+			break;
+
+		case 'JSXEmptyExpression':
+			// JSXEmptyExpression represents the empty expression in {/* comment */}
+			// The comments are attached as innerComments by the parser
+			if (innerCommentParts.length > 0) {
+				nodeContent = concat(innerCommentParts);
+			} else {
+				nodeContent = '';
+			}
 			break;
 
 		case 'StyleSheet':
