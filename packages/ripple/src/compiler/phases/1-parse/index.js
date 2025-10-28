@@ -1597,9 +1597,7 @@ function RipplePlugin(config) {
 					const node = this.jsx_parseExpressionContainer();
 					node.type = node.html ? 'Html' : 'Text';
 					delete node.html;
-					if (node.expression.type !== 'JSXEmptyExpression') {
-						body.push(node);
-					}
+					body.push(node);
 				} else if (this.type.label === '}') {
 					return;
 				} else if (this.type.label === 'jsxTagStart') {
