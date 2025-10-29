@@ -1,3 +1,5 @@
+import { track } from 'ripple';
+
 describe('SVG namespace handling', () => {
 	it('should render static SVG elements with correct namespace', () => {
 		component App() {
@@ -226,6 +228,107 @@ describe('SVG namespace handling', () => {
 		// HTML content inside foreignObject should have HTML namespace
 		expect(div.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
 		expect(div.textContent).toBe('HTML inside SVG');
+	});
+
+	it('should render SVG with children as svg elements', () => {
+		component SVG({ children }) {
+			<svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<children />
+			</svg>
+		}
+
+		component App() {
+			let isDiamond = true;
+			<SVG>
+				if (isDiamond) {
+					<polygon points="0,0 30,0 15,10" />
+				} else {
+					<polygon points="0,0 30,0 15,10" />
+				}
+			</SVG>
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
+	it('should render SVG with props as svg elements', () => {
+		component SVG({ Polygon }) {
+			<svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<Polygon />
+			</svg>
+		}
+
+		component App() {
+			<SVG {Polygon} />
+		}
+
+		component Polygon() {
+			<polygon points="0,0 30,0 15,10" />
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
+	it('should render SVG with children as dynamic elements', () => {
+		component SVG({ children }) {
+			<svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<children />
+			</svg>
+		}
+
+		component App() {
+			let dynTag = track('polygon');
+			<SVG>
+				<@dynTag points="0,0 30,0 15,10" />
+			</SVG>
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
+	it('should render SVG with children as dynamic components', () => {
+		component SVG({ children }) {
+			<svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<children />
+			</svg>
+		}
+
+		component Polygon({ points }) {
+			<polygon {points} />
+		}
+
+		component App() {
+			let Component = track(() => Polygon);
+			<SVG>
+				<@Component points="0,0 30,0 15,10" />
+			</SVG>
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
 	});
 
 	it('should compare static vs dynamic SVG rendering (original problem case)', () => {

@@ -7,7 +7,7 @@ import {
 	TEMPLATE_MATHML_NAMESPACE,
 } from '../../../constants.js';
 import { first_child, is_firefox } from './operations.js';
-import { active_block } from './runtime.js';
+import { active_block, active_namespace } from './runtime.js';
 
 /**
  * Assigns start and end nodes to the active block's state.
@@ -64,15 +64,16 @@ export function template(content, flags) {
 	var use_mathml_namespace = (flags & TEMPLATE_MATHML_NAMESPACE) !== 0;
 	/** @type {Node | DocumentFragment | undefined} */
 	var node;
-	var has_start = !content.startsWith('<!>');
+	var is_comment = content === '<!>';
+	var has_start = !is_comment && !content.startsWith('<!>');
 
 	return () => {
+		// If using runtime namespace, check active_namespace
+		var svg = !is_comment && (use_svg_namespace || active_namespace === 'svg');
+		var mathml = !is_comment && (use_mathml_namespace || active_namespace === 'mathml');
+
 		if (node === undefined) {
-			node = create_fragment_from_html(
-				has_start ? content : '<!>' + content,
-				use_svg_namespace,
-				use_mathml_namespace,
-			);
+			node = create_fragment_from_html(has_start ? content : '<!>' + content, svg, mathml);
 			if (!is_fragment) node = /** @type {Node} */ (first_child(node));
 		}
 
@@ -119,8 +120,9 @@ function from_namespace(content, ns = 'svg') {
 	var root = /** @type {Element} */ (first_child(fragment));
 	var result = document.createDocumentFragment();
 
-	while (first_child(root)) {
-		result.appendChild(/** @type {Node} */ (first_child(root)));
+	var first;
+	while ((first = first_child(root))) {
+		result.appendChild(/** @type {Node} */ (first));
 	}
 
 	return result;

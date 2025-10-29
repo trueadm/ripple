@@ -49,6 +49,7 @@ export {
 	tick,
 	proxy_tracked,
 	with_block,
+	with_ns,
 } from './runtime.js';
 
 export { composite } from './composite.js';

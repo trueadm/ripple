@@ -1,4 +1,5 @@
 /** @import { Block, Component, Dependency, Derived, Tracked } from '#client' */
+/** @import { NAMESPACE_URI } from './constants.js' */
 
 import { DEV } from 'esm-env';
 import {
@@ -26,6 +27,7 @@ import {
 	UNINITIALIZED,
 	REF_PROP,
 	TRACKED_OBJECT,
+	DEFAULT_NAMESPACE,
 } from './constants.js';
 import { capture, suspend } from './try.js';
 import {
@@ -48,6 +50,8 @@ export let active_reaction = null;
 export let active_scope = null;
 /** @type {null | Component} */
 export let active_component = null;
+/** @type {keyof NAMESPACE_URI} */
+export let active_namespace = DEFAULT_NAMESPACE;
 /** @type {boolean} */
 export let is_mutating_allowed = true;
 
@@ -1161,6 +1165,22 @@ export function pop_component() {
 		}
 	}
 	active_component = component.p;
+}
+
+/**
+ * @template T
+ * @param {() => T} fn
+ * @param {keyof NAMESPACE_URI} namespace
+ * @returns {T}
+ */
+export function with_ns(namespace, fn) {
+	var previous_namespace = active_namespace;
+	active_namespace = namespace;
+	try {
+		return fn();
+	} finally {
+		active_namespace = previous_namespace;
+	}
 }
 
 /**
