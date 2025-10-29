@@ -17,7 +17,6 @@ import {
 } from '../../../../constants.js';
 import { sanitize_template_string } from '../../../../utils/sanitize_template_string.js';
 import {
-	build_hoisted_params,
 	is_inside_component,
 	build_assignment,
 	visit_assignment_expression,
@@ -73,16 +72,6 @@ function visit_function(node, context) {
 		if (param.type === 'AssignmentPattern' && param.left) {
 			delete param.left.typeAnnotation;
 		}
-	}
-
-	if (metadata?.hoisted === true) {
-		const params = build_hoisted_params(node, context);
-
-		return /** @type {FunctionExpression} */ ({
-			...node,
-			params,
-			body: context.visit(node.body, state),
-		});
 	}
 
 	let body = context.visit(node.body, {
@@ -979,21 +968,7 @@ const visitors = {
 									state.events.add(event_name);
 								}
 
-								// Hoist function if we can, otherwise we leave the function as is
-								if (attr.metadata.delegated.hoisted) {
-									if (attr.metadata.delegated.function === attr.value) {
-										const func_name = state.scope.root.unique('on_' + event_name);
-										state.hoisted.push(b.var(func_name, handler));
-										handler = func_name;
-									}
-
-									const hoisted_params = /** @type {Expression[]} */ (
-										attr.metadata.delegated.function.metadata.hoisted_params
-									);
-
-									const args = [handler, b.id('__block'), ...hoisted_params];
-									delegated_assignment = b.array(args);
-								} else if (
+								if (
 									(handler.type === 'Identifier' &&
 										is_declared_function_within_component(handler, context)) ||
 									handler.type === 'ArrowFunctionExpression' ||

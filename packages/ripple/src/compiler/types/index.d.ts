@@ -323,8 +323,5 @@ export interface TransformContext {
  * Delegated event result
  */
 export interface DelegatedEventResult {
-	/** Whether event was hoisted */
-	hoisted: boolean;
-	/** The hoisted function */
 	function?: FunctionExpression | FunctionDeclaration | ArrowFunctionExpression;
 }
