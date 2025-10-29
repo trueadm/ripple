@@ -2114,6 +2114,7 @@ function transform_children(children, context) {
 				node.type === 'TryStatement' ||
 				node.type === 'ForOfStatement' ||
 				node.type === 'SwitchStatement' ||
+				node.type === 'TsxCompat' ||
 				node.type === 'Html' ||
 				(node.type === 'Element' &&
 					(node.id.type !== 'Identifier' || !is_element_dom_element(node))),
