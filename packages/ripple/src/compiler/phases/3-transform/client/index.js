@@ -15,6 +15,7 @@ import {
 	TEMPLATE_SVG_NAMESPACE,
 	TEMPLATE_MATHML_NAMESPACE,
 } from '../../../../constants.js';
+import { DEFAULT_NAMESPACE } from '../../../../runtime/internal/client/constants.js';
 import { sanitize_template_string } from '../../../../utils/sanitize_template_string.js';
 import {
 	is_inside_component,
@@ -1236,31 +1237,36 @@ const visitors = {
 			// We visit, but only to gather metadata
 			b.call(visit(node.id, { ...state, metadata }));
 
+			// We're calling a component from within svg/mathml context
+			const is_with_ns = state.namespace !== DEFAULT_NAMESPACE;
+
 			if (metadata.tracking) {
+				const shared = b.call(
+					'_$_.composite',
+					b.thunk(visit(node.id, state)),
+					id,
+					is_spreading
+						? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
+						: b.object(props),
+				);
 				state.init.push(
-					b.stmt(
-						b.call(
-							'_$_.composite',
-							b.thunk(visit(node.id, state)),
-							id,
-							is_spreading
-								? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
-								: b.object(props),
-						),
-					),
+					is_with_ns
+						? b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared))
+						: b.stmt(shared),
 				);
 			} else {
+				const shared = b.call(
+					visit(node.id, state),
+					id,
+					is_spreading
+						? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
+						: b.object(props),
+					b.id('_$_.active_block'),
+				);
 				state.init.push(
-					b.stmt(
-						b.call(
-							visit(node.id, state),
-							id,
-							is_spreading
-								? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
-								: b.object(props),
-							b.id('_$_.active_block'),
-						),
-					),
+					is_with_ns
+						? b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared))
+						: b.stmt(shared),
 				);
 			}
 		}

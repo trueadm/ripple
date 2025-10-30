@@ -1,8 +1,8 @@
 /** @import { Block, Component } from '#client' */
 
 import { branch, destroy_block, render, render_spread } from './blocks.js';
-import { COMPOSITE_BLOCK } from './constants.js';
-import { active_block } from './runtime.js';
+import { COMPOSITE_BLOCK, NAMESPACE_URI, DEFAULT_NAMESPACE } from './constants.js';
+import { active_block, active_namespace } from './runtime.js';
 
 /**
  * @typedef {((anchor: Node, props: Record<string, any>, block: Block | null) => void)} ComponentFunction
@@ -36,9 +36,14 @@ export function composite(get_component, node, props) {
 				b = branch(() => {
 					var block = /** @type {Block} */ (active_block);
 
-					var element = document.createElement(
-						/** @type {keyof HTMLElementTagNameMap} */ (component),
-					);
+					var element =
+						active_namespace !== DEFAULT_NAMESPACE
+							? document.createElementNS(
+									NAMESPACE_URI[active_namespace],
+									/** @type {keyof HTMLElementTagNameMap} */ (component),
+								)
+							: document.createElement(/** @type {keyof HTMLElementTagNameMap} */ (component));
+
 					/** @type {ChildNode} */ (anchor).before(element);
 
 					if (block.s === null) {
