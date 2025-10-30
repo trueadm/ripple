@@ -39,6 +39,8 @@ const regex_whitespace_only = /\s/;
  */
 function skipWhitespace(parser) {
 	const originalStart = parser.start;
+	/** @type {acorn.Position | undefined} */
+	let lineInfo;
 	while (
 		parser.start < parser.input.length &&
 		regex_whitespace_only.test(parser.input[parser.start])
@@ -47,11 +49,14 @@ function skipWhitespace(parser) {
 	}
 	// Update line tracking if whitespace was skipped
 	if (parser.start !== originalStart) {
-		const lineInfo = acorn.getLineInfo(parser.input, parser.start);
+		lineInfo = acorn.getLineInfo(parser.input, parser.start);
 		parser.curLine = lineInfo.line;
 		parser.lineStart = parser.start - lineInfo.column;
-		parser.startLoc = lineInfo;
 	}
+
+	// After skipping whitespace, update startLoc to reflect our actual position
+	// so the next node's start location is correct
+	parser.startLoc = lineInfo || acorn.getLineInfo(parser.input, parser.start);
 }
 
 function isWhitespaceTextNode(node) {
@@ -593,7 +598,7 @@ function RipplePlugin(config) {
 				this.expect(tt.braceL);
 				this.enterScope(0);
 				while (this.type !== tt.braceR) {
-					var stmt = this.parseStatement(null, true);
+					const stmt = this.parseStatement(null, true);
 					body.body.push(stmt);
 				}
 				this.next();
@@ -987,7 +992,7 @@ function RipplePlugin(config) {
 			}
 
 			jsx_parseTupleContainer() {
-				var t = this.startNode();
+				const t = this.startNode();
 				return (
 					this.next(),
 					(t.expression =
@@ -1151,7 +1156,7 @@ function RipplePlugin(config) {
 			jsx_parseAttributeValue() {
 				switch (this.type) {
 					case tt.braceL:
-						var t = this.jsx_parseExpressionContainer();
+						const t = this.jsx_parseExpressionContainer();
 						return (
 							'JSXEmptyExpression' === t.expression.type &&
 								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
@@ -1178,7 +1183,7 @@ function RipplePlugin(config) {
 				}
 
 				if (this.type === tt._catch) {
-					var clause = this.startNode();
+					const clause = this.startNode();
 					this.next();
 					if (this.eat(tt.parenL)) {
 						clause.param = this.parseCatchClauseParam();

@@ -3120,6 +3120,24 @@ export component App() {
 				const result = await format(input, { singleQuote: true });
 				expect(result).toBeWithNewline(expected);
 			});
+
+			it('should keep blank line between components with a trailing comment at the end of the first', async () => {
+				const expected = `component SVG({ children }) {
+  <svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+    let test = track(8);
+    {test}
+    <polygon points="0,0 30,0 15,10" />
+  </svg>
+  // <div><children /></div>
+}
+
+component Polygon() {
+  <polygon points="0,0 30,0 15,10" />
+}`;
+
+				const result = await format(expected, { singleQuote: true, printWidth: 100 });
+				expect(result).toBeWithNewline(expected);
+			});
 		});
 
 		describe('Arrays with printWidth constraints', () => {
