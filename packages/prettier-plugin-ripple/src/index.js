@@ -2848,13 +2848,21 @@ function printMemberExpression(node, path, options, print) {
 	}
 	const propertyPart = path.call(print, 'property');
 
+	let result;
 	if (node.computed) {
 		const openBracket = node.optional ? '?.[' : '[';
-		return concat([objectPart, openBracket, propertyPart, ']']);
+		result = concat([objectPart, openBracket, propertyPart, ']']);
 	} else {
 		const separator = node.optional ? '?.' : '.';
-		return concat([objectPart, separator, propertyPart]);
+		result = concat([objectPart, separator, propertyPart]);
 	}
+
+	// Preserve parentheses around the entire member expression when present
+	if (node.metadata?.parenthesized) {
+		result = concat(['(', result, ')']);
+	}
+
+	return result;
 }
 
 function printUnaryExpression(node, path, options, print) {

@@ -1272,6 +1272,21 @@ function bind_element_rect(maybe_tracked, type) {
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should format function calls with long string literals correctly', async () => {
+			const input = `for (const quasi of template.quasis) {
+    quasi.value.raw = sanitize_template_string(/** @type {string} */(quasi.value.cooked));
+}`;
+
+			const expected = `for (const quasi of template.quasis) {
+  quasi.value.raw = sanitize_template_string(
+    /** @type {string} */ (quasi.value.cooked),
+  );
+}`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 80 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
