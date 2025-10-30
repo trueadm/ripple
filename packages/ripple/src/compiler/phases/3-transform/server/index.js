@@ -646,7 +646,7 @@ const visitors = {
 			];
 
 			// Push the promise that resolves with the rendered content of the try/catch block
-	TryStatement(node, context) {
+
 		if (!is_inside_component(context)) {
 			return context.next();
 		}
@@ -690,8 +690,7 @@ const visitors = {
 									}),
 								),
 							),
-						],
-					: body;
+						)]: {}
 
 			context.state.init.push(
 				b.stmt(b.await(b.call('_$_.async', b.thunk(b.block(try_statements), true)))),
@@ -714,9 +713,7 @@ const visitors = {
 				context.state.init.push(...body);
 			}
 		}
-	},
-
-		} else {
+	} else {
 			// No async, just regular try/catch
 			const metadata = { await: false };
 			const body = transform_body(node.block.body, {
@@ -889,7 +886,7 @@ export function transform_server(filename, source, analysis) {
 	}
 
 	// Add async property to component functions
-	
+
 
 	for (const import_node of state.imports) {
 		program.body.unshift(b.stmt(b.id(import_node)));
