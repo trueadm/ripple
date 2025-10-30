@@ -280,7 +280,7 @@ describe('ripple-compat-react', () => {
 		expect(rippleCount.textContent).toBe('2');
 	});
 
-	it.skip('should handle a call expression at the top-level of a tsx:react block', async () => {
+	it('should handle a call expression at the top-level of a tsx:react block', async () => {
 		function renderReactText() {
 			return 'This is rendered from a React component!';
 		}
