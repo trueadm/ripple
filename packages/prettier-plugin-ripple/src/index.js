@@ -267,6 +267,17 @@ function getNodeEndIndex(node) {
 	return null;
 }
 
+function isRegExpLiteral(node) {
+	return (
+		node &&
+		((node.type === 'Literal' && !!node.regex) ||
+			node.type === 'RegExpLiteral' ||
+			(node.type === 'StringLiteral' &&
+				node.extra?.raw?.startsWith('/') &&
+				node.extra?.raw?.endsWith('/')))
+	);
+}
+
 function isCommentFollowedBySameLineParen(comment, options) {
 	if (!comment || !options || typeof options.originalText !== 'string') {
 		return false;
@@ -2338,7 +2349,13 @@ function shouldHugLastArgument(args, argumentBreakFlags) {
 
 	for (let index = 0; index < lastIndex; index++) {
 		const argument = args[index];
-		if (isSpreadLike(argument) || hasComment(argument) || argumentBreakFlags[index]) {
+		if (
+			isSpreadLike(argument) ||
+			hasComment(argument) ||
+			isBlockLikeFunction(argument) ||
+			isRegExpLiteral(argument) ||
+			argumentBreakFlags[index]
+		) {
 			return false;
 		}
 	}
@@ -2352,8 +2369,22 @@ function shouldHugArrowFunctions(args) {
 		return false;
 	}
 
-	// If any argument is an arrow function with a block body, we should hug
-	return args.some((arg) => isBlockLikeFunction(arg));
+	// Only hug when the first argument is the block-like callback and there
+	// are no other block-like callbacks later in the list. This mirrors how
+	// Prettier keeps patterns like useEffect(() => {}, deps) inline while
+	// allowing suffix callbacks (e.g. foo(regex, () => {})) to expand.
+	const firstBlockIndex = args.findIndex((arg) => isBlockLikeFunction(arg));
+	if (firstBlockIndex !== 0) {
+		return false;
+	}
+
+	for (let index = 1; index < args.length; index++) {
+		if (isBlockLikeFunction(args[index])) {
+			return false;
+		}
+	}
+
+	return firstBlockIndex === 0;
 }
 
 function printCallArguments(path, options, print) {
@@ -2372,7 +2403,8 @@ function printCallArguments(path, options, print) {
 	path.each((argumentPath, index) => {
 		const isLast = index === args.length - 1;
 		const argumentNode = args[index];
-		const argumentDoc = print(argumentPath, { isInlineContext: true });
+		const printOptions = isBlockLikeFunction(argumentNode) ? undefined : { isInlineContext: true };
+		const argumentDoc = print(argumentPath, printOptions);
 
 		argumentDocs.push(argumentDoc);
 		// Arrow functions with block bodies have internal breaks but shouldn't
@@ -2406,6 +2438,7 @@ function printCallArguments(path, options, print) {
 		return concat(['(', argumentDocs[0], ')']);
 	} // Check if we should hug arrow functions (keep params inline even when body breaks)
 	const shouldHugArrows = shouldHugArrowFunctions(args);
+	let huggedArrowDoc = null;
 
 	// For arrow functions, we want to keep params on same line as opening paren
 	// but allow the block body to break naturally
@@ -2421,9 +2454,7 @@ function printCallArguments(path, options, print) {
 		}
 
 		huggedParts.push(')');
-
-		// Don't use group - just concat to allow arrow function blocks to control breaking
-		return concat(huggedParts);
+		huggedArrowDoc = concat(huggedParts);
 	}
 
 	// Build standard breaking version with indentation
@@ -2435,12 +2466,16 @@ function printCallArguments(path, options, print) {
 		')',
 	];
 
-	// Force break only if there are explicit empty lines between arguments
 	const shouldForceBreak = anyArgumentHasEmptyLine;
+	const shouldBreakForContent = argumentDocs.some((docPart) => docPart && willBreak(docPart));
 
 	const groupedContents = group(contents, {
-		shouldBreak: shouldForceBreak,
+		shouldBreak: shouldForceBreak || shouldBreakForContent,
 	});
+
+	if (huggedArrowDoc) {
+		return conditionalGroup([huggedArrowDoc, groupedContents]);
+	}
 
 	const lastIndex = args.length - 1;
 	const lastArg = args[lastIndex];

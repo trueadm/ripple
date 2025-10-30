@@ -1360,6 +1360,46 @@ const program =
 			const result = await format(input, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should expand call arguments containing a regex literal with a block callback', async () => {
+			const input = String.raw`js.code = js.code.replace(/^(export\s+)declare\s+(function\s+\w+[^{\n]*;)$/gm, (match, p1, p2, offset) => {
+  const replacement = p1 + p2;
+  const line = offset_to_line(offset);
+  const delta = replacement.length - match.length; // negative (removing 'declare ')
+
+  // Track first change offset and total delta per line
+  if (!line_deltas.has(line)) {
+	line_deltas.set(line, { offset, delta });
+  } else {
+    // Additional change on same line - accumulate delta
+    // @ts-ignore
+    line_deltas.get(line).delta += delta;
+  }
+  return replacement;
+});`;
+
+			const expected = String.raw`js.code = js.code.replace(
+  /^(export\s+)declare\s+(function\s+\w+[^{\n]*;)$/gm,
+  (match, p1, p2, offset) => {
+    const replacement = p1 + p2;
+    const line = offset_to_line(offset);
+    const delta = replacement.length - match.length; // negative (removing 'declare ')
+
+    // Track first change offset and total delta per line
+    if (!line_deltas.has(line)) {
+      line_deltas.set(line, { offset, delta });
+    } else {
+      // Additional change on same line - accumulate delta
+      // @ts-ignore
+      line_deltas.get(line).delta += delta;
+    }
+    return replacement;
+  },
+);`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 80 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
