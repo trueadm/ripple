@@ -12,7 +12,7 @@
 		"directory": "packages/ripple-nvim-plugin"
 	},
 	"config": {
-		"ripple-language-server": "0.2.144"
+		"ripple-language-server": "0.2.148"
 	},
 	"files": [
 		"lua",
