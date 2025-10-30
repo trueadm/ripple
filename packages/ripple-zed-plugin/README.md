@@ -27,8 +27,10 @@ Once published to the Zed extensions registry:
 
 ## Language Server Setup
 
-The extension requires the Ripple Language Server to be installed. You can install it via npm:
+The extension automatically downloads the Ripple Language Server the first time it runs. The version is pinned via the `config.ripple-language-server` entry in this package's `package.json`. If you'd prefer to manage the dependency yourself, install it via npm:
 
 ```bash
 npm install -g ripple-language-server
 ```
+
+Project-local installations (`node_modules/.bin/ripple-language-server`) are also detected automatically.
