@@ -603,6 +603,60 @@ const visitors = {
 			context.state.metadata.await = true;
 		}
 
+		// Check if the try block itself contains async operations
+		const is_async = has_pending; // Only consider it async if there's a pending block for streaming
+
+		if (is_async) {
+			if (context.state.metadata?.await === false) {
+				context.state.metadata.await = true;
+			}
+
+			// Render pending block first
+			if (node.pending) {
+				const pending_body = transform_body(node.pending.body, {
+					...context,
+					state: { ...context.state, scope: context.state.scopes.get(node.pending) },
+				});
+				context.state.init.push(...pending_body);
+			}
+
+			// Create a new output for the async content
+			const async_output_body = [];
+			const async_context_state = { ...context.state, init: async_output_body };
+
+			const try_block_body = transform_body(node.block.body, {
+				...context,
+				state: { ...async_context_state, metadata: { await: false } }, // Reset metadata.await for the inner block
+			});
+
+			const catch_block_body = node.handler !== null
+				? transform_body(node.handler.body.body, {
+						...context,
+						state: { ...async_context_state, scope: context.state.scopes.get(node.handler.body) },
+					})
+				: [];
+
+			const try_catch_statements = [
+				b.try(
+					b.block(try_block_body),
+					node.handler !== null
+						? b.catch_clause(node.handler.param || b.id('error'), b.block(catch_block_body))
+						: null,
+				),
+			];
+
+			// Push the promise that resolves with the rendered content of the try/catch block
+	TryStatement(node, context) {
+		if (!is_inside_component(context)) {
+			return context.next();
+		}
+
+		// If there's a pending block, this is an async operation
+		const has_pending = node.pending !== null;
+		if (has_pending && context.state.metadata?.await === false) {
+			context.state.metadata.await = true;
+		}
+
 		const metadata = { await: false };
 		const body = transform_body(node.block.body, {
 			...context,
@@ -636,8 +690,7 @@ const visitors = {
 									}),
 								),
 							),
-						),
-					]
+						],
 					: body;
 
 			context.state.init.push(
@@ -645,6 +698,32 @@ const visitors = {
 			);
 		} else {
 			// No async, just regular try/catch
+			if (node.handler !== null) {
+				const handler_body = transform_body(node.handler.body.body, {
+					...context,
+					state: { ...context.state, scope: context.state.scopes.get(node.handler.body) },
+				});
+
+				context.state.init.push(
+					b.try(
+						b.block(body),
+						b.catch_clause(node.handler.param || b.id('error'), b.block(handler_body)),
+					),
+				);
+			} else {
+				context.state.init.push(...body);
+			}
+		}
+	},
+
+		} else {
+			// No async, just regular try/catch
+			const metadata = { await: false };
+			const body = transform_body(node.block.body, {
+				...context,
+				state: { ...context.state, metadata },
+			});
+
 			if (node.handler !== null) {
 				const handler_body = transform_body(node.handler.body.body, {
 					...context,
