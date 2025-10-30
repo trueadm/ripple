@@ -1340,6 +1340,26 @@ const program =
 			const result = await format(input, { singleQuote: true, printWidth: 30 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should properly format long jsdoc with call expressions', async () => {
+			const input = `const js = /** @type {ReturnType<typeof print> & { post_processing_changes?: PostProcessingChanges, line_offsets?: number[] }} */ (
+  print(program, language_handler, {
+    sourceMapContent: source,
+    sourceMapSource: path.basename(filename),
+  })
+);`;
+
+			const expected = `const js =
+  /** @type {ReturnType<typeof print> & { post_processing_changes?: PostProcessingChanges, line_offsets?: number[] }} */ (
+    print(program, language_handler, {
+      sourceMapContent: source,
+      sourceMapSource: path.basename(filename),
+    })
+  );`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {

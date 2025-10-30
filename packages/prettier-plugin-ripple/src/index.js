@@ -188,7 +188,17 @@ function createSkip(characters) {
 
 const skipSpaces = createSkip(' \t');
 const skipToLineEnd = createSkip(',; \t');
-const skipEverythingButNewLine = createSkip(/[^\n\r]/u);
+const skipEverythingButNewLine = createSkip(/[^\n\r\u2028\u2029]/u);
+
+function isCharNewLine(character) {
+	return (
+		character === '\n' || character === '\r' || character === '\u2028' || character === '\u2029'
+	);
+}
+
+function isCharSpace(character) {
+	return character === ' ' || character === '\t';
+}
 
 function skipInlineComment(text, startIndex) {
 	if (startIndex === false) {
@@ -217,24 +227,14 @@ function skipNewline(text, startIndex, options) {
 		if (text.charAt(startIndex - 1) === '\r' && character === '\n') {
 			return startIndex - 2;
 		}
-		if (
-			character === '\n' ||
-			character === '\r' ||
-			character === '\u2028' ||
-			character === '\u2029'
-		) {
+		if (isCharNewLine(character)) {
 			return startIndex - 1;
 		}
 	} else {
 		if (character === '\r' && text.charAt(startIndex + 1) === '\n') {
 			return startIndex + 2;
 		}
-		if (
-			character === '\n' ||
-			character === '\r' ||
-			character === '\u2028' ||
-			character === '\u2029'
-		) {
+		if (isCharNewLine(character)) {
 			return startIndex + 1;
 		}
 	}
@@ -252,6 +252,45 @@ function skipTrailingComment(text, startIndex) {
 	}
 
 	return startIndex;
+}
+
+function getNodeEndIndex(node) {
+	if (node?.loc?.end && typeof node.loc.end.index === 'number') {
+		return node.loc.end.index;
+	}
+	if (typeof node?.end === 'number') {
+		return node.end;
+	}
+	if (Array.isArray(node?.range) && typeof node.range[1] === 'number') {
+		return node.range[1];
+	}
+	return null;
+}
+
+function isCommentFollowedBySameLineParen(comment, options) {
+	if (!comment || !options || typeof options.originalText !== 'string') {
+		return false;
+	}
+
+	const text = options.originalText;
+	const endIndex = getNodeEndIndex(comment);
+	if (typeof endIndex !== 'number') {
+		return false;
+	}
+
+	let cursor = endIndex;
+	while (cursor < text.length) {
+		const character = text.charAt(cursor);
+		if (character === '(') {
+			return true;
+		}
+		if (isCharNewLine(character) || !isCharSpace(character)) {
+			return false;
+		}
+		cursor++;
+	}
+
+	return false;
 }
 
 function hasNewline(text, startIndex, options) {
@@ -419,10 +458,13 @@ function printRippleNode(node, path, options, print, args) {
 				parts.push('/*' + comment.value + '*/');
 
 				// Check if comment and node are on the same line (for inline JSDoc comments)
+				const isCommentInlineWithParen =
+					isLastComment && isCommentFollowedBySameLineParen(comment, options);
 				const isCommentOnSameLine =
 					isLastComment && comment.loc && node.loc && comment.loc.end.line === node.loc.start.line;
+				const shouldKeepOnSameLine = isCommentOnSameLine || isCommentInlineWithParen;
 
-				if (!isInlineContext && !isCommentOnSameLine) {
+				if (!isInlineContext && !shouldKeepOnSameLine) {
 					parts.push(hardline);
 
 					// Check if there should be blank lines between this comment and the next
@@ -2399,6 +2441,41 @@ function printCallArguments(path, options, print) {
 	const groupedContents = group(contents, {
 		shouldBreak: shouldForceBreak,
 	});
+
+	const lastIndex = args.length - 1;
+	const lastArg = args[lastIndex];
+	const lastArgDoc = argumentDocs[lastIndex];
+	const lastArgBreaks = lastArgDoc ? willBreak(lastArgDoc) : false;
+	const previousArgsBreak =
+		lastIndex > 0 ? argumentBreakFlags.slice(0, lastIndex).some(Boolean) : false;
+	const isExpandableLastArgType =
+		lastArg &&
+		(lastArg.type === 'ObjectExpression' ||
+			lastArg.type === 'TrackedObjectExpression' ||
+			lastArg.type === 'ArrayExpression' ||
+			lastArg.type === 'TrackedArrayExpression');
+
+	const canInlineLastArg =
+		args.length > 1 &&
+		isExpandableLastArgType &&
+		lastArgBreaks &&
+		!previousArgsBreak &&
+		!anyArgumentHasEmptyLine &&
+		!hasComment(lastArg);
+
+	if (canInlineLastArg) {
+		const inlineParts = ['('];
+		for (let index = 0; index < argumentDocs.length; index++) {
+			if (index > 0) {
+				inlineParts.push(', ');
+			}
+			inlineParts.push(argumentDocs[index]);
+		}
+		inlineParts.push(')');
+
+		return conditionalGroup([concat(inlineParts), groupedContents]);
+	}
+
 	if (!anyArgumentHasEmptyLine && shouldHugLastArgument(args, argumentBreakFlags)) {
 		const lastIndex = args.length - 1;
 		const inlineParts = ['('];
