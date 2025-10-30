@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "",
 	"scripts": {
-		"build": "node ./scripts/build.js && copy Ripple.sublime-package \"C:\\Users\\yusyu\\AppData\\Roaming\\Sublime Text\\Installed Packages\""
+		"build": "cd src/language-server && npm install --package-lock-only && cd ../.. && node ./scripts/build.js"
 	},
 	"author": "Dominic Gannaway",
 	"license": "MIT",
@@ -11,7 +11,7 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/trueadm/ripple.git",
-		"directory": "packages/ripple-language-server"
+		"directory": "packages/ripple-sublime-text-plugin"
 	},
 	"devDependencies": {
 		"@types/adm-zip": "^0.5.7",
