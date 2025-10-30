@@ -1029,8 +1029,17 @@ function printRippleNode(node, path, options, print, args) {
 			let callContent = concat(parts);
 
 			// Preserve parentheses for type-annotated call expressions
+			// When parenthesized with leading comments, use grouping to allow breaking
 			if (node.metadata?.parenthesized) {
-				callContent = concat(['(', callContent, ')']);
+				const hasLeadingComments = node.leadingComments && node.leadingComments.length > 0;
+				if (hasLeadingComments) {
+					// Group with softline to allow breaking after opening paren
+					callContent = group(
+						concat(['(', indent(concat([softline, callContent])), softline, ')']),
+					);
+				} else {
+					callContent = concat(['(', callContent, ')']);
+				}
 			}
 			nodeContent = callContent;
 			break;
