@@ -4,6 +4,16 @@ local SERVER_NAME = "ripple"
 local LSP_PACKAGE = "ripple-language-server"
 local EXACT_VERSION_PATTERN = "^%d+%.%d+%.%d+$"
 
+local function is_windows()
+	local uname = vim.loop.os_uname()
+	return uname and uname.version and uname.version:match("Windows")
+end
+
+local function file_exists(path)
+	local stat = vim.loop.fs_stat(path)
+	return stat and stat.type == "file"
+end
+
 local function plugin_package_json_path()
 	local plugin_root = debug.getinfo(1, "S").source:sub(2)
 	return vim.fs.find("package.json", { upward = true, path = vim.fs.dirname(plugin_root) })[1]
@@ -68,7 +78,67 @@ local function installed_version(install_dir)
 	return pkg.version
 end
 
+local function local_server_binary()
+	local buf = vim.api.nvim_buf_get_name(0)
+	local start_dir = buf ~= "" and vim.fs.dirname(buf) or vim.loop.cwd()
+
+	if not start_dir then
+		return nil
+	end
+
+	local node_modules_dir = vim.fs.find("node_modules", {
+		upward = true,
+		path = start_dir,
+		type = "directory",
+		limit = 1,
+	})[1]
+
+	if not node_modules_dir then
+		return nil
+	end
+
+	local base = node_modules_dir .. "/.bin/" .. LSP_PACKAGE
+	if file_exists(base) then
+		return base
+	end
+
+	if is_windows() and file_exists(base .. ".cmd") then
+		return base .. ".cmd"
+	end
+
+	return nil
+end
+
+local function global_server_binary()
+	local exepath = vim.fn.exepath(LSP_PACKAGE)
+	if type(exepath) == "string" and exepath ~= "" then
+		return exepath
+	end
+
+	if is_windows() then
+		local with_cmd = LSP_PACKAGE .. ".cmd"
+		if vim.fn.executable(with_cmd) == 1 then
+			local cmd_path = vim.fn.exepath(with_cmd)
+			if type(cmd_path) == "string" and cmd_path ~= "" then
+				return cmd_path
+			end
+		end
+	end
+
+	return nil
+end
+
 local function ensure_server_binary()
+	local bin = local_server_binary()
+	if bin then
+		return bin
+	end
+
+	bin = global_server_binary()
+	if bin then
+		return bin
+	end
+
 	local required_version, err = resolve_required_version()
 	if not required_version then
 		vim.notify("[ripple] " .. err, vim.log.levels.ERROR)
@@ -76,9 +146,9 @@ local function ensure_server_binary()
 	end
 
 	local install_dir = vim.fn.stdpath("data") .. "/" .. LSP_PACKAGE
-	local bin = install_dir .. "/node_modules/.bin/" .. LSP_PACKAGE
+	bin = install_dir .. "/node_modules/.bin/" .. LSP_PACKAGE
 
-	if vim.loop.os_uname().version:match("Windows") then
+	if is_windows() then
 		bin = bin .. ".cmd"
 	end
 
