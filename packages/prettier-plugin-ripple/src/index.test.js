@@ -1307,7 +1307,7 @@ const program = /** @type {Program} */ (
 			expect(result).toBeWithNewline(expected);
 		});
 
-		it.skip('should break up call expressions on new lines with inline jsdoc comments with printWidth 30', async () => {
+		it('should break up call expressions on new lines with inline jsdoc comments with printWidth 30', async () => {
 			const input = `for (const quasi of template.quasis) {
   quasi.value.raw = sanitize_template_string(/** @type {string} */ (quasi.value.cooked));
 }

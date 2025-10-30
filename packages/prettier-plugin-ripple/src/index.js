@@ -987,7 +987,32 @@ function printRippleNode(node, path, options, print, args) {
 			if (node.left.metadata?.parenthesized) {
 				leftPart = concat(['(', leftPart, ')']);
 			}
-			nodeContent = concat([leftPart, ' ', node.operator, ' ', path.call(print, 'right')]);
+			// For CallExpression on the right with JSDoc comments, use fluid layout strategy
+			const rightSide = path.call(print, 'right');
+			if (node.right.type === 'CallExpression') {
+				// Check if the call has leading comments (JSDoc type assertion on parenthesized call)
+				const callHasComments = node.right.leadingComments && node.right.leadingComments.length > 0;
+				// Check if arguments have leading comments (JSDoc type assertions)
+				const hasCommentedArgs =
+					node.right.arguments &&
+					node.right.arguments.some((arg) => arg.leadingComments && arg.leadingComments.length > 0);
+				if (callHasComments || hasCommentedArgs) {
+					// Use fluid layout: break right side first, then break after operator if needed
+					const groupId = Symbol('assignment');
+					nodeContent = group([
+						group(leftPart),
+						' ',
+						node.operator,
+						group(indent(line), { id: groupId }),
+						indentIfBreak(rightSide, { groupId }),
+					]);
+				} else {
+					// Otherwise, keep inline
+					nodeContent = concat([leftPart, ' ', node.operator, ' ', rightSide]);
+				}
+			} else {
+				nodeContent = concat([leftPart, ' ', node.operator, ' ', rightSide]);
+			}
 			break;
 		}
 
@@ -2868,7 +2893,13 @@ function printMemberExpression(node, path, options, print) {
 
 	// Preserve parentheses around the entire member expression when present
 	if (node.metadata?.parenthesized) {
-		result = concat(['(', result, ')']);
+		// Check if there are leading comments - if so, use group with softlines to allow breaking
+		const hasLeadingComments = node.leadingComments && node.leadingComments.length > 0;
+		if (hasLeadingComments) {
+			result = group(concat(['(', indent(concat([softline, result])), softline, ')']));
+		} else {
+			result = concat(['(', result, ')']);
+		}
 	}
 
 	return result;
@@ -3582,6 +3613,27 @@ function printVariableDeclarator(node, path, options, print) {
 					concat([id, ' = ', init]),
 					// Fall back to broken with extra indent
 					concat([id, ' =', indent(concat([line, init]))]),
+				]);
+			}
+		}
+
+		// For CallExpression inits with JSDoc comments, use fluid layout strategy
+		const isCallExpression = node.init.type === 'CallExpression';
+		if (isCallExpression) {
+			// Check if the call has leading comments (JSDoc type assertion on parenthesized call)
+			const callHasComments = node.init.leadingComments && node.init.leadingComments.length > 0;
+			// Check if arguments have leading comments (JSDoc type assertions)
+			const hasCommentedArgs =
+				node.init.arguments &&
+				node.init.arguments.some((arg) => arg.leadingComments && arg.leadingComments.length > 0);
+			if (callHasComments || hasCommentedArgs) {
+				// Use fluid layout: break right side first, then break after = if needed
+				const groupId = Symbol('declaration');
+				return group([
+					group(id),
+					' =',
+					group(indent(line), { id: groupId }),
+					indentIfBreak(init, { groupId }),
 				]);
 			}
 		}
