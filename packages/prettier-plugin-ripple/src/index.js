@@ -1426,9 +1426,16 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
-		case 'BinaryExpression':
+		case 'BinaryExpression': {
+			// Check if we're in an assignment/declaration context where parent handles indentation
+			const parent = path.getParentNode();
+			const shouldNotIndent =
+				parent &&
+				(parent.type === 'VariableDeclarator' ||
+					parent.type === 'AssignmentExpression' ||
+					parent.type === 'AssignmentPattern');
+
 			// Don't add indent if we're in a conditional test context
-			// If we're told not to break (e.g., in variable declarator), keep inline
 			if (args?.isConditionalTest) {
 				nodeContent = group(
 					concat([
@@ -1441,15 +1448,16 @@ function printRippleNode(node, path, options, print, args) {
 						]),
 					]),
 				);
-			} else if (args?.noBreak) {
-				// Don't break the binary expression itself - keep it inline
-				nodeContent = concat([
-					path.call((childPath) => print(childPath, { noBreak: true }), 'left'),
-					' ',
-					node.operator,
-					' ',
-					path.call((childPath) => print(childPath, { noBreak: true }), 'right'),
-				]);
+			} else if (shouldNotIndent) {
+				// In assignment context, don't add indent - parent will handle it
+				nodeContent = group(
+					concat([
+						path.call(print, 'left'),
+						' ',
+						node.operator,
+						concat([line, path.call(print, 'right')]),
+					]),
+				);
 			} else {
 				nodeContent = group(
 					concat([
@@ -1461,7 +1469,7 @@ function printRippleNode(node, path, options, print, args) {
 				);
 			}
 			break;
-
+		}
 		case 'LogicalExpression':
 			// Don't add indent if we're in a conditional test context
 			if (args?.isConditionalTest) {
@@ -2625,18 +2633,19 @@ function printFunctionDeclaration(node, path, options, print) {
 }
 
 function printIfStatement(node, path, options, print) {
-	const parts = [];
-	parts.push('if (');
-	parts.push(path.call(print, 'test'));
-	parts.push(') ');
-	parts.push(path.call(print, 'consequent'));
+	const test = path.call(print, 'test');
+	const consequent = path.call(print, 'consequent');
+
+	// Use group to allow breaking the test when it doesn't fit
+	const testDoc = group(concat(['if (', indent(concat([softline, test])), softline, ')']));
+
+	const parts = [testDoc, ' ', consequent];
 
 	if (node.alternate) {
-		parts.push(' else ');
-		parts.push(path.call(print, 'alternate'));
+		parts.push(' else ', path.call(print, 'alternate'));
 	}
 
-	return parts;
+	return concat(parts);
 }
 
 function printForOfStatement(node, path, options, print) {
@@ -3775,33 +3784,21 @@ function printVariableDeclarator(node, path, options, print) {
 			}
 		}
 
-		// For BinaryExpression or LogicalExpression, use fluid layout
-		// This ensures the whole expression breaks to next line rather than breaking mid-expression
+		// For BinaryExpression or LogicalExpression, use break-after-operator layout
+		// This allows the expression to break naturally based on print width
 		const isBinaryish =
 			node.init.type === 'BinaryExpression' || node.init.type === 'LogicalExpression';
 		if (isBinaryish) {
-			// Print the init with noBreak to prevent internal breaking
-			const initNoBreak = path.call((initPath) => print(initPath, { noBreak: true }), 'init');
-			// Use fluid layout: try to break right side first, then break after = if needed
-			const groupId = Symbol('declaration');
-			return group([
-				group(id),
-				' =',
-				group(indent(line), { id: groupId }),
-				indentIfBreak(initNoBreak, { groupId }),
-			]);
+			// Use Prettier's break-after-operator strategy: break after = and let the expression break naturally
+			const init = path.call(print, 'init');
+			return group([group(id), ' =', group(indent(concat([line, init])))]);
 		}
-
-		// For CallExpression inits with JSDoc comments, use fluid layout strategy
+		// For CallExpression inits, use fluid layout strategy to break after = if needed
 		const isCallExpression = node.init.type === 'CallExpression';
 		if (isCallExpression) {
-			// Check if the call has leading comments (JSDoc type assertion on parenthesized call)
-			const callHasComments = node.init.leadingComments && node.init.leadingComments.length > 0;
-			// Check if arguments have leading comments (JSDoc type assertions)
-			const hasCommentedArgs =
-				node.init.arguments &&
-				node.init.arguments.some((arg) => arg.leadingComments && arg.leadingComments.length > 0);
-			if (callHasComments || hasCommentedArgs) {
+			// Always use fluid layout for call expressions
+			// This allows breaking after = when the whole line doesn't fit
+			{
 				// Use fluid layout: break right side first, then break after = if needed
 				const groupId = Symbol('declaration');
 				return group([
