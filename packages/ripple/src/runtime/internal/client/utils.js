@@ -1,3 +1,5 @@
+/** @import { NAMESPACE_URI } from './constants.js' */
+
 /** @type {typeof Object.getOwnPropertyDescriptor} */
 export var get_descriptor = Object.getOwnPropertyDescriptor;
 /** @type {typeof Object.getOwnPropertyDescriptors} */
@@ -42,4 +44,20 @@ export function create_anchor() {
  */
 export function is_tracked_object(v) {
 	return typeof v === 'object' && v !== null && typeof (/** @type {any} */ (v).f) === 'number';
+}
+
+/**
+ * Converts a tag name to its corresponding namespace.
+ * @param {keyof SVGElementTagNameMap | keyof MathMLElementTagNameMap | keyof HTMLElementTagNameMap} element
+ * @param {keyof typeof NAMESPACE_URI} current_namespace
+ * @returns {keyof typeof NAMESPACE_URI}
+ */
+export function top_element_to_ns(element, current_namespace) {
+	if (element === 'svg') {
+		return 'svg';
+	} else if (element === 'math') {
+		return 'mathml';
+	} else {
+		return current_namespace;
+	}
 }

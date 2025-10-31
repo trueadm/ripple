@@ -331,6 +331,35 @@ describe('SVG namespace handling', () => {
 		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
 	});
 
+	it('should render SVG as a dynamic top element with any dynamic children elements', () => {
+		component SVG({ children }) {
+			const tag = track('svg');
+			<@tag width={100} height={50} fill="red" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<children />
+			</@tag>
+		}
+
+		component Polygon({ points }) {
+			let dynTag = track('polygon');
+			<@dynTag {points} />
+		}
+
+		component App() {
+			let Component = track(() => Polygon);
+			<SVG>
+				<@Component points="0,0 30,0 15,10" />
+			</SVG>
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
 	it('should compare static vs dynamic SVG rendering (original problem case)', () => {
 		component App() {
 			const d = [

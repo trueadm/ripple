@@ -50,7 +50,7 @@ export let active_reaction = null;
 export let active_scope = null;
 /** @type {null | Component} */
 export let active_component = null;
-/** @type {keyof NAMESPACE_URI} */
+/** @type {keyof typeof NAMESPACE_URI} */
 export let active_namespace = DEFAULT_NAMESPACE;
 /** @type {boolean} */
 export let is_mutating_allowed = true;
@@ -1170,7 +1170,7 @@ export function pop_component() {
 /**
  * @template T
  * @param {() => T} fn
- * @param {keyof NAMESPACE_URI} namespace
+ * @param {keyof typeof NAMESPACE_URI} namespace
  * @returns {T}
  */
 export function with_ns(namespace, fn) {
