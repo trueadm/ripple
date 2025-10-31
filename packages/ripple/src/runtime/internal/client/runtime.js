@@ -145,10 +145,13 @@ export function run_teardown(block) {
  */
 export function with_block(block, fn) {
 	var prev_block = active_block;
+	var previous_component = active_component;
 	active_block = block;
+	active_component = block.co;
 	try {
 		return fn();
 	} finally {
+		active_component = previous_component;
 		active_block = prev_block;
 	}
 }
