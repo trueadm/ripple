@@ -32,9 +32,11 @@ export function jsxs(
  */
 export function Fragment(props: { children?: any }): void;
 
+export type ClassValue = string | import('clsx').ClassArray | import('clsx').ClassDictionary;
+
 // Base HTML attributes
 interface HTMLAttributes {
-	class?: string;
+	class?: ClassValue | undefined | null;
 	className?: string;
 	id?: string;
 	style?: string | Record<string, string | number>;
