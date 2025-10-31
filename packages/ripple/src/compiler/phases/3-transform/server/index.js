@@ -120,14 +120,23 @@ const visitors = {
 			component_fn = b.async(component_fn);
 		}
 
-		const declaration = b.function_declaration(node.id, component_fn.params, component_fn.body, component_fn.async);
+		const declaration = b.function_declaration(
+			node.id,
+			component_fn.params,
+			component_fn.body,
+			component_fn.async,
+		);
 
 		if (metadata.await) {
 			const parent = context.path.at(-1);
 			if (parent.type === 'Program' || parent.type === 'BlockStatement') {
 				const body = parent.body;
 				const index = body.indexOf(node);
-				body.splice(index + 1, 0, b.stmt(b.assignment('=', b.member(node.id, b.id('async')), b.true)));
+				body.splice(
+					index + 1,
+					0,
+					b.stmt(b.assignment('=', b.member(node.id, b.id('async')), b.true)),
+				);
 			}
 		}
 
@@ -281,10 +290,11 @@ const visitors = {
 			let class_attribute = null;
 
 			const handle_static_attr = (name, value) => {
-				const attr_str = ` ${name}${is_boolean_attribute(name) && value === true
+				const attr_str = ` ${name}${
+					is_boolean_attribute(name) && value === true
 						? ''
 						: `="${value === true ? '' : escape_html(value, true)}"`
-					}`;
+				}`;
 
 				if (is_spreading) {
 					// For spread attributes, store just the actual value, not the full attribute string
@@ -566,14 +576,12 @@ const visitors = {
 			return b.call(
 				'set',
 				context.visit(left, { ...context.state, metadata: { tracking: false } }),
-				context.visit(node.right)
+				context.visit(node.right),
 			);
 		}
 
 		return context.next();
 	},
-
-
 
 	ServerIdentifier(node, context) {
 		return b.id('_$_server_$_');
@@ -592,7 +600,7 @@ const visitors = {
 		};
 	},
 
-		TryStatement(node, context) {
+	TryStatement(node, context) {
 		if (!is_inside_component(context)) {
 			return context.next();
 		}
@@ -631,21 +639,22 @@ const visitors = {
 			const try_statements =
 				node.handler !== null
 					? [
-						b.try(
-							b.block(body),
-							b.catch_clause(
-								node.handler.param || b.id('error'),
-								b.block(
-									transform_body(node.handler.body.body, {
-										...context,
-										state: {
-											...context.state,
-											scope: context.state.scopes.get(node.handler.body),
-										},
-									}),
+							b.try(
+								b.block(body),
+								b.catch_clause(
+									node.handler.param || b.id('error'),
+									b.block(
+										transform_body(node.handler.body.body, {
+											...context,
+											state: {
+												...context.state,
+												scope: context.state.scopes.get(node.handler.body),
+											},
+										}),
+									),
 								),
 							),
-						)]
+						]
 					: body;
 
 			context.state.init.push(
@@ -668,11 +677,12 @@ const visitors = {
 			} else {
 				context.state.init.push(...body);
 			}
-		}	},
+		}
+	},
 
 	AwaitExpression(node, context) {
-		context.state.scope.server_block = true
-		context.inside_server_block = true
+		context.state.scope.server_block = true;
+		context.inside_server_block = true;
 		if (context.state.to_ts) {
 			return context.next();
 		}
@@ -722,7 +732,9 @@ const visitors = {
 
 		if (expression.type === 'Literal') {
 			state.init.push(
-				b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(escape(expression.value)))),
+				b.stmt(
+					b.call(b.member(b.id('__output'), b.id('push')), b.literal(escape(expression.value))),
+				),
 			);
 		} else {
 			state.init.push(
@@ -817,7 +829,6 @@ export function transform_server(filename, source, analysis) {
 	}
 
 	// Add async property to component functions
-
 
 	for (const import_node of state.imports) {
 		program.body.unshift(b.stmt(b.id(import_node)));
