@@ -1035,37 +1035,24 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 
 		case 'AssignmentExpression': {
-			let leftPart = path.call(print, 'left');
+			// Print left side with noBreakInside context to keep calls compact
+			let leftPart = path.call((p) => print(p, { noBreakInside: true }), 'left');
 			// Preserve parentheses around the left side when present
 			if (node.left.metadata?.parenthesized) {
 				leftPart = concat(['(', leftPart, ')']);
 			}
 			// For CallExpression on the right with JSDoc comments, use fluid layout strategy
 			const rightSide = path.call(print, 'right');
-			if (node.right.type === 'CallExpression') {
-				// Check if the call has leading comments (JSDoc type assertion on parenthesized call)
-				const callHasComments = node.right.leadingComments && node.right.leadingComments.length > 0;
-				// Check if arguments have leading comments (JSDoc type assertions)
-				const hasCommentedArgs =
-					node.right.arguments &&
-					node.right.arguments.some((arg) => arg.leadingComments && arg.leadingComments.length > 0);
-				if (callHasComments || hasCommentedArgs) {
-					// Use fluid layout: break right side first, then break after operator if needed
-					const groupId = Symbol('assignment');
-					nodeContent = group([
-						group(leftPart),
-						' ',
-						node.operator,
-						group(indent(line), { id: groupId }),
-						indentIfBreak(rightSide, { groupId }),
-					]);
-				} else {
-					// Otherwise, keep inline
-					nodeContent = concat([leftPart, ' ', node.operator, ' ', rightSide]);
-				}
-			} else {
-				nodeContent = concat([leftPart, ' ', node.operator, ' ', rightSide]);
-			}
+
+			// Use fluid layout for assignments: allows breaking after operator first
+			const groupId = Symbol('assignment');
+			nodeContent = group([
+				group(leftPart),
+				' ',
+				node.operator,
+				group(indent(line), { id: groupId }),
+				indentIfBreak(rightSide, { groupId }),
+			]);
 			break;
 		}
 
@@ -1441,6 +1428,7 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'BinaryExpression':
 			// Don't add indent if we're in a conditional test context
+			// If we're told not to break (e.g., in variable declarator), keep inline
 			if (args?.isConditionalTest) {
 				nodeContent = group(
 					concat([
@@ -1453,6 +1441,15 @@ function printRippleNode(node, path, options, print, args) {
 						]),
 					]),
 				);
+			} else if (args?.noBreak) {
+				// Don't break the binary expression itself - keep it inline
+				nodeContent = concat([
+					path.call((childPath) => print(childPath, { noBreak: true }), 'left'),
+					' ',
+					node.operator,
+					' ',
+					path.call((childPath) => print(childPath, { noBreak: true }), 'right'),
+				]);
 			} else {
 				nodeContent = group(
 					concat([
@@ -2395,6 +2392,16 @@ function printCallArguments(path, options, print) {
 		return '()';
 	}
 
+	// Check if last argument can be expanded (object or array)
+	const finalArg = args[args.length - 1];
+	const couldExpandLastArg =
+		finalArg &&
+		(finalArg.type === 'ObjectExpression' ||
+			finalArg.type === 'TrackedObjectExpression' ||
+			finalArg.type === 'ArrayExpression' ||
+			finalArg.type === 'TrackedArrayExpression') &&
+		!hasComment(finalArg);
+
 	const printedArguments = [];
 	const argumentDocs = [];
 	const argumentBreakFlags = [];
@@ -2404,6 +2411,8 @@ function printCallArguments(path, options, print) {
 		const isLast = index === args.length - 1;
 		const argumentNode = args[index];
 		const printOptions = isBlockLikeFunction(argumentNode) ? undefined : { isInlineContext: true };
+
+		// Print normally (not with expandLastArg yet - we'll do that later if needed)
 		const argumentDoc = print(argumentPath, printOptions);
 
 		argumentDocs.push(argumentDoc);
@@ -2423,7 +2432,6 @@ function printCallArguments(path, options, print) {
 			printedArguments.push(argumentDoc);
 		}
 	}, 'arguments');
-
 	const trailingComma = shouldPrintComma(options, 'all') ? ',' : '';
 
 	// Special case: single array argument should keep opening bracket inline
@@ -2489,6 +2497,44 @@ function printCallArguments(path, options, print) {
 			lastArg.type === 'TrackedObjectExpression' ||
 			lastArg.type === 'ArrayExpression' ||
 			lastArg.type === 'TrackedArrayExpression');
+
+	// Check if we should expand the last argument (like Prettier's shouldExpandLastArg)
+	const shouldExpandLast =
+		args.length > 1 && couldExpandLastArg && !previousArgsBreak && !anyArgumentHasEmptyLine;
+
+	if (shouldExpandLast) {
+		const headArgs = argumentDocs.slice(0, -1);
+
+		// Re-print the last arg with expandLastArg: true
+		const expandedLastArg = path.call(
+			(argPath) => print(argPath, { isInlineContext: true, expandLastArg: true }),
+			'arguments',
+			lastIndex,
+		);
+
+		// Build the inline version: head args inline + expanded last arg
+		const inlinePartsWithExpanded = ['('];
+		for (let index = 0; index < headArgs.length; index++) {
+			if (index > 0) {
+				inlinePartsWithExpanded.push(', ');
+			}
+			inlinePartsWithExpanded.push(headArgs[index]);
+		}
+		if (headArgs.length > 0) {
+			inlinePartsWithExpanded.push(', ');
+		}
+		inlinePartsWithExpanded.push(group(expandedLastArg, { shouldBreak: true }));
+		inlinePartsWithExpanded.push(')');
+
+		return conditionalGroup([
+			// Try with normal formatting first
+			concat(['(', ...argumentDocs.flatMap((doc, i) => (i > 0 ? [', ', doc] : [doc])), ')']),
+			// Then try with expanded last arg
+			concat(inlinePartsWithExpanded),
+			// Finally fall back to all args broken out
+			groupedContents,
+		]);
+	}
 
 	const canInlineLastArg =
 		args.length > 1 &&
@@ -3729,6 +3775,23 @@ function printVariableDeclarator(node, path, options, print) {
 			}
 		}
 
+		// For BinaryExpression or LogicalExpression, use fluid layout
+		// This ensures the whole expression breaks to next line rather than breaking mid-expression
+		const isBinaryish =
+			node.init.type === 'BinaryExpression' || node.init.type === 'LogicalExpression';
+		if (isBinaryish) {
+			// Print the init with noBreak to prevent internal breaking
+			const initNoBreak = path.call((initPath) => print(initPath, { noBreak: true }), 'init');
+			// Use fluid layout: try to break right side first, then break after = if needed
+			const groupId = Symbol('declaration');
+			return group([
+				group(id),
+				' =',
+				group(indent(line), { id: groupId }),
+				indentIfBreak(initNoBreak, { groupId }),
+			]);
+		}
+
 		// For CallExpression inits with JSDoc comments, use fluid layout strategy
 		const isCallExpression = node.init.type === 'CallExpression';
 		if (isCallExpression) {
@@ -3750,7 +3813,9 @@ function printVariableDeclarator(node, path, options, print) {
 			}
 		}
 
-		return concat([id, ' = ', init]);
+		// Default: simple inline format with space
+		// Use group to allow breaking if needed - but keep inline when it fits
+		return group(concat([id, ' = ', init]));
 	}
 
 	return path.call(print, 'id');
