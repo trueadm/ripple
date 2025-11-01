@@ -1,0 +1,201 @@
+==================
+Dynamic Component
+==================
+
+component App() {
+  let Current = track(() => ComponentA);
+  <@Current />
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (variable_declaration
+        (variable_declarator
+          name: (identifier)
+          (call_expression
+            function: (identifier)
+            arguments: (arguments
+              (arrow_function
+                body: (identifier))))))
+      (jsx_self_closing_element
+        name: (unbox_expression
+          (identifier))))))
+
+==================
+Dynamic Element
+==================
+
+component App() {
+  let tag = track('div');
+  <@tag>{'content'}</@tag>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (variable_declaration
+        (variable_declarator
+          name: (identifier)
+          (call_expression
+            function: (identifier)
+            arguments: (arguments (string)))))
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (unbox_expression
+            (identifier)))
+        children: (jsx_expression (string))
+        close_tag: (jsx_closing_element
+          name: (unbox_expression
+            (identifier)))))))
+
+==================
+JSX Attributes
+==================
+
+component App() {
+  <div class="container" id={id} {...props} />
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (jsx_self_closing_element
+        name: (identifier)
+        attribute: (jsx_attribute
+          name: (identifier)
+          value: (string))
+        attribute: (jsx_attribute
+          name: (identifier)
+          value: (jsx_expression
+            (identifier)))
+        attribute: (jsx_expression
+          (spread_element
+            (identifier)))))))
+
+==================
+Ref Attribute
+==================
+
+component App() {
+  <div {ref (node) => console.log(node)}>{'content'}</div>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier)
+          attribute: (jsx_expression
+            (arrow_function
+              parameter: (identifier)
+              body: (call_expression
+                function: (member_expression
+                  object: (identifier)
+                  property: (identifier))
+                arguments: (arguments
+                  (identifier))))))
+        children: (jsx_expression (string))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))
+
+==================
+JSX Member Expression
+==================
+
+component App() {
+  <Namespace.Component />
+  <obj.@trackedProp />
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (jsx_self_closing_element
+        name: (jsx_member_name
+          (identifier)
+          (identifier)))
+      (jsx_self_closing_element
+        name: (jsx_member_name
+          (identifier)
+          (identifier))))))
+
+==================
+Style Element
+==================
+
+component App() {
+  <div>{'content'}</div>
+  <style>
+    div { color: red; }
+  </style>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier))
+        children: (jsx_expression (string))
+        close_tag: (jsx_closing_element
+          name: (identifier)))
+      (style_element
+        (raw_text)))))
+
+==================
+Server Block
+==================
+
+component App() {
+  #server {
+    let data = fetchData();
+  }
+  <div>{'content'}</div>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (server_block
+        (variable_declaration
+          (variable_declarator
+            name: (identifier)
+            (call_expression
+              function: (identifier)
+              arguments: (arguments)))))
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier))
+        children: (jsx_expression (string))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))

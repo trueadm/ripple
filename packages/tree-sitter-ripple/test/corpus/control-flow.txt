@@ -1,0 +1,213 @@
+==================
+For-of Loop
+==================
+
+component List({ items }) {
+  <ul>
+    for (const item of items) {
+      <li>{item.text}</li>
+    }
+  </ul>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter
+        pattern: (object_pattern
+          (shorthand_property_identifier_pattern))))
+    body: (component_body
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier))
+        children: (for_of_statement
+          (identifier)
+          (identifier)
+          right: (identifier)
+          body: (jsx_element
+            open_tag: (jsx_opening_element
+              name: (identifier))
+            children: (jsx_expression
+              (member_expression
+                object: (identifier)
+                property: (identifier)))
+            close_tag: (jsx_closing_element
+              name: (identifier))))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))
+
+==================
+For-of with index and key
+==================
+
+component List({ items }) {
+  <ul>
+    for (const item of items; index i; key item.id) {
+      <li>{item.text}</li>
+    }
+  </ul>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter
+        pattern: (object_pattern
+          (shorthand_property_identifier_pattern))))
+    body: (component_body
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier))
+        children: (for_of_statement
+          (identifier)
+          (identifier)
+          right: (identifier)
+          body: (jsx_element
+            open_tag: (jsx_opening_element
+              name: (identifier))
+            children: (jsx_expression
+              (member_expression
+                object: (identifier)
+                property: (identifier)))
+            close_tag: (jsx_closing_element
+              name: (identifier))))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))
+
+==================
+If Statement in Template
+==================
+
+component App({ show }) {
+  if (show) {
+    <div>{'Visible'}</div>
+  } else {
+    <div>{'Hidden'}</div>
+  }
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter
+        pattern: (object_pattern
+          (shorthand_property_identifier_pattern))))
+    body: (component_body
+      (if_statement
+        condition: (parenthesized_expression
+          (identifier))
+        consequence: (jsx_element
+          open_tag: (jsx_opening_element
+            name: (identifier))
+          children: (jsx_expression (string))
+          close_tag: (jsx_closing_element
+            name: (identifier)))
+        alternative: (jsx_element
+          open_tag: (jsx_opening_element
+            name: (identifier))
+          children: (jsx_expression (string))
+          close_tag: (jsx_closing_element
+            name: (identifier)))))))
+
+==================
+Switch in Template
+==================
+
+component Status({ status }) {
+  switch (status) {
+    case 'loading':
+      <p>{'Loading...'}</p>
+      break;
+    case 'success':
+      <p>{'Success!'}</p>
+      break;
+    default:
+      <p>{'Unknown'}</p>
+  }
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter
+        pattern: (object_pattern
+          (shorthand_property_identifier_pattern))))
+    body: (component_body
+      (switch_statement
+        value: (parenthesized_expression
+          (identifier))
+        body: (switch_body
+          (switch_case
+            value: (string)
+            (jsx_element
+              open_tag: (jsx_opening_element
+                name: (identifier))
+              children: (jsx_expression (string))
+              close_tag: (jsx_closing_element
+                name: (identifier)))
+            (break_statement))
+          (switch_case
+            value: (string)
+            (jsx_element
+              open_tag: (jsx_opening_element
+                name: (identifier))
+              children: (jsx_expression (string))
+              close_tag: (jsx_closing_element
+                name: (identifier)))
+            (break_statement))
+          (switch_default
+            (jsx_element
+              open_tag: (jsx_opening_element
+                name: (identifier))
+              children: (jsx_expression (string))
+              close_tag: (jsx_closing_element
+                name: (identifier)))))))))
+
+==================
+Try-Catch Error Boundary
+==================
+
+component App() {
+  try {
+    <ComponentThatMayFail />
+  } catch (e) {
+    <div>{'Error: '}{e.message}</div>
+  }
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (try_statement
+        body: (statement_block
+          (jsx_self_closing_element
+            name: (identifier)))
+        handler: (catch_clause
+          parameter: (identifier)
+          body: (statement_block
+            (jsx_element
+              open_tag: (jsx_opening_element
+                name: (identifier))
+              children: (jsx_expression (string))
+              children: (jsx_expression
+                (member_expression
+                  object: (identifier)
+                  property: (identifier)))
+              close_tag: (jsx_closing_element
+                name: (identifier)))))))))

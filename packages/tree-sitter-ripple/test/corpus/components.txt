@@ -1,0 +1,126 @@
+==================
+Component Declaration
+==================
+
+component Button(props: { text: string }) {
+  <button>{props.text}</button>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter
+        pattern: (identifier)
+        (type_annotation
+          (object_type
+            (property_signature
+              name: (identifier)
+              (type_annotation (predefined_type)))))))
+    body: (component_body
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier))
+        children: (jsx_expression
+          (member_expression
+            object: (identifier)
+            property: (identifier)))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))
+
+==================
+Export Component
+==================
+
+export component App() {
+  <div>{'Hello World'}</div>
+}
+
+---
+
+(program
+  (export_statement
+    (component_declaration
+      name: (identifier)
+      parameters: (formal_parameters)
+      body: (component_body
+        (jsx_element
+          open_tag: (jsx_opening_element
+            name: (identifier))
+          children: (jsx_expression (string))
+          close_tag: (jsx_closing_element
+            name: (identifier)))))))
+
+==================
+Fragment Declaration
+==================
+
+fragment ListItems(props: { items: Array<string> }) {
+  for (const item of props.items) {
+    <li>{item}</li>
+  }
+}
+
+---
+
+(program
+  (fragment_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter
+        pattern: (identifier)
+        (type_annotation
+          (object_type
+            (property_signature
+              name: (identifier)
+              (type_annotation
+                (generic_type
+                  (identifier)
+                  (type_arguments
+                    (predefined_type)))))))))
+    body: (component_body
+      (for_of_statement
+        (identifier)
+        (member_expression
+          object: (identifier)
+          property: (identifier))
+        body: (jsx_element
+          open_tag: (jsx_opening_element
+            name: (identifier))
+          children: (jsx_expression
+            (identifier))
+          close_tag: (jsx_closing_element
+            name: (identifier)))))))
+
+==================
+Children Prop
+==================
+
+component Card({ children }) {
+  <div class="card">
+    <children />
+  </div>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters
+      (required_parameter
+        pattern: (object_pattern
+          (shorthand_property_identifier_pattern))))
+    body: (component_body
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier)
+          attribute: (jsx_attribute
+            name: (identifier)
+            value: (string)))
+        children: (jsx_self_closing_element
+          name: (identifier))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))
