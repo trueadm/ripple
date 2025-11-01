@@ -2,8 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve, basename } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createProject, updatePackageJson, configureStyling } from '../../src/lib/project-creator.js';
-import { getLocalTemplatePath, isLocalDevelopment, validateTemplate } from '../../src/lib/templates.js';
+import { createProject } from '../../src/lib/project-creator.js';
+import {
+	getLocalTemplatePath,
+	isLocalDevelopment,
+	validateTemplate,
+} from '../../src/lib/templates.js';
 
 // Mock ora for cleaner test output
 vi.mock('ora', () => ({
@@ -11,23 +15,23 @@ vi.mock('ora', () => ({
 		start: () => ({ succeed: vi.fn(), fail: vi.fn(), warn: vi.fn() }),
 		succeed: vi.fn(),
 		fail: vi.fn(),
-		warn: vi.fn()
-	})
+		warn: vi.fn(),
+	}),
 }));
 
 // Mock execSync to prevent actual git commands during tests
 vi.mock('node:child_process', () => ({
 	default: {
-		execSync: vi.fn()
+		execSync: vi.fn(),
 	},
-	execSync: vi.fn()
+	execSync: vi.fn(),
 }));
 
 // Mock degit to prevent actual network calls
 vi.mock('degit', () => ({
 	default: vi.fn(() => ({
-		clone: vi.fn().mockResolvedValue(undefined)
-	}))
+		clone: vi.fn().mockResolvedValue(undefined),
+	})),
 }));
 
 // Mock template functions globally
@@ -35,12 +39,15 @@ vi.mock('../../src/lib/templates.js', () => ({
 	getLocalTemplatePath: vi.fn(),
 	isLocalDevelopment: vi.fn(),
 	downloadTemplate: vi.fn(),
-	validateTemplate: vi.fn()
+	validateTemplate: vi.fn(),
 }));
 
 describe('createProject integration tests', () => {
+	/** @type {string} */
 	let testDir;
+	/** @type {string} */
 	let projectPath;
+	/** @type {string} */
 	let templatePath;
 
 	beforeEach(() => {
@@ -58,22 +65,26 @@ describe('createProject integration tests', () => {
 		// Create mock template files
 		writeFileSync(
 			join(templatePath, 'package.json'),
-			JSON.stringify({
-				name: 'vite-template-ripple',
-				version: '0.0.0',
-				type: 'module',
-				scripts: {
-					dev: 'vite',
-					build: 'vite build'
+			JSON.stringify(
+				{
+					name: 'vite-template-ripple',
+					version: '0.0.0',
+					type: 'module',
+					scripts: {
+						dev: 'vite',
+						build: 'vite build',
+					},
+					dependencies: {
+						ripple: '^0.2.29',
+					},
+					devDependencies: {
+						'vite-plugin-ripple': '^0.2.29',
+						prettier: '^3.6.2',
+					},
 				},
-				dependencies: {
-					ripple: '^0.2.29'
-				},
-				devDependencies: {
-					'vite-plugin-ripple': '^0.2.29',
-					prettier: '^3.6.2'
-				}
-			}, null, 2)
+				null,
+				2,
+			),
 		);
 
 		writeFileSync(join(templatePath, 'index.html'), '<!DOCTYPE html><html></html>');
@@ -100,8 +111,7 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
-			gitInit: false
+			gitInit: false,
 		});
 
 		// Verify project directory was created
@@ -128,8 +138,7 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
-			gitInit: false
+			gitInit: false,
 		});
 
 		// verify project directory was created
@@ -151,8 +160,7 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
-			gitInit: false
+			gitInit: false,
 		});
 
 		// verify project directory was created
@@ -161,7 +169,6 @@ describe('createProject integration tests', () => {
 		// Verify creation success
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
 		expect(packageJson.name).toBe(basename(projectPath));
-
 	});
 
 	it('should update package.json with correct package manager', async () => {
@@ -170,8 +177,7 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'pnpm',
-			typescript: true,
-			gitInit: false
+			gitInit: false,
 		});
 
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
@@ -184,8 +190,7 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
-			gitInit: false
+			gitInit: false,
 		});
 
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
@@ -198,13 +203,12 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
-			gitInit: false
+			gitInit: false,
 		});
 
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
-		expect(packageJson.dependencies.ripple).toBe('^0.2.35');
-		expect(packageJson.devDependencies['vite-plugin-ripple']).toBe('^0.2.29');
+		expect(packageJson.dependencies.ripple).toBe('latest');
+		expect(packageJson.devDependencies['vite-plugin-ripple']).toBe('latest');
 	});
 
 	it('should handle missing template directory', async () => {
@@ -219,9 +223,8 @@ describe('createProject integration tests', () => {
 				projectPath,
 				template: 'basic',
 				packageManager: 'npm',
-				typescript: true,
-				gitInit: false
-			})
+				gitInit: false,
+			}),
 		).rejects.toThrow('Local template "basic" not found');
 	});
 
@@ -238,8 +241,7 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
-			gitInit: false
+			gitInit: false,
 		});
 
 		// Verify filtered files were not copied
@@ -263,8 +265,7 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
-			gitInit: false
+			gitInit: false,
 		});
 
 		// Verify project was created successfully
@@ -279,9 +280,8 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
 			gitInit: false,
-			stylingFramework: 'tailwind'
+			stylingFramework: 'tailwind',
 		});
 
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
@@ -289,9 +289,13 @@ describe('createProject integration tests', () => {
 		expect(packageJson.devDependencies).toHaveProperty('@tailwindcss/vite');
 
 		expect(existsSync(join(projectPath, 'tailwind.config.ts'))).toBe(true);
-		expect(readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8')).toContain("import './index.css';\n");
+		expect(readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8')).toContain(
+			"import './index.css';\n",
+		);
 		expect(existsSync(join(projectPath, 'src', 'index.css'))).toBe(true);
-		expect(readFileSync(join(projectPath, 'src', 'index.css'), 'utf-8')).toContain('@import "tailwindcss"');
+		expect(readFileSync(join(projectPath, 'src', 'index.css'), 'utf-8')).toContain(
+			'@import "tailwindcss"',
+		);
 	});
 
 	it('should configure Bootstrap correctly', async () => {
@@ -302,9 +306,8 @@ describe('createProject integration tests', () => {
 			projectPath,
 			template: 'basic',
 			packageManager: 'npm',
-			typescript: true,
 			gitInit: false,
-			stylingFramework: 'bootstrap'
+			stylingFramework: 'bootstrap',
 		});
 
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));

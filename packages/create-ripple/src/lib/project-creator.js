@@ -25,7 +25,7 @@ import { downloadTemplate, getLocalTemplatePath, isLocalDevelopment } from './te
  * @param {string} options.template - Template to use
  * @param {PackageManager} options.packageManager - Package manager to use
  * @param {boolean} options.gitInit - Whether to initialize Git
- * @param {string} options.stylingFramework - Styling framework to use
+ * @param {string} [options.stylingFramework] - Styling framework to use
  */
 export async function createProject({
 	projectName,
