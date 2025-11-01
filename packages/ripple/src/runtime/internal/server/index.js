@@ -1,3 +1,4 @@
+import { Readable } from 'stream';
 /** @import { Component, Derived } from '#server' */
 /** @import { render } from 'ripple/server'*/
 import { DERIVED, UNINITIALIZED } from '../client/constants.js';
@@ -34,12 +35,16 @@ class Output {
 	promises = [];
 	/** @type {Output | null} */
 	#parent = null;
+	/** @type {import('stream').Readable | null} */
+	#stream = null;
 
 	/**
 	 * @param {Output | null} parent
+	 * @param {import('stream').Readable | null} stream
 	 */
-	constructor(parent) {
+	constructor(parent, stream = null) {
 		this.#parent = parent;
+		this.#stream = stream;
 	}
 
 	/**
@@ -47,7 +52,11 @@ class Output {
 	 * @returns {void}
 	 */
 	push(str) {
-		this.body += str;
+		if (this.#stream) {
+			this.#stream.push(str);
+		} else {
+			this.body += str;
+		}
 	}
 
 	/**
@@ -61,7 +70,7 @@ class Output {
 
 /** @type {render} */
 export async function render(component) {
-	const output = new Output(null);
+	const output = new Output(null, null);
 	let head = '';
 	let body = '';
 	let css = new Set();
@@ -85,6 +94,35 @@ export async function render(component) {
 	}
 	return { head, body, css }
 }
+
+/** @type {render} */
+export function renderToStream(component) {
+    const stream = new Readable({
+        read() {}
+    });
+
+    const output = new Output(null, stream);
+
+    (async () => {
+        try {
+            if (component.async) {
+                await component(output, {});
+            } else {
+                component(output, {});
+            }
+            if (output.promises.length > 0) {
+                await Promise.all(output.promises);
+            }
+            stream.push(null); // End the stream
+        } catch (error) {
+            console.error(error);
+            stream.emit('error', error);
+        }
+    })();
+
+    return stream;
+}
+
 /**
  * @returns {void}
  */

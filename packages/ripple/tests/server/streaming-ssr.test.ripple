@@ -1,0 +1,67 @@
+import { test } from 'vitest';
+import { renderToStream } from 'ripple/server';
+import { Readable } from 'stream';
+
+test('renderToStream renders a simple component', async ({ expect }) => {
+	component Basic() {
+		<div>{'Hello, streaming SSR!'}</div>
+	}
+
+	const stream = renderToStream(Basic);
+
+	let result = '';
+	await new Promise((resolve) => {
+		stream.on('data', (chunk) => {
+			result += chunk.toString();
+		});
+		stream.on('end', resolve);
+	});
+
+	expect(result).toBe('<div>Hello, streaming SSR!</div>');
+});
+
+test('renderToStream handles async components', async ({ expect }) => {
+	component AsyncComponent() {
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		<p>{'Async content loaded.'}</p>
+	}
+
+	const stream = renderToStream(AsyncComponent);
+
+	let result = '';
+	await new Promise((resolve) => {
+		stream.on('data', (chunk) => {
+			result += chunk.toString();
+		});
+		stream.on('end', resolve);
+	});
+
+	expect(result).toBe('<p>Async content loaded.</p>');
+});
+
+test('renderToStream handles await blocks with pending state', async ({ expect }) => {
+	component AwaitComponent() {
+		let data = 'initial';
+		  await new Promise((resolve) => setTimeout(() => {
+        data = 'resolved';
+		    resolve('');
+      }, 20));
+		try {
+			<div>{'Data: '}{data}</div>
+		} pending {
+			<div>{'Loading...'}</div>
+		}
+	}
+
+	const stream = renderToStream(AwaitComponent);
+
+	let result = '';
+	await new Promise((resolve) => {
+		stream.on('data', (chunk) => {
+			result += chunk.toString();
+		});
+		stream.on('end', resolve);
+	});
+	console.log(result)
+	expect(result).toBe('<div>Loading...</div><div>Data: resolved</div>');
+});
