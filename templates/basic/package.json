@@ -18,14 +18,14 @@
 	"license": "MIT",
 	"devDependencies": {
 		"eslint": "^9.0.0",
-		"eslint-plugin-ripple": "^0.1.0",
+		"eslint-plugin-ripple": "latest",
 		"prettier": "^3.6.2",
-		"prettier-plugin-ripple": "^0.2.29",
+		"prettier-plugin-ripple": "latest",
 		"typescript": "^5.9.2",
 		"vite": "^7.1.4",
-		"vite-plugin-ripple": "^0.2.29"
+		"vite-plugin-ripple": "latest"
 	},
 	"dependencies": {
-		"ripple": "^0.2.29"
+		"ripple": "latest"
 	}
 }
