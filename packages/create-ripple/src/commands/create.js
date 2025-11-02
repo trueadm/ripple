@@ -1,17 +1,17 @@
-import { basename, resolve, relative } from 'node:path';
+import { cyan, dim, green, red } from 'kleur/colors';
 import { existsSync } from 'node:fs';
-import { green, cyan, dim, red } from 'kleur/colors';
-import { validateProjectName } from '../lib/validation.js';
-import { validateTemplate, getTemplateNames } from '../lib/templates.js';
-import {
-	promptProjectName,
-	promptTemplate,
-	promptPackageManager,
-	promptGitInit,
-	promptStylingFramework
-} from '../lib/prompts.js';
-import { createProject } from '../lib/project-creator.js';
+import { basename, relative, resolve } from 'node:path';
 import { isFolderEmpty } from '../lib/is-folder-empty.js';
+import { createProject } from '../lib/project-creator.js';
+import {
+	promptGitInit,
+	promptPackageManager,
+	promptProjectName,
+	promptStylingFramework,
+	promptTemplate,
+} from '../lib/prompts.js';
+import { getTemplateNames, validateTemplate } from '../lib/templates.js';
+import { validateProjectName } from '../lib/validation.js';
 
 /**
  * Create command handler
@@ -95,9 +95,8 @@ export async function createCommand(projectName, options) {
 			projectPath,
 			template,
 			packageManager,
-			typescript: true,
 			gitInit,
-			stylingFramework
+			stylingFramework,
 		});
 
 		showNextSteps(projectPath, packageManager);
@@ -114,7 +113,7 @@ export async function createCommand(projectName, options) {
  * @param {string} projectName - The created project name
  * @param {string} packageManager - Package manager used
  */
-function showNextSteps(projectPath, packageManager) {
+function showNextSteps(projectName, packageManager) {
 	const installCommand = getInstallCommand(packageManager);
 	const devCommand = getDevCommand(packageManager);
 
@@ -122,7 +121,7 @@ function showNextSteps(projectPath, packageManager) {
 	console.log(green('🎉 Success! Your Ripple app is ready to go.'));
 	console.log();
 	console.log('Next steps:');
-	console.log(`  ${dim('cd')} ${relative(process.cwd(), projectPath)}`);
+	console.log(`  ${dim('cd')} ${relative(process.cwd(), projectName)}`);
 	console.log(`  ${dim(installCommand)}`);
 	console.log(`  ${dim(devCommand)}`);
 	console.log();
@@ -139,7 +138,7 @@ function getInstallCommand(packageManager) {
 	const commands = {
 		npm: 'npm install',
 		yarn: 'yarn install',
-		pnpm: 'pnpm install'
+		pnpm: 'pnpm install',
 	};
 	return commands[packageManager] || 'npm install';
 }
@@ -153,7 +152,7 @@ function getDevCommand(packageManager) {
 	const commands = {
 		npm: 'npm run dev',
 		yarn: 'yarn dev',
-		pnpm: 'pnpm dev'
+		pnpm: 'pnpm dev',
 	};
 	return commands[packageManager] || 'npm run dev';
 }

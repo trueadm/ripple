@@ -6,22 +6,21 @@ import { basename, resolve } from 'node:path';
 
 /**
  * Validates a project name according to npm package naming rules
- * @param {string} name - The project name to validate
+ * @param {string} inputName - The project name to validate
  * @returns {object} - Object with valid boolean and message string
  */
 export function validateProjectName(inputName) {
-
 	if (typeof inputName !== 'string' || inputName === null || inputName === undefined) {
 		return {
 			valid: false,
-			message: 'Project name is required'
+			message: 'Project name is required',
 		};
 	}
 
 	if (typeof inputName === 'string' && inputName.trim().length === 0) {
 		return {
 			valid: false,
-			message: 'Project name cannot be empty'
+			message: 'Project name cannot be empty',
 		};
 	}
 
@@ -31,7 +30,7 @@ export function validateProjectName(inputName) {
 	if (name.length > 214) {
 		return {
 			valid: false,
-			message: 'Project name must be less than 214 characters'
+			message: 'Project name must be less than 214 characters',
 		};
 	}
 
@@ -40,7 +39,7 @@ export function validateProjectName(inputName) {
 		return {
 			valid: false,
 			message:
-				'Project name can only contain lowercase letters, numbers, hyphens, dots, and underscores'
+				'Project name can only contain lowercase letters, numbers, hyphens, dots, and underscores',
 		};
 	}
 
@@ -48,7 +47,7 @@ export function validateProjectName(inputName) {
 	if (name.startsWith('.') || name.startsWith('_')) {
 		return {
 			valid: false,
-			message: 'Project name cannot start with a dot or underscore'
+			message: 'Project name cannot start with a dot or underscore',
 		};
 	}
 
@@ -56,7 +55,7 @@ export function validateProjectName(inputName) {
 	if (name.endsWith('.')) {
 		return {
 			valid: false,
-			message: 'Project name cannot end with a dot'
+			message: 'Project name cannot end with a dot',
 		};
 	}
 
@@ -64,7 +63,7 @@ export function validateProjectName(inputName) {
 	if (name.includes('..')) {
 		return {
 			valid: false,
-			message: 'Project name cannot contain consecutive dots'
+			message: 'Project name cannot contain consecutive dots',
 		};
 	}
 
@@ -93,19 +92,19 @@ export function validateProjectName(inputName) {
 		'lpt6',
 		'lpt7',
 		'lpt8',
-		'lpt9'
+		'lpt9',
 	];
 
 	if (reservedNames.includes(name.toLowerCase())) {
 		return {
 			valid: false,
-			message: `"${name}" is a reserved name and cannot be used`
+			message: `"${name}" is a reserved name and cannot be used`,
 		};
 	}
 
 	return {
 		valid: true,
-		message: ''
+		message: '',
 	};
 }
 
@@ -131,7 +130,7 @@ export function validateDirectoryPath(path) {
 	if (!path || typeof path !== 'string') {
 		return {
 			valid: false,
-			message: 'Directory path is required'
+			message: 'Directory path is required',
 		};
 	}
 
@@ -139,7 +138,7 @@ export function validateDirectoryPath(path) {
 	if (path.startsWith('/') && path.length < 2) {
 		return {
 			valid: false,
-			message: 'Cannot create project in root directory'
+			message: 'Cannot create project in root directory',
 		};
 	}
 
@@ -147,12 +146,12 @@ export function validateDirectoryPath(path) {
 	if (/[<>:"|?*]/.test(path)) {
 		return {
 			valid: false,
-			message: 'Directory path contains invalid characters'
+			message: 'Directory path contains invalid characters',
 		};
 	}
 
 	return {
 		valid: true,
-		message: ''
+		message: '',
 	};
 }
