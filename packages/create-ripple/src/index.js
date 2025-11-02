@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/** @import {CommandOptions} from './commands/create.js' */
+
 import { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -25,22 +27,32 @@ program
 	.option('-p, --package-manager <pm>', 'Package manager to use (npm, yarn, pnpm)', 'npm')
 	.option('--no-git', 'Skip Git repository initialization')
 	.option('-y, --yes', 'Skip all prompts and use defaults')
-	.action(async (projectName, options) => {
-		try {
-			await createCommand(projectName, options);
-		} catch (error) {
-			console.error(red('✖ Unexpected error:'));
-			console.error(error.message);
-			process.exit(1);
-		}
-	});
+	.action(
+		/**
+		 * @param {string} projectName
+		 * @param {CommandOptions} options
+		 */
+		async (projectName, options) => {
+			try {
+				await createCommand(projectName, options);
+			} catch (e) {
+				const error = /** @type {Error} */ (e);
+				console.error(red('✖ Unexpected error:'));
+				console.error(error.message);
+				process.exit(1);
+			}
+		},
+	);
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-	console.error(red('✖ Unhandled error:'));
-	console.error(err);
-	process.exit(1);
-});
+process.on(
+	'unhandledRejection',
+	/** @param {string} reason */ (reason) => {
+		console.error(red('✖ Unhandled error:'));
+		console.error(reason);
+		process.exit(1);
+	},
+);
 
 // Handle SIGINT (Ctrl+C)
 process.on('SIGINT', () => {

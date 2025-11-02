@@ -1,12 +1,6 @@
 /**
- * @typedef {import('type-fest').PackageJson & {
- *   scripts?: Record<string, string>;
- * }} Package
- */
-
-/**
- * @typedef PackageManager
- * @type {'npm' | 'yarn' | 'pnpm'}
+ * @typedef {import('type-fest').PackageJson & {scripts?: Record<string, string>;}} Package
+ * @typedef PackageManager @type {'npm' | 'yarn' | 'pnpm'}
  */
 
 import { join, basename } from 'node:path';
@@ -22,7 +16,7 @@ import { downloadTemplate, getLocalTemplatePath, isLocalDevelopment } from './te
  * @param {object} options - Project creation options
  * @param {string} options.projectName - Name of the project
  * @param {string} options.projectPath - Absolute path where project will be created
- * @param {string} options.template - Template to use
+ * @param {string} options.templateName - Template to use
  * @param {PackageManager} options.packageManager - Package manager to use
  * @param {boolean} options.gitInit - Whether to initialize Git
  * @param {string} [options.stylingFramework] - Styling framework to use
@@ -30,16 +24,17 @@ import { downloadTemplate, getLocalTemplatePath, isLocalDevelopment } from './te
 export async function createProject({
 	projectName,
 	projectPath,
-	template,
+	templateName,
 	packageManager = 'npm',
 	gitInit = false,
 	stylingFramework = 'vanilla',
 }) {
 	console.log(dim(`Creating project: ${projectName}`));
-	console.log(dim(`Template: ${template}`));
+	console.log(dim(`Template: ${templateName}`));
 	console.log(dim(`Package manager: ${packageManager}`));
 	console.log();
 
+	/** @type {string} */
 	let templatePath;
 	let isTemporary = false;
 
@@ -48,15 +43,15 @@ export async function createProject({
 	try {
 		if (isLocalDevelopment()) {
 			// Use local template for development
-			templatePath = getLocalTemplatePath(template);
+			templatePath = getLocalTemplatePath(templateName);
 			if (!existsSync(templatePath)) {
-				throw new Error(`Local template "${template}" not found at ${templatePath}`);
+				throw new Error(`Local template "${templateName}" not found at ${templatePath}`);
 			}
 			spinner1.succeed('Local template located');
 		} else {
 			// Download template from GitHub
 			spinner1.text = 'Downloading template from GitHub...';
-			templatePath = await downloadTemplate(template);
+			templatePath = await downloadTemplate(templateName);
 			isTemporary = true;
 			spinner1.succeed('Template downloaded');
 		}

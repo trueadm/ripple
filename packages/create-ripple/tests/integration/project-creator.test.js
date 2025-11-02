@@ -109,7 +109,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: 'test-project',
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 		});
@@ -136,7 +136,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: projectName,
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 		});
@@ -158,7 +158,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: projectName,
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 		});
@@ -175,7 +175,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: 'test-pnpm-project',
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'pnpm',
 			gitInit: false,
 		});
@@ -188,7 +188,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: 'test-npm-project',
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 		});
@@ -201,7 +201,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: 'test-deps-project',
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 		});
@@ -221,7 +221,7 @@ describe('createProject integration tests', () => {
 			createProject({
 				projectName: 'test-project',
 				projectPath,
-				template: 'basic',
+				templateName: 'basic',
 				packageManager: 'npm',
 				gitInit: false,
 			}),
@@ -239,7 +239,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: 'test-filter-project',
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 		});
@@ -263,7 +263,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: 'test-existing-project',
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 		});
@@ -278,7 +278,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: 'test-tailwind-project',
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 			stylingFramework: 'tailwind',
@@ -304,7 +304,7 @@ describe('createProject integration tests', () => {
 		await createProject({
 			projectName: 'test-bootstrap-project',
 			projectPath,
-			template: 'basic',
+			templateName: 'basic',
 			packageManager: 'npm',
 			gitInit: false,
 			stylingFramework: 'bootstrap',

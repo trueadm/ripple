@@ -1,3 +1,9 @@
+/** @import {PackageManager} from '../lib/project-creator.js' */
+
+/**
+ * @typedef {{ template?: string, packageManager?: PackageManager, git?: boolean, yes?: boolean, help?: boolean }} CommandOptions
+ */
+
 import { basename, resolve, relative } from 'node:path';
 import { existsSync } from 'node:fs';
 import { green, cyan, dim, red } from 'kleur/colors';
@@ -8,7 +14,7 @@ import {
 	promptTemplate,
 	promptPackageManager,
 	promptGitInit,
-	promptStylingFramework
+	promptStylingFramework,
 } from '../lib/prompts.js';
 import { createProject } from '../lib/project-creator.js';
 import { isFolderEmpty } from '../lib/is-folder-empty.js';
@@ -16,7 +22,7 @@ import { isFolderEmpty } from '../lib/is-folder-empty.js';
 /**
  * Create command handler
  * @param {string} projectName - Project name (optional)
- * @param {object} options - Command options
+ * @param {CommandOptions} options - Command options
  */
 export async function createCommand(projectName, options) {
 	console.log();
@@ -45,13 +51,13 @@ export async function createCommand(projectName, options) {
 	}
 
 	// Step 3: Get template
-	let template = options.template;
-	if (!template) {
-		template = await promptTemplate();
+	let templateName = options.template;
+	if (!templateName) {
+		templateName = await promptTemplate();
 	} else {
 		// Validate template
-		if (!validateTemplate(template)) {
-			console.error(red(`✖ Template "${template}" not found`));
+		if (!validateTemplate(templateName)) {
+			console.error(red(`✖ Template "${templateName}" not found`));
 			console.error(`Available templates: ${getTemplateNames().join(', ')}`);
 			process.exit(1);
 		}
@@ -93,16 +99,16 @@ export async function createCommand(projectName, options) {
 		await createProject({
 			projectName,
 			projectPath,
-			template,
+			templateName,
 			packageManager,
-			typescript: true,
 			gitInit,
-			stylingFramework
+			stylingFramework,
 		});
 
 		showNextSteps(projectPath, packageManager);
 		process.exit(0);
-	} catch (error) {
+	} catch (e) {
+		const error = /** @type {Error} */ (e);
 		console.error(red('✖ Failed to create project:'));
 		console.error(error.message);
 		process.exit(1);
@@ -111,8 +117,8 @@ export async function createCommand(projectName, options) {
 
 /**
  * Show next steps to the user
- * @param {string} projectName - The created project name
- * @param {string} packageManager - Package manager used
+ * @param {string} projectPath - The created project path
+ * @param {PackageManager} packageManager - Package manager used
  */
 function showNextSteps(projectPath, packageManager) {
 	const installCommand = getInstallCommand(packageManager);
@@ -132,28 +138,28 @@ function showNextSteps(projectPath, packageManager) {
 
 /**
  * Get install command for package manager
- * @param {string} packageManager - Package manager name
+ * @param {PackageManager} packageManager - Package manager name
  * @returns {string} - Install command
  */
 function getInstallCommand(packageManager) {
 	const commands = {
 		npm: 'npm install',
 		yarn: 'yarn install',
-		pnpm: 'pnpm install'
+		pnpm: 'pnpm install',
 	};
 	return commands[packageManager] || 'npm install';
 }
 
 /**
  * Get dev command for package manager
- * @param {string} packageManager - Package manager name
+ * @param {PackageManager} packageManager - Package manager name
  * @returns {string} - Dev command
  */
 function getDevCommand(packageManager) {
 	const commands = {
 		npm: 'npm run dev',
 		yarn: 'yarn dev',
-		pnpm: 'pnpm dev'
+		pnpm: 'pnpm dev',
 	};
 	return commands[packageManager] || 'npm run dev';
 }
