@@ -1,16 +1,16 @@
 const { defineConfig } = require('tsdown');
 
 module.exports = defineConfig({
-	entry: ['src/extension.js', 'src/server.js'],
+	entry: ['src/index.js'],
+	format: ['cjs'],
+	platform: 'node',
+	target: 'node20',
 	outDir: 'dist',
 	outputOptions: {
 		legalComments: 'inline',
 		minify: true,
 	},
+	external: ['ripple', 'typescript'],
 	clean: true,
-	format: 'cjs',
-	platform: 'node',
-	target: 'node20',
-	external: ['vscode', 'typescript', 'ripple', 'typescript-plugin-ripple'],
 	noExternal: /.+/,
 });

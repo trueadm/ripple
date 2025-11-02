@@ -269,6 +269,7 @@ function updateDependencyVersions(packageJson) {
 		'vite-plugin-ripple': 'latest',
 		'prettier-plugin-ripple': 'latest',
 		'eslint-plugin-ripple': 'latest',
+		'typescript-plugin-ripple': 'latest',
 	};
 
 	// Update dependencies

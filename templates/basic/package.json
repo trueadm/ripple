@@ -23,7 +23,8 @@
 		"prettier-plugin-ripple": "latest",
 		"typescript": "^5.9.2",
 		"vite": "^7.1.4",
-		"vite-plugin-ripple": "latest"
+		"vite-plugin-ripple": "latest",
+		"typescript-plugin-ripple": "latest"
 	},
 	"dependencies": {
 		"ripple": "latest"

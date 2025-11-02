@@ -82,17 +82,19 @@ async function activate(context) {
 						.showInformationMessage(
 							'Ripple extension needs to restart extensions to enable full TypeScript integration.',
 							'Restart Extensions',
-							'Later'
+							'Later',
 						)
 						.then((selection) => {
 							if (selection === 'Restart Extensions') {
 								vscode.commands.executeCommand('workbench.action.restartExtensionHost');
 							}
 						});
-			}
-			break;
+				}
+				break;
 			case 'patternMismatch':
-				console.warn('[Ripple] Patch patterns did not match - TypeScript extension internals may have changed.');
+				console.warn(
+					'[Ripple] Patch patterns did not match - TypeScript extension internals may have changed.',
+				);
 				break;
 		}
 	} else if (patchResult.reason === 'alreadyPatched') {
@@ -143,7 +145,7 @@ async function activate(context) {
 	const clientOptions = {
 		documentSelector: [{ language: 'ripple' }],
 		errorHandler: {
-				error: (
+			error: (
 				/** @type {Error} */ error,
 				/** @type {import('vscode-languageclient/node').Message | undefined} */ message,
 				/** @type {number | undefined} */ count,
@@ -280,17 +282,20 @@ function setupDynamicContexts(context) {
 		// which check for specific code action support via regex in their "when" clauses
 		if (isRipple && editor) {
 			// Query available code actions for the current file
-			vscode.commands.executeCommand('vscode.executeCodeActionProvider',
-				editor.document.uri,
-				editor.selection
-			).then((actions) => {
-				if (Array.isArray(actions) && actions.length > 0) {
-					const kinds = actions.map((/** @type {{ kind?: { value?: string } }} */ action) => action.kind?.value || '').join(' ');
-					vscode.commands.executeCommand('setContext', 'supportedCodeAction', kinds);
-				} else {
-					vscode.commands.executeCommand('setContext', 'supportedCodeAction', undefined);
-				}
-			});
+			vscode.commands
+				.executeCommand('vscode.executeCodeActionProvider', editor.document.uri, editor.selection)
+				.then((actions) => {
+					if (Array.isArray(actions) && actions.length > 0) {
+						const kinds = actions
+							.map(
+								(/** @type {{ kind?: { value?: string } }} */ action) => action.kind?.value || '',
+							)
+							.join(' ');
+						vscode.commands.executeCommand('setContext', 'supportedCodeAction', kinds);
+					} else {
+						vscode.commands.executeCommand('setContext', 'supportedCodeAction', undefined);
+					}
+				});
 		} else {
 			vscode.commands.executeCommand('setContext', 'supportedCodeAction', undefined);
 		}
@@ -300,9 +305,7 @@ function setupDynamicContexts(context) {
 	updateContexts();
 
 	// Update when active editor changes
-	context.subscriptions.push(
-		vscode.window.onDidChangeActiveTextEditor(() => updateContexts())
-	);
+	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => updateContexts()));
 
 	// Update when text document changes (code actions may change)
 	context.subscriptions.push(
@@ -310,7 +313,7 @@ function setupDynamicContexts(context) {
 			if (e.document === vscode.window.activeTextEditor?.document) {
 				updateContexts();
 			}
-		})
+		}),
 	);
 }
 
@@ -331,11 +334,13 @@ function addCustomCommands(context) {
 				console.log('[Ripple] Getting definitions at position:', position);
 
 				// Use VS Code's definition provider API
-				const definitions = /** @type {any} */ (await vscode.commands.executeCommand(
-					'vscode.executeDefinitionProvider',
-					editor.document.uri,
-					position
-				));
+				const definitions = /** @type {any} */ (
+					await vscode.commands.executeCommand(
+						'vscode.executeDefinitionProvider',
+						editor.document.uri,
+						position,
+					)
+				);
 
 				console.log('[Ripple] Definitions result:', definitions);
 
@@ -346,7 +351,7 @@ function addCustomCommands(context) {
 
 				// Filter for .ripple files (prefer source over .d.ts)
 				// Definition objects can have either `uri` or `targetUri`
-				const rippleDefinition = definitions.find(d => {
+				const rippleDefinition = definitions.find((d) => {
 					const uri = d?.uri || d?.targetUri;
 					if (!uri) {
 						console.warn('[Ripple] Definition has no uri:', d);
@@ -362,7 +367,7 @@ function addCustomCommands(context) {
 					const range = rippleDefinition.range || rippleDefinition.targetRange;
 					console.log('[Ripple] Found ripple definition:', uri.path);
 					await vscode.window.showTextDocument(uri, {
-						selection: range
+						selection: range,
 					});
 				} else {
 					// If no .ripple file found, just go to the first definition (might be .d.ts)
@@ -372,7 +377,7 @@ function addCustomCommands(context) {
 					console.log('[Ripple] No .ripple definition, using first result:', uri?.path);
 					if (uri) {
 						await vscode.window.showTextDocument(uri, {
-							selection: range
+							selection: range,
 						});
 					}
 				}
@@ -381,7 +386,7 @@ function addCustomCommands(context) {
 				const message = error instanceof Error ? error.message : String(error);
 				vscode.window.showErrorMessage(`Go to Source Definition failed: ${message}`);
 			}
-		})
+		}),
 	);
 }
 
@@ -427,7 +432,7 @@ function registerFormatter() {
 				} catch (error) {
 					console.error('Ripple formatting error:', error);
 					vscode.window.showErrorMessage(
-						'Failed to format Ripple file. Ensure Prettier and prettier-plugin-ripple are installed.'
+						'Failed to format Ripple file. Ensure Prettier and prettier-plugin-ripple are installed.',
 					);
 					return [];
 				}
@@ -521,18 +526,20 @@ async function patchTypeScriptExtension() {
 			let patched = text
 				.replace(
 					't.jsTsLanguageModes=[t.javascript,t.javascriptreact,t.typescript,t.typescriptreact]',
-					s => s + '.concat("ripple")',
+					(s) => s + '.concat("ripple")',
 				)
 				.replace(
 					'.languages.match([t.typescript,t.typescriptreact,t.javascript,t.javascriptreact]',
-					s => s + '.concat("ripple")',
+					(s) => s + '.concat("ripple")',
 				);
 
 			if (patched !== text) {
 				console.log('[Ripple] Successfully patched TypeScript extension');
 				return typeof result === 'string' ? patched : Buffer.from(patched, 'utf8');
 			} else {
-				console.warn('[Ripple] TypeScript extension patterns did not match - may already be patched or structure changed');
+				console.warn(
+					'[Ripple] TypeScript extension patterns did not match - may already be patched or structure changed',
+				);
 			}
 		}
 		return result;

@@ -22,7 +22,8 @@
     "typescript": "catalog:default",
     "vite": "catalog:default",
     "vite-plugin-ripple": "workspace:*",
-    "vitest": "catalog:default"
+    "vitest": "catalog:default",
+    "typescript-plugin-ripple": "workspace:*"
   },
   "dependencies": {
     "tailwindcss": "catalog:peer",

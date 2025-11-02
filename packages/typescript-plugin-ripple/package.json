@@ -11,12 +11,20 @@
     "url": "git+https://github.com/trueadm/ripple.git",
     "directory": "packages/typescript-plugin-ripple"
   },
+  "scripts": {
+    "build": "tsdown",
+    "dist": "perl -pi -e 's/\"main\": \"src\\/index.js\"/\"main\": \"dist\\/index.js\"/' package.json",
+    "src": "perl -pi -e 's/\"main\": \"dist\\/index.js\"/\"main\": \"src\\/index.js\"/' package.json"
+  },
   "bugs": {
     "url": "https://github.com/trueadm/ripple/issues"
   },
   "dependencies": {
     "@volar/language-core": "catalog:default",
     "@volar/typescript": "catalog:default"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:default"
   },
   "peerDependencies": {
     "typescript": "catalog:peer",

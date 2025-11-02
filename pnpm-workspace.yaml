@@ -22,6 +22,7 @@ catalogs:
     '@volar/vscode': ~2.4.23
     '@vscode/vsce': ^3.6.2
     acorn: ^8.15.0
+    adm-zip: ^0.5.16
     acorn-typescript: ^1.4.13
     clsx: ^2.1.1
     commander: ^12.1.0
