@@ -922,42 +922,107 @@ export function flush_sync(fn) {
 
 /**
  * @param {() => Object} fn
- * @param {Block} block
  * @returns {Object}
  */
-export function spread_props(fn, block) {
-	var computed = derived(fn, block);
-	return proxy_tracked(computed);
+export function spread_props(fn) {
+	return proxy_props(fn);
 }
 
 /**
- * @param {Tracked | Derived} tracked
+ * @param {() => Object} fn
  * @returns {Object}
  */
-export function proxy_tracked(tracked) {
+export function proxy_props(fn) {
 	return new Proxy(
 		{},
 		{
 			get(_, property) {
-				const obj = get(tracked);
+				/** @type {Record<string | symbol, any> | Record<string | symbol, any>[]} */
+				var obj = fn();
+
+				// Handle array of objects/spreads (for multiple props)
+				if (is_array(obj)) {
+					// Search in reverse order (right-to-left) since later props override earlier ones
+					/** @type {Record<string | symbol, any>} */
+					var item;
+					for (var i = obj.length - 1; i >= 0; i--) {
+						item = obj[i];
+						if (property in item) {
+							return item[property];
+						}
+					}
+					return undefined;
+				}
+
+				// Single object case
 				return obj[property];
 			},
 			has(_, property) {
 				if (property === TRACKED_OBJECT) {
 					return true;
 				}
-				const obj = get(tracked);
+				/** @type {Record<string | symbol, any> | Record<string | symbol, any>[]} */
+				var obj = fn();
+
+				// Handle array of objects/spreads
+				if (is_array(obj)) {
+					for (var i = obj.length - 1; i >= 0; i--) {
+						if (property in obj[i]) {
+							return true;
+						}
+					}
+					return false;
+				}
+
 				return property in obj;
 			},
 			getOwnPropertyDescriptor(_, key) {
-				const obj = get(tracked);
+				/** @type {Record<string | symbol, any> | Record<string | symbol, any>[]} */
+				var obj = fn();
+
+				// Handle array of objects/spreads
+				if (is_array(obj)) {
+					/** @type {Record<string | symbol, any>} */
+					var item;
+					for (var i = obj.length - 1; i >= 0; i--) {
+						item = obj[i];
+						if (key in item) {
+							return get_descriptor(item, key);
+						}
+					}
+					return undefined;
+				}
 
 				if (key in obj) {
 					return get_descriptor(obj, key);
 				}
 			},
 			ownKeys() {
-				const obj = get(tracked);
+				/** @type {Record<string | symbol, any> | Record<string | symbol, any>[]} */
+				var obj = fn();
+				/** @type {Record<string | symbol, 1>} */
+				var done = {};
+				/** @type {(string | symbol)[]} */
+				var keys = [];
+
+				// Handle array of objects/spreads
+				if (is_array(obj)) {
+					// Collect all keys from all objects, order doesn't matter
+					/** @type {Record<string | symbol, any>} */
+					var item;
+					for (var i = 0; i < obj.length; i++) {
+						item = obj[i];
+						for (const key of Reflect.ownKeys(item)) {
+							if (done[key]) {
+								continue;
+							}
+							done[key] = 1;
+							keys.push(key);
+						}
+					}
+					return keys;
+				}
+
 				return Reflect.ownKeys(obj);
 			},
 		},
