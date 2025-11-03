@@ -5,7 +5,15 @@ import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useSyncExternalStore, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import { branch, with_block, proxy_tracked, set, render, tracked } from 'ripple/internal/client';
+import {
+	branch,
+	with_block,
+	proxy_props,
+	set,
+	render,
+	tracked,
+	get_tracked,
+} from 'ripple/internal/client';
 import { Context } from 'ripple';
 
 /** @type {Tsx} */
@@ -138,7 +146,7 @@ export function Ripple({ component, props }) {
 		const anchor = document.createTextNode('');
 		const block = get_block_from_dom(span);
 		const tracked_props = (tracked_props_ref.current = tracked(props || {}, block));
-		const proxied_props = proxy_tracked(/** @type {any} */ (tracked_props));
+		const proxied_props = proxy_props(() => get_tracked(tracked_props));
 		frag.append(anchor);
 
 		const b = with_block(block, () => {

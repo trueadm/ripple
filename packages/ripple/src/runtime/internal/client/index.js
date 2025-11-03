@@ -47,7 +47,7 @@ export {
 	derived,
 	maybe_tracked,
 	tick,
-	proxy_tracked,
+	proxy_props,
 	with_block,
 	with_ns,
 } from './runtime.js';
