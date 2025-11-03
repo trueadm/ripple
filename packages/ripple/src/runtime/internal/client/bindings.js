@@ -1,9 +1,17 @@
-/** @import { Block, Tracked } from '#client' */
+/** @import { Tracked } from '#client' */
 
 import { effect, render } from './blocks.js';
 import { on } from './events.js';
-import { active_block, get, set, tick, untrack } from './runtime.js';
+import { get, set, tick, untrack } from './runtime.js';
 import { is_array, is_tracked_object } from './utils.js';
+
+/**
+ * @param {string} name
+ * @returns {TypeError}
+ */
+function not_tracked_type_error(name) {
+	return new TypeError(`${name} argument is not a tracked object`);
+}
 
 /**
  * Resize observer singleton.
@@ -145,10 +153,9 @@ function select_option(select, value, mounting = false) {
  */
 export function bindValue(maybe_tracked) {
 	if (!is_tracked_object(maybe_tracked)) {
-		throw new TypeError('bindValue() argument is not a tracked object');
+		throw not_tracked_type_error('bindValue()');
 	}
 
-	var block = /** @type {Block} */ (active_block);
 	var tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	return (node) => {
@@ -246,10 +253,9 @@ export function bindValue(maybe_tracked) {
  */
 export function bindChecked(maybe_tracked) {
 	if (!is_tracked_object(maybe_tracked)) {
-		throw new TypeError('bindChecked() argument is not a tracked object');
+		throw not_tracked_type_error('bindChecked()');
 	}
 
-	const block = /** @type {any} */ (active_block);
 	const tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	return (input) => {
@@ -267,12 +273,9 @@ export function bindChecked(maybe_tracked) {
  */
 function bind_element_size(maybe_tracked, type) {
 	if (!is_tracked_object(maybe_tracked)) {
-		throw new TypeError(
-			`bind${type.charAt(0).toUpperCase() + type.slice(1)}() argument is not a tracked object`,
-		);
+		throw not_tracked_type_error(`bind${type.charAt(0).toUpperCase() + type.slice(1)}()`);
 	}
 
-	var block = /** @type {any} */ (active_block);
 	var tracked = /** @type {Tracked<any>} */ (maybe_tracked);
 
 	return (/** @type {HTMLElement} */ element) => {
@@ -325,12 +328,9 @@ export function bindOffsetHeight(maybe_tracked) {
  */
 function bind_element_rect(maybe_tracked, type) {
 	if (!is_tracked_object(maybe_tracked)) {
-		throw new TypeError(
-			`bind${type.charAt(0).toUpperCase() + type.slice(1)}() argument is not a tracked object`,
-		);
+		throw not_tracked_type_error(`bind${type.charAt(0).toUpperCase() + type.slice(1)}()`);
 	}
 
-	var block = /** @type {any} */ (active_block);
 	var tracked = /** @type {Tracked<any>} */ (maybe_tracked);
 	var observer =
 		type === 'contentRect' || type === 'contentBoxSize'
@@ -388,12 +388,9 @@ export function bindDevicePixelContentBoxSize(maybe_tracked) {
  */
 export function bind_content_editable(maybe_tracked, property) {
 	if (!is_tracked_object(maybe_tracked)) {
-		throw new TypeError(
-			`bind${property.charAt(0).toUpperCase() + property.slice(1)}() argument is not a tracked object`,
-		);
+		throw not_tracked_type_error(`bind${property.charAt(0).toUpperCase() + property.slice(1)}()`);
 	}
 
-	const block = /** @type {any} */ (active_block);
 	const tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	return (element) => {
@@ -442,4 +439,22 @@ export function bindInnerText(maybe_tracked) {
  */
 export function bindTextContent(maybe_tracked) {
 	return bind_content_editable(maybe_tracked, 'textContent');
+}
+
+/**
+ * Syntactic sugar for binding a HTMLElement with {ref fn}
+ * @param {unknown} maybe_tracked
+ * @returns {(node: HTMLElement) => void}
+ */
+export function bindNode(maybe_tracked) {
+	if (!is_tracked_object(maybe_tracked)) {
+		throw not_tracked_type_error('bindNode()');
+	}
+
+	const tracked = /** @type {Tracked} */ (maybe_tracked);
+
+	/** @param {HTMLElement} node */
+	return (node) => {
+		set(tracked, node);
+	};
 }

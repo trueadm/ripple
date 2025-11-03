@@ -287,3 +287,5 @@ export declare function bindInnerHTML<V>(tracked: Tracked<V>): (node: HTMLElemen
 export declare function bindInnerText<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
 export declare function bindTextContent<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+
+export declare function bindNode<V>(tracked: Tracked<V>): (node: HTMLElement) => void;

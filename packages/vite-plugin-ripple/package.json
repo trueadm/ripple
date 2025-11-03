@@ -3,14 +3,15 @@
   "description": "Vite plugin for Ripple",
   "license": "MIT",
   "author": "Dominic Gannaway",
-  "version": "0.2.141",
+  "version": "0.2.152",
   "type": "module",
   "module": "src/index.js",
   "main": "src/index.js",
   "exports": {
     ".": {
       "types": "./types/index.d.ts",
-      "import": "./src/index.js"
+      "import": "./src/index.js",
+      "default": "./src/index.js"
     }
   },
   "homepage": "https://ripplejs.com",

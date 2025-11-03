@@ -5,8 +5,8 @@ export const TEMPLATES = [
 	{
 		name: 'basic',
 		display: 'Basic Ripple App',
-		description: 'A minimal Ripple application with Vite and TypeScript'
-	}
+		description: 'A minimal Ripple application with Vite and TypeScript',
+	},
 ];
 
 /**

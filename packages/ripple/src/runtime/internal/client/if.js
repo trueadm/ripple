@@ -36,11 +36,15 @@ export function if_block(node, fn) {
 		}
 	};
 
-	render(() => {
-		has_branch = false;
-		fn(set_branch);
-		if (!has_branch) {
-			update_branch(null, null);
-		}
-	}, IF_BLOCK);
+	render(
+		() => {
+			has_branch = false;
+			fn(set_branch);
+			if (!has_branch) {
+				update_branch(null, null);
+			}
+		},
+		null,
+		IF_BLOCK,
+	);
 }

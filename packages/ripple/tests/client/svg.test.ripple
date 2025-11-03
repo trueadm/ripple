@@ -1,7 +1,15 @@
+import { track } from 'ripple';
+
 describe('SVG namespace handling', () => {
 	it('should render static SVG elements with correct namespace', () => {
 		component App() {
-			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="24"
+				height="24"
+				fill="none"
+				stroke="currentColor"
+			>
 				<path d="m14 12 4 4 4-4" />
 				<circle cx="12" cy="12" r="4" />
 				<rect x="4" y="4" width="16" height="16" />
@@ -32,9 +40,20 @@ describe('SVG namespace handling', () => {
 
 	it('should render dynamic SVG paths with for loop (original issue)', () => {
 		component App() {
-			const d = ["m14 12 4 4 4-4", "M18 16V7", "m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16", "M3.304 13h6.392"];
+			const d = [
+				'm14 12 4 4 4-4',
+				'M18 16V7',
+				'm2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16',
+				'M3.304 13h6.392',
+			];
 
-			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="24"
+				height="24"
+				fill="none"
+				stroke="currentColor"
+			>
 				for (const pathData of d) {
 					<path d={pathData} />
 				}
@@ -52,7 +71,12 @@ describe('SVG namespace handling', () => {
 
 		// Critical test: dynamic paths should have correct SVG namespace
 		expect(paths.length).toBe(4);
-		const expectedPaths = ["m14 12 4 4 4-4", "M18 16V7", "m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16", "M3.304 13h6.392"];
+		const expectedPaths = [
+			'm14 12 4 4 4-4',
+			'M18 16V7',
+			'm2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16',
+			'M3.304 13h6.392',
+		];
 		paths.forEach((path, i) => {
 			expect(path.namespaceURI).toBe('http://www.w3.org/2000/svg');
 			expect(path.getAttribute('d')).toBe(expectedPaths[i]);
@@ -60,7 +84,7 @@ describe('SVG namespace handling', () => {
 
 		// Verify paths are actually SVG elements (should have getBBox method)
 		// Note: getBBox might not work in test environment, so just check namespace
-		paths.forEach(path => {
+		paths.forEach((path) => {
 			expect(path.namespaceURI).toBe('http://www.w3.org/2000/svg');
 			expect(path.tagName.toLowerCase()).toBe('path');
 		});
@@ -68,9 +92,15 @@ describe('SVG namespace handling', () => {
 
 	it('should handle mixed static and dynamic SVG elements', () => {
 		component App() {
-			const dynamicPaths = ["M12 2L2 7v10c0 5.55 3.84 10 9 11 5.16-1 9-5.45 9-11V7l-10-5z"];
+			const dynamicPaths = ['M12 2L2 7v10c0 5.55 3.84 10 9 11 5.16-1 9-5.45 9-11V7l-10-5z'];
 
-			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="24"
+				height="24"
+				fill="none"
+				stroke="currentColor"
+			>
 				<circle cx="12" cy="12" r="10" />
 				for (const pathData of dynamicPaths) {
 					<path d={pathData} />
@@ -93,14 +123,16 @@ describe('SVG namespace handling', () => {
 		expect(rect.namespaceURI).toBe('http://www.w3.org/2000/svg');
 
 		// Verify content
-		expect(path.getAttribute('d')).toBe('M12 2L2 7v10c0 5.55 3.84 10 9 11 5.16-1 9-5.45 9-11V7l-10-5z');
+		expect(path.getAttribute('d')).toBe(
+			'M12 2L2 7v10c0 5.55 3.84 10 9 11 5.16-1 9-5.45 9-11V7l-10-5z',
+		);
 	});
 
 	it('should handle nested SVG groups with for loops', () => {
 		component App() {
 			const items = [
-				{ x: "10", y: "10", width: "20", height: "20" },
-				{ x: "40", y: "40", width: "20", height: "20" }
+				{ x: '10', y: '10', width: '20', height: '20' },
+				{ x: '40', y: '40', width: '20', height: '20' },
 			];
 
 			<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
@@ -123,7 +155,7 @@ describe('SVG namespace handling', () => {
 		expect(g.namespaceURI).toBe('http://www.w3.org/2000/svg');
 		expect(rects.length).toBe(2);
 
-		rects.forEach(rect => {
+		rects.forEach((rect) => {
 			expect(rect.namespaceURI).toBe('http://www.w3.org/2000/svg');
 		});
 
@@ -198,24 +230,171 @@ describe('SVG namespace handling', () => {
 		expect(div.textContent).toBe('HTML inside SVG');
 	});
 
+	it('should render SVG with children as svg elements', () => {
+		component SVG({ children }) {
+			<svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<children />
+			</svg>
+		}
+
+		component App() {
+			let isDiamond = true;
+			<SVG>
+				if (isDiamond) {
+					<polygon points="0,0 30,0 15,10" />
+				} else {
+					<polygon points="0,0 30,0 15,10" />
+				}
+			</SVG>
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
+	it('should render SVG with props as svg elements', () => {
+		component SVG({ Polygon }) {
+			<svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<Polygon />
+			</svg>
+		}
+
+		component App() {
+			<SVG {Polygon} />
+		}
+
+		component Polygon() {
+			<polygon points="0,0 30,0 15,10" />
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
+	it('should render SVG with children as dynamic elements', () => {
+		component SVG({ children }) {
+			<svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<children />
+			</svg>
+		}
+
+		component App() {
+			let dynTag = track('polygon');
+			<SVG>
+				<@dynTag points="0,0 30,0 15,10" />
+			</SVG>
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
+	it('should render SVG with children as dynamic components', () => {
+		component SVG({ children }) {
+			<svg width={20} height={20} fill="blue" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<children />
+			</svg>
+		}
+
+		component Polygon({ points }) {
+			<polygon {points} />
+		}
+
+		component App() {
+			let Component = track(() => Polygon);
+			<SVG>
+				<@Component points="0,0 30,0 15,10" />
+			</SVG>
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
+	it('should render SVG as a dynamic top element with any dynamic children elements', () => {
+		component SVG({ children }) {
+			const tag = track('svg');
+			<@tag width={100} height={50} fill="red" viewBox="0 0 30 10" preserveAspectRatio="none">
+				<children />
+			</@tag>
+		}
+
+		component Polygon({ points }) {
+			let dynTag = track('polygon');
+			<@dynTag {points} />
+		}
+
+		component App() {
+			let Component = track(() => Polygon);
+			<SVG>
+				<@Component points="0,0 30,0 15,10" />
+			</SVG>
+		}
+
+		render(App);
+
+		const svg = container.querySelector('svg');
+		const polygon = container.querySelector('polygon');
+
+		expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+		expect(polygon.namespaceURI).toBe('http://www.w3.org/2000/svg');
+	});
+
 	it('should compare static vs dynamic SVG rendering (original problem case)', () => {
 		component App() {
-			const d = ["m14 12 4 4 4-4", "M18 16V7", "m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16", "M3.304 13h6.392"];
+			const d = [
+				'm14 12 4 4 4-4',
+				'M18 16V7',
+				'm2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16',
+				'M3.304 13h6.392',
+			];
 
 			<div class="container">
-				{/* Dynamic SVG - the original problem case */}
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" class="dynamic-svg">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="24"
+					height="24"
+					fill="none"
+					stroke="currentColor"
+					class="dynamic-svg"
+				>
 					for (const path of d) {
 						<path d={path} />
 					}
 				</svg>
 
-				{/* Static SVG - always worked */}
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" class="static-svg">
-					<path d="m14 12 4 4 4-4"></path>
-					<path d="M18 16V7"></path>
-					<path d="m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16"></path>
-					<path d="M3.304 13h6.392"></path>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="24"
+					height="24"
+					fill="none"
+					stroke="currentColor"
+					class="static-svg"
+				>
+					<path d="m14 12 4 4 4-4" />
+					<path d="M18 16V7" />
+					<path d="m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16" />
+					<path d="M3.304 13h6.392" />
 				</svg>
 			</div>
 		}
@@ -236,10 +415,10 @@ describe('SVG namespace handling', () => {
 		expect(staticPaths.length).toBe(4);
 
 		// All paths should have SVG namespace
-		dynamicPaths.forEach(path => {
+		dynamicPaths.forEach((path) => {
 			expect(path.namespaceURI).toBe('http://www.w3.org/2000/svg');
 		});
-		staticPaths.forEach(path => {
+		staticPaths.forEach((path) => {
 			expect(path.namespaceURI).toBe('http://www.w3.org/2000/svg');
 		});
 
@@ -249,11 +428,11 @@ describe('SVG namespace handling', () => {
 		});
 
 		// Critical test: all paths should be proper SVG elements
-		dynamicPaths.forEach(path => {
+		dynamicPaths.forEach((path) => {
 			expect(path.namespaceURI).toBe('http://www.w3.org/2000/svg');
 			expect(path.tagName.toLowerCase()).toBe('path');
 		});
-		staticPaths.forEach(path => {
+		staticPaths.forEach((path) => {
 			expect(path.namespaceURI).toBe('http://www.w3.org/2000/svg');
 			expect(path.tagName.toLowerCase()).toBe('path');
 		});

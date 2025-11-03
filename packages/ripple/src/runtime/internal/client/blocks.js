@@ -60,10 +60,11 @@ export function effect(fn) {
 
 /**
  * @param {Function} fn
+ * @param {any} [state]
  * @param {number} [flags]
  */
-export function render(fn, flags = 0) {
-	return block(RENDER_BLOCK | flags, fn);
+export function render(fn, state, flags = 0) {
+	return block(RENDER_BLOCK | flags, fn, state);
 }
 
 /**

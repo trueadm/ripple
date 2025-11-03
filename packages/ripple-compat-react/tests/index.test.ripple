@@ -279,4 +279,26 @@ describe('ripple-compat-react', () => {
 		flushSync();
 		expect(rippleCount.textContent).toBe('2');
 	});
+
+	it('should handle a call expression at the top-level of a tsx:react block', async () => {
+		function renderReactText() {
+			return 'This is rendered from a React component!';
+		}
+
+		component App() {
+			<div>
+				<tsx:react>
+					{renderReactText()}
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const reactContent = container.querySelector('div > div');
+		expect(reactContent).toBeTruthy();
+		expect(reactContent.textContent).toBe('This is rendered from a React component!');
+	});
 });

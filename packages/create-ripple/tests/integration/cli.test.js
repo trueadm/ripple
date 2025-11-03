@@ -13,6 +13,7 @@ const __dirname = dirname(__filename);
 const CLI_PATH = join(__dirname, '../../src/index.js');
 
 describe('CLI Integration Tests', () => {
+	/** @type {string} */
 	let testDir;
 
 	beforeEach(() => {
@@ -26,12 +27,19 @@ describe('CLI Integration Tests', () => {
 		}
 	});
 
-	// Helper function to run CLI commands
+	/**
+	 * Helper function to run CLI commands
+	 * @param {string[]} args
+	 * @param {string} input
+	 * @param {number} timeout
+	 * @param {string} cwd
+	 * @returns {Promise<{code: number, stdout: string, stderr: string}>}
+	 */
 	const runCLI = (args = [], input = '', timeout = 10000, cwd = testDir) => {
 		return new Promise((resolve, reject) => {
 			const child = spawn('node', [CLI_PATH, ...args], {
 				cwd,
-				stdio: 'pipe'
+				stdio: 'pipe',
 			});
 
 			let stdout = '';
@@ -45,9 +53,12 @@ describe('CLI Integration Tests', () => {
 				stderr += data.toString();
 			});
 
-			child.on('close', (code) => {
-				resolve({ code, stdout, stderr });
-			});
+			child.on(
+				'close',
+				/** @param {number} code */ (code) => {
+					resolve({ code, stdout, stderr });
+				},
+			);
 
 			child.on('error', reject);
 
@@ -86,10 +97,12 @@ describe('CLI Integration Tests', () => {
 		const projectName = 'test-cli-project';
 		const result = await runCLI([
 			projectName,
-			'--template', 'basic',
-			'--package-manager', 'npm',
+			'--template',
+			'basic',
+			'--package-manager',
+			'npm',
 			'--no-git',
-			'--yes'
+			'--yes',
 		]);
 
 		expect(result.code).toBe(0);
@@ -109,10 +122,12 @@ describe('CLI Integration Tests', () => {
 		const projectName = './relative/test-cli-project';
 		const result = await runCLI([
 			projectName,
-			'--template', 'basic',
-			'--package-manager', 'npm',
+			'--template',
+			'basic',
+			'--package-manager',
+			'npm',
 			'--no-git',
-			'--yes'
+			'--yes',
 		]);
 
 		expect(result.code).toBe(0);
@@ -129,15 +144,11 @@ describe('CLI Integration Tests', () => {
 
 		const projectName = '../test-outer-cli-project';
 		const projectPath = resolve(subTestDir, projectName);
-		const result = await runCLI([
-			projectName,
-			'--template', 'basic',
-			'--package-manager', 'npm',
-			'--no-git',
-			'--yes'
-		], '',
+		const result = await runCLI(
+			[projectName, '--template', 'basic', '--package-manager', 'npm', '--no-git', '--yes'],
+			'',
 			10000,
-			subTestDir
+			subTestDir,
 		);
 
 		expect(result.code).toBe(0);
@@ -148,11 +159,7 @@ describe('CLI Integration Tests', () => {
 	});
 
 	it('should handle invalid template gracefully', async () => {
-		const result = await runCLI([
-			'test-project',
-			'--template', 'invalid-template',
-			'--yes'
-		]);
+		const result = await runCLI(['test-project', '--template', 'invalid-template', '--yes']);
 
 		expect(result.code).toBe(1);
 		expect(result.stderr).toContain('Template "invalid-template" not found');
@@ -160,10 +167,7 @@ describe('CLI Integration Tests', () => {
 	});
 
 	it('should handle invalid project name gracefully', async () => {
-		const result = await runCLI([
-			'Invalid Project Name!',
-			'--yes'
-		]);
+		const result = await runCLI(['Invalid Project Name!', '--yes']);
 
 		expect(result.code).toBe(1);
 		expect(result.stderr).toContain('Project name can only contain lowercase letters');
@@ -173,9 +177,11 @@ describe('CLI Integration Tests', () => {
 		const projectName = 'test-pnpm-project';
 		const result = await runCLI([
 			projectName,
-			'--template', 'basic',
-			'--package-manager', 'pnpm',
-			'--yes'
+			'--template',
+			'basic',
+			'--package-manager',
+			'pnpm',
+			'--yes',
 		]);
 
 		expect(result.code).toBe(0);
@@ -187,9 +193,11 @@ describe('CLI Integration Tests', () => {
 		const projectName = 'test-yarn-project';
 		const result = await runCLI([
 			projectName,
-			'--template', 'basic',
-			'--package-manager', 'yarn',
-			'--yes'
+			'--template',
+			'basic',
+			'--package-manager',
+			'yarn',
+			'--yes',
 		]);
 
 		expect(result.code).toBe(0);
@@ -204,21 +212,24 @@ describe('CLI Integration Tests', () => {
 		const nonConflictFiles = ['.gitignore', 'LICENSE'];
 
 		mkdirSync(projectPath, { recursive: true });
-		[...conflictFiles, ...nonConflictFiles].forEach(file => writeFileSync(join(projectPath, file), 'conflict'));
-		const result = await runCLI([
-			projectName,
-			'--yes'
-		]);
+		[...conflictFiles, ...nonConflictFiles].forEach((file) =>
+			writeFileSync(join(projectPath, file), 'conflict'),
+		);
+		const result = await runCLI([projectName, '--yes']);
 
 		expect(result.code).toBe(1);
-		expect(result.stdout).toContain(`The directory ${projectName} contains files that could conflict:`);
+		expect(result.stdout).toContain(
+			`The directory ${projectName} contains files that could conflict:`,
+		);
 
 		// Verify only conflicting file is listed
-		conflictFiles.forEach(file => {
+		conflictFiles.forEach((file) => {
 			expect(result.stdout).toContain(file);
 		});
 
-		expect(result.stdout).toContain('Either try using a new directory name, or remove the files listed above.');
+		expect(result.stdout).toContain(
+			'Either try using a new directory name, or remove the files listed above.',
+		);
 	});
 
 	it('should create a project with non-conflicting files in target directory', async () => {
@@ -249,13 +260,15 @@ describe('CLI Integration Tests', () => {
 		];
 
 		mkdirSync(projectPath, { recursive: true });
-		nonConflictFiles.forEach(file => writeFileSync(join(projectPath, file), 'no conflict'));
+		nonConflictFiles.forEach((file) => writeFileSync(join(projectPath, file), 'no conflict'));
 		const result = await runCLI([
 			projectName,
-			'--template', 'basic',
-			'--package-manager', 'npm',
+			'--template',
+			'basic',
+			'--package-manager',
+			'npm',
 			'--no-git',
-			'--yes'
+			'--yes',
 		]);
 
 		expect(result.code).toBe(0);

@@ -15,18 +15,22 @@ export function switch_block(node, fn) {
 	/** @type {Block | null} */
 	var b = null;
 
-	render(() => {
-		const branch_fn = fn() ?? null;
-		if (current_branch === branch_fn) return;
-		current_branch = branch_fn;
+	render(
+		() => {
+			const branch_fn = fn() ?? null;
+			if (current_branch === branch_fn) return;
+			current_branch = branch_fn;
 
-		if (b !== null) {
-			destroy_block(b);
-			b = null;
-		}
+			if (b !== null) {
+				destroy_block(b);
+				b = null;
+			}
 
-		if (branch_fn !== null) {
-			b = branch(() => branch_fn(anchor));
-		}
-	}, SWITCH_BLOCK);
+			if (branch_fn !== null) {
+				b = branch(() => branch_fn(anchor));
+			}
+		},
+		null,
+		SWITCH_BLOCK,
+	);
 }

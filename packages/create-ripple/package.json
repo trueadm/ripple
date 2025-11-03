@@ -1,6 +1,6 @@
 {
   "name": "create-ripple",
-  "version": "0.2.141",
+  "version": "0.2.152",
   "description": "Interactive CLI tool for creating Ripple applications",
   "type": "module",
   "license": "MIT",
@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@types/prompts": "catalog:default",
+    "type-fest": "catalog:default",
     "commander": "catalog:default",
     "degit": "catalog:default",
     "jsdom": "catalog:default",

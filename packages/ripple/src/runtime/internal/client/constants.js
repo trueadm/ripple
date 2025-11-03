@@ -30,3 +30,9 @@ export var REF_PROP = 'ref';
 /** @type {unique symbol} */
 export const ARRAY_SET_INDEX_AT = Symbol();
 export const MAX_ARRAY_LENGTH = 2 ** 32 - 1;
+export const DEFAULT_NAMESPACE = 'html';
+export const NAMESPACE_URI = {
+	html: 'http://www.w3.org/1999/xhtml',
+	svg: 'http://www.w3.org/2000/svg',
+	mathml: 'http://www.w3.org/1998/Math/MathML',
+};

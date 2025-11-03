@@ -45,8 +45,6 @@ function mark_control_flow_has_template(path) {
 
 function visit_function(node, context) {
 	node.metadata = {
-		hoisted: false,
-		hoisted_params: [],
 		scope: context.state.scope,
 		tracked: false,
 	};
@@ -356,10 +354,13 @@ const visitors = {
 		}
 
 		// Store component metadata in analysis
-		context.state.analysis.component_metadata.push({
-			id: node.id.name,
-			async: metadata.await,
-		});
+		// Only add metadata if component has a name (not anonymous)
+		if (node.id) {
+			context.state.analysis.component_metadata.push({
+				id: node.id.name,
+				async: metadata.await,
+			});
+		}
 	},
 
 	ForStatement(node, context) {
@@ -719,12 +720,7 @@ const visitors = {
 							const handler = visit(attr.value, state);
 							const delegated_event = get_delegated_event(event_name, handler, state);
 
-							if (delegated_event !== null) {
-								if (delegated_event.hoisted) {
-									delegated_event.function.metadata.hoisted = true;
-									delegated_event.hoisted = true;
-								}
-
+							if (delegated_event) {
 								if (attr.metadata === undefined) {
 									attr.metadata = {};
 								}

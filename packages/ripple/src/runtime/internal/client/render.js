@@ -124,17 +124,21 @@ export function apply_styles(element, newStyles) {
 
 /**
  * @param {Element} element
- * @param {Record<string, any>} attributes
+ * @param {Record<string, any>} prev
+ * @param {Record<string, any>} next
  * @returns {void}
  */
-export function set_attributes(element, attributes) {
+export function set_attributes(element, prev, next) {
 	let found_enumerable_keys = false;
 
-	for (const key in attributes) {
+	for (const key in next) {
 		if (key === 'children') continue;
 		found_enumerable_keys = true;
 
-		let value = attributes[key];
+		let value = next[key];
+		if (prev[key] === value && key !== '#class') {
+			continue;
+		}
 		if (is_tracked_object(value)) {
 			value = get(value);
 		}
@@ -143,13 +147,16 @@ export function set_attributes(element, attributes) {
 
 	// Only if no enumerable keys but attributes object exists
 	// This handles spread_props Proxy objects from dynamic elements with {...spread}
-	if (!found_enumerable_keys && attributes) {
-		const allKeys = Reflect.ownKeys(attributes);
+	if (!found_enumerable_keys && next) {
+		const allKeys = Reflect.ownKeys(next);
 		for (const key of allKeys) {
 			if (key === 'children') continue;
 			if (typeof key === 'symbol') continue; // Skip symbols - handled by apply_element_spread
 
-			let value = attributes[key];
+			let value = next[key];
+			if (prev[key] === value && key !== '#class') {
+				continue;
+			}
 			if (is_tracked_object(value)) {
 				value = get(value);
 			}
@@ -189,42 +196,32 @@ function set_attribute_helper(element, key, value) {
 }
 
 /**
- * @param {import('clsx').ClassValue} value
- * @param {string} [hash]
- * @returns {string}
- */
-function to_class(value, hash) {
-	return value == null ? (hash ?? '') : clsx([value, hash]);
-}
-
-/**
  * @param {HTMLElement} dom
- * @param {import('clsx').ClassValue} value
+ * @param {string} value
  * @param {string} [hash]
  * @param {boolean} [is_html]
  * @returns {void}
  */
 export function set_class(dom, value, hash, is_html = true) {
-	// @ts-expect-error need to add __className to patched prototype
-	var prev_class_name = dom.__className;
-	var next_class_name = to_class(value, hash);
+	var class_value =
+		value == null
+			? (hash ?? '')
+			: // Fast-path for string values
+				typeof value === 'string'
+				? value + (hash ? ' ' + hash : '')
+				: clsx([value, hash]);
 
-	if (prev_class_name !== next_class_name) {
-		// Removing the attribute when the value is only an empty string causes
-		// peformance issues vs simply making the className an empty string. So
-		// we should only remove the class if the the value is nullish.
-		if (value == null && !hash) {
-			dom.removeAttribute('class');
+	// Removing the attribute when the value is only an empty string causes
+	// peformance issues vs simply making the className an empty string. So
+	// we should only remove the class if the the value is nullish.
+	if (value == null && hash === undefined) {
+		dom.removeAttribute('class');
+	} else {
+		if (is_html) {
+			dom.className = class_value;
 		} else {
-			if (is_html) {
-				dom.className = next_class_name;
-			} else {
-				dom.setAttribute('class', next_class_name);
-			}
+			dom.setAttribute('class', class_value);
 		}
-
-		// @ts-expect-error need to add __className to patched prototype
-		dom.__className = next_class_name;
 	}
 }
 
@@ -295,13 +292,13 @@ export function set_selected(element, selected) {
  * @returns {() => void}
  */
 export function apply_element_spread(element, fn) {
-	/** @type {Record<string | symbol, any> | undefined} */
-	var prev;
+	/** @type {Record<string | symbol, any>} */
+	var prev = {};
 	/** @type {Record<symbol, Block>} */
 	var effects = {};
 
 	return () => {
-		var next = fn();
+		var next = { ...fn() };
 
 		for (let symbol of get_own_property_symbols(effects)) {
 			if (!next[symbol]) {
@@ -310,10 +307,6 @@ export function apply_element_spread(element, fn) {
 		}
 
 		for (const symbol of get_own_property_symbols(next)) {
-			// Ensure we are not trying to write to a proxied object
-			if (TRACKED_OBJECT in next) {
-				next = { ...next };
-			}
 			var ref_fn = next[symbol];
 
 			if (symbol.description === REF_PROP && (!prev || ref_fn !== prev[symbol])) {
@@ -326,7 +319,7 @@ export function apply_element_spread(element, fn) {
 			next[symbol] = ref_fn;
 		}
 
-		set_attributes(element, next);
+		set_attributes(element, prev, next);
 
 		prev = next;
 	};

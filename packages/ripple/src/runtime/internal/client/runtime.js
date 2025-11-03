@@ -1,4 +1,5 @@
 /** @import { Block, Component, Dependency, Derived, Tracked } from '#client' */
+/** @import { NAMESPACE_URI } from './constants.js' */
 
 import { DEV } from 'esm-env';
 import {
@@ -26,6 +27,7 @@ import {
 	UNINITIALIZED,
 	REF_PROP,
 	TRACKED_OBJECT,
+	DEFAULT_NAMESPACE,
 } from './constants.js';
 import { capture, suspend } from './try.js';
 import {
@@ -48,6 +50,8 @@ export let active_reaction = null;
 export let active_scope = null;
 /** @type {null | Component} */
 export let active_component = null;
+/** @type {keyof typeof NAMESPACE_URI} */
+export let active_namespace = DEFAULT_NAMESPACE;
 /** @type {boolean} */
 export let is_mutating_allowed = true;
 
@@ -141,10 +145,13 @@ export function run_teardown(block) {
  */
 export function with_block(block, fn) {
 	var prev_block = active_block;
+	var previous_component = active_component;
 	active_block = block;
+	active_component = block.co;
 	try {
 		return fn();
 	} finally {
+		active_component = previous_component;
 		active_block = prev_block;
 	}
 }
@@ -255,7 +262,7 @@ export function run_block(block) {
 
 		tracking = (block.f & (ROOT_BLOCK | BRANCH_BLOCK)) === 0;
 		active_dependency = null;
-		var res = block.fn();
+		var res = block.fn(block.s);
 
 		if (typeof res === 'function') {
 			block.t = res;
@@ -499,51 +506,55 @@ export function async_computed(fn, block) {
 	/** @type {Map<Tracked, {v: any, c: number}>} */
 	var new_values = new Map();
 
-	render(() => {
-		var [current, deferred] = capture_deferred(() => (promise = fn()));
+	render(
+		() => {
+			var [current, deferred] = capture_deferred(() => (promise = fn()));
 
-		var restore = capture();
-		/** @type {(() => void) | undefined} */
-		var unuspend;
-
-		if (deferred === null) {
-			unuspend = suspend();
-		} else {
-			for (var i = 0; i < deferred.length; i++) {
-				var tracked = deferred[i];
-				new_values.set(tracked, { v: tracked.__v, c: tracked.c });
-			}
-		}
-
-		promise.then((v) => {
-			if (parent && is_destroyed(/** @type {Block} */ (parent))) {
-				return;
-			}
-			if (promise === current && t.__v !== v) {
-				restore();
-
-				if (t.__v === UNINITIALIZED) {
-					t.__v = v;
-				} else {
-					set(t, v);
-				}
-			}
+			var restore = capture();
+			/** @type {(() => void) | undefined} */
+			var unuspend;
 
 			if (deferred === null) {
-				unuspend?.();
-			} else if (promise === current) {
+				unuspend = suspend();
+			} else {
 				for (var i = 0; i < deferred.length; i++) {
 					var tracked = deferred[i];
-					var stored = /** @type {{ v: any, c: number }} */ (new_values.get(tracked));
-					var { v, c } = stored;
-					tracked.__v = v;
-					tracked.c = c;
-					schedule_update(tracked.b);
+					new_values.set(tracked, { v: tracked.__v, c: tracked.c });
 				}
-				new_values.clear();
 			}
-		});
-	}, ASYNC_BLOCK);
+
+			promise.then((v) => {
+				if (parent && is_destroyed(/** @type {Block} */ (parent))) {
+					return;
+				}
+				if (promise === current && t.__v !== v) {
+					restore();
+
+					if (t.__v === UNINITIALIZED) {
+						t.__v = v;
+					} else {
+						set(t, v);
+					}
+				}
+
+				if (deferred === null) {
+					unuspend?.();
+				} else if (promise === current) {
+					for (var i = 0; i < deferred.length; i++) {
+						var tracked = deferred[i];
+						var stored = /** @type {{ v: any, c: number }} */ (new_values.get(tracked));
+						var { v, c } = stored;
+						tracked.__v = v;
+						tracked.c = c;
+						schedule_update(tracked.b);
+					}
+					new_values.clear();
+				}
+			});
+		},
+		null,
+		ASYNC_BLOCK,
+	);
 
 	return new Promise(async (resolve) => {
 		var p;
@@ -1157,6 +1168,22 @@ export function pop_component() {
 		}
 	}
 	active_component = component.p;
+}
+
+/**
+ * @template T
+ * @param {() => T} fn
+ * @param {keyof typeof NAMESPACE_URI} namespace
+ * @returns {T}
+ */
+export function with_ns(namespace, fn) {
+	var previous_namespace = active_namespace;
+	active_namespace = namespace;
+	try {
+		return fn();
+	} finally {
+		active_namespace = previous_namespace;
+	}
 }
 
 /**

@@ -12,7 +12,7 @@ const __dirname = dirname(__filename);
 /**
  * Get template by name
  * @param {string} templateName - The template name
- * @returns {object|null} - Template object or null if not found
+ * @returns {typeof TEMPLATES[number] | null} - Template object or null if not found
  */
 export function getTemplate(templateName) {
 	return TEMPLATES.find((template) => template.name === templateName) || null;
@@ -28,13 +28,13 @@ export function getTemplateNames() {
 
 /**
  * Get template choices for prompts
- * @returns {object[]} - Array of choice objects for prompts
+ * @returns {{title: string, description: string, value: string}[]} - Array of choice objects for prompts
  */
 export function getTemplateChoices() {
 	return TEMPLATES.map((template) => ({
 		title: template.display,
 		description: template.description,
-		value: template.name
+		value: template.name,
 	}));
 }
 
@@ -68,13 +68,14 @@ export async function downloadTemplate(templateName) {
 	const emitter = degit(repoUrl, {
 		cache: false,
 		force: true,
-		verbose: false
+		verbose: false,
 	});
 
 	try {
 		await emitter.clone(tempDir);
 		return tempDir;
-	} catch (error) {
+	} catch (e) {
+		const error = /** @type {Error} */ (e);
 		throw new Error(`Failed to download template "${templateName}": ${error.message}`);
 	}
 }

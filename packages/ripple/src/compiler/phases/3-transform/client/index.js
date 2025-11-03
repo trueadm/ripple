@@ -15,9 +15,9 @@ import {
 	TEMPLATE_SVG_NAMESPACE,
 	TEMPLATE_MATHML_NAMESPACE,
 } from '../../../../constants.js';
+import { DEFAULT_NAMESPACE } from '../../../../runtime/internal/client/constants.js';
 import { sanitize_template_string } from '../../../../utils/sanitize_template_string.js';
 import {
-	build_hoisted_params,
 	is_inside_component,
 	build_assignment,
 	visit_assignment_expression,
@@ -35,6 +35,7 @@ import {
 	normalize_children,
 	build_getter,
 	determine_namespace_for_children,
+	index_to_key,
 } from '../../../utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
@@ -72,16 +73,6 @@ function visit_function(node, context) {
 		if (param.type === 'AssignmentPattern' && param.left) {
 			delete param.left.typeAnnotation;
 		}
-	}
-
-	if (metadata?.hoisted === true) {
-		const params = build_hoisted_params(node, context);
-
-		return /** @type {FunctionExpression} */ ({
-			...node,
-			params,
-			body: context.visit(node.body, state),
-		});
 	}
 
 	let body = context.visit(node.body, {
@@ -127,7 +118,71 @@ function visit_head_element(node, context) {
 
 	if (init.length > 0 || update.length > 0 || final.length > 0) {
 		context.state.init.push(
-			b.call('_$_.head', b.arrow([b.id('__anchor')], b.block([...init, ...update, ...final]))),
+			b.call(
+				'_$_.head',
+				b.arrow(
+					[b.id('__anchor')],
+					b.block([...init, ...update.map((u) => u.operation), ...final]),
+				),
+			),
+		);
+	}
+}
+
+function apply_updates(init, update) {
+	if (update.length === 1) {
+		init.push(
+			b.stmt(
+				b.call(
+					'_$_.render',
+					b.thunk(
+						b.block(
+							update.map((u) => {
+								if (u.initial) {
+									return u.operation(u.expression);
+								}
+								return u.operation;
+							}),
+						),
+						!!update.async,
+					),
+				),
+			),
+		);
+	} else {
+		const index_map = new Map();
+		const initial = [];
+		const render_statements = [];
+		let index = 0;
+
+		for (const u of update) {
+			if (u.initial) {
+				const key = index_to_key(index);
+				index_map.set(u.operation, key);
+				initial.push(b.prop('init', b.id(key), u.initial));
+				render_statements.push(
+					b.var('__' + key, u.expression),
+					b.if(
+						b.binary('!==', b.member(b.id('__prev'), b.id(key)), b.id('__' + key)),
+						b.block([
+							u.operation(b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key))),
+						]),
+					),
+				);
+				index++;
+			} else {
+				render_statements.push(u.operation);
+			}
+		}
+
+		init.push(
+			b.stmt(
+				b.call(
+					'_$_.render',
+					b.arrow([b.id('__prev')], b.block(render_statements), !!update.async),
+					b.object(initial),
+				),
+			),
 		);
 	}
 }
@@ -862,7 +917,7 @@ const visitors = {
 							const expression = visit(attr.value, { ...state, metadata });
 
 							if (metadata.tracking) {
-								local_updates.push(b.stmt(b.call('_$_.set_value', id, expression)));
+								local_updates.push({ operation: b.stmt(b.call('_$_.set_value', id, expression)) });
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_value', id, expression)));
 							}
@@ -876,7 +931,9 @@ const visitors = {
 							const expression = visit(attr.value, { ...state, metadata });
 
 							if (name === '$checked' || metadata.tracking) {
-								local_updates.push(b.stmt(b.call('_$_.set_checked', id, expression)));
+								local_updates.push({
+									operation: b.stmt(b.call('_$_.set_checked', id, expression)),
+								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_checked', id, expression)));
 							}
@@ -889,7 +946,9 @@ const visitors = {
 							const expression = visit(attr.value, { ...state, metadata });
 
 							if (metadata.tracking) {
-								local_updates.push(b.stmt(b.call('_$_.set_selected', id, expression)));
+								local_updates.push({
+									operation: b.stmt(b.call('_$_.set_selected', id, expression)),
+								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_selected', id, expression)));
 							}
@@ -910,23 +969,11 @@ const visitors = {
 									state.events.add(event_name);
 								}
 
-								// Hoist function if we can, otherwise we leave the function as is
-								if (attr.metadata.delegated.hoisted) {
-									if (attr.metadata.delegated.function === attr.value) {
-										const func_name = state.scope.root.unique('on_' + event_name);
-										state.hoisted.push(b.var(func_name, handler));
-										handler = func_name;
-									}
-
-									const hoisted_params = /** @type {Expression[]} */ (
-										attr.metadata.delegated.function.metadata.hoisted_params
-									);
-
-									const args = [handler, b.id('__block'), ...hoisted_params];
-									delegated_assignment = b.array(args);
-								} else if (
-									handler.type === 'Identifier' &&
-									is_declared_function_within_component(handler, context)
+								if (
+									(handler.type === 'Identifier' &&
+										is_declared_function_within_component(handler, context)) ||
+									handler.type === 'ArrowFunctionExpression' ||
+									handler.type === 'FunctionExpression'
 								) {
 									delegated_assignment = handler;
 								} else {
@@ -966,11 +1013,15 @@ const visitors = {
 							const id = state.flush_node();
 
 							if (is_dom_property(attribute)) {
-								local_updates.push(b.stmt(b.assignment('=', b.member(id, attribute), expression)));
+								local_updates.push({
+									operation: b.stmt(b.assignment('=', b.member(id, attribute), expression)),
+								});
 							} else {
-								local_updates.push(
-									b.stmt(b.call('_$_.set_attribute', id, b.literal(attribute), expression)),
-								);
+								local_updates.push({
+									operation: b.stmt(
+										b.call('_$_.set_attribute', id, b.literal(attribute), expression),
+									),
+								});
 							}
 						} else {
 							const id = state.flush_node();
@@ -1010,9 +1061,12 @@ const visitors = {
 					const is_html = context.state.namespace === 'html' && node.id.name !== 'svg';
 
 					if (metadata.tracking) {
-						local_updates.push(
-							b.stmt(b.call('_$_.set_class', id, expression, hash_arg, b.literal(is_html))),
-						);
+						local_updates.push({
+							operation: (key) =>
+								b.stmt(b.call('_$_.set_class', id, key, hash_arg, b.literal(is_html))),
+							expression,
+							initial: b.literal(''),
+						});
 					} else {
 						state.init.push(
 							b.stmt(b.call('_$_.set_class', id, expression, hash_arg, b.literal(is_html))),
@@ -1035,7 +1089,7 @@ const visitors = {
 					const statement = b.stmt(b.call('_$_.set_attribute', id, b.literal(name), expression));
 
 					if (metadata.tracking) {
-						local_updates.push(statement);
+						local_updates.push({ operation: statement });
 					} else {
 						state.init.push(statement);
 					}
@@ -1067,7 +1121,7 @@ const visitors = {
 
 			if (update.length > 0) {
 				if (state.scope.parent.declarations.size > 0) {
-					init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(update), !!update.async))));
+					apply_updates(init, update);
 				} else {
 					state.update.push(...update);
 				}
@@ -1183,31 +1237,36 @@ const visitors = {
 			// We visit, but only to gather metadata
 			b.call(visit(node.id, { ...state, metadata }));
 
+			// We're calling a component from within svg/mathml context
+			const is_with_ns = state.namespace !== DEFAULT_NAMESPACE;
+
 			if (metadata.tracking) {
+				const shared = b.call(
+					'_$_.composite',
+					b.thunk(visit(node.id, state)),
+					id,
+					is_spreading
+						? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
+						: b.object(props),
+				);
 				state.init.push(
-					b.stmt(
-						b.call(
-							'_$_.composite',
-							b.thunk(visit(node.id, state)),
-							id,
-							is_spreading
-								? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
-								: b.object(props),
-						),
-					),
+					is_with_ns
+						? b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared))
+						: b.stmt(shared),
 				);
 			} else {
+				const shared = b.call(
+					visit(node.id, state),
+					id,
+					is_spreading
+						? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
+						: b.object(props),
+					b.id('_$_.active_block'),
+				);
 				state.init.push(
-					b.stmt(
-						b.call(
-							visit(node.id, state),
-							id,
-							is_spreading
-								? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
-								: b.object(props),
-							b.id('_$_.active_block'),
-						),
-					),
+					is_with_ns
+						? b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared))
+						: b.stmt(shared),
 				);
 			}
 		}
@@ -1379,7 +1438,7 @@ const visitors = {
 		}
 
 		const left = object(argument);
-		const binding = context.state.scope.get(left.name);
+		const binding = left && context.state.scope.get(left.name);
 		const transformers = left && binding?.transform;
 
 		if (left === argument) {
@@ -2041,7 +2100,6 @@ function transform_ts_child(node, context) {
 			.map((child) => visit(child, state))
 			.filter((child) => child.type !== 'JSXText' || child.value.trim() !== '');
 
-		debugger;
 		state.init.push(b.stmt(b.jsx_fragment(children)));
 	} else {
 		throw new Error('TODO');
@@ -2062,6 +2120,7 @@ function transform_children(children, context) {
 				node.type === 'TryStatement' ||
 				node.type === 'ForOfStatement' ||
 				node.type === 'SwitchStatement' ||
+				node.type === 'TsxCompat' ||
 				node.type === 'Html' ||
 				(node.type === 'Element' &&
 					(node.id.type !== 'Identifier' || !is_element_dom_element(node))),
@@ -2166,8 +2225,8 @@ function transform_children(children, context) {
 				context.state.template.push('<!>');
 
 				const id = flush_node();
-				state.update.push(
-					b.stmt(
+				state.update.push({
+					operation: b.stmt(
 						b.call(
 							'_$_.html',
 							id,
@@ -2176,7 +2235,7 @@ function transform_children(children, context) {
 							state.namespace === 'mathml' && b.true,
 						),
 					),
-				);
+				});
 			} else if (node.type === 'Text') {
 				const metadata = { tracking: false, await: false };
 				const expression = visit(node.expression, { ...state, metadata });
@@ -2184,7 +2243,11 @@ function transform_children(children, context) {
 				if (metadata.tracking) {
 					state.template.push(' ');
 					const id = flush_node();
-					state.update.push(b.stmt(b.call('_$_.set_text', id, expression)));
+					state.update.push({
+						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
+						expression,
+						initial: b.literal(' '),
+					});
 					if (metadata.await) {
 						state.update.async = true;
 					}
@@ -2201,7 +2264,11 @@ function transform_children(children, context) {
 					// Handle Text nodes in fragments
 					state.template.push(' ');
 					const id = flush_node();
-					state.update.push(b.stmt(b.call('_$_.set_text', id, expression)));
+					state.update.push({
+						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
+						expression,
+						initial: b.literal(' '),
+					});
 					if (metadata.await) {
 						state.update.async = true;
 					}
@@ -2277,7 +2344,7 @@ function transform_body(body, { visit, state }) {
 			// In TypeScript mode, just add the update statements directly
 			body_state.init.push(...body_state.update);
 		} else {
-			body_state.init.push(b.stmt(b.call('_$_.render', b.thunk(b.block(body_state.update)))));
+			apply_updates(body_state.init, body_state.update);
 		}
 	}
 
@@ -2333,6 +2400,32 @@ function create_tsx_with_typescript_support() {
 
 	return {
 		...base_tsx,
+		// Custom handler for Property nodes to prevent method shorthand for components
+		// When a component is transformed to a FunctionExpression, we want to preserve
+		// the explicit syntax (key: function name() {}) instead of method shorthand (key() {})
+		// This ensures proper source mapping for the 'function'/'component' keyword
+		Property(node, context) {
+			// Check if the value is a function that was originally a component
+			const isComponent =
+				node.value?.type === 'FunctionExpression' && node.value.metadata?.was_component;
+
+			if (isComponent) {
+				// Manually print as non-method property to preserve 'function' keyword
+				// This ensures esrap creates proper source map entries for the component->function transformation
+				if (node.computed) {
+					context.write('[');
+					context.visit(node.key);
+					context.write(']');
+				} else {
+					context.visit(node.key);
+				}
+				context.write(': ');
+				context.visit(node.value);
+			} else {
+				// Use default handler for non-component properties
+				base_tsx.Property(node, context);
+			}
+		},
 		// Custom handler for ArrayPattern to ensure typeAnnotation is visited
 		// esrap's TypeScript handler doesn't visit typeAnnotation for ArrayPattern (only for ObjectPattern)
 		ArrayPattern(node, context) {

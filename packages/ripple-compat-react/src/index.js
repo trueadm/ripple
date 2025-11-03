@@ -2,10 +2,11 @@
 /** @import { ReactNode } from 'react' */
 
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
-import { useSyncExternalStore, useLayoutEffect, useRef } from 'react';
+import { useSyncExternalStore, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { branch, with_block, proxy_tracked, set, render, tracked } from 'ripple/internal/client';
+import { Context } from 'ripple';
 
 /** @type {Tsx} */
 const tsx = {
@@ -14,8 +15,22 @@ const tsx = {
 	Fragment,
 };
 
+/** @type {Context<null | { portals: Map<any, any>, update: Function}>} */
+const PortalContext = new Context(null);
+
+/**
+ * @param {any[] | Map<any, any>} portals
+ */
+function map_portals(portals) {
+	return Array.from(portals.entries()).map(([el, { component, key }], i) => {
+		return createPortal(jsx(component, {}, key), el);
+	});
+}
+
 export function createReactCompat() {
-	const portals = new Map();
+	const root_portals = new Map();
+	/** @type {{ portals: Map<any, any>, update: Function}} */
+	const root_portal_state = { portals: root_portals, update: () => {} };
 
 	return {
 		/**
@@ -57,16 +72,19 @@ export function createReactCompat() {
 			}
 
 			const key = Math.random().toString(36).substring(2, 9);
+			const { portals, update } = PortalContext.get() || root_portal_state;
 			portals.set(target_element, { component: ReactCompat, key });
+			update();
 		},
 
 		createRoot() {
 			const root_element = document.createElement('span');
 
 			function CompatRoot() {
-				return Array.from(portals.entries()).map(([el, { component, key }], i) => {
-					return createPortal(jsx(component, {}, key), el);
-				});
+				const [, root_update] = useState(0);
+				root_portal_state.update = root_update;
+
+				return map_portals(root_portals);
 			}
 
 			const root = createRoot(root_element);
@@ -103,6 +121,13 @@ function get_block_from_dom(node) {
 export function Ripple({ component, props }) {
 	const ref = useRef(null);
 	const tracked_props_ref = useRef(/** @type {any} */ (null));
+	const portals_ref = /** @type {React.MutableRefObject<Map<any, any> | null>} */ (useRef(null));
+	const [, update] = useState(0);
+
+	if (portals_ref.current === null) {
+		portals_ref.current = new Map();
+	}
+	const portals = portals_ref.current;
 
 	useLayoutEffect(() => {
 		const span = /** @type {HTMLSpanElement | null} */ (ref.current);
@@ -116,11 +141,12 @@ export function Ripple({ component, props }) {
 		const proxied_props = proxy_tracked(/** @type {any} */ (tracked_props));
 		frag.append(anchor);
 
-		const b = with_block(block, () =>
-			branch(() => {
+		const b = with_block(block, () => {
+			PortalContext.set({ portals, update });
+			return branch(() => {
 				component(anchor, proxied_props);
-			}),
-		);
+			});
+		});
 
 		span.append(frag);
 
@@ -133,5 +159,10 @@ export function Ripple({ component, props }) {
 		set(/** @type {any} */ (tracked_props_ref.current), props || {});
 	}, [props]);
 
-	return jsx('span', { ref, style: { display: 'contents' } });
+	return jsx(Fragment, {
+		children: [
+			jsx('span', { ref, style: { display: 'contents' } }, 'target'),
+			...map_portals(portals),
+		],
+	});
 }

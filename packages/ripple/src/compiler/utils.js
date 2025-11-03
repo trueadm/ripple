@@ -169,206 +169,19 @@ export function is_dom_property(name) {
 	return DOM_PROPERTIES.includes(name);
 }
 
-const unhoisted = { hoisted: false };
-
 /**
- * Determines if an event handler can be hoisted for delegation
+ * Determines if an event handler can be delegated
  * @param {string} event_name
  * @param {Expression} handler
  * @param {CompilerState} state
- * @returns {DelegatedEventResult | null}
+ * @returns {boolean}
  */
 export function get_delegated_event(event_name, handler, state) {
 	// Handle delegated event handlers. Bail out if not a delegated event.
 	if (!handler || !is_delegated(event_name)) {
-		return null;
+		return false;
 	}
-
-	/** @type {FunctionExpression | FunctionDeclaration | ArrowFunctionExpression | null} */
-	let target_function = null;
-	let binding = null;
-
-	if (handler.type === 'ArrowFunctionExpression' || handler.type === 'FunctionExpression') {
-		target_function = handler;
-	} else if (handler.type === 'Identifier') {
-		binding = state.scope.get(handler.name);
-
-		if (state.analysis.module.scope.references.has(handler.name)) {
-			// If a binding with the same name is referenced in the module scope (even if not declared there), bail out
-			return unhoisted;
-		}
-
-		if (binding != null) {
-			for (const { path } of binding.references) {
-				const parent = path.at(-1);
-				if (parent === undefined) {
-					return unhoisted;
-				}
-
-				const grandparent = path.at(-2);
-
-				/** @type {Element | null} */
-				let element = null;
-				/** @type {string | null} */
-				let event_name = null;
-				if (
-					parent.type === 'Expression' &&
-					grandparent?.type === 'Attribute' &&
-					is_event_attribute(grandparent)
-				) {
-					element = /** @type {Element} */ (path.at(-3));
-					const attribute = /** @type {Attribute} */ (grandparent);
-					event_name = get_attribute_event_name(attribute.name.name);
-				}
-
-				if (element && event_name) {
-					if (
-						element.type !== 'Element' ||
-						element.metadata.has_spread ||
-						!is_delegated(event_name)
-					) {
-						return unhoisted;
-					}
-				} else if (
-					parent.type !== 'FunctionDeclaration' &&
-					parent.type !== 'VariableDeclarator' &&
-					parent.type !== 'Attribute'
-				) {
-					return unhoisted;
-				}
-			}
-		}
-
-		// If the binding is exported, bail out
-		if (
-			state.analysis?.exports?.find(
-				(/** @type {{name: string}} */ node) => node.name === handler.name,
-			)
-		) {
-			return unhoisted;
-		}
-
-		if (binding !== null && binding.initial !== null && !binding.updated && !binding.is_called) {
-			const binding_type = binding.initial.type;
-
-			if (
-				binding_type === 'ArrowFunctionExpression' ||
-				binding_type === 'FunctionDeclaration' ||
-				binding_type === 'FunctionExpression'
-			) {
-				target_function = binding.initial;
-			}
-		}
-	}
-
-	// If we can't find a function, or the function has multiple parameters, bail out
-	if (target_function == null || target_function.params.length > 1) {
-		return unhoisted;
-	}
-
-	const visited_references = new Set();
-	const scope = target_function.metadata.scope;
-	for (const [reference, ref_nodes] of scope.references) {
-		// Bail out if the arguments keyword is used or $host is referenced
-		if (reference === 'arguments') return unhoisted;
-
-		const binding = scope.get(reference);
-		const local_binding = state.scope.get(reference);
-
-		if (local_binding === null || binding == null) {
-			return unhoisted;
-		}
-
-		// If we are referencing a binding that is shadowed in another scope then bail out.
-		if (local_binding.node !== binding.node) {
-			return unhoisted;
-		}
-		const is_tracked = ref_nodes.some(({ node }) => node.tracked);
-
-		if (
-			binding !== null &&
-			// Bail out if the the binding is a rest param
-			(binding.declaration_kind === 'rest_param' || // or any normal not reactive bindings that are mutated.
-				// Bail out if we reference anything from the EachBlock (for now) that mutates in non-runes mode,
-				(binding.kind === 'normal' && !is_tracked && binding.updated))
-		) {
-			return unhoisted;
-		}
-		visited_references.add(reference);
-	}
-
-	return { hoisted: true, function: target_function };
-}
-
-/**
- * @param {Node} node
- * @param {TransformContext} context
- * @returns {Identifier[]}
- */
-function get_hoisted_params(node, context) {
-	const scope = context.state.scope;
-
-	/** @type {Identifier[]} */
-	const params = [];
-
-	/**
-	 * We only want to push if it's not already present to avoid name clashing
-	 * @param {Identifier} id
-	 */
-	function push_unique(id) {
-		if (!params.find((param) => param.name === id.name)) {
-			params.push(id);
-		}
-	}
-
-	for (const [reference] of scope.references) {
-		let binding = scope.get(reference);
-
-		if (binding !== null && !scope.declarations.has(reference) && binding.initial !== node) {
-			if (binding.kind === 'prop') {
-				push_unique(b.id('__props'));
-			} else if (binding.kind === 'for_pattern') {
-				push_unique(binding.metadata.pattern);
-			} else if (binding.kind === 'prop_fallback') {
-				push_unique(b.id(binding.node.name));
-			} else if (
-				// imports don't need to be hoisted
-				binding.declaration_kind !== 'import'
-			) {
-				// create a copy to remove start/end tags which would mess up source maps
-				push_unique(b.id(binding.node.name));
-			}
-		}
-	}
-	return params;
-}
-
-/**
- * Builds the parameter list for a hoisted function
- * @param {FunctionDeclaration|FunctionExpression|ArrowFunctionExpression} node
- * @param {TransformContext} context
- * @returns {Pattern[]}
- */
-export function build_hoisted_params(node, context) {
-	const hoisted_params = get_hoisted_params(node, context);
-	node.metadata.hoisted_params = hoisted_params;
-
-	/** @type {Pattern[]} */
-	const params = [];
-
-	if (node.params.length === 0) {
-		if (hoisted_params.length > 0) {
-			// For the event object
-			params.push(b.id(context.state.scope.generate('_')));
-		}
-	} else {
-		for (const param of node.params) {
-			params.push(/** @type {Pattern} */ (context.visit(param)));
-		}
-	}
-
-	params.push(...hoisted_params, b.id('__block'));
-	return params;
+	return true;
 }
 
 /**
@@ -912,4 +725,21 @@ export function determine_namespace_for_children(element_name, current_namespace
 	}
 
 	return current_namespace;
+}
+
+/**
+ * Converts and index to a key string, where the starting character is a
+ * letter.
+ * @param {number} index
+ */
+export function index_to_key(index) {
+	const letters = 'abcdefghijklmnopqrstuvwxyz';
+	let key = '';
+
+	do {
+		key = letters[index % 26] + key;
+		index = Math.floor(index / 26) - 1;
+	} while (index >= 0);
+
+	return key;
 }

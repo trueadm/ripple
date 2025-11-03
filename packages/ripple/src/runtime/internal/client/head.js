@@ -10,5 +10,5 @@ export function head(render_fn) {
 	/** @type {Comment | Text} */
 	var anchor = document.head.appendChild(create_text());
 
-	render(() => render_fn(anchor), HEAD_BLOCK);
+	render(() => render_fn(anchor), null, HEAD_BLOCK);
 }

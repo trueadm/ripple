@@ -1,3 +1,8 @@
+/**
+ * @typedef {import('type-fest').PackageJson & {scripts?: Record<string, string>;}} Package
+ * @typedef PackageManager @type {'npm' | 'yarn' | 'pnpm'}
+ */
+
 import { join, basename } from 'node:path';
 import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -11,24 +16,25 @@ import { downloadTemplate, getLocalTemplatePath, isLocalDevelopment } from './te
  * @param {object} options - Project creation options
  * @param {string} options.projectName - Name of the project
  * @param {string} options.projectPath - Absolute path where project will be created
- * @param {string} options.template - Template to use
- * @param {string} options.packageManager - Package manager to use
+ * @param {string} options.templateName - Template to use
+ * @param {PackageManager} options.packageManager - Package manager to use
  * @param {boolean} options.gitInit - Whether to initialize Git
- * @param {string} options.stylingFramework - Styling framework to use
+ * @param {string} [options.stylingFramework] - Styling framework to use
  */
 export async function createProject({
 	projectName,
 	projectPath,
-	template,
+	templateName,
 	packageManager = 'npm',
 	gitInit = false,
-	stylingFramework = 'vanilla'
+	stylingFramework = 'vanilla',
 }) {
 	console.log(dim(`Creating project: ${projectName}`));
-	console.log(dim(`Template: ${template}`));
+	console.log(dim(`Template: ${templateName}`));
 	console.log(dim(`Package manager: ${packageManager}`));
 	console.log();
 
+	/** @type {string} */
 	let templatePath;
 	let isTemporary = false;
 
@@ -37,15 +43,15 @@ export async function createProject({
 	try {
 		if (isLocalDevelopment()) {
 			// Use local template for development
-			templatePath = getLocalTemplatePath(template);
+			templatePath = getLocalTemplatePath(templateName);
 			if (!existsSync(templatePath)) {
-				throw new Error(`Local template "${template}" not found at ${templatePath}`);
+				throw new Error(`Local template "${templateName}" not found at ${templatePath}`);
 			}
 			spinner1.succeed('Local template located');
 		} else {
 			// Download template from GitHub
 			spinner1.text = 'Downloading template from GitHub...';
-			templatePath = await downloadTemplate(template);
+			templatePath = await downloadTemplate(templateName);
 			isTemporary = true;
 			spinner1.succeed('Template downloaded');
 		}
@@ -81,7 +87,7 @@ export async function createProject({
 					!relativePath.includes('yarn.lock') &&
 					!relativePath.includes('pnpm-lock.yaml')
 				);
-			}
+			},
 		});
 		spinner3.succeed('Template files copied');
 	} catch (error) {
@@ -118,8 +124,6 @@ export async function createProject({
 		throw error;
 	}
 
-
-
 	// Step 6: Initialize Git (if requested)
 	if (gitInit) {
 		const spinner6 = ora('Initializing Git repository...').start();
@@ -148,7 +152,7 @@ export async function createProject({
  * Update package.json with project-specific configurations
  * @param {string} projectPath - Path to the project
  * @param {string} projectName - Name of the project
- * @param {string} packageManager - Package manager being used
+ * @param {PackageManager} packageManager - Package manager being used
  * @param {string} stylingFramework - Styling framework being used
  */
 function updatePackageJson(projectPath, projectName, packageManager, stylingFramework) {
@@ -158,6 +162,7 @@ function updatePackageJson(projectPath, projectName, packageManager, stylingFram
 		throw new Error('package.json not found in template');
 	}
 
+	/** @type {Package} */
 	const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
 
 	// Update package name
@@ -177,30 +182,34 @@ function updatePackageJson(projectPath, projectName, packageManager, stylingFram
 	}
 
 	// Add styling dependencies
-    if (stylingFramework === 'tailwind') {
-        packageJson.devDependencies = {
-            ...packageJson.devDependencies,
-            'tailwindcss': '^4.1.12',
-            '@tailwindcss/vite': '^4.1.12'
-        };
-    } else if (stylingFramework === 'bootstrap') {
-        packageJson.dependencies = {
-            ...packageJson.dependencies,
-            'bootstrap': '^5.3.0'
-        };
-    }
+	if (stylingFramework === 'tailwind') {
+		packageJson.devDependencies = {
+			...packageJson.devDependencies,
+			tailwindcss: '^4.1.12',
+			'@tailwindcss/vite': '^4.1.12',
+		};
+	} else if (stylingFramework === 'bootstrap') {
+		packageJson.dependencies = {
+			...packageJson.dependencies,
+			bootstrap: '^5.3.0',
+		};
+	}
 
 	// Ensure we're using the latest versions
 	updateDependencyVersions(packageJson);
 
 	// Update scripts based on package manager
-	updateScripts(packageJson, packageManager);
+	updateScripts(packageJson);
 
 	writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
 }
 
+/** Configure styling framework in the project
+ * @param {string} projectPath - Path to the project
+ * @param {string} stylingFramework - Styling framework to use
+ */
 function configureStyling(projectPath, stylingFramework) {
-    if (stylingFramework === 'tailwind') {
+	if (stylingFramework === 'tailwind') {
 		const tailwindConfig = `import type { Config } from 'tailwindcss';
 export default {
 	content: [
@@ -221,7 +230,7 @@ export default {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
 		const newMainTs = "import './index.css';\n" + mainTs;
 		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
-		
+
 		if (existsSync(join(projectPath, 'vite.config.js'))) {
 			rmSync(join(projectPath, 'vite.config.js'));
 		}
@@ -237,24 +246,25 @@ export default defineConfig({
 });
 `;
 		writeFileSync(join(projectPath, 'vite.config.js'), viteConfig);
-
-    } else if (stylingFramework === 'bootstrap') {
+	} else if (stylingFramework === 'bootstrap') {
 		const mainTs = readFileSync(join(projectPath, 'src', 'index.ts'), 'utf-8');
 		const newMainTs = "import 'bootstrap/dist/css/bootstrap.min.css';\n" + mainTs;
 		writeFileSync(join(projectPath, 'src', 'index.ts'), newMainTs);
-    }
+	}
 }
 
 /**
  * Update dependency versions to latest
- * @param {object} packageJson - Package.json object
+ * @param {Package} packageJson - Package.json object
  */
 function updateDependencyVersions(packageJson) {
 	// Use the latest versions for Ripple packages
 	const latestVersions = {
-		ripple: '^0.2.35',
-		'vite-plugin-ripple': '^0.2.29',
-		'prettier-plugin-ripple': '^0.2.29'
+		ripple: 'latest',
+		'vite-plugin-ripple': 'latest',
+		'prettier-plugin-ripple': 'latest',
+		'eslint-plugin-ripple': 'latest',
+		'typescript-plugin-ripple': 'latest',
 	};
 
 	// Update dependencies
@@ -278,20 +288,10 @@ function updateDependencyVersions(packageJson) {
 
 /**
  * Update scripts based on package manager
- * @param {object} packageJson - Package.json object
- * @param {string} packageManager - Package manager being used
+ * @param {Package} packageJson - Package.json object
  */
-function updateScripts(packageJson, packageManager) {
+function updateScripts(packageJson) {
 	if (!packageJson.scripts) return;
-
-	// Add package manager specific scripts
-	const pmCommands = {
-		npm: 'npm run',
-		yarn: 'yarn',
-		pnpm: 'pnpm'
-	};
-
-	const pm = pmCommands[packageManager] || 'npm run';
 
 	// Update format scripts to use the correct package manager
 	if (packageJson.scripts.format) {
@@ -304,13 +304,13 @@ function updateScripts(packageJson, packageManager) {
 
 /**
  * Get package manager version string
- * @param {string} packageManager - Package manager name
+ * @param {Extract<PackageManager, 'yarn' | 'pnpm'>} packageManager - Package manager name
  * @returns {string} - Package manager with version
  */
 function getPackageManagerVersion(packageManager) {
 	const versions = {
 		yarn: 'yarn@4.0.0',
-		pnpm: 'pnpm@9.0.0'
+		pnpm: 'pnpm@9.0.0',
 	};
 	return versions[packageManager] || packageManager;
 }

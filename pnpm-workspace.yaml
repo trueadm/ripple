@@ -22,6 +22,7 @@ catalogs:
     '@volar/vscode': ~2.4.23
     '@vscode/vsce': ^3.6.2
     acorn: ^8.15.0
+    adm-zip: ^0.5.16
     acorn-typescript: ^1.4.13
     clsx: ^2.1.1
     commander: ^12.1.0
@@ -42,6 +43,7 @@ catalogs:
     prompts: ^2.4.2
     tsdown: ^0.15.4
     tsup: ^8.3.5
+    type-fest: ^5.1.0
     typescript: *ts_common
     vite: ^7.1.9
     vitepress: 2.0.0-alpha.12
