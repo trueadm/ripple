@@ -77,30 +77,32 @@ function createValueNode(doc, value, depth) {
 function writeTargets(targets, contents) {
 	return Promise.all(
 		targets.map(async (target) => {
+			console.log(`Writing to ${path.relative(rootDir, target)}...`);
 			await mkdir(path.dirname(target), { recursive: true });
 			await writeFile(target, contents, 'utf8');
-			console.log(`Wrote ${path.relative(rootDir, target)}`);
 		}),
 	);
 };
 
 const __filename = fileURLToPath(import.meta.url);
-const rootDir = path.dirname(__filename);
+const rootDir = path.join(path.dirname(__filename), "..");
 
 const sourceFile = path.join(rootDir, 'packages/ripple-vscode-plugin/syntaxes/ripple.tmLanguage.json');
 
 const targetFiles = [
+	// For manual installation in editors we don't have plugins for
 	path.join(rootDir, 'assets/Ripple.tmbundle/Syntaxes/Ripple.tmLanguage'),
-	path.join(rootDir, 'packages/ripple-sublime-text-plugin/src/Ripple.tmLanguage'),
 ];
 
 const main = async () => {
+	console.log("Reading TextMate grammar from VS Code plugin...");
 	const raw = await readFile(sourceFile, 'utf8');
 	const grammar = JSON.parse(/** @type {string} */ (raw));
 	if (!Array.isArray(grammar.fileTypes)) {
 		grammar.fileTypes = ['ripple'];
 	}
 
+	console.log("Converting TextMate grammar from JSON to XML...");
 	const dom = new JSDOM('<plist/>', { contentType: 'text/xml' });
 	const doc = dom.window.document;
 	const root = doc.documentElement;
@@ -123,6 +125,7 @@ ${plist}
 `.trim();
 
 	await writeTargets(targetFiles, xml);
+	console.log("TextMate grammar conversion complete.");
 };
 
 main().catch((error) => {
