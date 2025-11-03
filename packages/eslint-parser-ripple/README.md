@@ -59,6 +59,7 @@ export default [
 This parser uses Ripple's compiler (`ripple/compiler`) to parse `.ripple` files into an ESTree-compatible AST that ESLint can analyze. The Ripple compiler already outputs ESTree-compliant ASTs, making integration straightforward.
 
 The parser:
+
 1. Loads the Ripple compiler
 2. Parses the `.ripple` source code
 3. Returns the ESTree AST to ESLint
@@ -93,6 +94,7 @@ export component Counter() {
 ```
 
 The parser will successfully parse this and allow ESLint rules (like those from `eslint-plugin-ripple`) to check for:
+
 - Track calls at module scope
 - Missing @ operators
 - Component export requirements
@@ -106,7 +108,7 @@ The parser will successfully parse this and allow ESLint rules (like those from 
 ## Related Packages
 
 - [eslint-plugin-ripple](https://www.npmjs.com/package/eslint-plugin-ripple) - ESLint rules for Ripple
-- [ripple](https://ripplejs.com) - The Ripple framework
+- [ripple](https://ripple-ts.com) - The Ripple framework
 - [vite-plugin-ripple](https://www.npmjs.com/package/vite-plugin-ripple) - Vite plugin for Ripple
 - [prettier-plugin-ripple](https://www.npmjs.com/package/prettier-plugin-ripple) - Prettier plugin for Ripple
 

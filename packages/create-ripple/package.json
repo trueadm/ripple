@@ -20,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/trueadm/ripple/issues"
   },
-  "homepage": "https://ripplejs.com",
+  "homepage": "https://ripple-ts.com",
   "files": [
     "./dist/index.js"
   ],
