@@ -1,8 +1,8 @@
-# RippleTS Framework - AI/LLM Documentation
+# Ripple TS Framework - AI/LLM Documentation
 
 ## Overview
 
-RippleTS is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte into one elegant package. Created by Dominic Gannaway ([@trueadm](https://github.com/trueadm)), Ripple is designed to be JS/TS-first with its own `.ripple` file extension that fully supports TypeScript.
+Ripple is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte into one elegant package. Created by Dominic Gannaway ([@trueadm](https://github.com/trueadm)), Ripple is designed to be JS/TS-first with its own `.ripple` file extension that fully supports TypeScript.
 
 **Key Characteristics:**
 - **Performance**: Fine-grain rendering, with industry-leading performance, bundle-size and memory usage

@@ -9,9 +9,9 @@
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/JBF2ySrh2W)
 [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic)
 
-# RippleTS
+# Ripple TS
 
-RippleTS is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte. Created by [@trueadm](https://github.com/trueadm), who has contributed to [Inferno](https://github.com/infernojs/inferno), [React](https://github.com/facebook/react), [Lexical](https://github.com/facebook/lexical), and [Svelte 5](https://github.com/sveltejs/svelte).
+Ripple is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte. Created by [@trueadm](https://github.com/trueadm), who has contributed to [Inferno](https://github.com/infernojs/inferno), [React](https://github.com/facebook/react), [Lexical](https://github.com/facebook/lexical), and [Svelte 5](https://github.com/sveltejs/svelte).
 
 **Key Philosophy:** Ripple is TS-first with its own `.ripple` file extension, allowing seamless TypeScript integration and a unique syntax that enhances both human and LLM developer experience.
 
