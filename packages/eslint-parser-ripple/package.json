@@ -12,7 +12,7 @@
   "bugs": {
     "url": "https://github.com/trueadm/ripple/issues"
   },
-  "homepage": "https://ripplejs.com",
+  "homepage": "https://ripple-ts.com",
   "exports": {
     ".": "./dist/index.js"
   },

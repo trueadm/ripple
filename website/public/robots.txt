@@ -3,6 +3,6 @@ Allow: /
 
 # AI/LLM Documentation
 # For comprehensive framework documentation optimized for AI understanding
-# Visit: https://ripplejs.com/llms.txt
+# Visit: https://ripple-ts.com/llms.txt
 
-Sitemap: https://ripplejs.dev/sitemap.xml
+Sitemap: https://ripple-ts.com/sitemap.xml

@@ -1,6 +1,6 @@
 # eslint-plugin-ripple
 
-ESLint plugin for [Ripple](https://ripplejs.com) - helps enforce best practices and catch common mistakes when writing Ripple applications.
+ESLint plugin for [Ripple](https://ripple-ts.com) - helps enforce best practices and catch common mistakes when writing Ripple applications.
 
 Works just like `eslint-plugin-react` - simply install and use the recommended config!
 
@@ -26,6 +26,7 @@ export default [...ripple.configs.recommended];
 ```
 
 The plugin automatically:
+
 - Detects and uses `eslint-parser-ripple` if installed for `.ripple` files
 - Detects and uses `@typescript-eslint/parser` if installed for `.ts`/`.tsx` files
 - Excludes `.d.ts` files, `node_modules`, `dist`, and `build` directories from linting
@@ -214,14 +215,14 @@ import { get, set } from 'ripple';
 
 export function useCount() {
   const count = track(1);
-  
+
   // Use get() to read tracked values
   const double = derived(() => get(count) * 2);
-  
+
   effect(() => {
-    console.log("count is", get(count));
+    console.log('count is', get(count));
   });
-  
+
   return { count, double };
 }
 ```
@@ -260,6 +261,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Related
 
-- [Ripple](https://ripplejs.com) - The Ripple framework
+- [Ripple](https://ripple-ts.com) - The Ripple framework
 - [vite-plugin-ripple](https://www.npmjs.com/package/vite-plugin-ripple) - Vite plugin for Ripple
 - [prettier-plugin-ripple](https://www.npmjs.com/package/prettier-plugin-ripple) - Prettier plugin for Ripple

@@ -5,7 +5,7 @@
   "author": "Dominic Gannaway",
   "version": "0.2.152",
   "main": "src/index.js",
-  "homepage": "https://ripplejs.com",
+  "homepage": "https://ripple-ts.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trueadm/ripple.git",
