@@ -50,6 +50,7 @@ export {
 	proxy_props,
 	with_block,
 	with_ns,
+	handle_error,
 } from './runtime.js';
 
 export { composite } from './composite.js';

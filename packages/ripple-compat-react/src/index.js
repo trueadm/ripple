@@ -2,7 +2,7 @@
 /** @import { ReactNode } from 'react' */
 
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
-import { useSyncExternalStore, useLayoutEffect, useRef, useState } from 'react';
+import { useSyncExternalStore, useLayoutEffect, useRef, useState, Component } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
@@ -13,6 +13,7 @@ import {
 	render,
 	tracked,
 	get_tracked,
+	handle_error,
 } from 'ripple/internal/client';
 import { Context } from 'ripple';
 
@@ -79,9 +80,28 @@ export function createReactCompat() {
 				return useSyncExternalStore(subscribe, () => react_node);
 			}
 
+			class ReactCompatBoundary extends Component {
+				state = { e: false };
+
+				static getDerivedStateFromError(error) {
+					return { e: true };
+				}
+
+				componentDidCatch(error) {
+					handle_error(error, e);
+				}
+
+				render() {
+					if (this.state?.e) {
+						return null;
+					}
+					return jsx(ReactCompat, {});
+				}
+			}
+
 			const key = Math.random().toString(36).substring(2, 9);
 			const { portals, update } = PortalContext.get() || root_portal_state;
-			portals.set(target_element, { component: ReactCompat, key });
+			portals.set(target_element, { component: ReactCompatBoundary, key });
 			update();
 		},
 
