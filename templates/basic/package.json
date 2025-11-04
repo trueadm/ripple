@@ -27,6 +27,6 @@
 		"@ripple-ts/typescript-plugin": "latest"
 	},
 	"dependencies": {
-		"@ripple-ts/ripple": "latest"
+		"ripple": "latest"
 	}
 }

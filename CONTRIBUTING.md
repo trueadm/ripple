@@ -12,7 +12,7 @@ The [Open Source Guides](https://opensource.guide/) website offers valuable reso
 There are numerous ways to contribute to Ripple, and many don't require writing code. Here are some ideas to get started:
 
 - **Start experimenting with Ripple**: Try out the [Ripple Playground](https://www.ripple-ts.com/playground) and see how it works. If you encounter issues or unexpected behavior, we'd love to hear about it through [opening an issue](#reporting-issues).
-- **Browse existing issues**: Check out our [open issues](https://github.com/trueadm/ripple/issues). You can help by providing workarounds or asking clarifying questions.
+- **Browse existing issues**: Check out our [open issues](https://github.com/Ripple-TS/ripple/issues). You can help by providing workarounds or asking clarifying questions.
 - **Submit fixes**: Found an issue you'd like to tackle? Consider [opening a pull request](#pull-requests).
 - **Help with documentation**: As Ripple grows, we'll need comprehensive documentation. Any help improving clarity or filling gaps would be greatly appreciated.
 
@@ -50,13 +50,13 @@ Since Ripple is a new project with a small team, we'll do our best to respond to
 
 ## Reporting Issues
 
-We track bugs using [GitHub issues](https://github.com/trueadm/ripple/issues). Before reporting a new issue, please check if someone has already reported the same problem.
+We track bugs using [GitHub issues](https://github.com/Ripple-TS/ripple/issues). Before reporting a new issue, please check if someone has already reported the same problem.
 
 For questions about using Ripple, our Discord server is the best place to get help and connect with other developers.
 
 ### Creating Bug Reports
 
-When [opening a new issue](https://github.com/trueadm/ripple/issues/new), please include:
+When [opening a new issue](https://github.com/Ripple-TS/ripple/issues/new), please include:
 
 - **Clear description**: Explain what you expected to happen and what actually occurred.
 - **Reproduction steps**: Provide step-by-step instructions to reproduce the issue.

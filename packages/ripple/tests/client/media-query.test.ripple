@@ -1,45 +1,47 @@
-import { flushSync, MediaQuery, track } from '@ripple-ts/ripple';
+import { flushSync, MediaQuery, track } from 'ripple';
 
 type Callback = (event: MediaQueryListEvent) => void;
 
 function setupMatchMedia() {
-  let listeners = new Set<Callback>();
+	let listeners = new Set<Callback>();
 
-  // A mock implementation of matchMedia
-  const mockMatchMedia = vi.fn().mockImplementation(query => {
-    return {
-      media: query,
-      matches: false, // default value
-      addEventListener: (type: string, cb: Callback) => {
-        if (type === 'change') listeners.add(cb);
-      },
-      removeEventListener: (type: string, cb: Callback) => {
-        if (type === 'change') listeners.delete(cb);
-      },
-      /** @param {function(MediaQueryListEvent): void} cb */
-      addListener: (cb: Callback) => listeners.add(cb),
-      /** @param {function(MediaQueryListEvent): void} cb */
-      removeListener: (cb: Callback) => listeners.delete(cb),
-      dispatch: (event: MediaQueryListEvent) => {
-        listeners.forEach((cb) => cb(event));
-      },
+	// A mock implementation of matchMedia
+	const mockMatchMedia = vi.fn().mockImplementation((query) => {
+		return {
+			media: query,
+			matches: false, // default value
+			addEventListener: (type: string, cb: Callback) => {
+				if (type === 'change') listeners.add(cb);
+			},
+			removeEventListener: (type: string, cb: Callback) => {
+				if (type === 'change') listeners.delete(cb);
+			},
+
+			/** @param {function(MediaQueryListEvent): void} cb */
+			addListener: (cb: Callback) => listeners.add(cb),
+
+			/** @param {function(MediaQueryListEvent): void} cb */
+			removeListener: (cb: Callback) => listeners.delete(cb),
+			dispatch: (event: MediaQueryListEvent) => {
+				listeners.forEach((cb) => cb(event));
+			},
 			listenersCount: () => listeners.size,
-    };
-  });
+		};
+	});
 
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: mockMatchMedia
-  });
+	Object.defineProperty(window, 'matchMedia', {
+		writable: true,
+		value: mockMatchMedia,
+	});
 
-  return { mockMatchMedia, listeners };
+	return { mockMatchMedia, listeners };
 }
 
 describe('MediaQuery', () => {
 	let mm: ReturnType<typeof setupMatchMedia>;
 
 	beforeEach(() => {
-			mm = setupMatchMedia();
+		mm = setupMatchMedia();
 	});
 
 	it('should be reactive if matchMedia changes', () => {
@@ -62,7 +64,6 @@ describe('MediaQuery', () => {
 		const p = container.querySelector('p');
 		expect(p.textContent).toBe('false');
 
-
 		mm.mockMatchMedia.mock.results[0].value.matches = true;
 		mm.mockMatchMedia.mock.results[0].value.dispatch(event);
 		flushSync();
@@ -77,7 +78,6 @@ describe('MediaQuery', () => {
 
 		expect(p.textContent).toBe('false');
 	});
-
 
 	it('should have cleared event listeners after unmount', async () => {
 		const media = '(min-width: 600px)';
@@ -110,7 +110,7 @@ describe('MediaQuery', () => {
 		flushSync();
 
 		// wait for microtask queue to flush
-		await new Promise(resolve => setTimeout(resolve, 0));
+		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		expect(mm.mockMatchMedia.mock.results[0].value.listenersCount()).toBe(0);
 	});

@@ -1,4 +1,4 @@
-import { track, flushSync, TrackedArray } from '@ripple-ts/ripple';
+import { track, flushSync, TrackedArray } from 'ripple';
 
 describe('composite > render', () => {
 	it('renders composite components', () => {
@@ -40,11 +40,11 @@ describe('composite > render', () => {
 		component App() {
 			<Button>
 				component A() {
-					<div>{"I am A"}</div>
+					<div>{'I am A'}</div>
 				}
-				<div>{"other text"}</div>
+				<div>{'other text'}</div>
 				component B() {
-					<div>{"I am B"}</div>
+					<div>{'I am B'}</div>
 				}
 			</Button>
 		}
@@ -58,13 +58,14 @@ describe('composite > render', () => {
 		component App() {
 			let name = 'Click Me';
 
-			<Child
-				class="my-button"
-			>{name}</Child>;
+			<Child class="my-button">{name}</Child>
+
 		}
 
-		component Child({children, ...rest}: {children: string; class: string}) {
-			<button {...rest}><children /></button>
+		component Child({ children, ...rest }: { children: string; class: string }) {
+			<button {...rest}>
+				<children />
+			</button>
 		}
 
 		render(App);

@@ -1,4 +1,4 @@
-import { compile } from '@ripple-ts/ripple/compiler';
+import { compile } from 'ripple/compiler';
 
 describe('compiler > typescript', () => {
 	it('compiles TSInstantiationExpression', () => {

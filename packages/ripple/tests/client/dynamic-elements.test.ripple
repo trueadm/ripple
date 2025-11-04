@@ -1,7 +1,6 @@
-import { flushSync, track, createRefKey, trackSplit } from '@ripple-ts/ripple';
+import { flushSync, track, createRefKey, trackSplit } from 'ripple';
 
 describe('dynamic DOM elements', () => {
-
 	it('renders static dynamic element', () => {
 		component App() {
 			let tag = track('div');
@@ -19,9 +18,13 @@ describe('dynamic DOM elements', () => {
 		component App() {
 			let tag = track('div');
 
-			<button onClick={() => {
+			<button
+				onClick={() => {
 					@tag = 'span';
-				}}>{'Change Tag'}</button>
+				}}
+			>
+				{'Change Tag'}
+			</button>
 			<@tag id="dynamic">{'Hello World'}</@tag>
 		}
 		render(App);
@@ -97,9 +100,7 @@ describe('dynamic DOM elements', () => {
 			let tag = track('div');
 			let active = track(true);
 
-			<@tag class={{ active: @active, 'dynamic-element': true }}>
-				{'Element with class object'}
-			</@tag>
+			<@tag class={{active: @active, 'dynamic-element': true}}>{'Element with class object'}</@tag>
 		}
 		render(App);
 
@@ -113,11 +114,13 @@ describe('dynamic DOM elements', () => {
 		component App() {
 			let tag = track('span');
 
-			<@tag style={{
-				color: 'red',
-				fontSize: '16px',
-				fontWeight: 'bold'
-			}}>
+			<@tag
+				style={{
+					color: 'red',
+					fontSize: '16px',
+					fontWeight: 'bold',
+				}}
+			>
 				{'Styled dynamic element'}
 			</@tag>
 		}
@@ -139,9 +142,7 @@ describe('dynamic DOM elements', () => {
 				class: 'spread-class',
 			};
 
-			<@tag {...attrs} data-extra="additional">
-				{'Element with spread attributes'}
-			</@tag>
+			<@tag {...attrs} data-extra="additional">{'Element with spread attributes'}</@tag>
 		}
 		render(App);
 
@@ -159,7 +160,12 @@ describe('dynamic DOM elements', () => {
 		component App() {
 			let tag = track('article');
 
-			<@tag {ref (node) => { capturedElement = node; }} id="ref-test">
+			<@tag
+				{ref (node) => {
+					capturedElement = node;
+				}}
+				id="ref-test"
+			>
 				{'Element with ref'}
 			</@tag>
 		}
@@ -185,7 +191,7 @@ describe('dynamic DOM elements', () => {
 			const dynamicProps = {
 				id: 'spread-ref-test',
 				class: 'ref-element',
-				[createRefKey()]: elementRef
+				[createRefKey()]: elementRef,
 			};
 
 			<@tag {...dynamicProps}>{'Element with spread ref'}</@tag>
@@ -207,13 +213,20 @@ describe('dynamic DOM elements', () => {
 			let tag = track('div');
 			let count = track(0);
 
-			<button onClick={() => { @count++; }}>{'Increment'}</button>
+			<button
+				onClick={() => {
+					@count++;
+				}}
+			>
+				{'Increment'}
+			</button>
 			<@tag
 				id={@count % 2 ? 'even' : 'odd'}
 				class={@count % 2 ? 'even-class' : 'odd-class'}
 				data-count={@count}
 			>
-				{'Count: '}{@count}
+				{'Count: '}
+				{@count}
 			</@tag>
 		}
 
@@ -271,7 +284,7 @@ describe('dynamic DOM elements', () => {
 
 		// Check if scoped CSS class is present - THIS MIGHT FAIL if CSS pruning issue exists
 		const classes = Array.from(element.classList);
-		const hasScopedClass = classes.some(cls => cls.startsWith('ripple-'));
+		const hasScopedClass = classes.some((cls) => cls.startsWith('ripple-'));
 		expect(hasScopedClass).toBe(true);
 	});
 
@@ -283,9 +296,12 @@ describe('dynamic DOM elements', () => {
 			<@tag
 				class={@count % 2 ? 'even' : 'odd'}
 				id={@count % 2 ? 'even' : 'odd'}
-				onClick={() => { @count++; }}
+				onClick={() => {
+					@count++;
+				}}
 			>
-				{'Count: '}{@count}
+				{'Count: '}
+				{@count}
 			</@tag>
 
 			<style>
@@ -313,7 +329,7 @@ describe('dynamic DOM elements', () => {
 
 		// Check if scoped CSS hash is applied to dynamic element
 		const classes = Array.from(button.classList);
-		const hasScopedClass = classes.some(cls => cls.startsWith('ripple-'));
+		const hasScopedClass = classes.some((cls) => cls.startsWith('ripple-'));
 		expect(hasScopedClass).toBe(true);
 
 		// Click to increment
@@ -328,7 +344,7 @@ describe('dynamic DOM elements', () => {
 
 		// Scoped CSS class should still be present
 		const newClasses = Array.from(button.classList);
-		const stillHasScopedClass = newClasses.some(cls => cls.startsWith('ripple-'));
+		const stillHasScopedClass = newClasses.some((cls) => cls.startsWith('ripple-'));
 		expect(stillHasScopedClass).toBe(true);
 
 		// Click again
@@ -363,7 +379,9 @@ describe('dynamic DOM elements', () => {
 			<DyanamicButton
 				class={@count % 2 ? 'even' : 'odd'}
 				id={@count % 2 ? 'even' : 'odd'}
-				onClick={() => { @count++; }}
+				onClick={() => {
+					@count++;
+				}}
 			/>
 		}
 
@@ -372,7 +390,6 @@ describe('dynamic DOM elements', () => {
 		const button = container.querySelector('button');
 		expect(button).toBeTruthy();
 
-
 		// Initial state: should be odd (count=0, 0%2=false)
 		expect(button.classList.contains('odd')).toBe(true);
 		expect(button.classList.contains('even')).toBe(false);
@@ -380,7 +397,7 @@ describe('dynamic DOM elements', () => {
 
 		// Check if scoped CSS hash is applied (this is the critical test)
 		const classes = Array.from(button.classList);
-		const hasScopedClass = classes.some(cls => cls.startsWith('ripple-'));
+		const hasScopedClass = classes.some((cls) => cls.startsWith('ripple-'));
 		expect(hasScopedClass).toBe(true);
 
 		// Click to increment
@@ -394,7 +411,7 @@ describe('dynamic DOM elements', () => {
 
 		// Both classes should still be present
 		const newClasses = Array.from(button.classList);
-		const stillHasScopedClass = newClasses.some(cls => cls.startsWith('ripple-'));
+		const stillHasScopedClass = newClasses.some((cls) => cls.startsWith('ripple-'));
 		expect(stillHasScopedClass).toBe(true);
 		expect(newClasses.includes('even')).toBe(true);
 	});
@@ -403,7 +420,9 @@ describe('dynamic DOM elements', () => {
 		component App() {
 			let tag = track('div');
 
-			<@tag class="scoped"><p>{'Scoped dynamic element'}</p></@tag>
+			<@tag class="scoped">
+				<p>{'Scoped dynamic element'}</p>
+			</@tag>
 
 			<style>
 				.scoped {
@@ -416,15 +435,17 @@ describe('dynamic DOM elements', () => {
 		const div = container.querySelector('div');
 		const p = div.querySelector('p');
 
-		expect(Array.from(div.classList).some(c => c.startsWith('ripple-'))).toBe(true);
-		expect(Array.from(p.classList).some(c => c.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(div.classList).some((c) => c.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(p.classList).some((c) => c.startsWith('ripple-'))).toBe(true);
 	});
 
 	it('adds scoping class to dynamic elements when selector targets by tag name', () => {
 		component App() {
 			let tag = track('div');
 
-			<@tag class="scoped"><p>{'Scoped dynamic element'}</p></@tag>
+			<@tag class="scoped">
+				<p>{'Scoped dynamic element'}</p>
+			</@tag>
 
 			<style>
 				div {
@@ -437,13 +458,15 @@ describe('dynamic DOM elements', () => {
 		const div = container.querySelector('div');
 		const p = div.querySelector('p');
 
-		expect(Array.from(div.classList).some(c => c.startsWith('ripple-'))).toBe(true);
-		expect(Array.from(p.classList).some(c => c.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(div.classList).some((c) => c.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(p.classList).some((c) => c.startsWith('ripple-'))).toBe(true);
 	});
 
-	it("doesn't add scoping class to components inside dynamic element", () => {
+	it('doesn\'t add scoping class to components inside dynamic element', () => {
 		component Child() {
-			<div class="child"><p>{"I am a child component"}</p></div>
+			<div class="child">
+				<p>{'I am a child component'}</p>
+			</div>
 
 			<style>
 				.child {
@@ -472,9 +495,9 @@ describe('dynamic DOM elements', () => {
 		const innerDiv = outerDiv.querySelector('.child');
 		const innerP = innerDiv.querySelector('p');
 
-		const outerScope = Array.from(outerDiv.classList).find(c => c.startsWith('ripple-'));
-		const innerScopes = Array.from(innerDiv.classList).filter(c => c.startsWith('ripple-'));
-		const innerInnerScopes = Array.from(innerP.classList).filter(c => c.startsWith('ripple-'));
+		const outerScope = Array.from(outerDiv.classList).find((c) => c.startsWith('ripple-'));
+		const innerScopes = Array.from(innerDiv.classList).filter((c) => c.startsWith('ripple-'));
+		const innerInnerScopes = Array.from(innerP.classList).filter((c) => c.startsWith('ripple-'));
 
 		expect(outerScope).toBeTruthy();
 
@@ -484,9 +507,11 @@ describe('dynamic DOM elements', () => {
 		expect(innerInnerScopes).toHaveLength(0);
 	});
 
-	it("doesn't add scoping class to dynamically rendered component", () => {
+	it('doesn\'t add scoping class to dynamically rendered component', () => {
 		component Child() {
-			<div class="child"><p>{"I am a child component"}</p></div>
+			<div class="child">
+				<p>{'I am a child component'}</p>
+			</div>
 
 			<style>
 				.child {
@@ -511,8 +536,8 @@ describe('dynamic DOM elements', () => {
 		const div = container.querySelector('.child');
 		const p = div.querySelector('p');
 
-		const outerScopes = Array.from(div.classList).filter(c => c.startsWith('ripple-'));
-		const innerScopes = Array.from(p.classList).filter(c => c.startsWith('ripple-'));
+		const outerScopes = Array.from(div.classList).filter((c) => c.startsWith('ripple-'));
+		const innerScopes = Array.from(p.classList).filter((c) => c.startsWith('ripple-'));
 
 		expect(outerScopes).toHaveLength(1);
 		expect(innerScopes).toHaveLength(0);

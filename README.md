@@ -5,9 +5,9 @@
   </picture>
 </a>
 
-[![CI](https://github.com/trueadm/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/trueadm/ripple/actions/workflows/ci.yml)
+[![CI](https://github.com/Ripple-TS/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/Ripple-TS/ripple/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/JBF2ySrh2W)
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/github/Ripple-TS/ripple/tree/main/templates/basic)
 
 # Ripple TS
 
@@ -41,7 +41,7 @@ npm install && npm run dev
 ### Using Template
 
 ```bash
-npx degit trueadm/ripple/templates/basic my-app
+npx degit Ripple-TS/ripple/templates/basic my-app
 cd my-app
 npm install && npm run dev
 ```
@@ -58,7 +58,7 @@ npm install ripple vite-plugin-ripple
 
 ```ts
 // index.ts
-import { mount } from '@ripple-ts/ripple';
+import { mount } from 'ripple';
 import { App } from './App.ripple';
 
 mount(App, {
@@ -69,7 +69,7 @@ mount(App, {
 
 ## 🔧 VSCode Extension
 
-Install the [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin) for:
+Install the [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripple-ts.vscode-plugin) for:
 
 - Syntax highlighting
 - TypeScript integration
@@ -103,7 +103,7 @@ export component App() {
 Create reactive state with `track` and access it with the `@` operator:
 
 ```jsx
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export component App() {
   let count = track(0);
@@ -118,7 +118,7 @@ export component App() {
 **Derived values** automatically update:
 
 ```jsx
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export component App() {
   let count = track(0);
@@ -157,7 +157,7 @@ export component App() {
 Pass reactive state across function boundaries:
 
 ```jsx
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 function createDouble(count) {
   return track(() => @count * 2);
@@ -179,7 +179,7 @@ export component App() {
 ### Effects & Side Effects
 
 ```jsx
-import { effect, track } from '@ripple-ts/ripple';
+import { effect, track } from 'ripple';
 
 export component App() {
   let count = track(0);
@@ -199,7 +199,7 @@ export component App() {
 **Conditionals:**
 
 ```jsx
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export component App() {
   let condition = track(true);
@@ -237,7 +237,7 @@ export component App() {
 **Error Boundaries:**
 
 ```jsx
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 component ComponentThatMayFail(props: { shouldFail: boolean }) {
   if (props.shouldFail) {
@@ -281,7 +281,7 @@ export component App() {
 Use React-style event handlers:
 
 ```jsx
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export component App() {
   let value = track('');
@@ -317,7 +317,7 @@ export component App() {
 **Dynamic styles:**
 
 ```jsx
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export component App() {
   let color = track('red');
@@ -338,7 +338,7 @@ export component App() {
 Share state across the component tree:
 
 ```jsx
-import { Context, track } from '@ripple-ts/ripple';
+import { Context, track } from 'ripple';
 
 const ThemeContext = new Context();
 
@@ -366,7 +366,7 @@ export component App() {
 Render content outside the component hierarchy:
 
 ```jsx
-import { Portal, track } from '@ripple-ts/ripple';
+import { Portal, track } from 'ripple';
 
 export component App() {
   let showModal = track(false);
@@ -392,7 +392,7 @@ export component App() {
 
 - 📚 **[Full Documentation](https://www.ripple-ts.com/docs)** - Complete guide and API reference
 - 🎮 **[Interactive Playground](https://www.ripple-ts.com/playground)** - Try Ripple in your browser
-- 🐛 **[GitHub Issues](https://github.com/trueadm/ripple/issues)** - Report bugs or request features
+- 🐛 **[GitHub Issues](https://github.com/Ripple-TS/ripple/issues)** - Report bugs or request features
 - 💬 **[Discord Community](https://discord.gg/JBF2ySrh2W)** - Get help and discuss Ripple
 - 📦 **[npm Package](https://www.npmjs.com/package/ripple)** - Install from npm
 

@@ -1,4 +1,4 @@
-import type { Component } from '@ripple-ts/ripple';
+import type { Component } from 'ripple';
 
 export type Tsx = {
 	jsx: typeof import('react/jsx-runtime').jsx;

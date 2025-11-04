@@ -1,5 +1,5 @@
-import { compile } from '@ripple-ts/ripple/compiler';
-import { track } from '@ripple-ts/ripple';
+import { compile } from 'ripple/compiler';
+import { track } from 'ripple';
 
 describe('Compiler: Tracked Object Direct Access Checks', () => {
 	it('should error on direct access to __v of a tracked object', () => {
@@ -74,7 +74,7 @@ describe('Compiler: Tracked Object Direct Access Checks', () => {
 
 	it('should compile successfully with correct get() function access', () => {
 		const code = `
-            import { get, track } from '@ripple-ts/ripple';
+            import { get, track } from 'ripple';
             export default component App() {
                 let count = track(0);
                 console.log(get(count));

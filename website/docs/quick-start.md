@@ -6,7 +6,7 @@ title: Quick Start
 
 ## Try Ripple Online
 
-You can try Ripple directly in your browser on [StackBlitz](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic).
+You can try Ripple directly in your browser on [StackBlitz](https://stackblitz.com/github/Ripple-TS/ripple/tree/main/templates/basic).
 
 ## Installation
 
@@ -19,7 +19,7 @@ npm create ripple // [!=npm auto]
 ### Clone the Vite-based Basic Template:
 
 ```sh
-npx degit trueadm/ripple/templates/basic ripple-app // [!=npm auto]
+npx degit Ripple-TS/ripple/templates/basic ripple-app // [!=npm auto]
 
 cd ripple-app
 npm i // [!=npm auto]
@@ -102,12 +102,12 @@ and Sublime Text.
 1. Create a directory named `Ripple.tmbundle`.
 2. Create a directory named `Syntaxes` inside the `Ripple.tmbundle` directory.
 3. Save the
-   [`ripple.tmLanguage`](https://github.com/trueadm/ripple/blob/main/assets/Ripple.tmbundle/Syntaxes/ripple.tmLanguage)
+   [`ripple.tmLanguage`](https://github.com/Ripple-TS/ripple/blob/main/assets/Ripple.tmbundle/Syntaxes/ripple.tmLanguage)
    file into the `Syntaxes` directory.
 4. Install it:
    - **WebStorm/IntelliJ**:
      1. Save the
-        [`info.plist`](https://github.com/trueadm/ripple/blob/main/assets/Ripple.tmbundle/info.plist)
+        [`info.plist`](https://github.com/Ripple-TS/ripple/blob/main/assets/Ripple.tmbundle/info.plist)
         file into the `Ripple.tmbundle` directory.
      2. Go to `Settings` > `Editor` > `TextMate Bundles`, click the `+` icon, and select the `Ripple.tmbundle` directory.
      3. All `.ripple` files should now have syntax highlighting.
@@ -122,7 +122,7 @@ Help us port the Ripple extension to your platforms!
 ## Getting Help
 
 Try joining the [Discord server](https://discord.gg/JBF2ySrh2W), or asking for
-help on our [discussions board](https://github.com/trueadm/ripple/discussions).
+help on our [discussions board](https://github.com/Ripple-TS/ripple/discussions).
 
 ## Next Steps
 

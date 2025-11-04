@@ -260,7 +260,7 @@ export default defineConfig({
 function updateDependencyVersions(packageJson) {
 	// Use the latest versions for Ripple packages
 	const latestVersions = {
-		'@ripple-ts/ripple': 'latest',
+		ripple: 'latest',
 		'@ripple-ts/vite-plugin': 'latest',
 		'@ripple-ts/prettier-plugin': 'latest',
 		'@ripple-ts/eslint-plugin': 'latest',

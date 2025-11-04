@@ -11,6 +11,6 @@ module.exports = defineConfig({
 	format: 'cjs',
 	platform: 'node',
 	target: 'node20',
-	external: ['vscode', 'typescript', '@ripple-ts/ripple', '@ripple-ts/typescript-plugin'],
+	external: ['vscode', 'typescript', 'ripple', '@ripple-ts/typescript-plugin'],
 	noExternal: /.+/,
 });

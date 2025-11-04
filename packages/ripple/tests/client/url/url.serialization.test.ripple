@@ -1,4 +1,4 @@
-import { flushSync, TrackedURL } from '@ripple-ts/ripple';
+import { flushSync, TrackedURL } from 'ripple';
 
 describe('TrackedURL > serialization', () => {
 	it('handles toString method', () => {
@@ -14,13 +14,17 @@ describe('TrackedURL > serialization', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelector('pre').textContent).toBe('https://example.com/path?foo=bar#section');
+		expect(container.querySelector('pre').textContent).toBe(
+			'https://example.com/path?foo=bar#section',
+		);
 
 		// Change pathname
 		button.click();
 		flushSync();
 
-		expect(container.querySelector('pre').textContent).toBe('https://example.com/newpath?foo=bar#section');
+		expect(container.querySelector('pre').textContent).toBe(
+			'https://example.com/newpath?foo=bar#section',
+		);
 	});
 
 	it('handles toJSON method', () => {
@@ -37,14 +41,22 @@ describe('TrackedURL > serialization', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?foo=bar');
-		expect(container.querySelectorAll('pre')[1].textContent).toBe('{"url":"https://example.com/path?foo=bar"}');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?foo=bar',
+		);
+		expect(container.querySelectorAll('pre')[1].textContent).toBe(
+			'{"url":"https://example.com/path?foo=bar"}',
+		);
 
 		// Change pathname
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/api?foo=bar');
-		expect(container.querySelectorAll('pre')[1].textContent).toBe('{"url":"https://example.com/api?foo=bar"}');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/api?foo=bar',
+		);
+		expect(container.querySelectorAll('pre')[1].textContent).toBe(
+			'{"url":"https://example.com/api?foo=bar"}',
+		);
 	});
 });

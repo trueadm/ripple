@@ -1,5 +1,5 @@
 import { beforeEach, afterEach } from 'vitest';
-import { mount } from '@ripple-ts/ripple';
+import { mount } from 'ripple';
 import { createReactCompat } from '../src/index.js';
 
 /**

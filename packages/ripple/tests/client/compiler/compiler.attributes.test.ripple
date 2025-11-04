@@ -1,4 +1,4 @@
-import { parse, compile } from '@ripple-ts/ripple/compiler';
+import { parse, compile } from 'ripple/compiler';
 
 describe('compiler > attributes', () => {
 	it('generates valid JavaScript for component props with hyphenated attributes', () => {

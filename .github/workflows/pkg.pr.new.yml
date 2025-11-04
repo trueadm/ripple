@@ -91,7 +91,7 @@ jobs:
         run: |
           pnpm dlx pkg-pr-new publish \
             './packages/@ripple-ts/prettier-plugin' \
-            './packages/@ripple-ts/ripple' \
+            './packages/ripple' \
             './packages/@ripple-ts/rollup-plugin' \
             './packages/@ripple-ts/vite-plugin' \
             './packages/@ripple-ts/cli' \

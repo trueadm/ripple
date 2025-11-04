@@ -1,10 +1,10 @@
-import { Portal, track, flushSync } from '@ripple-ts/ripple';
+import { Portal, track, flushSync } from 'ripple';
 
 describe('Portal', () => {
 	afterEach(() => {
 		// Clean up any leftover portal content from document.body
 		const portals = document.body.querySelectorAll('.test-portal');
-		portals.forEach(el => el.remove());
+		portals.forEach((el) => el.remove());
 	});
 
 	it('renders portal content to target element', () => {
@@ -12,7 +12,9 @@ describe('Portal', () => {
 		document.body.appendChild(target);
 
 		component TestPortal() {
-			<Portal target={target}><div class='test-portal'>{'Portal works!'}</div></Portal>
+			<Portal {target}>
+				<div class="test-portal">{'Portal works!'}</div>
+			</Portal>
 		}
 
 		render(TestPortal);
@@ -27,7 +29,9 @@ describe('Portal', () => {
 
 	it('renders portal content to document.body', () => {
 		component TestPortal() {
-			<Portal target={document.body}><div class='test-portal'>{'In document.body!'}</div></Portal>
+			<Portal target={document.body}>
+				<div class="test-portal">{'In document.body!'}</div>
+			</Portal>
 		}
 
 		render(TestPortal);
@@ -45,7 +49,9 @@ describe('Portal', () => {
 			let open = track(true);
 
 			if (@open) {
-				<Portal target={document.body}><div class='test-portal'>{'Conditional content'}</div></Portal>
+				<Portal target={document.body}>
+					<div class="test-portal">{'Conditional content'}</div>
+				</Portal>
 			}
 
 			<button onClick={() => @open = false}>{'Close'}</button>
@@ -69,10 +75,12 @@ describe('Portal', () => {
 			let open = track(false);
 
 			if (@open) {
-				<Portal target={document.body}><div class='test-portal'>
-					{'Content'}
-					<button onClick={() => @open = false}>{'Close'}</button>
-				</div></Portal>
+				<Portal target={document.body}>
+					<div class="test-portal">
+						{'Content'}
+						<button onClick={() => @open = false}>{'Close'}</button>
+					</div>
+				</Portal>
 			}
 
 			if (!@open) {
@@ -106,9 +114,13 @@ describe('Portal', () => {
 		document.body.appendChild(target2);
 
 		component TestMultiPortal() {
-			<Portal target={target1}><div class='test-portal'>{'Portal 1 content'}</div></Portal>
+			<Portal target={target1}>
+				<div class="test-portal">{'Portal 1 content'}</div>
+			</Portal>
 
-			<Portal target={target2}><div class='test-portal'>{'Portal 2 content'}</div></Portal>
+			<Portal target={target2}>
+				<div class="test-portal">{'Portal 2 content'}</div>
+			</Portal>
 		}
 
 		render(TestMultiPortal);
@@ -128,11 +140,13 @@ describe('Portal', () => {
 		component TestReactivePortal() {
 			let count = track(0);
 
-			<Portal target={document.body}><div class='test-portal'>
-				{'Count: '}
-				{String(@count)}
-				<button onClick={() => @count++}>{'Increment'}</button>
-			</div></Portal>
+			<Portal target={document.body}>
+				<div class="test-portal">
+					{'Count: '}
+					{String(@count)}
+					<button onClick={() => @count++}>{'Increment'}</button>
+				</div>
+			</Portal>
 		}
 
 		render(TestReactivePortal);

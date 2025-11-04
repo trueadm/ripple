@@ -14,11 +14,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/cli"
   },
   "bugs": {
-    "url": "https://github.com/trueadm/ripple/issues"
+    "url": "https://github.com/Ripple-TS/ripple/issues"
   },
   "homepage": "https://ripple-ts.com",
   "files": [

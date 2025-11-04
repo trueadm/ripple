@@ -1,4 +1,4 @@
-import { track, flushSync, TrackedArray } from '@ripple-ts/ripple';
+import { track, flushSync, TrackedArray } from 'ripple';
 
 describe('TrackedArray copyWithin', () => {
 	it('handles copyWithin operation with reactivity', () => {

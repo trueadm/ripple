@@ -6,11 +6,11 @@
   "main": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/eslint-parser"
   },
   "bugs": {
-    "url": "https://github.com/trueadm/ripple/issues"
+    "url": "https://github.com/Ripple-TS/ripple/issues"
   },
   "homepage": "https://ripple-ts.com",
   "exports": {
@@ -32,7 +32,7 @@
   },
   "peerDependencies": {
     "eslint": "catalog:peer",
-    "@ripple-ts/ripple": "catalog:peer"
+    "ripple": "catalog:peer"
   },
   "dependencies": {
     "acorn": "catalog:default",
@@ -42,7 +42,7 @@
     "@types/eslint": "catalog:default",
     "@types/estree": "catalog:default",
     "@types/node": "catalog:default",
-    "@ripple-ts/ripple": "workspace:*",
+    "ripple": "workspace:*",
     "tsdown": "catalog:default",
     "typescript": "catalog:default"
   },

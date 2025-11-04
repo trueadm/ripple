@@ -1,6 +1,6 @@
 import path from 'path';
 import { createFilter } from '@rollup/pluginutils';
-import { compile } from '@ripple-ts/ripple/compiler';
+import { compile } from 'ripple/compiler';
 
 const PREFIX = '[@ripple-ts/rollup-plugin]';
 

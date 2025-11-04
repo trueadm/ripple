@@ -1,12 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { flushSync, TrackedArray, track, createRefKey } from '@ripple-ts/ripple';
+import { flushSync, TrackedArray, track, createRefKey } from 'ripple';
 
 describe('refs', () => {
 	it('capture a <div>', () => {
 		let div: HTMLDivElement | undefined;
 
 		component Component() {
-			<div {ref (node: HTMLDivElement) => { div = node; }}>{'Hello World'}</div>
+			<div
+				{ref (node: HTMLDivElement) => {
+					div = node;
+				}}
+			>
+				{'Hello World'}
+			</div>
 		}
 		render(Component);
 		flushSync();
@@ -49,9 +55,9 @@ describe('refs', () => {
 			}
 
 			const props = {
-				id: "example",
+				id: 'example',
 				@value,
-				[createRefKey()]: inputRef
+				[createRefKey()]: inputRef,
 			};
 
 			<input type="text" {...props} />

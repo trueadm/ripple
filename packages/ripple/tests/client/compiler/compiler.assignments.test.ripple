@@ -1,5 +1,5 @@
-import { track, TrackedArray } from '@ripple-ts/ripple';
-import { compile } from '@ripple-ts/ripple/compiler';
+import { track, TrackedArray } from 'ripple';
+import { compile } from 'ripple/compiler';
 
 describe('compiler > assignments', () => {
 	it('properly handles JS assignments, reads and updates to array indices', () => {

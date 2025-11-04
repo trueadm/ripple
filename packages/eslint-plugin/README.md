@@ -82,7 +82,7 @@ Prevents calling `track()` at module scope. Tracked values must be created withi
 ❌ **Incorrect:**
 
 ```js
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 // This will cause runtime errors
 let globalCount = track(0);
@@ -95,7 +95,7 @@ export component App() {
 ✅ **Correct:**
 
 ```js
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export component App() {
   // track() called within component
@@ -211,7 +211,7 @@ export function useCount() {
 
 ```ts
 // count.ts
-import { get, set } from '@ripple-ts/ripple';
+import { get, set } from 'ripple';
 
 export function useCount() {
   const count = track(1);

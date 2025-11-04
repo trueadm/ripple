@@ -1,8 +1,8 @@
-import { track, flushSync, TrackedArray } from '@ripple-ts/ripple';
+import { track, flushSync, TrackedArray } from 'ripple';
 
 describe('TrackedArray > to* methods', () => {
 	it('handles toReversed method with reactivity', (context) => {
-		if (!('toReversed' in Array.prototype)) {
+		if (!'toReversed' in Array.prototype) {
 			context.skip();
 		}
 
@@ -32,7 +32,7 @@ describe('TrackedArray > to* methods', () => {
 	});
 
 	it('handles toSorted method with reactivity', (context) => {
-		if (!('toSorted' in Array.prototype)) {
+		if (!'toSorted' in Array.prototype) {
 			context.skip();
 		}
 
@@ -62,7 +62,7 @@ describe('TrackedArray > to* methods', () => {
 	});
 
 	it('handles toSpliced method with reactivity', (context) => {
-		if (!('toSpliced' in Array.prototype)) {
+		if (!'toSpliced' in Array.prototype) {
 			context.skip();
 		}
 

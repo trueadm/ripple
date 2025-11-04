@@ -10,7 +10,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/language-server"
   },
   "dependencies": {

@@ -10,7 +10,7 @@ module.exports = defineConfig({
 		legalComments: 'inline',
 		minify: true,
 	},
-	external: ['@ripple-ts/ripple', 'typescript'],
+	external: ['ripple', 'typescript'],
 	clean: true,
 	noExternal: /.+/,
 });

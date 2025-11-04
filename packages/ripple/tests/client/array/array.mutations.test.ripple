@@ -1,4 +1,4 @@
-import { flushSync, track, TrackedArray } from '@ripple-ts/ripple';
+import { flushSync, track, TrackedArray } from 'ripple';
 
 describe('TrackedArray > mutations', () => {
 	it('handles direct assignment and length tracking', () => {
@@ -7,7 +7,7 @@ describe('TrackedArray > mutations', () => {
 
 			<button onClick={() => items[items.length] = items.length + 1}>{'increment'}</button>
 
-			<Child items={items} />
+			<Child {items} />
 		}
 
 		component Child({ items }: { items: TrackedArray<number> }) {
@@ -15,21 +15,21 @@ describe('TrackedArray > mutations', () => {
 			<pre>{items.length}</pre>
 		}
 
-			render(ArrayTest);
+		render(ArrayTest);
 
-			const button = container.querySelector('button');
+		const button = container.querySelector('button');
 
-			button.click();
-			flushSync();
+		button.click();
+		flushSync();
 
-			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
-			expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('4');
 
-			button.click();
-			flushSync();
+		button.click();
+		flushSync();
 
-			expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
-			expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3,4,5]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe('5');
 	});
 
 	it('handles push and pop operations with reactivity', () => {
@@ -44,7 +44,7 @@ describe('TrackedArray > mutations', () => {
 			<pre>{@lastItem}</pre>
 		}
 
-    	render(ArrayTest);
+		render(ArrayTest);
 
 		const pushButton = container.querySelectorAll('button')[0];
 		const popButton = container.querySelectorAll('button')[1];
@@ -69,7 +69,7 @@ describe('TrackedArray > mutations', () => {
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('[1,2,3]');
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('3');
 		expect(container.querySelectorAll('pre')[2].textContent).toBe('3');
-  });
+	});
 
 	it('handles shift and unshift operations with reactivity', () => {
 		component ArrayTest() {
@@ -234,7 +234,9 @@ describe('TrackedArray > mutations', () => {
 		component ArrayTest() {
 			let items = new TrackedArray(1, 2, 3);
 
-			<button onClick={() => items.forEach((item, i) => items[i] = item * 2)}>{'double all'}</button>
+			<button onClick={() => items.forEach((item, i) => items[i] = item * 2)}>
+				{'double all'}
+			</button>
 			<pre>{JSON.stringify(items)}</pre>
 		}
 
@@ -256,7 +258,9 @@ describe('TrackedArray > mutations', () => {
 		component ArrayTest() {
 			let items = new TrackedArray(1, 2, 3);
 
-			<button onClick={() => items.forEach((item, i) => items[i] = item * 2)}>{'double all'}</button>
+			<button onClick={() => items.forEach((item, i) => items[i] = item * 2)}>
+				{'double all'}
+			</button>
 
 			for (const item of items) {
 				<pre>{item}</pre>

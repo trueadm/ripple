@@ -12,6 +12,6 @@ export const TEMPLATES = [
 /**
  * GitHub repository configuration
  */
-export const GITHUB_REPO = 'trueadm/ripple';
+export const GITHUB_REPO = 'Ripple-TS/ripple';
 export const GITHUB_BRANCH = 'main'; // or whatever the default branch is
 export const GITHUB_TEMPLATES_DIRECTORY = 'templates';

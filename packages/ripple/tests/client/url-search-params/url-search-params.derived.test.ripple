@@ -1,4 +1,4 @@
-import { flushSync, track, TrackedURL, TrackedURLSearchParams } from '@ripple-ts/ripple';
+import { flushSync, track, TrackedURL, TrackedURLSearchParams } from 'ripple';
 
 describe('TrackedURLSearchParams > derived', () => {
 	it('handles reactive computed properties based on search params', () => {
@@ -46,15 +46,19 @@ describe('TrackedURLSearchParams > derived', () => {
 		component ParentTest() {
 			const params = new TrackedURLSearchParams('count=0');
 
-			<ChildA params={params} />
-			<ChildB params={params} />
+			<ChildA {params} />
+			<ChildB {params} />
 		}
 
 		component ChildA({ params }: { params: TrackedURLSearchParams }) {
-			<button onClick={() => {
-				const current = parseInt(params.get('count') || '0', 10);
-				params.set('count', String(current + 1));
-			}}>{'increment'}</button>
+			<button
+				onClick={() => {
+					const current = parseInt(params.get('count') || '0', 10);
+					params.set('count', String(current + 1));
+				}}
+			>
+				{'increment'}
+			</button>
 		}
 
 		component ChildB({ params }: { params: TrackedURLSearchParams }) {

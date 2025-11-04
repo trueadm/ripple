@@ -1,4 +1,4 @@
-import { flushSync, TrackedURL } from '@ripple-ts/ripple';
+import { flushSync, TrackedURL } from 'ripple';
 
 describe('TrackedURL > parsing', () => {
 	it('creates URL from string with reactivity', () => {
@@ -16,7 +16,9 @@ describe('TrackedURL > parsing', () => {
 
 		render(URLTest);
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com:8080/path?foo=bar#section');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com:8080/path?foo=bar#section',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('https:');
 		expect(container.querySelectorAll('pre')[2].textContent).toBe('example.com');
 		expect(container.querySelectorAll('pre')[3].textContent).toBe('8080');
@@ -35,7 +37,9 @@ describe('TrackedURL > parsing', () => {
 
 		render(URLTest);
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?query=value');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?query=value',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com');
 	});
 
@@ -52,7 +56,9 @@ describe('TrackedURL > parsing', () => {
 
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('/path%20with%20spaces');
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('?key=value%20with%20spaces');
-		expect(container.querySelectorAll('pre')[2].textContent).toBe('https://example.com/path%20with%20spaces?key=value%20with%20spaces');
+		expect(container.querySelectorAll('pre')[2].textContent).toBe(
+			'https://example.com/path%20with%20spaces?key=value%20with%20spaces',
+		);
 	});
 
 	it('handles URL with file protocol', () => {
@@ -67,8 +73,12 @@ describe('TrackedURL > parsing', () => {
 		render(URLTest);
 
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('file:');
-		expect(container.querySelectorAll('pre')[1].textContent).toBe('/Users/username/documents/file.txt');
-		expect(container.querySelectorAll('pre')[2].textContent).toBe('file:///Users/username/documents/file.txt');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe(
+			'/Users/username/documents/file.txt',
+		);
+		expect(container.querySelectorAll('pre')[2].textContent).toBe(
+			'file:///Users/username/documents/file.txt',
+		);
 	});
 
 	it('handles URL with IPv4 address', () => {
@@ -139,14 +149,18 @@ describe('TrackedURL > parsing', () => {
 
 		// Initial state
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('/api/v1/users/123/profile');
-		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com/api/v1/users/123/profile');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe(
+			'https://example.com/api/v1/users/123/profile',
+		);
 
 		// Change path
 		button.click();
 		flushSync();
 
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('/api/v2/users/456/settings');
-		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com/api/v2/users/456/settings');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe(
+			'https://example.com/api/v2/users/456/settings',
+		);
 	});
 
 	it('handles relative URL paths correctly', () => {
@@ -159,7 +173,9 @@ describe('TrackedURL > parsing', () => {
 
 		render(URLTest);
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/sibling/path');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/sibling/path',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('/sibling/path');
 	});
 });

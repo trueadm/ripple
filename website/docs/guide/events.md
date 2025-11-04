@@ -29,7 +29,7 @@ to improve runtime performance.
 <Code>
 
 ```ripple
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export component EventExample() {
 	let message = track("");
@@ -55,7 +55,7 @@ with event delegation for events that support it.
 <Code console>
 
 ```ripple
-import { effect, on } from '@ripple-ts/ripple';
+import { effect, on } from 'ripple';
 
 export component App() {
   effect(() => {

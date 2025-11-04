@@ -1,4 +1,4 @@
-import { track, flushSync } from '@ripple-ts/ripple';
+import { track, flushSync } from 'ripple';
 
 describe('basic client > components & composition', () => {
 	it('renders with component composition and children', () => {

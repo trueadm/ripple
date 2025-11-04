@@ -27,7 +27,7 @@ writing HTML. By default, Ripple will make the content available as the
 `<children />` if you destructured your props).
 
 ```ripple
-import type { Component } from '@ripple-ts/ripple';
+import type { Component } from 'ripple';
 
 component Card(props: { children: Component }) {
 	<div class="card">
@@ -143,7 +143,7 @@ See [Reactivity](/docs/guide/reactivity#Props-and-Attributes).
 The `Portal` component allows you to render (teleport) content anywhere in the DOM tree, breaking out of the normal component hierarchy. This is particularly useful for modals, tooltips, and notifications.
 
 ```ripple
-import { Portal } from '@ripple-ts/ripple';
+import { Portal } from 'ripple';
 
 export component App() {
 	<div class="app">

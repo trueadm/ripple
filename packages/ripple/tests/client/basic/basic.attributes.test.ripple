@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { track, flushSync } from '@ripple-ts/ripple';
+import { track, flushSync } from 'ripple';
 
 describe('basic client > attribute rendering', () => {
 	it('render static attributes', () => {
 		component Basic() {
-			<div class='foo' id='bar' style='color: red;'>{'Hello World'}</div>
+			<div class="foo" id="bar" style="color: red;">{'Hello World'}</div>
 		}
 
 		render(Basic);
@@ -16,7 +16,13 @@ describe('basic client > attribute rendering', () => {
 		component Basic() {
 			let active = track(false);
 
-			<button onClick={() => { @active = !@active }}>{'Toggle'}</button>
+			<button
+				onClick={() => {
+					@active = !@active;
+				}}
+			>
+				{'Toggle'}
+			</button>
 			<div class={@active ? 'active' : 'inactive'}>{'Dynamic Class'}</div>
 
 			<style>
@@ -31,7 +37,9 @@ describe('basic client > attribute rendering', () => {
 		const button = container.querySelector('button');
 		const div = container.querySelector('div');
 
-		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(div.classList).some((className) => className.startsWith('ripple-'))).toBe(
+			true,
+		);
 		expect(div.classList.contains('inactive')).toBe(true);
 
 		button.click();
@@ -46,24 +54,26 @@ describe('basic client > attribute rendering', () => {
 
 	it('render class attribute with array, nested array, nested object', () => {
 		component Basic() {
-			<div class={[
-				'foo',
-				'bar',
-				true && 'baz',
-				false && 'aaa',
-				null && 'bbb',
-				[
-					'ccc',
-					'ddd',
-					{ eee: true, fff: false }
-				]
-			]}>
+			<div
+				class={[
+					'foo',
+					'bar',
+					true && 'baz',
+					false && 'aaa',
+					null && 'bbb',
+					[
+						'ccc',
+						'ddd',
+						{eee: true, fff: false},
+					],
+				]}
+			>
 				{'Class Array'}
 			</div>
 
 			<style>
 				.foo {
-				  color: red;
+					color: red;
 				}
 			</style>
 		}
@@ -72,7 +82,9 @@ describe('basic client > attribute rendering', () => {
 
 		const div = container.querySelector('div');
 
-		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(div.classList).some((className) => className.startsWith('ripple-'))).toBe(
+			true,
+		);
 		expect(div.classList.contains('foo')).toBe(true);
 		expect(div.classList.contains('bar')).toBe(true);
 		expect(div.classList.contains('baz')).toBe(true);
@@ -88,8 +100,14 @@ describe('basic client > attribute rendering', () => {
 		component Basic() {
 			let active = track(false);
 
-			<button onClick={() => { @active = !@active }}>{'Toggle'}</button>
-			<div class={{ active: @active, inactive: !@active }}>{'Dynamic Class'}</div>
+			<button
+				onClick={() => {
+					@active = !@active;
+				}}
+			>
+				{'Toggle'}
+			</button>
+			<div class={{active: @active, inactive: !@active}}>{'Dynamic Class'}</div>
 
 			<style>
 				.active {
@@ -103,7 +121,9 @@ describe('basic client > attribute rendering', () => {
 		const button = container.querySelector('button');
 		const div = container.querySelector('div');
 
-		expect(Array.from(div.classList).some(className => className.startsWith('ripple-'))).toBe(true);
+		expect(Array.from(div.classList).some((className) => className.startsWith('ripple-'))).toBe(
+			true,
+		);
 		expect(div.classList.contains('inactive')).toBe(true);
 		expect(div.classList.contains('active')).toBe(false);
 
@@ -123,7 +143,13 @@ describe('basic client > attribute rendering', () => {
 		component Basic() {
 			let count = track(0);
 
-			<button onClick={() => { @count++ }}>{'Increment'}</button>
+			<button
+				onClick={() => {
+					@count++;
+				}}
+			>
+				{'Increment'}
+			</button>
 			<div id={`item-${@count}`}>{'Dynamic ID'}</div>
 		}
 
@@ -149,7 +175,13 @@ describe('basic client > attribute rendering', () => {
 		component Basic() {
 			let color = track('red');
 
-			<button onClick={() => { @color = @color === 'red' ? 'blue' : 'red' }}>{'Change Color'}</button>
+			<button
+				onClick={() => {
+					@color = @color === 'red' ? 'blue' : 'red';
+				}}
+			>
+				{'Change Color'}
+			</button>
 			<div style={`color: ${@color}; font-weight: bold;`}>{'Dynamic Style'}</div>
 		}
 
@@ -172,11 +204,14 @@ describe('basic client > attribute rendering', () => {
 		component Basic() {
 			let color = track('red');
 
-			<button onClick={() => { @color = @color === 'red' ? 'blue' : 'red' }}>{'Change Color'}</button>
-			<div style={{
-				color: @color,
-				fontWeight: 'bold',
-			}}>{'Dynamic Style'}</div>
+			<button
+				onClick={() => {
+					@color = @color === 'red' ? 'blue' : 'red';
+				}}
+			>
+				{'Change Color'}
+			</button>
+			<div style={{color: @color, fontWeight: 'bold'}}>{'Dynamic Style'}</div>
 		}
 
 		render(Basic);
@@ -203,7 +238,7 @@ describe('basic client > attribute rendering', () => {
 			}
 
 			<button onClick={toggleColor}>{'Change Color'}</button>
-			<div style={@style}>{'Dynamic Style'}</div>
+			<div {@style}>{'Dynamic Style'}</div>
 		}
 
 		render(Basic);
@@ -230,7 +265,7 @@ describe('basic client > attribute rendering', () => {
 			}
 
 			<button onClick={toggleColor}>{'Change Color'}</button>
-			<div style={{ ...@style }}>{'Dynamic Style'}</div>
+			<div style={{...@style}}>{'Dynamic Style'}</div>
 		}
 
 		render(Basic);
@@ -271,7 +306,7 @@ describe('basic client > attribute rendering', () => {
 
 	it('render spread props without duplication', () => {
 		component App() {
-			const checkBoxProp = {name:'car'}
+			const checkBoxProp = { name: 'car' };
 
 			<div>
 				<input {...checkBoxProp} type="checkbox" id="vehicle1" value="Bike" />
@@ -299,11 +334,15 @@ describe('basic client > attribute rendering', () => {
 			let disabled = track(false);
 			let checked = track(false);
 
-			<button onClick={() => {
-				@disabled = !@disabled;
-				@checked = !@checked;
-			}}>{'Toggle'}</button>
-			<input type='checkbox' disabled={@disabled} checked={@checked} />
+			<button
+				onClick={() => {
+					@disabled = !@disabled;
+					@checked = !@checked;
+				}}
+			>
+				{'Toggle'}
+			</button>
+			<input type="checkbox" {@disabled} {@checked} />
 		}
 
 		render(Basic);
@@ -328,11 +367,15 @@ describe('basic client > attribute rendering', () => {
 
 			<button
 				onClick={() => {
-				@theme = @theme === 'light' ? 'dark' : 'light';
-				@size = @size === 'medium' ? 'large' : 'medium';
-			}}
-			>{'Toggle Theme & Size'}</button>
-			<div class={`theme-${@theme} size-${@size}`} data-theme={@theme} data-size={@size}>{'Multiple Dynamic Attributes'}</div>
+					@theme = @theme === 'light' ? 'dark' : 'light';
+					@size = @size === 'medium' ? 'large' : 'medium';
+				}}
+			>
+				{'Toggle Theme & Size'}
+			</button>
+			<div class={`theme-${@theme} size-${@size}`} data-theme={@theme} data-size={@size}>
+				{'Multiple Dynamic Attributes'}
+			</div>
 		}
 
 		render(Basic);
@@ -357,14 +400,20 @@ describe('basic client > attribute rendering', () => {
 			let showTitle = track(false);
 			let showAria = track(false);
 
-			<button onClick={() => {
-				@showTitle = !@showTitle;
-				@showAria = !@showAria;
-			}}>{'Toggle Attributes'}</button>
+			<button
+				onClick={() => {
+					@showTitle = !@showTitle;
+					@showAria = !@showAria;
+				}}
+			>
+				{'Toggle Attributes'}
+			</button>
 			<div
 				title={@showTitle ? 'This is a title' : null}
 				aria-label={@showAria ? 'Accessible label' : null}
-			>{'Conditional Attributes'}</div>
+			>
+				{'Conditional Attributes'}
+			</div>
 		}
 
 		render(Basic);
@@ -390,20 +439,24 @@ describe('basic client > attribute rendering', () => {
 
 	it('render spread attributes', () => {
 		component Basic() {
-			let attrs = track({
-				class: 'initial',
-				id: 'test-1'
-			});
+			let attrs = track(
+				{
+					class: 'initial',
+					id: 'test-1',
+				},
+			);
 
 			<button
 				onClick={() => {
-				@attrs = {
-					class: 'updated',
-					id: 'test-2',
-					'data-extra': 'value'
-				};
-			}}
-			>{'Update Attributes'}</button>
+					@attrs = {
+						class: 'updated',
+						id: 'test-2',
+						'data-extra': 'value',
+					};
+				}}
+			>
+				{'Update Attributes'}
+			</button>
 			<div {...@attrs}>{'Spread Attributes'}</div>
 		}
 
@@ -448,7 +501,7 @@ describe('basic client > attribute rendering', () => {
 	it('handles boolean attributes with no prop value provides', () => {
 		component App() {
 			<div class="container">
-				<button onClick={() => console.log("clicked!")} disabled>{"Button"}</button>
+				<button onClick={() => console.log('clicked!')} disabled>{'Button'}</button>
 				<input type="checkbox" checked />
 			</div>
 		}

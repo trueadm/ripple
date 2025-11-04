@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { compile_to_volar_mappings } from '@ripple-ts/ripple/compiler';
+import { compile_to_volar_mappings } from 'ripple/compiler';
 
 const dir = './src/';
 const output_dir = './debug';

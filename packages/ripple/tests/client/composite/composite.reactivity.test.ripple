@@ -1,4 +1,4 @@
-import { track, trackSplit, flushSync, effect } from '@ripple-ts/ripple';
+import { track, trackSplit, flushSync, effect } from 'ripple';
 
 describe('composite > reactivity', () => {
 	it('renders composite components with object state', () => {

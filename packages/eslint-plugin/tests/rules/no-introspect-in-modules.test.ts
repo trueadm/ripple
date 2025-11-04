@@ -17,7 +17,7 @@ ruleTester.run('no-introspect-in-modules', rule, {
 		// Valid: using get() and set() in TypeScript modules
 		{
 			code: `
-				import { get, set } from '@ripple-ts/ripple';
+				import { get, set } from 'ripple';
 
 				export function useCount() {
 					const count = track(1);
@@ -35,7 +35,7 @@ ruleTester.run('no-introspect-in-modules', rule, {
 		// Valid: using get() in regular JavaScript
 		{
 			code: `
-				import { get } from '@ripple-ts/ripple';
+				import { get } from 'ripple';
 
 				function useCounter() {
 					const count = track(0);
@@ -50,7 +50,7 @@ ruleTester.run('no-introspect-in-modules', rule, {
 		// Valid: using get/set functions to access tracked values
 		{
 			code: `
-				import { get, set } from '@ripple-ts/ripple';
+				import { get, set } from 'ripple';
 
 				export function useState() {
 					const state = track({ value: 0 });

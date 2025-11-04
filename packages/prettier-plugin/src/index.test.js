@@ -238,7 +238,7 @@ export default component Basic() {
 		});
 
 		it('formatting already formatted code should not change it #2', async () => {
-			const already_formatted = `import type { Component } from '@ripple-ts/ripple';
+			const already_formatted = `import type { Component } from 'ripple';
 
 export default component App() {
   <div class="container">
@@ -628,10 +628,10 @@ function test() {
 		});
 
 		it('should handle import type statements', async () => {
-			const input = `import { type Component } from '@ripple-ts/ripple';
-import { Something, type Props, track } from '@ripple-ts/ripple';`;
-			const expected = `import { type Component } from '@ripple-ts/ripple';
-import { Something, type Props, track } from '@ripple-ts/ripple';`;
+			const input = `import { type Component } from 'ripple';
+import { Something, type Props, track } from 'ripple';`;
+			const expected = `import { type Component } from 'ripple';
+import { Something, type Props, track } from 'ripple';`;
 			const result = await format(input, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
 		});
@@ -906,7 +906,7 @@ export component Test({ a, b }: Props) {}`;
 			const expected = `// comment
 
 import { useCount, incrementCount } from './useCount';
-import { effect, track } from '@ripple-ts/ripple';`;
+import { effect, track } from 'ripple';`;
 
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
@@ -1196,7 +1196,7 @@ enum Status {
   getRootNode?: GetRootNode | undefined;
 }
 
-import { Portal as RipplePortal } from '@ripple-ts/ripple';`;
+import { Portal as RipplePortal } from 'ripple';`;
 
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
@@ -1205,7 +1205,7 @@ import { Portal as RipplePortal } from '@ripple-ts/ripple';`;
 		it('should preserve blank lines between export statements and import statements or comments', async () => {
 			const expected = `export { handler } from './test.ripple';
 
-import { Portal as RipplePortal } from '@ripple-ts/ripple';
+import { Portal as RipplePortal } from 'ripple';
 
 // export { something } from './test.ripple;
 

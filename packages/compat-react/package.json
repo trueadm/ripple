@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/compat-react"
   },
   "exports": {
@@ -17,7 +17,7 @@
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "@ripple-ts/ripple": "workspace:*"
+    "ripple": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",

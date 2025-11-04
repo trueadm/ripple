@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mount, flushSync } from '@ripple-ts/ripple';
+import { mount, flushSync } from 'ripple';
 
 import { test } from './function-overload-import.ripple';
 

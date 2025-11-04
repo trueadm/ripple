@@ -16,15 +16,15 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/prettier-plugin"
   },
   "peerDependencies": {
-    "@ripple-ts/ripple": "catalog:peer",
+    "ripple": "catalog:peer",
     "prettier": "catalog:peer"
   },
   "devDependencies": {
-    "@ripple-ts/ripple": "workspace:*",
+    "ripple": "workspace:*",
     "prettier": "catalog:default"
   },
   "dependencies": {},

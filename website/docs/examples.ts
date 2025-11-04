@@ -15,7 +15,7 @@ export const examples: Array<{ title: string; code: string }> = [
 	},
 	{
 		title: 'Styling',
-		code: `import { track } from '@ripple-ts/ripple';
+		code: `import { track } from 'ripple';
 
 export default component App() {
   <div class="message">{"Hello Ripple!"}</div>
@@ -135,7 +135,7 @@ component Card(props: { message: string, className?: string, onClick?: () => voi
 	},
 	{
 		title: 'Children',
-		code: `import type { Component } from '@ripple-ts/ripple';
+		code: `import type { Component } from 'ripple';
 
 component Card(props: { children: Component }) {
   <div class="card">
@@ -199,7 +199,7 @@ export default component App() {
 	},
 	{
 		title: 'Portal Component',
-		code: `import { Portal } from '@ripple-ts/ripple';
+		code: `import { Portal } from 'ripple';
 
 export default component App() {
 	<div class="app">
@@ -236,7 +236,7 @@ export default component App() {
 	},
 	{
 		title: 'Switch Statements',
-		code: `import { track } from '@ripple-ts/ripple';
+		code: `import { track } from 'ripple';
 
 export default component App() {
 	let count = track(1);
@@ -336,7 +336,7 @@ export default component SuspenseBoundary() {
 	},
 	{
 		title: 'Reactive Variables',
-		code: `import { track } from '@ripple-ts/ripple';
+		code: `import { track } from 'ripple';
 
 export default component Counter() {
 	let count = track(0);  // Reactive variable
@@ -364,7 +364,7 @@ export default component Counter() {
 	},
 	{
 		title: 'Effects',
-		code: `import { track, effect } from '@ripple-ts/ripple';
+		code: `import { track, effect } from 'ripple';
 import confetti from 'canvas-confetti';
 
 export default component App() {
@@ -383,7 +383,7 @@ export default component App() {
 	},
 	{
 		title: 'Simple Reactive Array',
-		code: `import { effect, track } from '@ripple-ts/ripple';
+		code: `import { effect, track } from 'ripple';
 
 export default component App() {
 	let first = track(1);
@@ -400,7 +400,7 @@ export default component App() {
 	},
 	{
 		title: 'Fully Reactive Array',
-		code: `import { TrackedArray, track } from '@ripple-ts/ripple';
+		code: `import { TrackedArray, track } from 'ripple';
 
 export default component App() {
   // create a TrackedArray using syntactic sugar \`#\`
@@ -454,7 +454,7 @@ export default component App() {
 	},
 	{
 		title: 'Reactive Set',
-		code: `import { TrackedSet, track } from '@ripple-ts/ripple';
+		code: `import { TrackedSet, track } from 'ripple';
 
 export default component App() {
   const set = new TrackedSet([1, 2, 3]);
@@ -473,7 +473,7 @@ export default component App() {
 	},
 	{
 		title: 'Reactive Map',
-		code: `import { TrackedMap, track } from '@ripple-ts/ripple';
+		code: `import { TrackedMap, track } from 'ripple';
 
 export default component App() {
   const map = new TrackedMap([[1,1], [2,2], [3,3], [4,4]]);
@@ -492,7 +492,7 @@ export default component App() {
 	},
 	{
 		title: 'Reactive Date',
-		code: `import { TrackedDate, track } from '@ripple-ts/ripple';
+		code: `import { TrackedDate, track } from 'ripple';
 
 export default component App() {
   const date = new TrackedDate(2025, 0, 1, 12, 0, 0);
@@ -513,7 +513,7 @@ export default component App() {
 	},
 	{
 		title: 'Tracked with get/set',
-		code: `import { track } from '@ripple-ts/ripple';
+		code: `import { track } from 'ripple';
 
 export default component App() {
   let count = track(0,
@@ -551,8 +551,8 @@ export default component App() {
 	},
 	{
 		title: 'trackSplit',
-		code: `import { track, trackSplit } from '@ripple-ts/ripple';
-import type { PropsWithChildren, Tracked } from '@ripple-ts/ripple';
+		code: `import { track, trackSplit } from 'ripple';
+import type { PropsWithChildren, Tracked } from 'ripple';
 
 component Child(props: PropsWithChildren<{ count: Tracked<number> }>) {
   const [children, count, className, rest] = trackSplit(props, ['children', 'count', 'class']);
@@ -593,7 +593,7 @@ export default component App() {
 	},
 	{
 		title: 'Transporting Reactivity',
-		code: `import { effect, track } from '@ripple-ts/ripple';
+		code: `import { effect, track } from 'ripple';
 
 function createDouble([ count ]) {
   const double = track(() => @count * 2);
@@ -626,7 +626,7 @@ export default component App() {
 	},
 	{
 		title: 'Dynamic Components',
-		code: `import { track } from '@ripple-ts/ripple';
+		code: `import { track } from 'ripple';
 
 export default component App() {
   let swapMe = track(() => Child1);
@@ -653,7 +653,7 @@ component Child2(props) {
 	},
 	{
 		title: 'Component Transport Pattern',
-		code: `import { track } from '@ripple-ts/ripple';
+		code: `import { track } from 'ripple';
 
 export default component App() {
   const tracked_basic = track(() => basic);
@@ -690,7 +690,7 @@ component basic() {
 	},
 	{
 		title: 'Untracking Reactivity',
-		code: `import { effect, track, untrack } from '@ripple-ts/ripple';
+		code: `import { effect, track, untrack } from 'ripple';
 
 export default component App() {
   let count = track(10);
@@ -706,7 +706,7 @@ export default component App() {
 	},
 	{
 		title: 'Events',
-		code: `import { track, effect, on } from '@ripple-ts/ripple';
+		code: `import { track, effect, on } from 'ripple';
 
 export default component App() {
   let message = track('');
@@ -732,7 +732,7 @@ export default component App() {
 	},
 	{
 		title: 'DOM References',
-		code: `import { track } from '@ripple-ts/ripple';
+		code: `import { track } from 'ripple';
 
 export default component App() {
   let div = track();
@@ -753,7 +753,7 @@ export default component App() {
 	},
 	{
 		title: 'createRefKey',
-		code: `import { createRefKey, track } from '@ripple-ts/ripple';
+		code: `import { createRefKey, track } from 'ripple';
 
 export default component App() {
   let value = track('');
@@ -780,7 +780,7 @@ export default component App() {
 	},
 	{
 		title: 'Context',
-		code: `import { Context } from '@ripple-ts/ripple';
+		code: `import { Context } from 'ripple';
 
 const MyContext = new Context(null);
 

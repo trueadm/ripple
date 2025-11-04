@@ -1,4 +1,4 @@
-import { flushSync, track } from '@ripple-ts/ripple';
+import { flushSync, track } from 'ripple';
 
 describe('switch statements', () => {
 	it('renders simple switch with literal cases', () => {

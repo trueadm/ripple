@@ -24,7 +24,7 @@ This language server can be integrated into any editor that supports LSP:
 
 #### VS Code
 
-Use the [official extension](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin) instead.
+Use the [official extension](https://marketplace.visualstudio.com/items?itemName=ripple-ts.vscode-plugin
 It uses this language server internally.
 
 #### WebStorm/IntelliJ

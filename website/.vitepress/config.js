@@ -59,7 +59,7 @@ export default defineConfig({
 		search: { provider: 'local' },
 
 		socialLinks: [
-			{ icon: 'github', link: 'https://github.com/trueadm/ripple' },
+			{ icon: 'github', link: 'https://github.com/Ripple-TS/ripple' },
 			{ icon: 'discord', link: 'https://discord.gg/JBF2ySrh2W' },
 		],
 
@@ -70,7 +70,7 @@ export default defineConfig({
 		},
 
 		editLink: {
-			pattern: 'https://github.com/trueadm/ripple/edit/main/website/:path',
+			pattern: 'https://github.com/Ripple-TS/ripple/edit/main/website/:path',
 			text: 'Edit this page on GitHub',
 		},
 

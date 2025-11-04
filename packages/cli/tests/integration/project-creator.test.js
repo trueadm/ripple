@@ -75,7 +75,7 @@ describe('createProject integration tests', () => {
 						build: 'vite build',
 					},
 					dependencies: {
-						'@ripple-ts/ripple': 'latest',
+						ripple: 'latest',
 					},
 					devDependencies: {
 						'@ripple-ts/vite-plugin': 'latest',
@@ -207,7 +207,7 @@ describe('createProject integration tests', () => {
 		});
 
 		const packageJson = JSON.parse(readFileSync(join(projectPath, 'package.json'), 'utf-8'));
-		expect(packageJson.dependencies['@ripple-ts/ripple']).toBe('latest');
+		expect(packageJson.dependencies['ripple']).toBe('latest');
 		expect(packageJson.devDependencies['@ripple-ts/vite-plugin']).toBe('latest');
 	});
 

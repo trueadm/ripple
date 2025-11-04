@@ -1,4 +1,4 @@
-import { track, flushSync, get, set, effect, untrack } from '@ripple-ts/ripple';
+import { track, flushSync, get, set, effect, untrack } from 'ripple';
 
 describe('basic client > get/set functions', () => {
 	it('gets tracked value', () => {

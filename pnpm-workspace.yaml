@@ -56,7 +56,7 @@ catalogs:
     vscode-uri: ^3.1.0
     zimmerframe: ^1.1.2
   peer:
-    '@ripple-ts/ripple': '*'
+    ripple: '*'
     '@typescript-eslint/parser': *ts_eslint_parser
     eslint: '>=9.0.0'
     prettier: '>=2.0.0'

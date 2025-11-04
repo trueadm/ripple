@@ -21,8 +21,8 @@ import { createHash } from 'node:crypto';
 
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
-		if (!context.state.imports.has(`import * as _$_ from '@ripple-ts/ripple/internal/server'`)) {
-			context.state.imports.add(`import * as _$_ from '@ripple-ts/ripple/internal/server'`);
+		if (!context.state.imports.has(`import * as _$_ from 'ripple/internal/server'`)) {
+			context.state.imports.add(`import * as _$_ from 'ripple/internal/server'`);
 		}
 	}
 }

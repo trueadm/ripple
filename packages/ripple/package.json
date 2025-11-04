@@ -1,5 +1,5 @@
 {
-  "name": "@ripple-ts/ripple",
+  "name": "ripple",
   "description": "Ripple is an elegant TypeScript UI framework",
   "license": "MIT",
   "author": "Dominic Gannaway",
@@ -9,11 +9,11 @@
   "main": "src/runtime/index-client.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/ripple"
   },
   "bugs": {
-    "url": "https://github.com/trueadm/ripple/issues"
+    "url": "https://github.com/Ripple-TS/ripple/issues"
   },
   "homepage": "https://ripple-ts.com",
   "keywords": [
@@ -81,6 +81,6 @@
     "typescript": "catalog:default"
   },
   "peerDependencies": {
-    "@ripple-ts/ripple": "workspace:*"
+    "ripple": "workspace:*"
   }
 }

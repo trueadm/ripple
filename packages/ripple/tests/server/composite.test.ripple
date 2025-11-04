@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render } from '@ripple-ts/ripple/server';
-import { TrackedArray, TrackedMap } from '@ripple-ts/ripple';
+import { render } from 'ripple/server';
+import { TrackedArray, TrackedMap } from 'ripple';
 
 describe('generics', () => {
 	it('handles advanced generic ambiguity and edge cases', () => {
@@ -204,8 +204,7 @@ describe('generics', () => {
 				}
 			}
 			const gg = new Mapper<// key type
-			string, /* value type */
-			number>();
+			string /* value type */, number>();
 
 			// 33. Map of generic instance as key
 			const mm = new Map<TrackedArray<number>, TrackedArray<string>>();

@@ -59,7 +59,7 @@ You can also use reactive values with switch statements.
 <Code>
 
 ```ripple
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export component InteractiveStatus() {
   let status = track('loading');
@@ -146,7 +146,7 @@ You can use Ripple's reactive arrays to easily compose contents of an array.
 <Code>
 
 ```ripple
-import { TrackedArray } from '@ripple-ts/ripple';
+import { TrackedArray } from 'ripple';
 
 export component Numbers() {
   const array = new TrackedArray(1, 2, 3);

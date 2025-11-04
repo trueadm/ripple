@@ -1,4 +1,4 @@
-import { parse, compile, compile_to_volar_mappings } from '@ripple-ts/ripple/compiler';
+import { parse, compile, compile_to_volar_mappings } from 'ripple/compiler';
 
 function count_occurrences(string, subString) {
 	let count = 0;
@@ -227,7 +227,7 @@ import {
 	TrackedSet,
 	TrackedMap,
 	createRefKey,
-} from '@ripple-ts/ripple';
+} from 'ripple';
 
 component App() {
 	const items = #[1, 2, 3];
@@ -257,7 +257,7 @@ import {
 	TrackedSet as TS,
 	TrackedMap as TM,
 	createRefKey as crk,
-} from '@ripple-ts/ripple';
+} from 'ripple';
 
 component App() {
 	const items = #[1, 2, 3];
@@ -305,7 +305,7 @@ component App() {
 
 	it('only adds missing imports for shorthand syntax, reusing existing ones', () => {
 		const source = `
-import { TrackedArray, TrackedMap, createRefKey as crk } from '@ripple-ts/ripple';
+import { TrackedArray, TrackedMap, createRefKey as crk } from 'ripple';
 
 component App() {
 	const items = #[1, 2, 3];

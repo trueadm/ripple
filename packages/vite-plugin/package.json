@@ -17,14 +17,14 @@
   "homepage": "https://ripple-ts.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/vite-plugin"
   },
   "bugs": {
-    "url": "https://github.com/trueadm/ripple/issues"
+    "url": "https://github.com/Ripple-TS/ripple/issues"
   },
   "devDependencies": {
-    "@ripple-ts/ripple": "workspace:*",
+    "ripple": "workspace:*",
     "vite": "catalog:default"
   }
 }

@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { compile } from '@ripple-ts/ripple/compiler';
+import { compile } from 'ripple/compiler';
 
 const dir = './src/';
 const output_dir = './debug';

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { parse } from '@ripple-ts/ripple/compiler';
+import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
 
 const { builders, utils } = doc;
@@ -1935,7 +1935,7 @@ function printImportDeclaration(node, path, options, print) {
 			if (spec.type === 'ImportDefaultSpecifier') {
 				defaultImports.push(spec.local.name);
 			} else if (spec.type === 'ImportSpecifier') {
-				// Handle inline type imports: import { type Component } from '@ripple-ts/ripple'
+				// Handle inline type imports: import { type Component } from 'ripple'
 				const typePrefix = spec.importKind === 'type' ? 'type ' : '';
 				const importName =
 					spec.imported.name === spec.local.name

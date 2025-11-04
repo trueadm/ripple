@@ -54,7 +54,7 @@ ruleTester.run('no-module-scope-track', rule, {
 		// Invalid: track() at module scope even with import
 		{
 			code: `
-				import { track } from '@ripple-ts/ripple';
+				import { track } from 'ripple';
 				let globalCount = track(0);
 			`,
 			errors: [

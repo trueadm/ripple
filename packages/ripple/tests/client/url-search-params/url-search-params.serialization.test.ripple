@@ -1,4 +1,4 @@
-import { flushSync, track, TrackedURLSearchParams } from '@ripple-ts/ripple';
+import { flushSync, track, TrackedURLSearchParams } from 'ripple';
 
 describe('TrackedURLSearchParams > serialization', () => {
 	it('handles toString method with reactivity', () => {

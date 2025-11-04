@@ -64,7 +64,7 @@ if (versionParam === 'latest') {
 const version = ref(versionParam || latest)
 
 const defaultContent = `
-import { track } from '@ripple-ts/ripple';
+import { track } from 'ripple';
 
 export default component Counter() {
   let count = track(0);
@@ -106,7 +106,7 @@ export default component Counter() {
 const mountRoot =
 	'<scr' +
 	`ipt type="module">
-	import { mount } from '@ripple-ts/ripple';
+	import { mount } from 'ripple';
 	import * as script from "./script.ripple";
 
   const exports = Object.keys(script);

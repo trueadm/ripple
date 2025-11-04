@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import polka from 'polka';
 import { createServer as createViteServer } from 'vite';
-import { executeServerFunction } from '@ripple-ts/ripple/server';
+import { executeServerFunction } from 'ripple/server';
 
 const PORT = process.env.PORT || '5173';
 

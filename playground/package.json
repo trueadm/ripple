@@ -18,7 +18,7 @@
     "eslint": "catalog:default",
     "@ripple-ts/eslint-plugin": "workspace:*",
     "polka": "catalog:default",
-    "@ripple-ts/ripple": "workspace:*",
+    "ripple": "workspace:*",
     "typescript": "catalog:default",
     "vite": "catalog:default",
     "@ripple-ts/vite-plugin": "workspace:*",

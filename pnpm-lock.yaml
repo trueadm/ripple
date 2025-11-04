@@ -227,15 +227,15 @@ importers:
 
   packages/compat-react:
     dependencies:
-      '@ripple-ts/ripple':
-        specifier: workspace:*
-        version: link:../ripple
       react:
         specifier: ^19.2.0
         version: 19.2.0
       react-dom:
         specifier: ^19.2.0
         version: 19.2.0(react@19.2.0)
+      ripple:
+        specifier: workspace:*
+        version: link:../ripple
     devDependencies:
       '@types/react':
         specifier: ^19.2.2
@@ -265,9 +265,6 @@ importers:
         specifier: catalog:peer
         version: 9.37.0(jiti@2.5.1)
     devDependencies:
-      '@ripple-ts/ripple':
-        specifier: workspace:*
-        version: link:../ripple
       '@types/eslint':
         specifier: catalog:default
         version: 9.6.1
@@ -277,6 +274,9 @@ importers:
       '@types/node':
         specifier: catalog:default
         version: 24.3.0
+      ripple:
+        specifier: workspace:*
+        version: link:../ripple
       tsdown:
         specifier: catalog:default
         version: 0.15.4(typescript@5.9.2)
@@ -337,21 +337,18 @@ importers:
 
   packages/prettier-plugin:
     devDependencies:
-      '@ripple-ts/ripple':
-        specifier: workspace:*
-        version: link:../ripple
       prettier:
         specifier: catalog:default
         version: 3.6.2
+      ripple:
+        specifier: workspace:*
+        version: link:../ripple
 
   packages/ripple:
     dependencies:
       '@jridgewell/sourcemap-codec':
         specifier: catalog:default
         version: 1.5.5
-      '@ripple-ts/ripple':
-        specifier: workspace:*
-        version: 'link:'
       '@sveltejs/acorn-typescript':
         specifier: catalog:default
         version: 1.0.6(acorn@8.15.0)
@@ -379,6 +376,9 @@ importers:
       muggle-string:
         specifier: catalog:default
         version: 0.4.1
+      ripple:
+        specifier: workspace:*
+        version: 'link:'
       zimmerframe:
         specifier: catalog:default
         version: 1.1.2
@@ -399,7 +399,7 @@ importers:
         specifier: ^4.1.0
         version: 4.2.1
     devDependencies:
-      '@ripple-ts/ripple':
+      ripple:
         specifier: workspace:*
         version: link:../ripple
       rollup:
@@ -414,15 +414,15 @@ importers:
 
   packages/typescript-plugin:
     dependencies:
-      '@ripple-ts/ripple':
-        specifier: workspace:*
-        version: link:../ripple
       '@volar/language-core':
         specifier: catalog:default
         version: 2.4.23
       '@volar/typescript':
         specifier: catalog:default
         version: 2.4.23
+      ripple:
+        specifier: workspace:*
+        version: link:../ripple
       typescript:
         specifier: catalog:peer
         version: 5.9.2
@@ -433,7 +433,7 @@ importers:
 
   packages/vite-plugin:
     devDependencies:
-      '@ripple-ts/ripple':
+      ripple:
         specifier: workspace:*
         version: link:../ripple
       vite:
@@ -445,9 +445,6 @@ importers:
       '@ripple-ts/language-server':
         specifier: workspace:*
         version: link:../language-server
-      '@ripple-ts/ripple':
-        specifier: workspace:*
-        version: link:../ripple
       '@ripple-ts/typescript-plugin':
         specifier: workspace:*
         version: link:../typescript-plugin
@@ -463,6 +460,9 @@ importers:
       '@volar/vscode':
         specifier: catalog:default
         version: 2.4.23
+      ripple:
+        specifier: workspace:*
+        version: link:../ripple
       typescript:
         specifier: catalog:vscode
         version: 5.9.2
@@ -498,9 +498,6 @@ importers:
       '@ripple-ts/eslint-plugin':
         specifier: workspace:*
         version: link:../packages/eslint-plugin
-      '@ripple-ts/ripple':
-        specifier: workspace:*
-        version: link:../packages/ripple
       '@ripple-ts/typescript-plugin':
         specifier: workspace:*
         version: link:../packages/typescript-plugin
@@ -519,6 +516,9 @@ importers:
       polka:
         specifier: catalog:default
         version: 1.0.0-next.28
+      ripple:
+        specifier: workspace:*
+        version: link:../packages/ripple
       typescript:
         specifier: catalog:default
         version: 5.9.2
