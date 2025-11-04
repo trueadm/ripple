@@ -28,5 +28,9 @@
   },
   "dependencies": {
     "@ripple-ts/cli": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
   }
 }

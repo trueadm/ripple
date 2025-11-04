@@ -89,13 +89,13 @@ jobs:
 
       - name: Publish
         run: |
-          pnpm dlx pkg-pr-new@0.0.59 publish \
+          pnpm dlx pkg-pr-new publish \
+            './packages/create-ripple' \
             './packages/prettier-plugin' \
             './packages/ripple' \
             './packages/rollup-plugin' \
             './packages/vite-plugin' \
             './packages/cli' \
-            './packages/create-ripple' \
             --compact \
             --comment=update \
             --packageManager=pnpm \
