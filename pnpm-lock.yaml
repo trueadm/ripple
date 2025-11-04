@@ -252,6 +252,10 @@ importers:
       '@ripple-ts/cli':
         specifier: workspace:*
         version: link:../cli
+    devDependencies:
+      tsdown:
+        specifier: catalog:default
+        version: 0.15.4(typescript@5.9.2)
 
   packages/eslint-parser:
     dependencies:

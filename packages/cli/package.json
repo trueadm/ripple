@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/cli",
-  "version": "0.2.152",
+  "version": "0.2.155",
   "description": "Interactive CLI tool for creating Ripple applications",
   "type": "module",
   "license": "MIT",
@@ -52,9 +52,5 @@
     "prompts": "catalog:default",
     "tsdown": "catalog:default",
     "vitest": "catalog:default"
-  },
-  "publishConfig": {
-    "access": "public",
-    "tag": "next"
   }
 }

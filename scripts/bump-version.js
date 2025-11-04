@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // @ts-check
 
-import fs from "node:fs";
-import path from "node:path";
-import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+/** @typedef {'origin' | 'upstream'} GitRemoteName */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,20 +23,22 @@ const __dirname = path.dirname(__filename);
  */
 
 /** @type {Set<BumpType>} */
-const ALLOWED_BUMPS = new Set(["major", "minor", "patch"]);
+const ALLOWED_BUMPS = new Set(['major', 'minor', 'patch']);
 /** @type {Set<ScopeType>} */
-const ALLOWED_SCOPES = new Set(["all", "editors"]);
+const ALLOWED_SCOPES = new Set(['all', 'editors']);
 const EDITOR_PACKAGE_DIRS = new Set([
-	"nvim-plugin",
-	"sublime-text-plugin",
-	"vscode-plugin",
-	"zed-plugin"
+	'nvim-plugin',
+	'sublime-text-plugin',
+	'vscode-plugin',
+	'zed-plugin',
 ]);
+const VSCodePackageDirName = 'vscode-plugin';
+const VSCodePackageName = '@ripple-ts/vscode-plugin';
 
-const bumpArg = process.argv[2] ?? "";
+const bumpArg = process.argv[2] ?? '';
 const maybeScope = process.argv[3] ?? null;
 /** @type {ScopeType} */
-let scope = "all";
+let scope = 'all';
 let overrideArg = null;
 
 if (maybeScope && ALLOWED_SCOPES.has(maybeScope)) {
@@ -45,13 +49,13 @@ if (maybeScope && ALLOWED_SCOPES.has(maybeScope)) {
 }
 
 if (!ALLOWED_BUMPS.has(bumpArg)) {
-	console.error("Usage: node scripts/bump-version.js <major|minor|patch> [scope] [override]");
+	console.error('Usage: node scripts/bump-version.js <major|minor|patch> [scope] [override]');
 	process.exit(1);
 }
 
 const bumpType = /** @type {BumpType} */ (bumpArg);
 
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(__dirname, '..');
 
 /**
  * @param {string} command
@@ -60,23 +64,23 @@ const repoRoot = path.resolve(__dirname, "..");
  * @returns {string}
  */
 function execSafe(command, args, options = {}) {
-	const stdio = options.stdio ?? "pipe";
+	const stdio = options.stdio ?? 'pipe';
 
 	try {
-		if (stdio === "pipe") {
+		if (stdio === 'pipe') {
 			const output = execFileSync(command, args, {
 				cwd: options.cwd ?? repoRoot,
 				stdio,
-				encoding: "utf8"
+				encoding: 'utf8',
 			});
-			return (output ?? "").toString().trim();
+			return (output ?? '').toString().trim();
 		}
 
 		execFileSync(command, args, {
 			cwd: options.cwd ?? repoRoot,
-			stdio
+			stdio,
 		});
-		return "";
+		return '';
 	} catch (error) {
 		const execError = /** @type {any} */ (error);
 		if (execError.stdout) process.stdout.write(execError.stdout);
@@ -86,42 +90,53 @@ function execSafe(command, args, options = {}) {
 }
 
 /**
- * @return {"upstream" | "origin"}
+ * @returns {GitRemoteName}
  */
 function determineRemote() {
-	const remotes = execSafe("git", ["remote"])?.split(/\r?\n/).filter(Boolean) ?? [];
-	if (remotes.includes("upstream")) {
-		return "upstream";
+	const remotes = execSafe('git', ['remote'])?.split(/\r?\n/).filter(Boolean) ?? [];
+	if (remotes.includes('upstream')) {
+		return 'upstream';
 	}
-	if (remotes.includes("origin")) {
-		return "origin";
+	if (remotes.includes('origin')) {
+		return 'origin';
 	}
 	throw new Error("No git remote named 'upstream' or 'origin' found.");
 }
 
 /**
- * @param {string} remote
+ * @param {GitRemoteName} remote
  */
 function ensureGitState(remote) {
-	const branch = execSafe("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
-	if (branch !== "main") {
+	const branch = execSafe('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
+	if (branch !== 'main') {
 		throw new Error("Current branch is not 'main'. Please switch to 'main' and try again.");
 	}
 
-	execSafe("git", ["fetch", remote, "main"], { stdio: "inherit" });
+	execSafe('git', ['fetch', remote, 'main'], { stdio: 'inherit' });
 
-	const status = execSafe("git", ["status", "--porcelain"]);
+	const status = execSafe('git', ['status', '--porcelain']);
 	if (status) {
-		throw new Error("Working tree is dirty. Please commit or stash changes before running the bump script.");
+		throw new Error(
+			'Working tree is dirty. Please commit or stash changes before running the bump script.',
+		);
 	}
 
-	const divergence = execSafe("git", ["rev-list", "--left-right", "--count", `main...${remote}/main`]);
+	const divergence = execSafe('git', [
+		'rev-list',
+		'--left-right',
+		'--count',
+		`main...${remote}/main`,
+	]);
 	const [behind, ahead] = divergence.split(/\s+/).map((value) => Number.parseInt(value, 10));
 	if (behind > 0) {
-		throw new Error(`Local main is behind ${remote}/main by ${behind} commit(s). Please pull the latest changes.`);
+		throw new Error(
+			`Local main is behind ${remote}/main by ${behind} commit(s). Please pull the latest changes.`,
+		);
 	}
 	if (ahead > 0) {
-		throw new Error(`Local main is ahead of ${remote}/main by ${ahead} commit(s). Please push or reset before proceeding.`);
+		throw new Error(
+			`Local main is ahead of ${remote}/main by ${ahead} commit(s). Please push or reset before proceeding.`,
+		);
 	}
 }
 
@@ -130,7 +145,7 @@ function ensureGitState(remote) {
  * @returns {SemverTuple}
  */
 function parseSemver(version) {
-	const parts = version.split(".").map((value) => Number.parseInt(value, 10));
+	const parts = version.split('.').map((value) => Number.parseInt(value, 10));
 	if (parts.length !== 3 || parts.some(Number.isNaN)) {
 		throw new Error(`Invalid semantic version: ${version}`);
 	}
@@ -153,10 +168,10 @@ function isGreaterVersion(a, b) {
  */
 function bumpVersion(version, type) {
 	const [major, minor, patch] = parseSemver(version);
-	if (type === "major") {
+	if (type === 'major') {
 		return `${major + 1}.0.0`;
 	}
-	if (type === "minor") {
+	if (type === 'minor') {
 		return `${major}.${minor + 1}.0`;
 	}
 	return `${major}.${minor}.${patch + 1}`;
@@ -169,16 +184,16 @@ function bumpVersion(version, type) {
  */
 function parseOverride(type, override, currentTuple) {
 	if (!/^\d+$/.test(override)) {
-		throw new Error("Override must be provided as a non-negative integer.");
+		throw new Error('Override must be provided as a non-negative integer.');
 	}
 
 	const numeric = Number.parseInt(override, 10);
 
-	if (type === "major") {
+	if (type === 'major') {
 		return `${numeric}.0.0`;
 	}
 
-	if (type === "minor") {
+	if (type === 'minor') {
 		return `${currentTuple[0]}.${numeric}.0`;
 	}
 
@@ -189,7 +204,7 @@ function parseOverride(type, override, currentTuple) {
  * @param {ScopeType} targetScope
  */
 function loadPackages(targetScope) {
-	const packagesDir = path.join(repoRoot, "packages");
+	const packagesDir = path.join(repoRoot, 'packages');
 	const entries = fs.readdirSync(packagesDir, { withFileTypes: true });
 	/** @type {PackageInfo[]} */
 	const packages = [];
@@ -199,22 +214,22 @@ function loadPackages(targetScope) {
 		if (targetScope === "all" && EDITOR_PACKAGE_DIRS.has(entry.name)) continue;
 		if (targetScope === "editors" && !EDITOR_PACKAGE_DIRS.has(entry.name)) continue;
 
-		const packageJsonPath = path.join(packagesDir, entry.name, "package.json");
+		const packageJsonPath = path.join(packagesDir, entry.name, 'package.json');
 		if (!fs.existsSync(packageJsonPath)) continue;
 
-		const raw = fs.readFileSync(packageJsonPath, "utf8");
+		const raw = fs.readFileSync(packageJsonPath, 'utf8');
 		const json = JSON.parse(raw);
 
 		packages.push({
 			name: entry.name,
 			dir: path.join(packagesDir, entry.name),
 			packageJsonPath,
-			json
+			json,
 		});
 	}
 
 	if (packages.length === 0) {
-		throw new Error("No packages found to update.");
+		throw new Error('No packages found to update.');
 	}
 
 	return packages;
@@ -283,11 +298,11 @@ function updateAdditionalVersionFiles(pkg, version) {
  */
 function publishPackage(pkg, newVersion) {
 	console.log(`Publishing ${pkg.json.name}@${newVersion}`);
-	const args = ["publish"];
-	if (pkg.json.publishConfig?.access === "public" || pkg.json.name.startsWith("@")) {
-		args.push("--access", "public");
+	const args = ['publish'];
+	if (pkg.json.publishConfig?.access === 'public' || pkg.json.name.startsWith('@')) {
+		args.push('--access', 'public');
 	}
-	execSafe("pnpm", args, { cwd: pkg.dir, stdio: "inherit" });
+	execSafe('pnpm', args, { cwd: pkg.dir, stdio: 'inherit' });
 }
 
 /**
@@ -296,26 +311,28 @@ function publishPackage(pkg, newVersion) {
  */
 function ensureVersionNotPublished(pkg, version) {
 	try {
-		execFileSync("npm", ["view", `${pkg.json.name}@${version}`, "version"], {
+		execFileSync('npm', ['view', `${pkg.json.name}@${version}`, 'version'], {
 			cwd: pkg.dir,
-			stdio: "pipe",
-			encoding: "utf8"
+			stdio: 'pipe',
+			encoding: 'utf8',
 		});
 	} catch (error) {
 		const err = /** @type {any} */ (error);
-		if (!err || typeof err !== "object") {
+		if (!err || typeof err !== 'object') {
 			throw error;
 		}
 
-		const stderr = err.stderr ? err.stderr.toString() : "";
-		const stdout = err.stdout ? err.stdout.toString() : "";
+		const stderr = err.stderr ? err.stderr.toString() : '';
+		const stdout = err.stdout ? err.stdout.toString() : '';
 		const combined = `${stdout}\n${stderr}`;
 
 		if (/E404/i.test(combined) || /404 Not Found/i.test(combined)) {
 			return;
 		}
 
-		throw new Error(`Failed to check npm registry for ${pkg.json.name}@${version}: ${err.message ?? err}`);
+		throw new Error(
+			`Failed to check npm registry for ${pkg.json.name}@${version}: ${err.message ?? err}`,
+		);
 	}
 
 	throw new Error(`${pkg.json.name}@${version} is already published on npm.`);
@@ -342,9 +359,9 @@ function cleanupPackOutputDir(directory) {
  */
 function runPackagePack(pkg, destination) {
 	console.log(`Running pnpm pack for ${pkg.json.name} into ${destination}`);
-	execSafe("pnpm", ["pack", "--pack-destination", destination], {
+	execSafe('pnpm', ['pack', '--pack-destination', destination], {
 		cwd: pkg.dir,
-		stdio: "inherit"
+		stdio: 'inherit',
 	});
 }
 
@@ -354,8 +371,8 @@ function runPackagePack(pkg, destination) {
  * @param {ScopeType} targetScope
  */
 function runPrePublishChecks(packages, version, targetScope) {
-	console.log("\nPerforming pre-publish checks...");
-	const packOutputDir = path.join(repoRoot, ".tmp", "prepublish-pack");
+	console.log('\nPerforming pre-publish checks...');
+	const packOutputDir = path.join(repoRoot, '.tmp', 'prepublish-pack');
 	preparePackOutputDir(packOutputDir);
 
 	try {
@@ -368,39 +385,42 @@ function runPrePublishChecks(packages, version, targetScope) {
 			ensureVersionNotPublished(pkg, version);
 			runPackagePack(pkg, packOutputDir);
 		}
-		console.log("\nAll pre-publish checks passed. Proceeding to publish.");
+		console.log('\nAll pre-publish checks passed. Proceeding to publish.');
 	} finally {
 		cleanupPackOutputDir(packOutputDir);
 	}
 }
 
 function revertLastCommit() {
-	execSafe("git", ["reset", "--hard", "HEAD~1"], { stdio: "inherit" });
+	execSafe('git', ['reset', '--hard', 'HEAD~1'], { stdio: 'inherit' });
 }
 
-// Attempt to land the bump commit by rebasing onto the latest remote main branch.
+/**
+ * Attempt to land the bump commit by rebasing onto the latest remote main branch.
+ * @param {GitRemoteName} remote
+ * @param {string} version
+ */
 function attemptRebaseAndPush(remote, version) {
-	console.log("\nPush failed; attempting automatic rebase onto the latest main...");
-	execSafe("git", ["fetch", remote, "main"], { stdio: "inherit" });
+	console.log('\nPush failed; attempting automatic rebase onto the latest main...');
+	execSafe('git', ['fetch', remote, 'main'], { stdio: 'inherit' });
 
 	try {
-		execSafe("git", ["rebase", `${remote}/main`], { stdio: "inherit" });
+		execSafe('git', ['rebase', `${remote}/main`], { stdio: 'inherit' });
 	} catch (error) {
 		try {
-			execSafe("git", ["rebase", "--abort"], { stdio: "inherit" });
+			execSafe('git', ['rebase', '--abort'], { stdio: 'inherit' });
 		} catch (abortError) {
-			const abortMessage =
-				abortError instanceof Error ? abortError.message : String(abortError);
+			const abortMessage = abortError instanceof Error ? abortError.message : String(abortError);
 			console.error(`Failed to abort rebase automatically: ${abortMessage}`);
 		}
 		const message = error instanceof Error ? error.message : String(error);
 		throw new Error(
-			`Automatic rebase encountered conflicts. Resolve manually and push the bump commit. Details: ${message}`
+			`Automatic rebase encountered conflicts. Resolve manually and push the bump commit. Details: ${message}`,
 		);
 	}
 
 	try {
-		execSafe("git", ["push", remote, "main"], { stdio: "inherit" });
+		execSafe('git', ['push', remote, 'main'], { stdio: 'inherit' });
 		console.log(`Completed bump to ${version} after automatic rebase.`);
 	} catch (pushError) {
 		const message = pushError instanceof Error ? pushError.message : String(pushError);
@@ -412,15 +432,15 @@ function attemptRebaseAndPush(remote, version) {
  * @param {readonly PackageInfo[]} packages
  */
 function runEditorsScopePreCheck(packages) {
-	const vscodePackage = packages.find((pkg) => pkg.json.name === "vscode-plugin");
+	const vscodePackage = packages.find((pkg) => pkg.json.name === VSCodePackageName);
 	if (!vscodePackage) {
-		throw new Error("Unable to locate vscode-plugin package for editors scope checks.");
+		throw new Error(`Unable to locate '${VSCodePackageName}' package for editors scope checks.`);
 	}
 
-	console.log("\nRunning VS Code extension pre-check: pnpm run build-and-package");
-	execSafe("pnpm", ["run", "build-and-package"], {
+	console.log('\nRunning VS Code extension pre-check: pnpm run build-and-package');
+	execSafe('pnpm', ['run', 'build-and-package'], {
 		cwd: vscodePackage.dir,
-		stdio: "inherit"
+		stdio: 'inherit',
 	});
 }
 
@@ -437,10 +457,10 @@ function runEditorsScopePreCheck(packages) {
 
 		const basePackageEntry =
 			scope === "editors"
-				? parsedPackages.find((entry) => entry.pkg.json.name === "vscode-plugin")
+				? parsedPackages.find((entry) => entry.pkg.json.name === VSCodePackageName)
 				: parsedPackages.find((entry) => entry.pkg.json.name === "ripple");
 		if (!basePackageEntry) {
-			const target = scope === "editors" ? "'vscode-plugin'" : "'ripple'";
+			const target = scope === "editors" ? `'${VSCodePackageName}'` : "'ripple'";
 			throw new Error(`Unable to locate the ${target} package to determine the base version.`);
 		}
 
@@ -451,8 +471,10 @@ function runEditorsScopePreCheck(packages) {
 			: bumpVersion(currentVersion, bumpType);
 		const newTuple = parseSemver(newVersion);
 		if (!isGreaterVersion(newTuple, currentTuple)) {
-			const label = overrideArg ? "Override version" : "Computed version";
-			throw new Error(`${label} ${newVersion} must be greater than current version ${currentVersion}.`);
+			const label = overrideArg ? 'Override version' : 'Computed version';
+			throw new Error(
+				`${label} ${newVersion} must be greater than current version ${currentVersion}.`,
+			);
 		}
 
 		if (packages.every((pkg) => pkg.json.version === newVersion)) {
@@ -468,7 +490,7 @@ function runEditorsScopePreCheck(packages) {
 			const additional = updateAdditionalVersionFiles(pkg, newVersion);
 			changedPaths.push(...additional);
 		}
-		execSafe("git", ["add", ...changedPaths]);
+		execSafe('git', ['add', ...changedPaths]);
 
 		const scopeLabel = scope;
 		const commitMessage = `chore: bump ${scopeLabel} to v${newVersion}`;
@@ -478,7 +500,7 @@ function runEditorsScopePreCheck(packages) {
 		let pushCompleted = false;
 
 		try {
-			execSafe("git", ["commit", "-m", commitMessage], { stdio: "inherit" });
+			execSafe('git', ['commit', '-m', commitMessage], { stdio: 'inherit' });
 			commitCreated = true;
 
 			runPrePublishChecks(packages, newVersion, scope);
@@ -495,7 +517,7 @@ function runEditorsScopePreCheck(packages) {
 			}
 			publishCompleted = true;
 
-			execSafe("git", ["push", remote, "main"], { stdio: "inherit" });
+			execSafe('git', ['push', remote, 'main'], { stdio: 'inherit' });
 			pushCompleted = true;
 			console.log(`Completed bump to ${newVersion}.`);
 		} catch (caughtError) {
@@ -518,13 +540,13 @@ function runEditorsScopePreCheck(packages) {
 			if (commitCreated && !publishStarted) {
 				try {
 					revertLastCommit();
-					console.error("Pre-publish checks failed. The bump commit has been reverted.");
+					console.error('Pre-publish checks failed. The bump commit has been reverted.');
 				} catch (revertError) {
 					const revertMessage =
 						revertError instanceof Error ? revertError.message : String(revertError);
 					console.error(`Failed to reset bump commit automatically: ${revertMessage}`);
 					console.error(
-						"Please run `git reset --hard HEAD~1` manually to discard the failed bump commit."
+						'Please run `git reset --hard HEAD~1` manually to discard the failed bump commit.',
 					);
 				}
 			}
