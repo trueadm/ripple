@@ -90,11 +90,11 @@ jobs:
       - name: Publish
         run: |
           pnpm dlx pkg-pr-new publish \
-            './packages/@ripple-ts/prettier-plugin' \
+            './packages/prettier-plugin' \
             './packages/ripple' \
-            './packages/@ripple-ts/rollup-plugin' \
-            './packages/@ripple-ts/vite-plugin' \
-            './packages/@ripple-ts/cli' \
+            './packages/rollup-plugin' \
+            './packages/vite-plugin' \
+            './packages/cli' \
             './packages/create-ripple' \
             --compact \
             --comment=update \
