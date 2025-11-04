@@ -1,0 +1,30 @@
+{
+  "name": "@ripple-ts/vite-plugin",
+  "description": "Vite plugin for Ripple",
+  "license": "MIT",
+  "author": "Dominic Gannaway",
+  "version": "0.2.152",
+  "type": "module",
+  "module": "src/index.js",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  },
+  "homepage": "https://ripple-ts.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
+    "directory": "packages/vite-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/Ripple-TS/ripple/issues"
+  },
+  "devDependencies": {
+    "ripple": "workspace:*",
+    "vite": "catalog:default"
+  }
+}

@@ -11552,7 +11552,7 @@
                             <dict>
                                 <key>name</key>
                                 <string>
-                                    punctuation.section.embedded.begin.ripple-js
+                                    punctuation.section.embedded.begin.ripple-ts
                                 </string>
                             </dict>
                         </dict>
@@ -11562,7 +11562,7 @@
                             <dict>
                                 <key>name</key>
                                 <string>
-                                    punctuation.section.embedded.end.ripple-js
+                                    punctuation.section.embedded.end.ripple-ts
                                 </string>
                             </dict>
                         </dict>

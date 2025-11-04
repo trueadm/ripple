@@ -5,9 +5,9 @@
   </picture>
 </a>
 
-[![CI](https://github.com/trueadm/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/trueadm/ripple/actions/workflows/ci.yml)
+[![CI](https://github.com/Ripple-TS/ripple/actions/workflows/ci.yml/badge.svg)](https://github.com/Ripple-TS/ripple/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/JBF2ySrh2W)
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/github/trueadm/ripple/tree/main/templates/basic)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz_small.svg)](https://stackblitz.com/github/Ripple-TS/ripple/tree/main/templates/basic)
 
 # Ripple TS
 
@@ -41,7 +41,7 @@ npm install && npm run dev
 ### Using Template
 
 ```bash
-npx degit trueadm/ripple/templates/basic my-app
+npx degit Ripple-TS/ripple/templates/basic my-app
 cd my-app
 npm install && npm run dev
 ```
@@ -69,7 +69,7 @@ mount(App, {
 
 ## 🔧 VSCode Extension
 
-Install the [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin) for:
+Install the [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripple-ts.vscode-plugin) for:
 
 - Syntax highlighting
 - TypeScript integration
@@ -392,7 +392,7 @@ export component App() {
 
 - 📚 **[Full Documentation](https://www.ripple-ts.com/docs)** - Complete guide and API reference
 - 🎮 **[Interactive Playground](https://www.ripple-ts.com/playground)** - Try Ripple in your browser
-- 🐛 **[GitHub Issues](https://github.com/trueadm/ripple/issues)** - Report bugs or request features
+- 🐛 **[GitHub Issues](https://github.com/Ripple-TS/ripple/issues)** - Report bugs or request features
 - 💬 **[Discord Community](https://discord.gg/JBF2ySrh2W)** - Get help and discuss Ripple
 - 📦 **[npm Package](https://www.npmjs.com/package/ripple)** - Install from npm
 

@@ -4,8 +4,8 @@ describe('TrackedArray > derived', () => {
 	it('handles array methods that return values (map, filter, etc.)', () => {
 		component ArrayTest() {
 			let items = new TrackedArray(1, 2, 3, 4, 5);
-			let doubled = track(() => items.map(x => x * 2));
-			let filtered = track(() => items.filter(x => (x % 2) === 0));
+			let doubled = track(() => items.map((x) => x * 2));
+			let filtered = track(() => items.filter((x) => x % 2 === 0));
 			let reduced = track(() => items.reduce((acc, val) => acc + val, 0));
 			let includes = track(() => items.includes(3));
 
@@ -91,13 +91,17 @@ describe('TrackedArray > derived', () => {
 	it('handles find and findIndex methods with reactivity', () => {
 		component ArrayTest() {
 			let items = new TrackedArray(5, 10, 15, 20, 25);
-			let found = track(() => items.find(x => x > 12));
-			let foundIndex = track(() => items.findIndex(x => x > 12));
+			let found = track(() => items.find((x) => x > 12));
+			let foundIndex = track(() => items.findIndex((x) => x > 12));
 
-			<button onClick={() => {
-				items[1] = 13;
-				items[0] = 6;
-			}}>{'update values'}</button>
+			<button
+				onClick={() => {
+					items[1] = 13;
+					items[0] = 6;
+				}}
+			>
+				{'update values'}
+			</button>
 			<pre>{@found}</pre>
 			<pre>{@foundIndex}</pre>
 		}
@@ -121,13 +125,17 @@ describe('TrackedArray > derived', () => {
 	it('handles findLast and findLastIndex methods with reactivity', () => {
 		component ArrayTest() {
 			let items = new TrackedArray(5, 15, 10, 20, 15);
-			let foundLast = track(() => items.findLast(x => x === 15));
-			let foundLastIndex = track(() => items.findLastIndex(x => x === 15));
+			let foundLast = track(() => items.findLast((x) => x === 15));
+			let foundLastIndex = track(() => items.findLastIndex((x) => x === 15));
 
-			<button onClick={() => {
-				items[1] = 25;
-				items[4] = 15;
-			}}>{'update values'}</button>
+			<button
+				onClick={() => {
+					items[1] = 25;
+					items[4] = 15;
+				}}
+			>
+				{'update values'}
+			</button>
 			<pre>{@foundLast}</pre>
 			<pre>{@foundLastIndex}</pre>
 		}
@@ -151,13 +159,17 @@ describe('TrackedArray > derived', () => {
 	it('handles every method with reactivity', () => {
 		component ArrayTest() {
 			let items = new TrackedArray(2, 4, 6, 8);
-			let allEven = track(() => items.every(x => x % 2 === 0));
+			let allEven = track(() => items.every((x) => x % 2 === 0));
 
 			<button onClick={() => items.push(3)}>{'add odd'}</button>
-			<button onClick={() => {
-				items.pop();
-				items.push(10);
-			}}>{'ensure all even'}</button>
+			<button
+				onClick={() => {
+					items.pop();
+					items.push(10);
+				}}
+			>
+				{'ensure all even'}
+			</button>
 			<pre>{@allEven.toString()}</pre>
 		}
 
@@ -209,7 +221,7 @@ describe('TrackedArray > derived', () => {
 	it('handles flatMap method with reactivity', () => {
 		component ArrayTest() {
 			let items = new TrackedArray(1, 2, 3);
-			let flatMapped = track(() => items.flatMap(x => [x, x * 2]));
+			let flatMapped = track(() => items.flatMap((x) => [x, x * 2]));
 
 			<button onClick={() => items.push(4)}>{'add item'}</button>
 			<pre>{JSON.stringify(items)}</pre>
@@ -254,7 +266,9 @@ describe('TrackedArray > derived', () => {
 		addButton.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('["apple","banana","cherry","date"]');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'["apple","banana","cherry","date"]',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('apple, banana, cherry, date');
 	});
 
@@ -263,9 +277,13 @@ describe('TrackedArray > derived', () => {
 			let items = new TrackedArray(1, 2, 3, 2, 1);
 			let lastIndex = track(() => items.lastIndexOf(2));
 
-			<button onClick={() => {
-				items.push(2);
-			}}>{'add duplicate'}</button>
+			<button
+				onClick={() => {
+					items.push(2);
+				}}
+			>
+				{'add duplicate'}
+			</button>
 			<pre>{JSON.stringify(items)}</pre>
 			<pre>{@lastIndex}</pre>
 		}
@@ -315,13 +333,17 @@ describe('TrackedArray > derived', () => {
 	it('handles some method with reactivity', () => {
 		component ArrayTest() {
 			let items = new TrackedArray(1, 3, 5, 7);
-			let hasEven = track(() => items.some(x => x % 2 === 0));
+			let hasEven = track(() => items.some((x) => x % 2 === 0));
 
 			<button onClick={() => items.push(2)}>{'add even'}</button>
-			<button onClick={() => {
-				items.pop();
-				items.push(9);
-			}}>{'ensure all odd'}</button>
+			<button
+				onClick={() => {
+					items.pop();
+					items.push(9);
+				}}
+			>
+				{'ensure all odd'}
+			</button>
 			<pre>{@hasEven.toString()}</pre>
 		}
 
@@ -349,7 +371,13 @@ describe('TrackedArray > derived', () => {
 			let items = new TrackedArray(1000, 2000, 3000);
 			let localized = track(() => items.toLocaleString('en-US'));
 
-			<button onClick={() => {items[2] = 4000}}>{'add item'}</button>
+			<button
+				onClick={() => {
+					items[2] = 4000;
+				}}
+			>
+				{'add item'}
+			</button>
 			<pre>{JSON.stringify(items)}</pre>
 			<pre>{@localized}</pre>
 		}
@@ -397,7 +425,7 @@ describe('TrackedArray > derived', () => {
 	});
 
 	it('handles with method with reactivity', (context) => {
-		if (!('with' in Array.prototype)) {
+		if (!'with' in Array.prototype) {
 			context.skip();
 		}
 

@@ -110,7 +110,9 @@ describe('TrackedURL > reactivity', () => {
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://newdomain.com:9090/path');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://newdomain.com:9090/path',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('newdomain.com:9090');
 		expect(container.querySelectorAll('pre')[2].textContent).toBe('newdomain.com');
 		expect(container.querySelectorAll('pre')[3].textContent).toBe('9090');
@@ -155,14 +157,18 @@ describe('TrackedURL > reactivity', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?foo=bar');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?foo=bar',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('?foo=bar');
 
 		// Change search
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?baz=qux');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?baz=qux',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('?baz=qux');
 	});
 
@@ -180,14 +186,18 @@ describe('TrackedURL > reactivity', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path#section1');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path#section1',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('#section1');
 
 		// Change hash
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path#section2');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path#section2',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('#section2');
 	});
 
@@ -205,14 +215,18 @@ describe('TrackedURL > reactivity', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://user:pass@example.com/path');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://user:pass@example.com/path',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('user');
 
 		// Change username
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://newuser:pass@example.com/path');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://newuser:pass@example.com/path',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('newuser');
 	});
 
@@ -230,14 +244,18 @@ describe('TrackedURL > reactivity', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://user:pass@example.com/path');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://user:pass@example.com/path',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('pass');
 
 		// Change password
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://user:newpass@example.com/path');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://user:newpass@example.com/path',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('newpass');
 	});
 
@@ -245,7 +263,9 @@ describe('TrackedURL > reactivity', () => {
 		component URLTest() {
 			const url = new TrackedURL('https://example.com/path?foo=bar#section');
 
-			<button onClick={() => url.href = 'https://newdomain.com:9090/newpath?baz=qux#newsection'}>{'Change Href'}</button>
+			<button onClick={() => url.href = 'https://newdomain.com:9090/newpath?baz=qux#newsection'}>
+				{'Change Href'}
+			</button>
 			<pre>{url.href}</pre>
 			<pre>{url.protocol}</pre>
 			<pre>{url.hostname}</pre>
@@ -260,7 +280,9 @@ describe('TrackedURL > reactivity', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?foo=bar#section');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?foo=bar#section',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('https:');
 		expect(container.querySelectorAll('pre')[2].textContent).toBe('example.com');
 		expect(container.querySelectorAll('pre')[3].textContent).toBe('');
@@ -272,7 +294,9 @@ describe('TrackedURL > reactivity', () => {
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://newdomain.com:9090/newpath?baz=qux#newsection');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://newdomain.com:9090/newpath?baz=qux#newsection',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('https:');
 		expect(container.querySelectorAll('pre')[2].textContent).toBe('newdomain.com');
 		expect(container.querySelectorAll('pre')[3].textContent).toBe('9090');
@@ -331,7 +355,9 @@ describe('TrackedURL > reactivity', () => {
 		const addButton = container.querySelectorAll('button')[1];
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?foo=bar');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?foo=bar',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('?foo=bar');
 		expect(container.querySelectorAll('pre')[2].textContent).toBe('bar');
 
@@ -339,7 +365,9 @@ describe('TrackedURL > reactivity', () => {
 		updateButton.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?foo=updated');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?foo=updated',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('?foo=updated');
 		expect(container.querySelectorAll('pre')[2].textContent).toBe('updated');
 
@@ -347,7 +375,9 @@ describe('TrackedURL > reactivity', () => {
 		addButton.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?foo=updated&baz=qux');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?foo=updated&baz=qux',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('?foo=updated&baz=qux');
 	});
 
@@ -390,14 +420,18 @@ describe('TrackedURL > reactivity', () => {
 		component URLTest() {
 			const url = new TrackedURL('https://example.com/path');
 
-			<button onClick={() => {
-				url.protocol = 'http:';
-				url.hostname = 'newdomain.com';
-				url.port = '8080';
-				url.pathname = '/api';
-				url.search = '?key=value';
-				url.hash = '#section';
-			}}>{'Change All'}</button>
+			<button
+				onClick={() => {
+					url.protocol = 'http:';
+					url.hostname = 'newdomain.com';
+					url.port = '8080';
+					url.pathname = '/api';
+					url.search = '?key=value';
+					url.hash = '#section';
+				}}
+			>
+				{'Change All'}
+			</button>
 			<pre>{url.href}</pre>
 		}
 
@@ -412,7 +446,9 @@ describe('TrackedURL > reactivity', () => {
 		button.click();
 		flushSync();
 
-		expect(container.querySelector('pre').textContent).toBe('http://newdomain.com:8080/api?key=value#section');
+		expect(container.querySelector('pre').textContent).toBe(
+			'http://newdomain.com:8080/api?key=value#section',
+		);
 	});
 
 	it('handles href change updates all properties and searchParams', () => {
@@ -420,7 +456,9 @@ describe('TrackedURL > reactivity', () => {
 			const url = new TrackedURL('https://old.com/old?foo=bar#old');
 			const params = url.searchParams;
 
-			<button onClick={() => url.href = 'https://new.com:9090/new?baz=qux#new'}>{'Change Href'}</button>
+			<button onClick={() => url.href = 'https://new.com:9090/new?baz=qux#new'}>
+				{'Change Href'}
+			</button>
 			<pre>{params.get('foo')}</pre>
 			<pre>{params.get('baz')}</pre>
 			<pre>{params.size}</pre>

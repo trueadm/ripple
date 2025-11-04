@@ -1,5 +1,5 @@
 import { configDefaults, defineConfig } from 'vitest/config';
-import { ripple } from 'vite-plugin-ripple';
+import { ripple } from '@ripple-ts/vite-plugin';
 
 export default defineConfig({
 	plugins: [ripple()],
@@ -29,7 +29,7 @@ export default defineConfig({
 			{
 				name: 'prettier-plugin',
 				test: {
-					include: ['packages/prettier-plugin-ripple/src/*.test.js'],
+					include: ['packages/prettier-plugin/src/*.test.js'],
 					environment: 'jsdom',
 				},
 				plugins: [ripple()],
@@ -37,7 +37,7 @@ export default defineConfig({
 			{
 				name: 'eslint-plugin',
 				test: {
-					include: ['packages/eslint-plugin-ripple/tests/**/*.test.ts'],
+					include: ['packages/eslint-plugin/tests/**/*.test.ts'],
 					environment: 'jsdom',
 					globals: true,
 				},
@@ -46,22 +46,22 @@ export default defineConfig({
 			{
 				name: 'eslint-parser',
 				test: {
-					include: ['packages/eslint-parser-ripple/tests/**/*.test.ts'],
+					include: ['packages/eslint-parser/tests/**/*.test.ts'],
 					environment: 'jsdom',
 					globals: true,
 				},
 				plugins: [ripple()],
 			},
 			{
-				name: 'create-ripple',
+				name: 'cli',
 				test: {
-					include: ['packages/create-ripple/tests/**/*.test.js'],
+					include: ['packages/cli/tests/**/*.test.js'],
 					environment: 'jsdom',
 				},
 				plugins: [ripple()],
 			},
 			{
-				name: 'ripple-utils',
+				name: 'utils',
 				test: {
 					include: ['packages/ripple/tests/utils/**/*.test.js'],
 					environment: 'node',
@@ -69,11 +69,11 @@ export default defineConfig({
 				},
 			},
 			{
-				name: 'ripple-compat-react',
+				name: 'compat-react',
 				test: {
-					include: ['packages/ripple-compat-react/tests/**/*.test.ripple'],
+					include: ['packages/compat-react/tests/**/*.test.ripple'],
 					environment: 'jsdom',
-					setupFiles: ['packages/ripple-compat-react/tests/setup.js'],
+					setupFiles: ['packages/compat-react/tests/setup.js'],
 					globals: true,
 				},
 				plugins: [ripple()],

@@ -1,0 +1,37 @@
+{
+  "name": "@ripple-ts/prettier-plugin",
+  "version": "0.2.152",
+  "description": "Ripple plugin for Prettier",
+  "type": "module",
+  "module": "src/index.js",
+  "main": "src/index.js",
+  "keywords": [
+    "prettier",
+    "plugin",
+    "ripple",
+    "formatter"
+  ],
+  "homepage": "https://ripple-ts.com",
+  "author": "Dominic Gannaway",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
+    "directory": "packages/prettier-plugin"
+  },
+  "peerDependencies": {
+    "ripple": "catalog:peer",
+    "prettier": "catalog:peer"
+  },
+  "devDependencies": {
+    "ripple": "workspace:*",
+    "prettier": "catalog:default"
+  },
+  "dependencies": {},
+  "files": [
+    "src/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

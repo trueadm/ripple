@@ -15,13 +15,13 @@ Ripple is a TypeScript UI framework that combines the best parts of React, Solid
 
 ```bash
 # Create new project from template
-npx degit trueadm/ripple/templates/basic my-app
+npx degit Ripple-TS/ripple/templates/basic my-app
 cd my-app
 npm i && npm run dev
 
 # Or install in existing project
 npm install ripple
-npm install --save-dev vite-plugin-ripple  # For Vite integration
+npm install --save-dev '@ripple-ts/vite-plugin'  # For Vite integration
 ```
 
 ## Core Syntax & Concepts
@@ -745,7 +745,7 @@ When Child components overwrite a context's value via `.set()`, this new value w
 Example with tracked / reactive contents:
 
 ```ripple
-import { track, Context } from "ripple"
+import { track, Context } from 'ripple'
 
 // create context with an empty object
 const context  = new Context({});
@@ -1072,14 +1072,14 @@ src/
 
 ### VSCode Extension
 - **Name**: "Ripple for VS Code"
-- **ID**: `ripplejs.ripple-vscode-plugin`
+- **ID**: `ripple-ts.vscode-plugin`
 - **Features**: Syntax highlighting, diagnostics, TypeScript integration, IntelliSense
 
 ### Vite Plugin
 ```typescript
 // vite.config.js
 import { defineConfig } from 'vite';
-import ripple from 'vite-plugin-ripple';
+import ripple from '@ripple-ts/vite-plugin';
 
 export default defineConfig({
   plugins: [ripple()]
@@ -1090,7 +1090,7 @@ export default defineConfig({
 ```javascript
 // .prettierrc
 {
-  "plugins": ["prettier-plugin-ripple"]
+  "plugins": ["@ripple-ts/prettier-plugin"]
 }
 ```
 
@@ -1131,8 +1131,8 @@ export default defineConfig({
 ## Resources
 
 - **Website**: https://ripple-ts.com
-- **GitHub**: https://github.com/trueadm/ripple
-- **VSCode Extension**: https://marketplace.visualstudio.com/items?itemName=ripplejs.ripple-vscode-plugin
+- **GitHub**: https://github.com/Ripple-TS/ripple
+- **VSCode Extension**: https://marketplace.visualstudio.com/items?itemName=ripple-ts.vscode-plugin
 
 ---
 
