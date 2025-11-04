@@ -14,7 +14,7 @@ import {
 	tracked,
 	get_tracked,
 	handle_error,
-} from 'ripple/internal/client';
+} from '@ripple-ts/ripple/internal/client';
 import { Context } from 'ripple';
 
 /** @type {Tsx} */
