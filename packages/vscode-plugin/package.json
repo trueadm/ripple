@@ -23,7 +23,7 @@
   "scripts": {
     "copy-ripple": "mkdir -p dist/node_modules && rsync -aL --del --exclude=node_modules/ripple --exclude=node_modules/typescript --exclude=.ignored* node_modules/ripple/ dist/node_modules/ripple/",
     "copy-ts": "mkdir -p dist/node_modules && rsync -aL --del node_modules/typescript/ dist/node_modules/typescript/",
-    "copy-ts-plugin": "mkdir -p dist/node_modules && rsync -aL --del --exclude=node_modules --exclude=src node_modules/@ripple-ts/typescript-plugin/ dist/node_modules/@ripple-ts/typescript-plugin/",
+    "copy-ts-plugin": "mkdir -p dist/node_modules/@ripple-ts && rsync -aL --del --exclude=node_modules --exclude=src node_modules/@ripple-ts/typescript-plugin/ dist/node_modules/@ripple-ts/typescript-plugin/",
     "build": "tsdown",
     "build-ts-plugin": "pnpm --filter typescript-plugin build",
     "dist-ts-plugin": "pnpm --filter typescript-plugin dist",
