@@ -89,7 +89,7 @@ jobs:
 
       - name: Publish
         run: |
-          pnpm dlx pkg-pr-new publish \
+          pnpm dlx pkg-pr-new@0.0.59 publish \
             './packages/prettier-plugin' \
             './packages/ripple' \
             './packages/rollup-plugin' \
