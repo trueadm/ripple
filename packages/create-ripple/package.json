@@ -23,11 +23,18 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "tsdown"
+  },
   "bin": {
-    "create-ripple": "./src/index.js"
+    "create-ripple": "./dist/index.js"
   },
   "dependencies": {
     "@ripple-ts/cli": "workspace:*"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:default"
   },
   "publishConfig": {
     "access": "public",
