@@ -1,6 +1,28 @@
 {
   "name": "create-ripple",
   "version": "0.2.153",
+  "type": "module",
+  "license": "MIT",
+  "author": "Ripple Team",
+  "keywords": [
+    "ripple",
+    "cli",
+    "scaffold",
+    "template",
+    "create-app"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
+    "directory": "packages/create-ripple"
+  },
+  "bugs": {
+    "url": "https://github.com/Ripple-TS/ripple/issues"
+  },
+  "homepage": "https://ripple-ts.com",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "bin": {
     "create-ripple": "./src/index.js"
   },
