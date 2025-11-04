@@ -8,11 +8,17 @@ describe('basic client > events', () => {
 			let clickCount = track(0);
 
 			<button
-				onFocus={() => { @focusCount++ }}
-				onClick={() => { @clickCount++ }}
-			>{'Test Button'}</button>
-			<div class='focus-count'>{@focusCount}</div>
-			<div class='click-count'>{@clickCount}</div>
+				onFocus={() => {
+					@focusCount++;
+				}}
+				onClick={() => {
+					@clickCount++;
+				}}
+			>
+				{'Test Button'}
+			</button>
+			<div class="focus-count">{@focusCount}</div>
+			<div class="click-count">{@clickCount}</div>
 		}
 
 		render(Basic);
@@ -35,10 +41,20 @@ describe('basic client > events', () => {
 			let captureClicks = track(0);
 			let bubbleClicks = track(0);
 
-			<div onClickCapture={() => { @captureClicks++ }}>
-				<button onClick={() => { @bubbleClicks++ }}>{'Click me'}</button>
-				<div class='capture-count'>{@captureClicks}</div>
-				<div class='bubble-count'>{@bubbleClicks}</div>
+			<div
+				onClickCapture={() => {
+					@captureClicks++;
+				}}
+			>
+				<button
+					onClick={() => {
+						@bubbleClicks++;
+					}}
+				>
+					{'Click me'}
+				</button>
+				<div class="capture-count">{@captureClicks}</div>
+				<div class="bubble-count">{@bubbleClicks}</div>
 			</div>
 		}
 
@@ -61,20 +77,20 @@ describe('basic client > events', () => {
 
 			const minus = {
 				onClick() {
-					@count--
-				}
-			}
+					@count--;
+				},
+			};
 
 			const plus = {
 				onClick() {
-					@count++
-				}
-			}
+					@count++;
+				},
+			};
 
 			<div>
-				<button {...minus} class='minus'>{'-'}</button>
-				<span class='count'>{@count}</span>
-				<button {...plus} class='plus'>{'+'}</button>
+				<button {...minus} class="minus">{'-'}</button>
+				<span class="count">{@count}</span>
+				<button {...plus} class="plus">{'+'}</button>
 			</div>
 		}
 
@@ -110,18 +126,20 @@ describe('basic client > events', () => {
 			let focusCount = track(0);
 
 			const mixedHandler = {
-				onClick() {  // Delegated event
-					@clickCount++
+				onClick() {
+					// Delegated event
+					@clickCount++;
 				},
-				onFocus() { // Non-delegated event
-					@focusCount++
-				}
-			}
+				onFocus() {
+					// Non-delegated event
+					@focusCount++;
+				},
+			};
 
 			<div>
-				<button {...mixedHandler} class='mixed-button'>{'Test'}</button>
-				<span class='click-count'>{@clickCount}</span>
-				<span class='focus-count'>{@focusCount}</span>
+				<button {...mixedHandler} class="mixed-button">{'Test'}</button>
+				<span class="click-count">{@clickCount}</span>
+				<span class="focus-count">{@focusCount}</span>
 			</div>
 		}
 
@@ -169,13 +187,13 @@ describe('basic client > events', () => {
 				@isEven = true;
 			};
 
-			<div class='counter'>{@counter}</div>
-			<div class='parity'>{@isEven ? 'Even' : 'Odd'}</div>
-			<div class='history-count'>{@history.length}</div>
+			<div class="counter">{@counter}</div>
+			<div class="parity">{@isEven ? 'Even' : 'Odd'}</div>
+			<div class="history-count">{@history.length}</div>
 
-			<button class='inc-btn' onClick={handleIncrement}>{'+'}</button>
-			<button class='dec-btn' onClick={handleDecrement}>{'-'}</button>
-			<button class='reset-btn' onClick={handleReset}>{'Reset'}</button>
+			<button class="inc-btn" onClick={handleIncrement}>{'+'}</button>
+			<button class="dec-btn" onClick={handleDecrement}>{'-'}</button>
+			<button class="reset-btn" onClick={handleReset}>{'Reset'}</button>
 		}
 
 		render(Basic);

@@ -38,7 +38,7 @@
 	"redirects": [
 		{
 			"source": "/github",
-			"destination": "https://github.com/trueadm/ripple",
+			"destination": "https://github.com/Ripple-TS/ripple",
 			"permanent": false
 		},
 		{

@@ -3,25 +3,24 @@ import { track } from 'ripple';
 describe('TrackedExpression tests', () => {
 	it('should handle the syntax correctly', () => {
 		component App() {
-      let count = track(0);
+			let count = track(0);
 
-      function get_count() {
-        return count;
-      }
+			function get_count() {
+				return count;
+			}
 
+			<div>{@(count)}</div>
+			<div>{@(get_count())}</div>
+			<div>{++@(count)}</div>
+			<div>{++@(get_count())}</div>
+			<div>{@(count)++}</div>
+			<div>{@(get_count())++}</div>
+			<div>{@(count)}</div>
+			<div>{!@(count)}</div>
+			<div>{!!@(count)}</div>
+		}
 
-      <div>{@(count)}</div>
-      <div>{@(get_count())}</div>
-      <div>{++@(count)}</div>
-      <div>{++@(get_count())}</div>
-      <div>{@(count)++}</div>
-      <div>{@(get_count())++}</div>
-      <div>{@(count)}</div>
-      <div>{!@(count)}</div>
-      <div>{!!@(count)}</div>
-    }
-
-    render(App);
-    expect(container).toMatchSnapshot();
+		render(App);
+		expect(container).toMatchSnapshot();
 	});
 });

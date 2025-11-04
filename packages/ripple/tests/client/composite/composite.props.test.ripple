@@ -76,7 +76,7 @@ describe('composite > props', () => {
 	it('mutating a tracked value prop should work as intended', () => {
 		const logs: number[] = [];
 
-		component Counter({count}) {
+		component Counter({ count }) {
 			effect(() => {
 				logs.push(@count);
 			});
@@ -88,7 +88,7 @@ describe('composite > props', () => {
 			const count = track(0);
 
 			<div>
-				<Counter count={count} />
+				<Counter {count} />
 			</div>
 		}
 
@@ -133,7 +133,8 @@ describe('composite > props', () => {
 		}
 
 		render(App);
-		const button1 = container.querySelectorAll('button')[0];;
+		const button1 = container.querySelectorAll('button')[0];
+
 		const button2 = container.querySelectorAll('button')[1];
 
 		expect(button1.className).toContain('on');

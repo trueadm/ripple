@@ -1,15 +1,15 @@
 # create-ripple
 
-Interactive CLI tool for creating new Ripple applications.
+Interactive CLI tool for creating new Ripple applications. Alias for the `@ripple-ts/cli` package.
 
 ## Usage
 
 ### Interactive Mode
 
 ```bash
-npm create ripple
-# or
 npx create-ripple
+# or
+npm create ripple
 # or
 yarn create ripple
 # or
@@ -18,11 +18,24 @@ pnpm create ripple
 
 ### With Arguments
 
-```bash
+- `project-name`: Optional. Name of the project to create
+- `-p, --package-manager <pm>`: Package manager to use - npm, yarn, pnpm (default: npm)
+- `--template <template>`: Choose a predefined template (default and currently only option: basic)
+- `--yes` or `-y`: Skip all prompts and use defaults
+- `--no-git`: Skip initializing a Git repository
+
+Examples:
+
+````bash
 npm create ripple my-app
 # or
 npx create-ripple my-app
-```
+
+```bash
+npm create ripple my-app --yes --no-git
+# or
+npx create ripple my-app --yes --no-git
+````
 
 ## Features
 
@@ -35,7 +48,9 @@ npx create-ripple my-app
 ## Templates
 
 ### Basic
+
 A minimal Ripple application with:
+
 - Vite for development and building
 - TypeScript support
 - Prettier for code formatting
@@ -43,7 +58,7 @@ A minimal Ripple application with:
 
 ## Requirements
 
-- Node.js 18.0.0 or higher
+- Node.js 20.0.0 or higher
 
 ## License
 

@@ -47,9 +47,10 @@ export {
 	derived,
 	maybe_tracked,
 	tick,
-	proxy_tracked,
+	proxy_props,
 	with_block,
 	with_ns,
+	handle_error,
 } from './runtime.js';
 
 export { composite } from './composite.js';

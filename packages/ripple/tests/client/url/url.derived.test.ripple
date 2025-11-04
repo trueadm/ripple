@@ -41,15 +41,19 @@ describe('TrackedURL > derived', () => {
 		component ParentTest() {
 			const url = new TrackedURL('https://example.com/path?count=0');
 
-			<ChildA url={url} />
-			<ChildB url={url} />
+			<ChildA {url} />
+			<ChildB {url} />
 		}
 
 		component ChildA({ url }: { url: TrackedURL }) {
-			<button onClick={() => {
-				const current = parseInt(url.searchParams.get('count') || '0', 10);
-				url.searchParams.set('count', String(current + 1));
-			}}>{'Increment Count'}</button>
+			<button
+				onClick={() => {
+					const current = parseInt(url.searchParams.get('count') || '0', 10);
+					url.searchParams.set('count', String(current + 1));
+				}}
+			>
+				{'Increment Count'}
+			</button>
 		}
 
 		component ChildB({ url }: { url: TrackedURL }) {
@@ -64,20 +68,26 @@ describe('TrackedURL > derived', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?count=0');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?count=0',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('0');
 
 		// Increment from child
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?count=1');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?count=1',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('1');
 
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?count=2');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?count=2',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('2');
 	});
 });

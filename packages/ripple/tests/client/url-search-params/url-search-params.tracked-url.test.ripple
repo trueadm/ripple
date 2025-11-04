@@ -23,7 +23,9 @@ describe('TrackedURLSearchParams > TrackedURL integration', () => {
 		button.click();
 		flushSync();
 
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/?foo=bar&baz=qux');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/?foo=bar&baz=qux',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('foo=bar&baz=qux');
 	});
 

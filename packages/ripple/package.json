@@ -9,13 +9,13 @@
   "main": "src/runtime/index-client.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/ripple"
   },
   "bugs": {
-    "url": "https://github.com/trueadm/ripple/issues"
+    "url": "https://github.com/Ripple-TS/ripple/issues"
   },
-  "homepage": "https://ripplejs.com",
+  "homepage": "https://ripple-ts.com",
   "keywords": [
     "ripple",
     "UI",

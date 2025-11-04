@@ -112,7 +112,9 @@ describe('TrackedURL > partials/removal', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path#section');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path#section',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('#section');
 
 		// Remove hash
@@ -138,7 +140,9 @@ describe('TrackedURL > partials/removal', () => {
 		const button = container.querySelector('button');
 
 		// Initial state
-		expect(container.querySelectorAll('pre')[0].textContent).toBe('https://example.com/path?foo=bar');
+		expect(container.querySelectorAll('pre')[0].textContent).toBe(
+			'https://example.com/path?foo=bar',
+		);
 		expect(container.querySelectorAll('pre')[1].textContent).toBe('?foo=bar');
 		expect(container.querySelectorAll('pre')[2].textContent).toBe('1');
 
@@ -172,7 +176,9 @@ describe('TrackedURL > partials/removal', () => {
 		flushSync();
 
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('#section');
-		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com/path#section');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe(
+			'https://example.com/path#section',
+		);
 	});
 
 	it('handles search without leading ? character', () => {
@@ -193,6 +199,8 @@ describe('TrackedURL > partials/removal', () => {
 		flushSync();
 
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('foo=bar');
-		expect(container.querySelectorAll('pre')[1].textContent).toBe('https://example.com/path?foo=bar');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe(
+			'https://example.com/path?foo=bar',
+		);
 	});
 });

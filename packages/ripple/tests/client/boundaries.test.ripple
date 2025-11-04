@@ -1,89 +1,101 @@
 import { flushSync, effect, track } from 'ripple';
 
 describe('passing reactivity between boundaries tests', () => {
-  it('can pass reactivity between functions with simple arrays and destructuring', () => {
-    let log: string[] = [];
+	it('can pass reactivity between functions with simple arrays and destructuring', () => {
+		let log: string[] = [];
 
-    function createDouble([ count ]) {
-      const double = track(() => @count * 2);
+		function createDouble([count]) {
+			const double = track(() => @count * 2);
 
-      effect(() => {
-        log.push('Count:' + @count);
-      });
+			effect(() => {
+				log.push('Count:' + @count);
+			});
 
-      return [ double ];
-    }
+			return [double];
+		}
 
-    component App() {
-      let count = track(0);
+		component App() {
+			let count = track(0);
 
-      const [ double ] = createDouble([ count ]);
+			const [double] = createDouble([count]);
 
-      <div>{'Double: ' + @double}</div>
-      <button onClick={() => { @count++; }}>{'Increment'}</button>
-    }
+			<div>{'Double: ' + @double}</div>
+			<button
+				onClick={() => {
+					@count++;
+				}}
+			>
+				{'Increment'}
+			</button>
+		}
 
-    render(App);
-    flushSync();
+		render(App);
+		flushSync();
 
-    expect(container.querySelector('div').textContent).toBe('Double: 0');
-    expect(log).toEqual(['Count:0']);
+		expect(container.querySelector('div').textContent).toBe('Double: 0');
+		expect(log).toEqual(['Count:0']);
 
-    const button = container.querySelector('button');
+		const button = container.querySelector('button');
 
-    button.click();
-    flushSync();
+		button.click();
+		flushSync();
 
-    expect(container.querySelector('div').textContent).toBe('Double: 2');
-    expect(log).toEqual(['Count:0', 'Count:1']);
+		expect(container.querySelector('div').textContent).toBe('Double: 2');
+		expect(log).toEqual(['Count:0', 'Count:1']);
 
-    button.click();
-    flushSync();
+		button.click();
+		flushSync();
 
-    expect(container.querySelector('div').textContent).toBe('Double: 4');
-    expect(log).toEqual(['Count:0', 'Count:1', 'Count:2']);
-  });
+		expect(container.querySelector('div').textContent).toBe('Double: 4');
+		expect(log).toEqual(['Count:0', 'Count:1', 'Count:2']);
+	});
 
-  it('can pass reactivity between functions with simple objects and destructuring', () => {
-    let log: string[] = [];
+	it('can pass reactivity between functions with simple objects and destructuring', () => {
+		let log: string[] = [];
 
-    function createDouble({ count }: { count: Tracked<number> }) {
-      const double = track(() => @count * 2);
+		function createDouble({ count }: { count: Tracked<number> }) {
+			const double = track(() => @count * 2);
 
-      effect(() => {
-        log.push('Count:' + @count);
-      });
+			effect(() => {
+				log.push('Count:' + @count);
+			});
 
-      return { double };
-    }
+			return { double };
+		}
 
-    component App() {
-      let count = track(0);
+		component App() {
+			let count = track(0);
 
-      const { double } = createDouble({ count });
+			const { double } = createDouble({ count });
 
-      <div>{'Double: ' + @double}</div>
-      <button onClick={() => { @count++; }}>{'Increment'}</button>
-    }
+			<div>{'Double: ' + @double}</div>
+			<button
+				onClick={() => {
+					@count++;
+				}}
+			>
+				{'Increment'}
+			</button>
+		}
 
-    render(App);
-    flushSync();
+		render(App);
+		flushSync();
 
-    expect(container.querySelector('div').textContent).toBe('Double: 0');
-    expect(log).toEqual(['Count:0']);
+		expect(container.querySelector('div').textContent).toBe('Double: 0');
+		expect(log).toEqual(['Count:0']);
 
-    const button = container.querySelector('button');
+		const button = container.querySelector('button');
 
-    button.click();
-    flushSync();
+		button.click();
+		flushSync();
 
-    expect(container.querySelector('div').textContent).toBe('Double: 2');
-    expect(log).toEqual(['Count:0', 'Count:1']);
+		expect(container.querySelector('div').textContent).toBe('Double: 2');
+		expect(log).toEqual(['Count:0', 'Count:1']);
 
-    button.click();
-    flushSync();
+		button.click();
+		flushSync();
 
-    expect(container.querySelector('div').textContent).toBe('Double: 4');
-    expect(log).toEqual(['Count:0', 'Count:1', 'Count:2']);
-  });
+		expect(container.querySelector('div').textContent).toBe('Double: 4');
+		expect(log).toEqual(['Count:0', 'Count:1', 'Count:2']);
+	});
 });

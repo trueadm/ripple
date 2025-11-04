@@ -3,10 +3,10 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>RippleJS</title>
+		<title>RippleTS</title>
 		<meta
 			name="description"
-			content="RippleJS - the elegant TypeScript UI framework"
+			content="RippleTS - the elegant TypeScript UI framework"
 		/>
 
 		<!-- AI/LLM Documentation Reference -->
@@ -14,8 +14,8 @@
 		<link rel="ai-documentation" href="/llms.txt" type="text/plain" />
 
 		<meta property="og:type" content="website" />
-		<meta property="og:url" content="https://ripplejs.com/" />
-		<meta property="og:title" content="RippleJS" />
+		<meta property="og:url" content="https://ripple-ts.com/" />
+		<meta property="og:title" content="RippleTS" />
 		<meta
 			property="og:description"
 			content="A new way to build reactive web applications."
@@ -23,8 +23,8 @@
 		<meta property="og:image" content="/ripple-social.png" />
 
 		<meta property="twitter:card" content="summary_large_image" />
-		<meta property="twitter:url" content="https://ripplejs.com/" />
-		<meta property="twitter:title" content="RippleJS" />
+		<meta property="twitter:url" content="https://ripple-ts.com/" />
+		<meta property="twitter:title" content="RippleTS" />
 		<meta
 			property="twitter:description"
 			content="A new way to build reactive web applications."
@@ -74,11 +74,31 @@
 				right: 0;
 				bottom: 0;
 				background:
-					radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.15), transparent),
-					radial-gradient(1px 1px at 40px 70px, rgba(120, 219, 226, 0.4), transparent),
-					radial-gradient(1px 1px at 90px 40px, rgba(255, 119, 198, 0.3), transparent),
-					radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.1), transparent),
-					radial-gradient(2px 2px at 160px 30px, rgba(120, 219, 226, 0.2), transparent);
+					radial-gradient(
+						1px 1px at 20px 30px,
+						rgba(255, 255, 255, 0.15),
+						transparent
+					),
+					radial-gradient(
+						1px 1px at 40px 70px,
+						rgba(120, 219, 226, 0.4),
+						transparent
+					),
+					radial-gradient(
+						1px 1px at 90px 40px,
+						rgba(255, 119, 198, 0.3),
+						transparent
+					),
+					radial-gradient(
+						1px 1px at 130px 80px,
+						rgba(255, 255, 255, 0.1),
+						transparent
+					),
+					radial-gradient(
+						2px 2px at 160px 30px,
+						rgba(120, 219, 226, 0.2),
+						transparent
+					);
 				background-repeat: repeat;
 				background-size:
 					200px 100px,
@@ -97,9 +117,21 @@
 				right: 0;
 				bottom: 0;
 				background:
-					radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-					radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
-					radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.1) 0%, transparent 50%);
+					radial-gradient(
+						circle at 20% 80%,
+						rgba(120, 119, 198, 0.3) 0%,
+						transparent 50%
+					),
+					radial-gradient(
+						circle at 80% 20%,
+						rgba(255, 119, 198, 0.15) 0%,
+						transparent 50%
+					),
+					radial-gradient(
+						circle at 40% 40%,
+						rgba(120, 219, 226, 0.1) 0%,
+						transparent 50%
+					);
 			}
 
 			@keyframes starTwinkle {
@@ -145,25 +177,22 @@
 				width: 100%;
 				max-width: 400px;
 				padding-block: 20px;
-				filter:
-					drop-shadow(0 0 30px rgba(120, 219, 226, 0.6))
+				filter: drop-shadow(0 0 30px rgba(120, 219, 226, 0.6))
 					drop-shadow(0 0 60px rgba(255, 119, 198, 0.6))
 					drop-shadow(0 0 90px rgba(120, 119, 198, 0.4));
-    		animation: glowFadeOut 3s ease-in-out forwards;
+				animation: glowFadeOut 3s ease-in-out forwards;
 			}
 
 			@keyframes glowFadeOut {
 				0% {
-					filter:
-						drop-shadow(0 0 30px rgba(120, 219, 226, 0.6))
-            drop-shadow(0 0 60px rgba(255, 119, 198, 0.6))
-            drop-shadow(0 0 90px rgba(120, 119, 198, 0.4));
+					filter: drop-shadow(0 0 30px rgba(120, 219, 226, 0.6))
+						drop-shadow(0 0 60px rgba(255, 119, 198, 0.6))
+						drop-shadow(0 0 90px rgba(120, 119, 198, 0.4));
 				}
 				100% {
-					filter:
-						drop-shadow(0 0 30px rgba(120, 219, 226, 0.0))
-						drop-shadow(0 0 60px rgba(255, 119, 198, 0.0))
-						drop-shadow(0 0 90px rgba(120, 119, 198, 0.0));
+					filter: drop-shadow(0 0 30px rgba(120, 219, 226, 0))
+						drop-shadow(0 0 60px rgba(255, 119, 198, 0))
+						drop-shadow(0 0 90px rgba(120, 119, 198, 0));
 				}
 			}
 
@@ -328,7 +357,8 @@
 				color: #78dbe2;
 				padding: 0.2rem 0.4rem;
 				border-radius: 4px;
-				font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+				font-family:
+					'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
 				font-size: 0.9em;
 			}
 
@@ -526,7 +556,8 @@
 				padding: 0.5rem 1rem;
 				border-radius: 6px 6px 0 0;
 				color: rgba(255, 255, 255, 0.9);
-				font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+				font-family:
+					'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
 				font-size: 0.75rem;
 				border: 1px solid rgba(255, 255, 255, 0.1);
 				border-bottom: none;
@@ -537,7 +568,8 @@
 			.editor-content {
 				background: rgba(25, 25, 30, 0.95);
 				padding: 0;
-				font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+				font-family:
+					'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
 				font-size: 0.8rem;
 				line-height: 1.5;
 				color: #e1e4e8;
@@ -870,7 +902,7 @@
 
 			<div class="social-links">
 				<a
-					href="https://github.com/trueadm/ripple"
+					href="https://github.com/Ripple-TS/ripple"
 					class="github-link"
 					target="_blank"
 					rel="noopener noreferrer"
@@ -898,7 +930,24 @@
 				</a>
 
 				<a href="/docs/introduction" class="github-link">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-text-icon lucide-book-text"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M8 11h8"/><path d="M8 7h6"/></svg>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						class="lucide lucide-book-text-icon lucide-book-text"
+					>
+						<path
+							d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"
+						/>
+						<path d="M8 11h8" />
+						<path d="M8 7h6" />
+					</svg>
 					Docs
 				</a>
 
@@ -943,42 +992,46 @@
 
 			<div class="content-section">
 				<h2 class="description">
-					Ripple is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte into one package.
+					Ripple is a TypeScript UI framework that combines the best parts of
+					React, Solid, and Svelte into one package.
 				</h2>
 
 				<ul class="features">
 					<li>
-						<strong>Reactive State Management</strong> - Built-in reactivity with
-						<code>track()</code> function and <code>@</code> access syntax
+						<strong>Reactive State Management</strong> - Built-in reactivity
+						with <code>track()</code> function and <code>@</code> access syntax
 					</li>
 					<li>
-						<strong>Component-Based Architecture</strong> - Clean, reusable components with props
-						and children
+						<strong>Component-Based Architecture</strong> - Clean, reusable
+						components with props and children
 					</li>
 					<li>
-						<strong>Template Syntax</strong> - Familiar templating with Ripple-specific enhancements
+						<strong>Template Syntax</strong> - Familiar templating with
+						Ripple-specific enhancements
 					</li>
 					<li>
-						<strong>Performance</strong> - Fine-grain rendering, with industry-leading performance, bundle-size and memory usage
+						<strong>Performance</strong> - Fine-grain rendering, with
+						industry-leading performance, bundle-size and memory usage
 					</li>
 					<li>
-						<strong>TypeScript Support</strong> - Full TypeScript integration with type checking
+						<strong>TypeScript Support</strong> - Full TypeScript integration
+						with type checking
 					</li>
 					<li>
-						<strong>VSCode Integration</strong> - Rich editor support with diagnostics and
-						IntelliSense
+						<strong>VSCode Integration</strong> - Rich editor support with
+						diagnostics and IntelliSense
 					</li>
 					<li>
-						<strong>Control Flow</strong> - Native <code>if</code>, <code>for</code>, and
-						<code>try</code> in templates
+						<strong>Control Flow</strong> - Native <code>if</code>,
+						<code>for</code>, and <code>try</code> in templates
 					</li>
 					<li>
 						<strong>Scoped Styling</strong> - Component-local CSS with
 						<code>&lt;style&gt;</code> elements
 					</li>
 					<li>
-						<strong>Prettier Support</strong> - Full Prettier formatting support for
-						<code>.ripple</code> modules
+						<strong>Prettier Support</strong> - Full Prettier formatting support
+						for <code>.ripple</code> modules
 					</li>
 					<li>
 						<strong>ESLint Support</strong> - Full ESLint integration for
@@ -989,7 +1042,7 @@
 
 			<div class="bottom-links">
 				<a
-					href="https://github.com/trueadm/ripple"
+					href="https://github.com/Ripple-TS/ripple"
 					class="github-link"
 					target="_blank"
 					rel="noopener noreferrer"
@@ -1059,29 +1112,30 @@
 <span class="line-number">37</span>     <span class="bracket">&lt;</span><span class="component">Button</span> <span class="attribute">onClick</span>=<span class="template-brace">{</span><span class="brace">()</span> <span class="operator">=&gt;</span> <span class="reactive-var">@count</span><span class="operator">++</span><span class="template-brace">}</span> <span class="attribute">label</span>=<span class="template-brace">{</span><span class="string">'Increment'</span><span class="template-brace">}</span> <span class="bracket">/&gt;</span>
 <span class="line-number">38</span>     <span class="bracket">&lt;</span><span class="component">Button</span> <span class="attribute">onClick</span>=<span class="template-brace">{</span><span class="brace">()</span> <span class="operator">=&gt;</span> <span class="reactive-var">@count</span> <span class="operator">=</span> <span class="value">0</span><span class="template-brace">}</span> <span class="attribute">label</span>=<span class="template-brace">{</span><span class="string">'Reset'</span><span class="template-brace">}</span> <span class="bracket">/&gt;</span>
 <span class="line-number">39</span>   <span class="bracket">&lt;/</span><span class="tag">div</span><span class="bracket">&gt;</span>
-<span class="line-number">40</span> <span class="brace">}</span>`;
+<span class="line-number">40</span> <span class="brace">}</span>`
 
 			function typeWriter() {
-				const element = document.getElementById('typewriter-code');
-				if (!element) return;
+				const element = document.getElementById('typewriter-code')
+				if (!element) return
 
-				let charIndex = 0;
+				let charIndex = 0
 
 				function addChar() {
 					if (charIndex < codeContent.length) {
 						element.innerHTML =
-							codeContent.substring(0, charIndex + 20) + '<span class="typing-cursor">|</span>';
-						charIndex += 20;
-						setTimeout(addChar, 10);
+							codeContent.substring(0, charIndex + 20) +
+							'<span class="typing-cursor">|</span>'
+						charIndex += 20
+						setTimeout(addChar, 10)
 					} else {
-						element.innerHTML = codeContent;
+						element.innerHTML = codeContent
 					}
 				}
 
-				setTimeout(addChar, 1000);
+				setTimeout(addChar, 1000)
 			}
 
-			window.addEventListener('load', typeWriter);
+			window.addEventListener('load', typeWriter)
 		</script>
 	</body>
 </html>

@@ -1240,29 +1240,50 @@ const visitors = {
 			// We're calling a component from within svg/mathml context
 			const is_with_ns = state.namespace !== DEFAULT_NAMESPACE;
 
+			let object_props;
+			if (is_spreading) {
+				// Optimization: if only one spread with no other props, pass it directly
+				if (props.length === 1 && props[0].type === 'SpreadElement') {
+					object_props = b.call('_$_.spread_props', b.thunk(props[0].argument));
+				} else {
+					// Multiple items: build array of objects/spreads for proper merge order
+					const items = [];
+					let current_obj_props = [];
+
+					for (const prop of props) {
+						if (prop.type === 'SpreadElement') {
+							// Flush accumulated regular props as an object
+							if (current_obj_props.length > 0) {
+								items.push(b.object(current_obj_props));
+								current_obj_props = [];
+							}
+							// Add the spread argument directly
+							items.push(prop.argument);
+						} else {
+							// Accumulate regular properties
+							current_obj_props.push(prop);
+						}
+					}
+
+					// Flush any remaining regular props
+					if (current_obj_props.length > 0) {
+						items.push(b.object(current_obj_props));
+					}
+
+					object_props = b.call('_$_.spread_props', b.thunk(b.array(items)));
+				}
+			} else {
+				object_props = b.object(props);
+			}
 			if (metadata.tracking) {
-				const shared = b.call(
-					'_$_.composite',
-					b.thunk(visit(node.id, state)),
-					id,
-					is_spreading
-						? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
-						: b.object(props),
-				);
+				const shared = b.call('_$_.composite', b.thunk(visit(node.id, state)), id, object_props);
 				state.init.push(
 					is_with_ns
 						? b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared))
 						: b.stmt(shared),
 				);
 			} else {
-				const shared = b.call(
-					visit(node.id, state),
-					id,
-					is_spreading
-						? b.call('_$_.spread_props', b.thunk(b.object(props)), b.id('__block'))
-						: b.object(props),
-					b.id('_$_.active_block'),
-				);
+				const shared = b.call(visit(node.id, state), id, object_props, b.id('_$_.active_block'));
 				state.init.push(
 					is_with_ns
 						? b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared))

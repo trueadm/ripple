@@ -412,9 +412,9 @@ function attemptRebaseAndPush(remote, version) {
  * @param {readonly PackageInfo[]} packages
  */
 function runEditorsScopePreCheck(packages) {
-	const vscodePackage = packages.find((pkg) => pkg.json.name === "ripple-vscode-plugin");
+	const vscodePackage = packages.find((pkg) => pkg.json.name === "vscode-plugin");
 	if (!vscodePackage) {
-		throw new Error("Unable to locate ripple-vscode-plugin package for editors scope checks.");
+		throw new Error("Unable to locate vscode-plugin package for editors scope checks.");
 	}
 
 	console.log("\nRunning VS Code extension pre-check: pnpm run build-and-package");
@@ -437,10 +437,10 @@ function runEditorsScopePreCheck(packages) {
 
 		const basePackageEntry =
 			scope === "editors"
-				? parsedPackages.find((entry) => entry.pkg.json.name === "ripple-vscode-plugin")
+				? parsedPackages.find((entry) => entry.pkg.json.name === "vscode-plugin")
 				: parsedPackages.find((entry) => entry.pkg.json.name === "ripple");
 		if (!basePackageEntry) {
-			const target = scope === "editors" ? "'ripple-vscode-plugin'" : "'ripple'";
+			const target = scope === "editors" ? "'vscode-plugin'" : "'ripple'";
 			throw new Error(`Unable to locate the ${target} package to determine the base version.`);
 		}
 

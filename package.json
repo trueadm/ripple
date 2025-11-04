@@ -27,9 +27,9 @@
   "devDependencies": {
     "jsdom": "catalog:default",
     "prettier": "catalog:default",
-    "prettier-plugin-ripple": "workspace:*",
-    "vite-plugin-ripple": "workspace:*",
-    "eslint-plugin-ripple": "workspace:*",
+    "@ripple-ts/prettier-plugin": "workspace:*",
+    "@ripple-ts/vite-plugin": "workspace:*",
+    "@ripple-ts/eslint-plugin": "workspace:*",
     "eslint": "catalog:default",
     "vitest": "catalog:default"
   },
