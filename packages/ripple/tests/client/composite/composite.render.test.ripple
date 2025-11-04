@@ -1,4 +1,4 @@
-import { track, flushSync, TrackedArray } from 'ripple';
+import { track, flushSync, TrackedArray } from '@ripple-ts/ripple';
 
 describe('composite > render', () => {
 	it('renders composite components', () => {

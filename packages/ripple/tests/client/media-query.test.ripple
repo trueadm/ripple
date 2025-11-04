@@ -1,4 +1,4 @@
-import { flushSync, MediaQuery, track } from 'ripple';
+import { flushSync, MediaQuery, track } from '@ripple-ts/ripple';
 
 type Callback = (event: MediaQueryListEvent) => void;
 

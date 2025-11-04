@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render } from 'ripple/server';
+import { render } from '@ripple-ts/ripple/server';
 
 describe('for statements in SSR', () => {
 	it('renders a simple static array', async () => {
@@ -12,7 +12,9 @@ describe('for statements in SSR', () => {
 		}
 
 		const { body } = await render(App);
-		expect(body).toBe('<div class="Item 1">Item 1</div><div class="Item 2">Item 2</div><div class="Item 3">Item 3</div>');
+		expect(body).toBe(
+			'<div class="Item 1">Item 1</div><div class="Item 2">Item 2</div><div class="Item 3">Item 3</div>',
+		);
 	});
 
 	it('renders nested for...of loops', async () => {
@@ -20,12 +22,12 @@ describe('for statements in SSR', () => {
 			const groups = [
 				{
 					name: 'Group 1',
-					items: ['Item 1.1', 'Item 1.2']
+					items: ['Item 1.1', 'Item 1.2'],
 				},
 				{
 					name: 'Group 2',
-					items: ['Item 2.1', 'Item 2.2']
-				}
+					items: ['Item 2.1', 'Item 2.2'],
+				},
 			];
 
 			for (const group of groups) {
@@ -39,6 +41,8 @@ describe('for statements in SSR', () => {
 		}
 
 		const { body } = await render(App);
-		expect(body).toBe('<h1>Group 1</h1><ul><li>Item 1.1</li><li>Item 1.2</li></ul><h1>Group 2</h1><ul><li>Item 2.1</li><li>Item 2.2</li></ul>');
+		expect(body).toBe(
+			'<h1>Group 1</h1><ul><li>Item 1.1</li><li>Item 1.2</li></ul><h1>Group 2</h1><ul><li>Item 2.1</li><li>Item 2.2</li></ul>',
+		);
 	});
 });

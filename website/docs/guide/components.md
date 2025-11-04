@@ -7,9 +7,10 @@ title: Components in Ripple
 ## Lifecycle
 
 ::: details Glossary
+
 - **Pure**: The idea that a function should produce no side-effects.
 - **Side-effect**: A permanent, externally observable state change.
-:::
+  :::
 
 Ripple's component lifecycle is akin to Vue/Svelte/Solid. The root scope of your
 component only runs once, akin to the "setup" scope in Vue/Svelte/Solid. However,
@@ -26,7 +27,7 @@ writing HTML. By default, Ripple will make the content available as the
 `<children />` if you destructured your props).
 
 ```ripple
-import type { Component } from 'ripple';
+import type { Component } from '@ripple-ts/ripple';
 
 component Card(props: { children: Component }) {
 	<div class="card">
@@ -142,7 +143,7 @@ See [Reactivity](/docs/guide/reactivity#Props-and-Attributes).
 The `Portal` component allows you to render (teleport) content anywhere in the DOM tree, breaking out of the normal component hierarchy. This is particularly useful for modals, tooltips, and notifications.
 
 ```ripple
-import { Portal } from 'ripple';
+import { Portal } from '@ripple-ts/ripple';
 
 export component App() {
 	<div class="app">

@@ -58,7 +58,7 @@ npm install ripple vite-plugin-ripple
 
 ```ts
 // index.ts
-import { mount } from 'ripple';
+import { mount } from '@ripple-ts/ripple';
 import { App } from './App.ripple';
 
 mount(App, {
@@ -103,7 +103,7 @@ export component App() {
 Create reactive state with `track` and access it with the `@` operator:
 
 ```jsx
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   let count = track(0);
@@ -118,7 +118,7 @@ export component App() {
 **Derived values** automatically update:
 
 ```jsx
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   let count = track(0);
@@ -157,7 +157,7 @@ export component App() {
 Pass reactive state across function boundaries:
 
 ```jsx
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 function createDouble(count) {
   return track(() => @count * 2);
@@ -179,7 +179,7 @@ export component App() {
 ### Effects & Side Effects
 
 ```jsx
-import { effect, track } from 'ripple';
+import { effect, track } from '@ripple-ts/ripple';
 
 export component App() {
   let count = track(0);
@@ -199,7 +199,7 @@ export component App() {
 **Conditionals:**
 
 ```jsx
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   let condition = track(true);
@@ -237,7 +237,7 @@ export component App() {
 **Error Boundaries:**
 
 ```jsx
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 component ComponentThatMayFail(props: { shouldFail: boolean }) {
   if (props.shouldFail) {
@@ -281,7 +281,7 @@ export component App() {
 Use React-style event handlers:
 
 ```jsx
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   let value = track('');
@@ -317,7 +317,7 @@ export component App() {
 **Dynamic styles:**
 
 ```jsx
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   let color = track('red');
@@ -338,7 +338,7 @@ export component App() {
 Share state across the component tree:
 
 ```jsx
-import { Context, track } from 'ripple';
+import { Context, track } from '@ripple-ts/ripple';
 
 const ThemeContext = new Context();
 
@@ -366,7 +366,7 @@ export component App() {
 Render content outside the component hierarchy:
 
 ```jsx
-import { Portal, track } from 'ripple';
+import { Portal, track } from '@ripple-ts/ripple';
 
 export component App() {
   let showModal = track(false);

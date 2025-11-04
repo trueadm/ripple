@@ -1,12 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { compile } from 'ripple/compiler'
+import { compile } from '@ripple-ts/ripple/compiler';
 
 describe('compiler success tests', () => {
-
-
 	it('compiles TSInstantiationExpression', () => {
-		const source =
-`function makeBox<T>(value: T) {
+		const source = `function makeBox<T,>(value: T) {
 	return { value };
 }
 const makeStringBox = makeBox<string>;
@@ -20,8 +17,7 @@ const errorMap = new ErrorMap();`;
 	});
 
 	it('compiles imported component with conditional async in SSR', () => {
-		const source =
-`import { ChildComponent } from './Child.ripple';
+		const source = `import { ChildComponent } from './Child.ripple';
 
 export component App() {
 	<div>

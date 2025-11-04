@@ -1,4 +1,4 @@
-import { track, flushSync } from 'ripple';
+import { track, flushSync } from '@ripple-ts/ripple';
 import { TRACKED_ARRAY } from '../../../src/runtime/internal/client/constants.js';
 
 describe('basic client > collections', () => {

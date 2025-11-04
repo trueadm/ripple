@@ -1,4 +1,4 @@
-import { track, flushSync, TrackedArray } from 'ripple';
+import { track, flushSync, TrackedArray } from '@ripple-ts/ripple';
 
 describe('TrackedArray > to* methods', () => {
 	it('handles toReversed method with reactivity', (context) => {

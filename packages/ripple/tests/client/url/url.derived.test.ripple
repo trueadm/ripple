@@ -1,4 +1,4 @@
-import { track, flushSync, TrackedURL } from 'ripple';
+import { track, flushSync, TrackedURL } from '@ripple-ts/ripple';
 
 describe('TrackedURL > derived', () => {
 	it('handles reactive computed properties based on URL', () => {

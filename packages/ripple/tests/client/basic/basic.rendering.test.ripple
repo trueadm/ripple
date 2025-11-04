@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { track, flushSync } from 'ripple';
+import { track, flushSync } from '@ripple-ts/ripple';
 
 describe('basic client > rendering & text', () => {
 	it('renders static text', () => {

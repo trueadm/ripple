@@ -1,4 +1,4 @@
-import { flushSync, TrackedDate, track } from 'ripple';
+import { flushSync, TrackedDate, track } from '@ripple-ts/ripple';
 
 describe('TrackedDate', () => {
 	it('handles getTime() with reactive updates', () => {

@@ -13,7 +13,7 @@ instead you must use `@` to read or write to the tracked value. You can pass the
 to the value in different parts of your codebase.
 
 ```ts
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 let name = track('World');
 let count = track(0);
@@ -26,7 +26,7 @@ Objects can also contain tracked values with `@` to access the reactive object
 property:
 
 ```ts
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 let counter = { current: track(0) };
 
@@ -76,7 +76,7 @@ with the previous value. The get and set functions may be useful for tasks such
 as logging, validating, or transforming values before they are exposed or stored.
 
 ```ripple
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   let count = track(0,
@@ -135,8 +135,8 @@ option usage:
 <Code console>
 
 ```ripple
-import { track, trackSplit } from 'ripple';
-import type { PropsWithChildren, Tracked } from 'ripple';
+import { track, trackSplit } from '@ripple-ts/ripple';
+import type { PropsWithChildren, Tracked } from '@ripple-ts/ripple';
 
 component Child(props: PropsWithChildren<{ count: Tracked<number>, className: string }>) {
   // children, count are always reactive
@@ -203,7 +203,7 @@ simply be passed by reference between boundaries:
 <Code console>
 
 ```ripple
-import { effect, track } from 'ripple';
+import { effect, track } from '@ripple-ts/ripple';
 
 function createDouble([ count ]) {
   const double = track(() => @count * 2);
@@ -232,7 +232,7 @@ You can do the same with objects too:
 <Code console>
 
 ```ripple
-import { effect, track } from 'ripple';
+import { effect, track } from '@ripple-ts/ripple';
 
 function createDouble({ count }) {
   const double = track(() => @count * 2);
@@ -270,7 +270,7 @@ flexible, state-driven UIs with minimal boilerplate.
 <Code>
 
 ```ripple
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   let swapMe = track(() => Child1);
@@ -302,7 +302,7 @@ component Child2(props) {
 <Code console>
 
 ```ripple
-import { effect, track } from 'ripple';
+import { effect, track } from '@ripple-ts/ripple';
 
 function createDouble([ count ]) {
   const double = track(() => @count * 2);
@@ -331,7 +331,7 @@ export component App() {
 <Code console>
 
 ```ripple
-import { effect, track } from 'ripple';
+import { effect, track } from '@ripple-ts/ripple';
 
 function createDouble({ count }) {
   const double = track(() => @count * 2);
@@ -358,7 +358,7 @@ export component App() {
 <Code console>
 
 ```ripple
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   const tracked_basic = track(() => basic);
@@ -412,7 +412,7 @@ use `effect`:
 <Code console>
 
 ```ripple
-import { track, effect } from 'ripple';
+import { track, effect } from '@ripple-ts/ripple';
 
 export component App() {
   let count = track(0);
@@ -434,7 +434,7 @@ The `tick()` function returns a Promise that resolves after all pending reactive
 <Code console>
 
 ```ripple
-import { effect, track, tick } from 'ripple';
+import { effect, track, tick } from '@ripple-ts/ripple';
 
 export component App() {
   let count = track(0);
@@ -463,7 +463,7 @@ export component App() {
 <Code console>
 
 ```ripple
-import { effect, track, untrack } from 'ripple';
+import { effect, track, untrack } from '@ripple-ts/ripple';
 
 export component App() {
   let count = track(10);
@@ -493,7 +493,7 @@ JavaScript object, like arrays:
 <Code console>
 
 ```ripple
-import { effect, track } from 'ripple';
+import { effect, track } from '@ripple-ts/ripple';
 
 export component App() {
 	let first = track(1);
@@ -528,7 +528,7 @@ original reference will react to the change. You do NOT need to use the unboxing
 `@` with the elements of the array.
 
 ```ripple
-import { TrackedArray } from 'ripple';
+import { TrackedArray } from '@ripple-ts/ripple';
 
 // using syntactic sugar `#`
 const arr = #[1, 2, 3];
@@ -570,7 +570,7 @@ the original reference reacts to the change. You do NOT need to use the unboxing
 `@` with the properties of the `TrackedObject`.
 
 ```ripple
-import { TrackedObject } from 'ripple';
+import { TrackedObject } from '@ripple-ts/ripple';
 
 // using syntactic sugar `#`
 const obj = #{a: 1, b: 2, c: 3};
@@ -603,7 +603,7 @@ The `TrackedSet` extends the standard JS `Set` class, and supports all of its
 methods and properties.
 
 ```ripple
-import { TrackedSet } from 'ripple';
+import { TrackedSet } from '@ripple-ts/ripple';
 
 const set = new TrackedSet([1, 2, 3]);
 ```
@@ -614,7 +614,7 @@ reactive variables.
 <Code>
 
 ```ripple
-import { TrackedSet, track } from 'ripple';
+import { TrackedSet, track } from '@ripple-ts/ripple';
 
 export component App() {
   const set = new TrackedSet([1, 2, 3]);
@@ -639,7 +639,7 @@ The `TrackedMap` extends the standard JS `Map` class, and supports all of its
 methods and properties.
 
 ```ripple
-import { TrackedMap, track } from 'ripple';
+import { TrackedMap, track } from '@ripple-ts/ripple';
 
 const map = new TrackedMap([[1,1], [2,2], [3,3], [4,4]]);
 ```
@@ -650,7 +650,7 @@ reactive variables.
 <Code>
 
 ```ripple
-import { TrackedMap, track } from 'ripple';
+import { TrackedMap, track } from '@ripple-ts/ripple';
 
 export component App() {
   const map = new TrackedMap([[1,1], [2,2], [3,3], [4,4]]);
@@ -675,7 +675,7 @@ The `TrackedDate` extends the standard JS `Date` class, and supports all of its
 methods and properties.
 
 ```ripple
-import { TrackedDate } from 'ripple';
+import { TrackedDate } from '@ripple-ts/ripple';
 
 const date = new TrackedDate(2026, 0, 1); // January 1, 2026
 ```
@@ -688,7 +688,7 @@ etc.) are reactive and will update when the date is modified.
 <Code>
 
 ```ripple
-import { TrackedDate, track } from 'ripple';
+import { TrackedDate, track } from '@ripple-ts/ripple';
 
 export component App() {
   const date = new TrackedDate(2025, 0, 1, 12, 0, 0);

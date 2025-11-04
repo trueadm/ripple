@@ -1,0 +1,304 @@
+import { track, flushSync } from '@ripple-ts/ripple';
+import { act } from 'react';
+
+describe('compat-react', () => {
+	it('should render basic React JSX inside tsx:react tags', async () => {
+		component App() {
+			<div>
+				<h1>{'Hello from Ripple'}</h1>
+				<tsx:react>
+					<div className="react-content">
+						{'Hello from React'}
+					</div>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const rippleHeading = container.querySelector('h1');
+		const reactDiv = container.querySelector('.react-content');
+		expect(rippleHeading).toBeTruthy();
+		expect(rippleHeading.textContent).toBe('Hello from Ripple');
+		expect(reactDiv).toBeTruthy();
+		expect(reactDiv.textContent).toBe('Hello from React');
+	});
+
+	it('should render React fragments inside tsx:react tags', async () => {
+		component App() {
+			<div>
+				<tsx:react>
+					<>
+						<span className="first">
+							{'First'}
+						</span>
+						<span className="second">
+							{'Second'}
+						</span>
+					</>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const first = container.querySelector('.first');
+		const second = container.querySelector('.second');
+		expect(first).toBeTruthy();
+		expect(first.textContent).toBe('First');
+		expect(second).toBeTruthy();
+		expect(second.textContent).toBe('Second');
+	});
+
+	it('should render nested React components', async () => {
+		component App() {
+			<div>
+				<tsx:react>
+					<div className="wrapper">
+						<div className="inner">
+							<span className="content">
+								{'Nested content'}
+							</span>
+						</div>
+					</div>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const wrapper = container.querySelector('.wrapper');
+		const inner = container.querySelector('.inner');
+		const content = container.querySelector('.content');
+		expect(wrapper).toBeTruthy();
+		expect(inner).toBeTruthy();
+		expect(content).toBeTruthy();
+		expect(content.textContent).toBe('Nested content');
+	});
+
+	it('should mix Ripple and React content', async () => {
+		component App() {
+			<div class="container">
+				<div class="ripple">{'This is Ripple'}</div>
+				<tsx:react>
+					<div className="react">
+						{'This is React'}
+					</div>
+				</tsx:react>
+				<div class="ripple-2">{'Back to Ripple'}</div>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const rippleDiv = container.querySelector('.ripple');
+		const reactDiv = container.querySelector('.react');
+		const rippleDiv2 = container.querySelector('.ripple-2');
+		expect(rippleDiv).toBeTruthy();
+		expect(rippleDiv.textContent).toBe('This is Ripple');
+		expect(reactDiv).toBeTruthy();
+		expect(reactDiv.textContent).toBe('This is React');
+		expect(rippleDiv2).toBeTruthy();
+		expect(rippleDiv2.textContent).toBe('Back to Ripple');
+	});
+
+	it('should handle multiple tsx:react blocks', async () => {
+		component App() {
+			<div>
+				<tsx:react>
+					<div className="react-1">
+						{'React Block 1'}
+					</div>
+				</tsx:react>
+				<div class="ripple-middle">{'Ripple in between'}</div>
+				<tsx:react>
+					<div className="react-2">
+						{'React Block 2'}
+					</div>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const react1 = container.querySelector('.react-1');
+		const middle = container.querySelector('.ripple-middle');
+		const react2 = container.querySelector('.react-2');
+		expect(react1).toBeTruthy();
+		expect(react1.textContent).toBe('React Block 1');
+		expect(middle).toBeTruthy();
+		expect(middle.textContent).toBe('Ripple in between');
+		expect(react2).toBeTruthy();
+		expect(react2.textContent).toBe('React Block 2');
+	});
+
+	it('should handle React components with attributes', async () => {
+		component App() {
+			<div>
+				<tsx:react>
+					<div className="react" id="test-id">
+						<span>
+							{'Content'}
+						</span>
+					</div>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const reactDiv = container.querySelector('.react');
+		expect(reactDiv).toBeTruthy();
+		expect(reactDiv.id).toBe('test-id');
+		expect(reactDiv.querySelector('span').textContent).toBe('Content');
+	});
+
+	it('should handle nested fragments', async () => {
+		component App() {
+			<div>
+				<tsx:react>
+					<>
+						<div className="outer">
+							{'Outer'}
+						</div>
+						<>
+							<div className="inner">
+								{'Inner'}
+							</div>
+						</>
+					</>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const outer = container.querySelector('.outer');
+		const inner = container.querySelector('.inner');
+		expect(outer).toBeTruthy();
+		expect(outer.textContent).toBe('Outer');
+		expect(inner).toBeTruthy();
+		expect(inner.textContent).toBe('Inner');
+	});
+
+	it('should handle complex nested structures', async () => {
+		component App() {
+			<div>
+				<tsx:react>
+					<div className="list">
+						<ul>
+							<li>
+								{'Item 1'}
+							</li>
+							<li>
+								{'Item 2'}
+							</li>
+							<li>
+								{'Item 3'}
+							</li>
+						</ul>
+					</div>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const list = container.querySelector('.list');
+		const items = container.querySelectorAll('li');
+		expect(list).toBeTruthy();
+		expect(items.length).toBe(3);
+		expect(items[0].textContent).toBe('Item 1');
+		expect(items[1].textContent).toBe('Item 2');
+		expect(items[2].textContent).toBe('Item 3');
+	});
+
+	it('should handle empty fragments', async () => {
+		component App() {
+			<div>
+				<tsx:react>
+					<></>
+				</tsx:react>
+				<div class="after">{'After empty fragment'}</div>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const after = container.querySelector('.after');
+		expect(after).toBeTruthy();
+		expect(after.textContent).toBe('After empty fragment');
+	});
+
+	it('should work with Ripple reactivity', async () => {
+		component App() {
+			let count = track(0);
+			<div>
+				<div class="ripple-count">{@count}</div>
+				<button onClick={() => @count++}>{'Increment'}</button>
+				<tsx:react>
+					<div className="react-message">
+						{'React content is static'}
+					</div>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const rippleCount = container.querySelector('.ripple-count');
+		const button = container.querySelector('button');
+		const reactMessage = container.querySelector('.react-message');
+		expect(rippleCount.textContent).toBe('0');
+		expect(reactMessage.textContent).toBe('React content is static');
+		button.click();
+		flushSync();
+		expect(rippleCount.textContent).toBe('1');
+		expect(reactMessage.textContent).toBe('React content is static');
+		button.click();
+		flushSync();
+		expect(rippleCount.textContent).toBe('2');
+	});
+
+	it('should handle a call expression at the top-level of a tsx:react block', async () => {
+		function renderReactText() {
+			return 'This is rendered from a React component!';
+		}
+
+		component App() {
+			<div>
+				<tsx:react>
+					{renderReactText()}
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const reactContent = container.querySelector('div > div');
+		expect(reactContent).toBeTruthy();
+		expect(reactContent.textContent).toBe('This is rendered from a React component!');
+	});
+});

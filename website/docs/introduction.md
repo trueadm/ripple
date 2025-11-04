@@ -13,7 +13,7 @@ elements to be written as statements, rather than expressions.
 <Code>
 
 ```ripple
-import { track } from 'ripple'
+import { track } from '@ripple-ts/ripple'
 
 export component App() {
   <div class="container">

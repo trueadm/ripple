@@ -1,4 +1,4 @@
-import { flushSync, track, effect, untrack, TrackedArray } from 'ripple';
+import { flushSync, track, effect, untrack, TrackedArray } from '@ripple-ts/ripple';
 
 describe('TrackedArray > iteration', () => {
 	it('handles entries method with reactivity', () => {

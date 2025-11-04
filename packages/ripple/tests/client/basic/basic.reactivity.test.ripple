@@ -1,4 +1,4 @@
-import { track, trackSplit, flushSync, effect, untrack } from 'ripple';
+import { track, trackSplit, flushSync, effect, untrack } from '@ripple-ts/ripple';
 
 describe('basic client > reactivity', () => {
 	it('renders multiple reactive lexical blocks', () => {

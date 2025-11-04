@@ -20,18 +20,18 @@ jobs:
                   cache: "pnpm"
 
             - name: Install deps w/ yarn
-              working-directory: ./packages/ripple-vscode-plugin
+              working-directory: ./packages/vscode-plugin
               run: yarn install
 
             - name: Build VSIX
-              working-directory: ./packages/ripple-vscode-plugin
+              working-directory: ./packages/vscode-plugin
               run: pnpx @vscode/vsce package
 
             - name: Upload VSIX
               uses: actions/upload-artifact@v4
               with:
-                  name: ripple-vscode-plugin VSIX
-                  path: ./packages/ripple-vscode-plugin/*.vsix
+                  name: vscode-plugin VSIX
+                  path: ./packages/vscode-plugin/*.vsix
 
     publish-vsm:
         runs-on: ubuntu-latest
@@ -40,7 +40,7 @@ jobs:
             - name: Download VSIX
               uses: actions/download-artifact@v5
               with:
-                  name: ripple-vscode-plugin VSIX
+                  name: vscode-plugin VSIX
 
             - name: Install pnpm
               uses: pnpm/action-setup@v4
@@ -59,7 +59,7 @@ jobs:
             - name: Download VSIX
               uses: actions/download-artifact@v5
               with:
-                  name: ripple-vscode-plugin VSIX
+                  name: vscode-plugin VSIX
 
             - name: Install pnpm
               uses: pnpm/action-setup@v4

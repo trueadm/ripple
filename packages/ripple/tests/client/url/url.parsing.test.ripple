@@ -1,4 +1,4 @@
-import { flushSync, TrackedURL } from 'ripple';
+import { flushSync, TrackedURL } from '@ripple-ts/ripple';
 
 describe('TrackedURL > parsing', () => {
 	it('creates URL from string with reactivity', () => {

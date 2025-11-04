@@ -1,4 +1,4 @@
-import { flushSync, TrackedSet, track } from 'ripple';
+import { flushSync, TrackedSet, track } from '@ripple-ts/ripple';
 
 describe('TrackedSet', () => {
   it('handles add and delete operations', () => {

@@ -1,0 +1,52 @@
+{
+  "name": "@ripple-ts/eslint-parser",
+  "version": "0.2.152",
+  "description": "ESLint parser for Ripple (.ripple files)",
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/eslint-parser"
+  },
+  "bugs": {
+    "url": "https://github.com/trueadm/ripple/issues"
+  },
+  "homepage": "https://ripple-ts.com",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "eslint",
+    "parser",
+    "ripple"
+  ],
+  "author": "Dominic Gannaway",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "tsdown"
+  },
+  "peerDependencies": {
+    "eslint": "catalog:peer",
+    "@ripple-ts/ripple": "catalog:peer"
+  },
+  "dependencies": {
+    "acorn": "catalog:default",
+    "acorn-typescript": "catalog:default"
+  },
+  "devDependencies": {
+    "@types/eslint": "catalog:default",
+    "@types/estree": "catalog:default",
+    "@types/node": "catalog:default",
+    "@ripple-ts/ripple": "workspace:*",
+    "tsdown": "catalog:default",
+    "typescript": "catalog:default"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

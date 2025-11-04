@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { compile_to_volar_mappings } from 'ripple/compiler';
+import { compile_to_volar_mappings } from '@ripple-ts/ripple/compiler';
 
 const dir = './src/';
 const output_dir = './debug';
@@ -17,7 +17,7 @@ for (const filename of await fs.readdir(dir)) {
 		// Also output mappings for debugging
 		await fs.writeFile(
 			`${output_dir}/${filename.replace('.ripple', '.mappings.json')}`,
-			JSON.stringify(result.mappings, null, 2)
+			JSON.stringify(result.mappings, null, 2),
 		);
 	}
 }

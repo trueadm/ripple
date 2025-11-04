@@ -1,4 +1,4 @@
-import { track, flushSync } from 'ripple';
+import { track, flushSync } from '@ripple-ts/ripple';
 
 describe('composite > dynamic components', () => {
 	it('supports rendering compositie components using <@component> syntax', () => {

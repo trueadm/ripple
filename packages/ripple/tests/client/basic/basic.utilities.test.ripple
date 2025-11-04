@@ -1,4 +1,4 @@
-import { track, effect, untrack, tick } from 'ripple';
+import { track, effect, untrack, tick } from '@ripple-ts/ripple';
 
 describe('basic client > utilities', () => {
 	it('tick function', async () => {

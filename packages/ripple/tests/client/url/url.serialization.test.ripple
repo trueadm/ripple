@@ -1,4 +1,4 @@
-import { flushSync, TrackedURL } from 'ripple';
+import { flushSync, TrackedURL } from '@ripple-ts/ripple';
 
 describe('TrackedURL > serialization', () => {
 	it('handles toString method', () => {

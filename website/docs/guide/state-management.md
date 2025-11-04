@@ -26,7 +26,7 @@ Example with tracked / reactive contents:
 <Code>
 
 ```ripple
-import { track, Context } from "ripple"
+import { track, Context } from '@ripple-ts/ripple'
 
 // create context with an empty object
 const context  = new Context({});
@@ -64,7 +64,7 @@ Passing data between components:
 <Code console>
 
 ```ripple
-import { Context } from 'ripple';
+import { Context } from '@ripple-ts/ripple';
 
 const MyContext = new Context(null);
 

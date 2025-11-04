@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render } from 'ripple/server';
-import { track, set, get } from 'ripple';
+import { render } from '@ripple-ts/ripple/server';
+import { track, set, get } from '@ripple-ts/ripple';
 
 describe('await in control flow', () => {
 	it('should handle await inside if statement', async () => {
@@ -9,7 +9,7 @@ describe('await in control flow', () => {
 			let data = track('loading');
 
 			if (condition) {
-				await new Promise(resolve => setTimeout(() => {
+				await new Promise((resolve) => setTimeout(() => {
 					@data = 'loaded';
 					resolve();
 				}, 10));
@@ -28,7 +28,7 @@ describe('await in control flow', () => {
 			let result = '';
 
 			for (const item of items) {
-				await new Promise(resolve => setTimeout(resolve, 5));
+				await new Promise((resolve) => setTimeout(resolve, 5));
 				result += item;
 			}
 
@@ -39,23 +39,24 @@ describe('await in control flow', () => {
 		expect(body).toBe('<div>123</div>');
 	});
 
-			it('should handle await inside switch statement', async () => {
-				component App() {
-					let value = 'b';
-	
-					switch (value) {
-						case 'a':
-							<div>{'Case A'}</div>
-							break;
-						case 'b':
-							await new Promise(resolve => setTimeout(resolve, 10));
-							<div>{'Case B'}</div>
-							break;
-						default:
-							<div>{'Default Case'}</div>
-					}
-				}
-	
-				const { body } = await render(App);
-				expect(body).toBe('<div>Case B</div>');
-			});});
+	it('should handle await inside switch statement', async () => {
+		component App() {
+			let value = 'b';
+
+			switch (value) {
+				case 'a':
+					<div>{'Case A'}</div>
+					break;
+				case 'b':
+					await new Promise((resolve) => setTimeout(resolve, 10));
+					<div>{'Case B'}</div>
+					break;
+				default:
+					<div>{'Default Case'}</div>
+			}
+		}
+
+		const { body } = await render(App);
+		expect(body).toBe('<div>Case B</div>');
+	});
+});

@@ -1,4 +1,4 @@
-import { TrackedURLSearchParams } from 'ripple';
+import { TrackedURLSearchParams } from '@ripple-ts/ripple';
 
 describe('TrackedURLSearchParams > initialization', () => {
 	it('creates empty URLSearchParams with reactivity', () => {

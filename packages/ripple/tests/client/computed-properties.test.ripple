@@ -1,4 +1,4 @@
-import { flushSync, track } from 'ripple';
+import { flushSync, track } from '@ripple-ts/ripple';
 
 describe('computed tracked properties', () => {
   it('should update a property using assignment', () => {

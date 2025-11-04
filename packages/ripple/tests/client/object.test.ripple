@@ -1,4 +1,4 @@
-import { flushSync, TrackedObject } from 'ripple';
+import { flushSync, TrackedObject } from '@ripple-ts/ripple';
 import { TRACKED_OBJECT } from '../../src/runtime/internal/client/constants.js';
 
 describe('TrackedObject', () => {

@@ -1,4 +1,4 @@
-import { flushSync, track, TrackedArray } from 'ripple';
+import { flushSync, track, TrackedArray } from '@ripple-ts/ripple';
 
 describe('TrackedArray > mutations', () => {
 	it('handles direct assignment and length tracking', () => {

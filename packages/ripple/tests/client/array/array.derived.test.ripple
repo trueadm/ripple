@@ -1,4 +1,4 @@
-import { flushSync, track, TrackedArray } from 'ripple';
+import { flushSync, track, TrackedArray } from '@ripple-ts/ripple';
 
 describe('TrackedArray > derived', () => {
 	it('handles array methods that return values (map, filter, etc.)', () => {

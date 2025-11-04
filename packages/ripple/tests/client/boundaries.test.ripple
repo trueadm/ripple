@@ -1,4 +1,4 @@
-import { flushSync, effect, track } from 'ripple';
+import { flushSync, effect, track } from '@ripple-ts/ripple';
 
 describe('passing reactivity between boundaries tests', () => {
   it('can pass reactivity between functions with simple arrays and destructuring', () => {

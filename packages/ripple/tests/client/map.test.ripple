@@ -1,4 +1,4 @@
-import { flushSync, TrackedMap, track } from 'ripple';
+import { flushSync, TrackedMap, track } from '@ripple-ts/ripple';
 
 describe('TrackedMap', () => {
     it('handles set with update and delete operations with a reactive size var', () => {

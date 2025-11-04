@@ -1,4 +1,4 @@
-import { flushSync, TrackedURL } from 'ripple';
+import { flushSync, TrackedURL } from '@ripple-ts/ripple';
 
 describe('TrackedURL > reactivity', () => {
 	it('handles protocol changes with reactivity', () => {

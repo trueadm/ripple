@@ -1,4 +1,4 @@
-import { track, trackSplit, effect, flushSync, type Props } from 'ripple';
+import { track, trackSplit, effect, flushSync, type Props } from '@ripple-ts/ripple';
 
 describe('composite > props', () => {
 	it('correctly handles default prop values', () => {

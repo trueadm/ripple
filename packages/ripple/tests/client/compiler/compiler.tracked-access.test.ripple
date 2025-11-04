@@ -1,108 +1,119 @@
-import { compile } from 'ripple/compiler';
-import { track } from 'ripple';
+import { compile } from '@ripple-ts/ripple/compiler';
+import { track } from '@ripple-ts/ripple';
 
 describe('Compiler: Tracked Object Direct Access Checks', () => {
-
-    it('should error on direct access to __v of a tracked object', () => {
-        const code = `
+	it('should error on direct access to __v of a tracked object', () => {
+		const code = `
             export default component App() {
                 let count = track(0);
                 console.log(count.__v);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).toThrow(/Directly accessing internal property "__v" of a tracked object is not allowed/);
-    });
+		expect(() => compile(code, 'test.ripple')).toThrow(
+			/Directly accessing internal property "__v" of a tracked object is not allowed/,
+		);
+	});
 
-    it('should error on direct access to "a" (get/set config) of a tracked object', () => {
-        const code = `
+	it('should error on direct access to "a" (get/set config) of a tracked object', () => {
+		const code = `
             export default component App() {
                 let myTracked = track(0);
                 console.log(myTracked.a);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).toThrow(/Directly accessing internal property "a" of a tracked object is not allowed/);
-    });
+		expect(() => compile(code, 'test.ripple')).toThrow(
+			/Directly accessing internal property "a" of a tracked object is not allowed/,
+		);
+	});
 
-    it('should error on direct access to "b" (block) of a tracked object', () => {
-        const code = `
+	it('should error on direct access to "b" (block) of a tracked object', () => {
+		const code = `
             export default component App() {
                 let myTracked = track(0);
                 console.log(myTracked.b);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).toThrow(/Directly accessing internal property "b" of a tracked object is not allowed/);
-    });
+		expect(() => compile(code, 'test.ripple')).toThrow(
+			/Directly accessing internal property "b" of a tracked object is not allowed/,
+		);
+	});
 
-    it('should error on direct access to "c" (clock) of a tracked object', () => {
-        const code = `
+	it('should error on direct access to "c" (clock) of a tracked object', () => {
+		const code = `
             export default component App() {
                 let myTracked = track(0);
                 console.log(myTracked.c);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).toThrow(/Directly accessing internal property "c" of a tracked object is not allowed/);
-    });
+		expect(() => compile(code, 'test.ripple')).toThrow(
+			/Directly accessing internal property "c" of a tracked object is not allowed/,
+		);
+	});
 
-    it('should error on direct access to "f" (flags) of a tracked object', () => {
-        const code = `
+	it('should error on direct access to "f" (flags) of a tracked object', () => {
+		const code = `
             export default component App() {
                 let myTracked = track(0);
                 console.log(myTracked.f);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).toThrow(/Directly accessing internal property "f" of a tracked object is not allowed/);
-    });
+		expect(() => compile(code, 'test.ripple')).toThrow(
+			/Directly accessing internal property "f" of a tracked object is not allowed/,
+		);
+	});
 
-    it('should compile successfully with correct @ syntax access', () => {
-        const code = `
+	it('should compile successfully with correct @ syntax access', () => {
+		const code = `
             export default component App() {
                 let count = track(0);
                 console.log(@count);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).not.toThrow();
-    });
+		expect(() => compile(code, 'test.ripple')).not.toThrow();
+	});
 
-    it('should compile successfully with correct get() function access', () => {
-        const code = `
-            import { get, track } from 'ripple';
+	it('should compile successfully with correct get() function access', () => {
+		const code = `
+            import { get, track } from '@ripple-ts/ripple';
             export default component App() {
                 let count = track(0);
                 console.log(get(count));
             }
         `;
-        expect(() => compile(code, 'test.ripple')).not.toThrow();
-    });
+		expect(() => compile(code, 'test.ripple')).not.toThrow();
+	});
 
-    it('should not error on accessing __v of a non-tracked object', () => {
-        const code = `
+	it('should not error on accessing __v of a non-tracked object', () => {
+		const code = `
             export default component App() {
                 let obj = { __v: 123 };
                 console.log(obj.__v);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).not.toThrow();
-    });
+		expect(() => compile(code, 'test.ripple')).not.toThrow();
+	});
 
-    it('should not error on accessing __v of a non-tracked object (member expression)', () => {
-        const code = `
+	it('should not error on accessing __v of a non-tracked object (member expression)', () => {
+		const code = `
             export default component App() {
                 let data = { value: { __v: 456 } };
                 console.log(data.value.__v);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).not.toThrow();
-    });
+		expect(() => compile(code, 'test.ripple')).not.toThrow();
+	});
 
-    it('should not error on accessing a property named like an internal one on a non-tracked object', () => {
-        const code = `
+	it(
+		'should not error on accessing a property named like an internal one on a non-tracked object',
+		() => {
+			const code = `
             export default component App() {
                 let config = { a: 'some_value', b: 'another_value' };
                 console.log(config.a);
                 console.log(config.b);
             }
         `;
-        expect(() => compile(code, 'test.ripple')).not.toThrow();
-    });
-
+			expect(() => compile(code, 'test.ripple')).not.toThrow();
+		},
+	);
 });

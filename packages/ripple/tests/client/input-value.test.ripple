@@ -1,4 +1,4 @@
-import { flushSync, track, effect, bindValue, bindChecked } from 'ripple';
+import { flushSync, track, effect, bindValue, bindChecked } from '@ripple-ts/ripple';
 
 describe('use value()', () => {
 	it('should update value on input', () => {

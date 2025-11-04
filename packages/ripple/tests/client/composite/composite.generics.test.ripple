@@ -1,4 +1,4 @@
-import { TrackedArray, TrackedMap } from 'ripple';
+import { TrackedArray, TrackedMap } from '@ripple-ts/ripple';
 
 describe('composite > generics', () => {
 	it('handles advanced generic ambiguity and edge cases', () => {

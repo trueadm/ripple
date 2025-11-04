@@ -1,4 +1,4 @@
-import { mount } from 'ripple';
+import { mount } from '@ripple-ts/ripple';
 // @ts-expect-error: known issue, we're working on it
 import { App } from './App.ripple';
 

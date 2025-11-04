@@ -1,0 +1,60 @@
+{
+  "name": "@ripple-ts/cli",
+  "version": "0.2.152",
+  "description": "Interactive CLI tool for creating Ripple applications",
+  "type": "module",
+  "license": "MIT",
+  "author": "Ripple Team",
+  "keywords": [
+    "ripple",
+    "cli",
+    "scaffold",
+    "template",
+    "create-app"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trueadm/ripple.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/trueadm/ripple/issues"
+  },
+  "homepage": "https://ripple-ts.com",
+  "files": [
+    "./dist/index.js"
+  ],
+  "bin": {
+    "@ripple-ts/cli": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/prompts": "catalog:default",
+    "type-fest": "catalog:default",
+    "commander": "catalog:default",
+    "degit": "catalog:default",
+    "jsdom": "catalog:default",
+    "kleur": "catalog:default",
+    "ora": "catalog:default",
+    "prettier": "catalog:default",
+    "prompts": "catalog:default",
+    "tsdown": "catalog:default",
+    "vitest": "catalog:default"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  }
+}

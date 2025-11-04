@@ -1,9 +1,8 @@
-import { compile } from 'ripple/compiler';
+import { compile } from '@ripple-ts/ripple/compiler';
 
 describe('compiler > typescript', () => {
 	it('compiles TSInstantiationExpression', () => {
-		const source =
-`function makeBox<T>(value: T) {
+		const source = `function makeBox<T,>(value: T) {
 	return { value };
 }
 const makeStringBox = makeBox<string>;

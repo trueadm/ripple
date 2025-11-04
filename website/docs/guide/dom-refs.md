@@ -13,7 +13,7 @@ The hook function will receive the reference to the underlying DOM element.
 <Code console>
 
 ```ripple
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export default component App() {
   let div = track();
@@ -39,7 +39,7 @@ You can also create `{ref}` functions inline.
 <Code console>
 
 ```ripple
-import { track } from 'ripple';
+import { track } from '@ripple-ts/ripple';
 
 export component App() {
   let div = track();
@@ -86,7 +86,7 @@ relying directly on the `{ref ...}` template syntax.
 <Code console>
 
 ```ripple
-import { createRefKey, track } from 'ripple';
+import { createRefKey, track } from '@ripple-ts/ripple';
 
 export component App() {
   let value = track('');

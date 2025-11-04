@@ -1,5 +1,5 @@
-import { track, TrackedArray } from 'ripple';
-import { compile } from 'ripple/compiler';
+import { track, TrackedArray } from '@ripple-ts/ripple';
+import { compile } from '@ripple-ts/ripple/compiler';
 
 describe('compiler > assignments', () => {
 	it('properly handles JS assignments, reads and updates to array indices', () => {
@@ -70,10 +70,38 @@ describe('compiler > assignments', () => {
 		render(App);
 
 		expect(logs).toEqual([
-			undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
-			123, 123, 123, 123, 123, 123, 123, 123,
-			125, 125, 125, 125, 125, 125, 125, 125,
-			124, 123, 124, 123, 124, 123, 124, 123
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			123,
+			123,
+			123,
+			123,
+			123,
+			123,
+			123,
+			123,
+			125,
+			125,
+			125,
+			125,
+			125,
+			125,
+			125,
+			125,
+			124,
+			123,
+			124,
+			123,
+			124,
+			123,
+			124,
+			123,
 		]);
 	});
 

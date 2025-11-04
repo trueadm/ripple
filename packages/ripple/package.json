@@ -1,5 +1,5 @@
 {
-  "name": "ripple",
+  "name": "@ripple-ts/ripple",
   "description": "Ripple is an elegant TypeScript UI framework",
   "license": "MIT",
   "author": "Dominic Gannaway",
@@ -81,6 +81,6 @@
     "typescript": "catalog:default"
   },
   "peerDependencies": {
-    "ripple": "workspace:*"
+    "@ripple-ts/ripple": "workspace:*"
   }
 }

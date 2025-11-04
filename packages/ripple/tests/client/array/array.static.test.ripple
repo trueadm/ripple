@@ -1,4 +1,4 @@
-import { flushSync, TrackedArray } from 'ripple';
+import { flushSync, TrackedArray } from '@ripple-ts/ripple';
 import { MAX_ARRAY_LENGTH } from '../../../src/runtime/internal/client/constants.js';
 
 describe('TrackedArray > static', () => {

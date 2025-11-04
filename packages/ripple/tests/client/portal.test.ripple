@@ -1,4 +1,4 @@
-import { Portal, track, flushSync } from 'ripple';
+import { Portal, track, flushSync } from '@ripple-ts/ripple';
 
 describe('Portal', () => {
 	afterEach(() => {

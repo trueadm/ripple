@@ -1,5 +1,5 @@
-import { track, flushSync, untrack } from 'ripple';
-import { compile } from 'ripple/compiler';
+import { track, flushSync, untrack } from '@ripple-ts/ripple';
+import { compile } from '@ripple-ts/ripple/compiler';
 
 describe('basic client > errors', () => {
 	it('renders with error handling simulation', () => {
@@ -19,9 +19,9 @@ describe('basic client > errors', () => {
 			<div>
 				<button onClick={triggerError}>{'Trigger Error'}</button>
 				if (@hasError) {
-					<div class='error'>{'Error caught: ' + @errorMessage}</div>
+					<div class="error">{'Error caught: ' + @errorMessage}</div>
 				} else {
-					<div class='success'>{'No error'}</div>
+					<div class="success">{'No error'}</div>
 				}
 			</div>
 		}
@@ -78,7 +78,9 @@ describe('basic client > errors', () => {
 
 		render(Basic);
 
-		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+		expect(error).toBe(
+			'Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation',
+		);
 	});
 
 	it('errors on mutating tracked value inside untrack() in computed track() evaluation', () => {
@@ -100,10 +102,12 @@ describe('basic client > errors', () => {
 
 		render(Basic);
 
-		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+		expect(error).toBe(
+			'Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation',
+		);
 	});
 
-	it("errors on mutating a tracked variable in track() getter", () => {
+	it('errors on mutating a tracked variable in track() getter', () => {
 		component Basic() {
 			let count = track(0);
 
@@ -121,7 +125,9 @@ describe('basic client > errors', () => {
 
 		render(Basic);
 
-		expect(error).toBe('Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation');
+		expect(error).toBe(
+			'Assignments or updates to tracked values are not allowed during computed "track(() => ...)" evaluation',
+		);
 	});
 
 	it('should throw error for await in client-side control-flow statements', () => {

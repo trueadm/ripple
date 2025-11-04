@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Context, flushSync } from 'ripple';
+import { Context, flushSync } from '@ripple-ts/ripple';
 
 describe('context', () => {
 	it('creates a reactive ref with initial value', () => {

@@ -1,4 +1,4 @@
-import { flushSync, TrackedURL } from 'ripple';
+import { flushSync, TrackedURL } from '@ripple-ts/ripple';
 
 describe('TrackedURL > partials/removal', () => {
 	it('handles URL with no port specified', () => {

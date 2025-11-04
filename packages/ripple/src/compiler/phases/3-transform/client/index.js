@@ -45,8 +45,8 @@ import { createHash } from 'node:crypto';
 
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
-		if (!context.state.imports.has(`import * as _$_ from 'ripple/internal/client'`)) {
-			context.state.imports.add(`import * as _$_ from 'ripple/internal/client'`);
+		if (!context.state.imports.has(`import * as _$_ from '@ripple-ts/ripple/internal/client'`)) {
+			context.state.imports.add(`import * as _$_ from '@ripple-ts/ripple/internal/client'`);
 		}
 	}
 }
@@ -216,8 +216,8 @@ function visit_title_element(node, context) {
 function import_from_ripple_if_needed(name, context) {
 	const alias = context.state.ripple_user_imports?.get?.(name);
 
-	if (!alias && !context.state.imports.has(`import { ${name} } from 'ripple'`)) {
-		context.state.imports.add(`import { ${name} } from 'ripple'`);
+	if (!alias && !context.state.imports.has(`import { ${name} } from '@ripple-ts/ripple'`)) {
+		context.state.imports.add(`import { ${name} } from '@ripple-ts/ripple'`);
 	}
 
 	return alias ?? name;
@@ -2575,7 +2575,7 @@ function create_tsx_with_typescript_support() {
  */
 export function transform_client(filename, source, analysis, to_ts) {
 	/**
-	 * User's named imports from 'ripple' so we can reuse them in TS output
+	 * User's named imports from '@ripple-ts/ripple' so we can reuse them in TS output
 	 * when transforming shorthand syntax. E.g., if the user has already imported
 	 * TrackedArray, we want to reuse that import instead of importing it again
 	 * if we encounter `#[]`. It's a Map of export name to local name in case the
@@ -2589,7 +2589,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 				stmt &&
 				stmt.type === 'ImportDeclaration' &&
 				stmt.source &&
-				stmt.source.value === 'ripple'
+				stmt.source.value === '@ripple-ts/ripple'
 			) {
 				for (const spec of stmt.specifiers || []) {
 					if (spec.type === 'ImportSpecifier' && spec.imported && spec.local) {
