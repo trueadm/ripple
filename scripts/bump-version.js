@@ -25,10 +25,10 @@ const ALLOWED_BUMPS = new Set(["major", "minor", "patch"]);
 /** @type {Set<ScopeType>} */
 const ALLOWED_SCOPES = new Set(["all", "editors"]);
 const EDITOR_PACKAGE_DIRS = new Set([
-	"ripple-nvim-plugin",
-	"ripple-sublime-text-plugin",
-	"ripple-vscode-plugin",
-	"ripple-zed-plugin"
+	"nvim-plugin",
+	"sublime-text-plugin",
+	"vscode-plugin",
+	"zed-plugin"
 ]);
 
 const bumpArg = process.argv[2] ?? "";

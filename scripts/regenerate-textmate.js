@@ -87,7 +87,7 @@ function writeTargets(targets, contents) {
 const __filename = fileURLToPath(import.meta.url);
 const rootDir = path.join(path.dirname(__filename), "..");
 
-const sourceFile = path.join(rootDir, 'packages/ripple-vscode-plugin/syntaxes/ripple.tmLanguage.json');
+const sourceFile = path.join(rootDir, 'packages/vscode-plugin/syntaxes/ripple.tmLanguage.json');
 
 const targetFiles = [
 	// For manual installation in editors we don't have plugins for

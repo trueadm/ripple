@@ -15,7 +15,7 @@ Ripple files and can be integrated into any editor that supports LSP.
 ## Installation
 
 ```bash
-npm install ripple-language-server -g
+npm install @ripple-ts/language-server -g
 ```
 
 ## Editor Integration
@@ -31,7 +31,7 @@ It uses this language server internally.
 
 1. Install the language server:
     ```bash
-    npm install ripple-language-server -g
+    npm install @ripple-ts/language-server -g
     ```
 2. Install the [LSP4IJ plugin](https://plugins.jetbrains.com/plugin/23257-lsp4ij).
 3. Add a new language server in it
@@ -50,8 +50,8 @@ Use the official plugin.
 
    ```lua
    {
-     "trueadm/ripple",
-     dir = "packages/ripple-nvim-plugin",
+     "Ripple-TS/ripple",
+     dir = "packages/nvim-plugin",
      config = true,
    }
    ```
@@ -65,8 +65,30 @@ Use the official plugin.
 Until the plugin lands on Package Control you need to install it from the packaged release:
 
 1. Make sure [Package Control](https://packagecontrol.io/installation) is installed, then install the [LSP](https://packagecontrol.io/packages/LSP) package (`Tools → Command Palette… → Package Control: Install Package → LSP`).
-2. Download the latest `Ripple.sublime-package` from the Ripple Sublime Text plugin (see `packages/ripple-sublime-text-plugin/README.md` in this repository for details).
-3. In Sublime Text, open `Preferences → Browse Packages…`, go up one level, and open the `Installed Packages/` directory.
-4. Copy the `Ripple.sublime-package` file into `Installed Packages/` and restart Sublime Text.
+2. Clone this repository.
+3. Go into `packages/sublime-text-plugin/` directory and run:
+   ```bash
+   npm run build
+   ```
+   This will create a `Ripple.sublime-package` file in the same directory.
+4. In Sublime Text, open `Preferences → Browse Packages…`, go up one level, and open the `Installed Packages/` directory.
+5. Copy the `Ripple.sublime-package` file into `Installed Packages/` and restart Sublime Text.
 
-Ensure Node.js `>= 18` is available on your `PATH`, then open a `.ripple` file to start receiving diagnostics, completions, and other language features.
+Diagnostics, completions, and other features should work in `.ripple` files now.
+
+## Standalone Usage
+
+You can use the language server in any other editor that supports LSP. You can install it globally:
+```bash
+npm install -g @ripple-ts/language-server
+```
+
+Then run the server with:
+```bash
+ripple-language-server --stdio
+```
+
+Or you can run it via `npx` without installing:
+```bash
+npx @ripple-ts/language-server --stdio
+```

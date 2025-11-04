@@ -9,7 +9,7 @@ struct RippleExtension {
     required_version: Option<String>,
 }
 
-const PACKAGE_NAME: &str = "ripple-language-server";
+const PACKAGE_NAME: &str = "@ripple-ts/language-server";
 
 impl RippleExtension {
     fn language_server_binary_path(
@@ -36,14 +36,14 @@ impl RippleExtension {
         let (os, _) = zed::current_platform();
         let candidates: &[&str] = match os {
             zed::Os::Windows => &[
-                "ripple-language-server.cmd",
-                "ripple-language-server",
-                "node_modules/.bin/ripple-language-server.cmd",
-                "node_modules/.bin/ripple-language-server",
+                "language-server.cmd",
+                "language-server",
+                "node_modules/.bin/language-server.cmd",
+                "node_modules/.bin/language-server",
             ],
             _ => &[
-                "ripple-language-server",
-                "node_modules/.bin/ripple-language-server",
+                "@ripple-ts/language-server",
+                "node_modules/.bin/@ripple-ts/language-server",
             ],
         };
 

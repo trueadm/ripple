@@ -1,5 +1,5 @@
 {
-	"name": "ripple-nvim-plugin",
+	"name": "@ripple-ts/nvim-plugin",
 	"version": "0.0.41",
 	"description": "Neovim plugin that wires Ripple tree-sitter highlights and language server integration.",
 	"author": "Dominic Gannaway",
@@ -8,11 +8,11 @@
 	"type": "module",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/trueadm/ripple.git",
-		"directory": "packages/ripple-nvim-plugin"
+		"url": "git+https://github.com/Ripple-TS/ripple.git",
+		"directory": "packages/nvim-plugin"
 	},
 	"config": {
-		"ripple-language-server": "0.2.148"
+		"@ripple-ts/language-server": "0.2.153"
 	},
 	"files": [
 		"lua",

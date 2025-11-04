@@ -1,7 +1,8 @@
 local M = {}
 
 local SERVER_NAME = "ripple"
-local LSP_PACKAGE = "ripple-language-server"
+local LSP_PACKAGE = "@ripple-ts/language-server"
+local LSP_BIN = "ripple-language-server"
 local EXACT_VERSION_PATTERN = "^%d+%.%d+%.%d+$"
 
 local function is_windows()
@@ -55,10 +56,10 @@ local function resolve_required_version()
 
 	local config = package_json.config or {}
 
-	local spec = config["ripple-language-server"]
+	local spec = config["@ripple-ts/language-server"]
 
 	if type(spec) ~= "string" or spec == "" then
-		return nil, "missing config.rippleLanguageServerVersion field in package.json"
+		return nil, "missing config['@ripple-ts/language-server'] field in package.json"
 	end
 
 	spec = spec:gsub("^%s+", ""):gsub("%s+$", "")
@@ -97,26 +98,27 @@ local function local_server_binary()
 		return nil
 	end
 
-	local base = node_modules_dir .. "/.bin/" .. LSP_PACKAGE
-	if file_exists(base) then
-		return base
-	end
+	local base = node_modules_dir .. "/.bin/" .. LSP_BIN
 
 	if is_windows() and file_exists(base .. ".cmd") then
 		return base .. ".cmd"
+	end
+
+	if file_exists(base) then
+		return base
 	end
 
 	return nil
 end
 
 local function global_server_binary()
-	local exepath = vim.fn.exepath(LSP_PACKAGE)
+	local exepath = vim.fn.exepath(LSP_BIN)
 	if type(exepath) == "string" and exepath ~= "" then
 		return exepath
 	end
 
 	if is_windows() then
-		local with_cmd = LSP_PACKAGE .. ".cmd"
+		local with_cmd = LSP_BIN .. ".cmd"
 		if vim.fn.executable(with_cmd) == 1 then
 			local cmd_path = vim.fn.exepath(with_cmd)
 			if type(cmd_path) == "string" and cmd_path ~= "" then
@@ -146,7 +148,7 @@ local function ensure_server_binary()
 	end
 
 	local install_dir = vim.fn.stdpath("data") .. "/" .. LSP_PACKAGE
-	bin = install_dir .. "/node_modules/.bin/" .. LSP_PACKAGE
+	bin = install_dir .. "/node_modules/.bin/" .. LSP_BIN
 
 	if is_windows() then
 		bin = bin .. ".cmd"

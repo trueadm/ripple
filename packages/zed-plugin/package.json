@@ -1,16 +1,16 @@
 {
-  "name": "ripple-zed-plugin",
+  "name": "@ripple-ts/zed-plugin",
   "version": "0.0.41",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "copy-scm": "cp ../tree-sitter-ripple/queries/*.scm ./languages/ripple"
+    "copy-scm": "cp ../tree-sitter/queries/*.scm ./languages/ripple"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "config": {
-    "ripple-language-server": "0.2.148"
+    "@ripple-ts/language-server": "0.2.153"
   },
   "packageManager": "pnpm@10.18.2"
 }

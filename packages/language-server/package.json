@@ -4,7 +4,7 @@
   "description": "Language Server Protocol implementation for Ripple",
   "main": "index.js",
   "bin": {
-    "@ripple-ts/language-server": "bin/language-server.js"
+    "ripple-language-server": "bin/language-server.js"
   },
   "author": "Dominic Gannaway",
   "license": "MIT",

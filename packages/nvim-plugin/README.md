@@ -15,8 +15,8 @@ Neovim integration for the [Ripple](https://github.com/trueadm/ripple) language.
 
 ```lua
 {
-  "trueadm/ripple",
-  dir = "packages/ripple-nvim-plugin",
+  "Ripple-TS/ripple",
+  dir = "packages/nvim-plugin",
   config = true,
 }
 ```
@@ -30,5 +30,5 @@ If you're using another plugin manager and wish to share installation instructio
 `require("ripple").setup()` registers the Ripple parser with `nvim-treesitter` and points it at the bundled grammar source:
 
 - Repository: `https://github.com/trueadm/ripple`
-- Subdirectory: `packages/tree-sitter-ripple`
+- Subdirectory: `packages/tree-sitter`
 - Files: `src/parser.c`, `src/scanner.c`

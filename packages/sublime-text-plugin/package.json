@@ -1,17 +1,18 @@
 {
-	"name": "ripple-sublime-text-plugin",
+	"name": "@ripple-ts/sublime-text-plugin",
 	"version": "0.0.41",
 	"description": "",
 	"scripts": {
-		"build": "cd src/language-server && npm install --package-lock-only && cd ../.. && node ./scripts/build.js"
+		"update-lock": "cd src/language-server && npm install --package-lock-only",
+		"build": "npm run update-lock && node ./scripts/build.js"
 	},
 	"author": "Dominic Gannaway",
 	"license": "MIT",
 	"type": "module",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/trueadm/ripple.git",
-		"directory": "packages/ripple-sublime-text-plugin"
+		"url": "git+https://github.com/Ripple-TS/ripple.git",
+		"directory": "packages/sublime-text-plugin"
 	},
 	"devDependencies": {
 		"@types/adm-zip": "^0.5.7",

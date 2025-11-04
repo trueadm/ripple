@@ -1,5 +1,5 @@
 {
-  "name": "tree-sitter-ripple",
+  "name": "@ripple-ts/tree-sitter",
   "version": "0.0.1",
   "description": "Ripple grammar for tree-sitter",
   "main": "bindings/node",
@@ -9,7 +9,7 @@
     "parser",
     "ripple"
   ],
-  "author": "Ripple Contributors",
+  "author": "Dominic Gannaway",
   "license": "MIT",
   "dependencies": {
     "node-addon-api": "^7.1.0",
