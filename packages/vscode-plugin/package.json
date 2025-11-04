@@ -1,7 +1,7 @@
 {
   "name": "@ripple-ts/vscode-plugin",
   "displayName": "Ripple for VS Code",
-  "publisher": "Ripple-TS",
+  "publisher": "ripple-ts",
   "description": "Ripple JavaScript/TypeScript language support",
   "version": "0.0.43",
   "author": "Dominic Gannaway",
