@@ -13,6 +13,8 @@ const __dirname = path.dirname(__filename);
 
 const ALLOWED_BUMPS = new Set(['major', 'minor', 'patch']);
 const ALLOWED_SCOPES = new Set(['all', 'vscode']);
+const VSCodePackageDirName = 'vscode-plugin';
+const VSCodePackageName = '@ripple-ts/vscode-plugin';
 
 const bumpArg = process.argv[2] ?? '';
 const maybeScope = process.argv[3] ?? null;
@@ -189,8 +191,8 @@ function loadPackages(targetScope) {
 
 	for (const entry of entries) {
 		if (!entry.isDirectory()) continue;
-		if (targetScope === 'all' && entry.name === 'vscode-plugin') continue;
-		if (targetScope === 'vscode' && entry.name !== 'vscode-plugin') continue;
+		if (targetScope === 'all' && entry.name === VSCodePackageDirName) continue;
+		if (targetScope === 'vscode' && entry.name !== VSCodePackageDirName) continue;
 
 		const packageJsonPath = path.join(packagesDir, entry.name, 'package.json');
 		if (!fs.existsSync(packageJsonPath)) continue;
@@ -360,9 +362,9 @@ function attemptRebaseAndPush(remote, version) {
  * @param {readonly { dir: string; json: Record<string, any> }[]} packages
  */
 function runVscodeScopePreCheck(packages) {
-	const vscodePackage = packages.find((pkg) => pkg.json.name === 'vscode-plugin');
+	const vscodePackage = packages.find((pkg) => pkg.json.name === VSCodePackageName);
 	if (!vscodePackage) {
-		throw new Error('Unable to locate vscode-plugin package for VS Code scope checks.');
+		throw new Error(`Unable to locate '${VSCodePackageName}' package for VS Code scope checks.`);
 	}
 
 	console.log('\nRunning VS Code extension pre-check: pnpm run build-and-package');
@@ -380,10 +382,10 @@ function runVscodeScopePreCheck(packages) {
 		const packages = loadPackages(scope);
 		const basePackage =
 			scope === 'vscode'
-				? packages.find((pkg) => pkg.json.name === '@ripple-ts/vscode-plugin')
+				? packages.find((pkg) => pkg.json.name === VSCodePackageName)
 				: packages.find((pkg) => pkg.json.name === 'ripple');
 		if (!basePackage) {
-			const target = scope === 'vscode' ? "'@ripple-ts/vscode-plugin'" : "'ripple'";
+			const target = scope === 'vscode' ? `'${VSCodePackageName}'` : "'ripple'";
 			throw new Error(`Unable to locate the ${target} package to determine the base version.`);
 		}
 
