@@ -1,6 +1,6 @@
 {
   "name": "create-ripple",
-  "version": "0.2.152",
+  "version": "0.2.153",
   "bin": {
     "create-ripple": "./src/index.js"
   },
