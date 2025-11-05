@@ -278,7 +278,6 @@ describe('basic client > components & composition', () => {
 			<Button>{''}</Button>
 		}
 
-		// This should not throw an error
 		expect(() => {
 			render(App);
 		}).not.toThrow();
