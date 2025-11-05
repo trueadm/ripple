@@ -1591,10 +1591,40 @@ function RipplePlugin(config) {
 						if (this.type === tt.braceL) {
 							const node = this.jsx_parseExpressionContainer();
 							body.push(node);
-						} else {
-							// Parse regular JSX expression (JSXElement, JSXFragment, etc.)
+						} else if (this.type === tstt.jsxTagStart) {
+							// Parse JSX element
 							const node = super.parseExpression();
 							body.push(node);
+						} else {
+							const start = this.start;
+							this.pos = start;
+							let text = '';
+
+							while (this.pos < this.input.length) {
+								const ch = this.input.charCodeAt(this.pos);
+
+								// Stop at opening tag, closing tag, or expression
+								if (ch === 60 || ch === 123) {
+									// < or {
+									break;
+								}
+
+								text += this.input[this.pos];
+								this.pos++;
+							}
+
+							if (text) {
+								const node = {
+									type: 'JSXText',
+									value: text,
+									raw: text,
+									start,
+									end: this.pos,
+								};
+								body.push(node);
+							}
+
+							this.next();
 						}
 					}
 				}
