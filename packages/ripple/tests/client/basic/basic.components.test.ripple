@@ -268,4 +268,20 @@ describe('basic client > components & composition', () => {
 		expect(span.textContent).toBe('Hello from Span');
 		expect(buttonSpan.textContent).toBe('Click me!');
 	});
+
+	it('handles empty string children', () => {
+		component Button({ children }) {
+			<children />
+		}
+
+		component App() {
+			let text = '';
+			<Button>{''}</Button>
+			<Button>{text}</Button>
+		}
+
+		expect(() => {
+			render(App);
+		}).not.toThrow();
+	});
 });

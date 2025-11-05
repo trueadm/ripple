@@ -2200,7 +2200,17 @@ function transform_children(children, context) {
 		} else if (state.to_ts) {
 			transform_ts_child(node, { visit, state });
 		} else {
-			if (initial === null && root) {
+			let metadata;
+			let expression;
+			let isCreateTextOnly = false;
+			if (node.type === 'Text' || node.type === 'Html') {
+				metadata = { tracking: false, await: false };
+				expression = visit(node.expression, { ...state, metadata });
+				isCreateTextOnly =
+					node.type === 'Text' && normalized.length === 1 && expression.type === 'Literal';
+			}
+
+			if (initial === null && root && !isCreateTextOnly) {
 				create_initial(node);
 			}
 
@@ -2247,9 +2257,6 @@ function transform_children(children, context) {
 			} else if (node.type === 'TsxCompat') {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'Html') {
-				const metadata = { tracking: false, await: false };
-				const expression = visit(node.expression, { ...state, metadata });
-
 				context.state.template.push('<!>');
 
 				const id = flush_node();
@@ -2265,9 +2272,6 @@ function transform_children(children, context) {
 					),
 				});
 			} else if (node.type === 'Text') {
-				const metadata = { tracking: false, await: false };
-				const expression = visit(node.expression, { ...state, metadata });
-
 				if (metadata.tracking) {
 					state.template.push(' ');
 					const id = flush_node();
@@ -2281,7 +2285,13 @@ function transform_children(children, context) {
 					}
 				} else if (normalized.length === 1) {
 					if (expression.type === 'Literal') {
-						state.template.push(escape_html(expression.value));
+						if (state.template.length > 0) {
+							state.template.push(escape_html(expression.value));
+						} else {
+							const id = flush_node();
+							state.init.push(b.var(id, b.call('_$_.create_text', expression)));
+							state.final.push(b.stmt(b.call('_$_.append', b.id('__anchor'), id)));
+						}
 					} else {
 						const id = flush_node();
 						state.template.push(' ');
