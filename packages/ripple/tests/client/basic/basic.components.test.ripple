@@ -275,7 +275,9 @@ describe('basic client > components & composition', () => {
 		}
 
 		component App() {
+			let text = '';
 			<Button>{''}</Button>
+			<Button>{text}</Button>
 		}
 
 		expect(() => {
