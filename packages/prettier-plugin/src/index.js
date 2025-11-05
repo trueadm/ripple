@@ -1168,6 +1168,11 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'JSXExpressionContainer': {
+			nodeContent = concat(['{', path.call(print, 'expression'), '}']);
+			break;
+		}
+
 		case 'NewExpression':
 			nodeContent = printNewExpression(node, path, options, print);
 			break;
@@ -4325,27 +4330,57 @@ function printTsxCompat(node, path, options, print) {
 	}
 
 	// Print JSXElement children - they remain as JSX
-	// Filter out whitespace-only JSXText nodes
+	// Filter out whitespace-only JSXText nodes and merge adjacent text-like nodes
 	const finalChildren = [];
+	let accumulatedText = '';
 
 	for (let i = 0; i < node.children.length; i++) {
 		const child = node.children[i];
 
-		// Skip whitespace-only JSXText nodes
-		if (child.type === 'JSXText' && !child.value.trim()) {
-			continue;
-		}
+		// Check if this is a text-like node (JSXText or Identifier in JSX context)
+		const isTextLike = child.type === 'JSXText' || child.type === 'Identifier';
 
-		const printedChild = path.call(print, 'children', i);
-		finalChildren.push(printedChild);
+		if (isTextLike) {
+			// Get the text content
+			let text;
+			if (child.type === 'JSXText') {
+				text = child.value.trim();
+			} else if (child.type === 'Identifier') {
+				text = child.name;
+			}
 
-		if (i < node.children.length - 1) {
-			// Only add hardline if the next child is not whitespace-only
-			const nextChild = node.children[i + 1];
-			if (nextChild && !(nextChild.type === 'JSXText' && !nextChild.value.trim())) {
+			if (text) {
+				if (accumulatedText) {
+					accumulatedText += ' ' + text;
+				} else {
+					accumulatedText = text;
+				}
+			}
+		} else {
+			// Before adding non-text node, flush accumulated text
+			if (accumulatedText) {
+				if (finalChildren.length > 0) {
+					finalChildren.push(hardline);
+				}
+				finalChildren.push(accumulatedText);
+				accumulatedText = '';
+			}
+
+			if (finalChildren.length > 0) {
 				finalChildren.push(hardline);
 			}
+
+			const printedChild = path.call(print, 'children', i);
+			finalChildren.push(printedChild);
 		}
+	}
+
+	// Don't forget any remaining accumulated text
+	if (accumulatedText) {
+		if (finalChildren.length > 0) {
+			finalChildren.push(hardline);
+		}
+		finalChildren.push(accumulatedText);
 	}
 
 	// Format the TsxCompat element
@@ -4404,24 +4439,43 @@ function printJSXElement(node, path, options, print) {
 		return concat(['<', tagName, attributesDoc, '></', tagName, '>']);
 	}
 
-	// Format children - filter out empty text nodes
+	// Format children - filter out empty text nodes and merge adjacent text nodes
 	const childrenDocs = [];
+	let currentText = '';
+
 	for (let i = 0; i < node.children.length; i++) {
 		const child = node.children[i];
 
 		if (child.type === 'JSXText') {
-			// Handle JSX text nodes - only include if not just whitespace
-			const text = child.value;
-			if (text.trim()) {
-				childrenDocs.push(text);
+			// Accumulate text content, preserving spaces between words
+			const trimmed = child.value.trim();
+			if (trimmed) {
+				if (currentText) {
+					currentText += ' ' + trimmed;
+				} else {
+					currentText = trimmed;
+				}
 			}
-		} else if (child.type === 'JSXExpressionContainer') {
-			// Handle JSX expression containers
-			childrenDocs.push(concat(['{', path.call(print, 'children', i, 'expression'), '}']));
 		} else {
-			// Handle nested JSX elements
-			childrenDocs.push(path.call(print, 'children', i));
+			// If we have accumulated text, push it before the non-text node
+			if (currentText) {
+				childrenDocs.push(currentText);
+				currentText = '';
+			}
+
+			if (child.type === 'JSXExpressionContainer') {
+				// Handle JSX expression containers
+				childrenDocs.push(concat(['{', path.call(print, 'children', i, 'expression'), '}']));
+			} else {
+				// Handle nested JSX elements
+				childrenDocs.push(path.call(print, 'children', i));
+			}
 		}
+	}
+
+	// Don't forget any remaining text
+	if (currentText) {
+		childrenDocs.push(currentText);
 	}
 
 	// Check if content can be inlined (single text node or single expression)

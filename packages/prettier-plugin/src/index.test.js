@@ -3812,6 +3812,82 @@ component Polygon() {
 				const result = await format(input, { singleQuote: true });
 				expect(result).toBeWithNewline(expected);
 			});
+
+			it('should format JSXExpressionContainer with function calls', async () => {
+				const input = `function foo(){return 123}component App(){<div><tsx:react>{foo()}</tsx:react></div>}`;
+
+				const expected = `function foo() {
+  return 123;
+}
+component App() {
+  <div>
+    <tsx:react>
+      {foo()}
+    </tsx:react>
+  </div>
+}`;
+
+				const result = await format(input);
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format JSXExpressionContainer with function calls', async () => {
+				const input = `function foo(){return 123}component App(){<div><tsx:react>{foo()}<div>Hello world</div>Hello world</tsx:react></div>}`;
+
+				const expected = `function foo() {
+  return 123;
+}
+component App() {
+  <div>
+    <tsx:react>
+      {foo()}
+      <div>Hello world</div>
+      Hello world
+    </tsx:react>
+  </div>
+}`;
+
+				const result = await format(input);
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format JSXExpressionContainer with function calls #2', async () => {
+				const input = `export component App() {
+	<tsx:react>
+		Hello world
+		<DemoContext.Provider value={"Hello from Context!"}>
+			<Child count={@count} />
+		</DemoContext.Provider>
+	</tsx:react>
+}`;
+				const expected = `export component App() {
+  <tsx:react>
+    Hello world
+    <DemoContext.Provider value={"Hello from Context!"}>
+      <Child count={@count} />
+    </DemoContext.Provider>
+  </tsx:react>
+}`;
+
+				const result = await format(input);
+				expect(result).toBeWithNewline(expected);
+			});
+			it('should format JSXExpressionContainer with complex expressions', async () => {
+				const input = `component App(){let count=track(0);<tsx:react><div>{count*2+10}</div>{getMessage("test")}</tsx:react>}`;
+
+				const expected = `component App() {
+  let count = track(0);
+  <tsx:react>
+    <div>
+      {count * 2 + 10}
+    </div>
+    {getMessage('test')}
+  </tsx:react>
+}`;
+
+				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
 		});
 	});
 });
