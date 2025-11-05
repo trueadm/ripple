@@ -1163,10 +1163,14 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'TSNonNullExpression': {
+			nodeContent = concat([path.call(print, 'expression'), '!']);
+			break;
+		}
+
 		case 'NewExpression':
 			nodeContent = printNewExpression(node, path, options, print);
 			break;
-
 		case 'TemplateLiteral':
 			nodeContent = printTemplateLiteral(node, path, options, print);
 			break;
@@ -1324,8 +1328,10 @@ function printRippleNode(node, path, options, print, args) {
 			const trackedPrefix = node.tracked ? '@' : '';
 			let identifierContent;
 			if (node.typeAnnotation) {
+				const optionalMarker = node.optional ? '?' : '';
 				identifierContent = concat([
 					trackedPrefix + node.name,
+					optionalMarker,
 					': ',
 					path.call(print, 'typeAnnotation'),
 				]);
@@ -1348,7 +1354,6 @@ function printRippleNode(node, path, options, print, args) {
 			}
 			break;
 		}
-
 		case 'Literal':
 			// Handle regex literals specially
 			if (node.regex) {
@@ -1645,10 +1650,13 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSPropertySignature(node, path, options, print);
 			break;
 
+		case 'TSMethodSignature':
+			nodeContent = printTSMethodSignature(node, path, options, print);
+			break;
+
 		case 'TSEnumMember':
 			nodeContent = printTSEnumMember(node, path, options, print);
 			break;
-
 		case 'TSLiteralType':
 			nodeContent = path.call(print, 'literal');
 			break;
@@ -3855,6 +3863,47 @@ function printTSPropertySignature(node, path, options, print) {
 		parts.push('?');
 	}
 
+	if (node.typeAnnotation) {
+		parts.push(': ');
+		parts.push(path.call(print, 'typeAnnotation'));
+	}
+
+	return concat(parts);
+}
+
+function printTSMethodSignature(node, path, options, print) {
+	const parts = [];
+
+	// Print the method name/key
+	parts.push(path.call(print, 'key'));
+
+	// Add optional marker if present
+	if (node.optional) {
+		parts.push('?');
+	}
+
+	// Add TypeScript generics/type parameters if present
+	if (node.typeParameters) {
+		const typeParams = path.call(print, 'typeParameters');
+		if (Array.isArray(typeParams)) {
+			parts.push(...typeParams);
+		} else {
+			parts.push(typeParams);
+		}
+	}
+
+	// Print parameters - use 'parameters' property for TypeScript signature nodes
+	parts.push('(');
+	if (node.parameters && node.parameters.length > 0) {
+		const params = path.map(print, 'parameters');
+		for (let i = 0; i < params.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(params[i]);
+		}
+	}
+	parts.push(')');
+
+	// Return type annotation
 	if (node.typeAnnotation) {
 		parts.push(': ');
 		parts.push(path.call(print, 'typeAnnotation'));

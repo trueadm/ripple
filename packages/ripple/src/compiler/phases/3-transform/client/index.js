@@ -305,6 +305,13 @@ const visitors = {
 		};
 	},
 
+	TSNonNullExpression(node, context) {
+		if (context.state.to_ts) {
+			return context.next();
+		}
+		return context.visit(node.expression);
+	},
+
 	CallExpression(node, context) {
 		if (!context.state.to_ts) {
 			delete node.typeArguments;

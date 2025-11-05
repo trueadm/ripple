@@ -2282,6 +2282,44 @@ const items = [] as unknown[];`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should format TSMethodSignature in interfaces', async () => {
+			const input = `interface API{get(path:string):Promise<Response>;post<T>(path:string,data:T):Promise<Response>;delete?(id:number):void}`;
+			const expected = `interface API {
+  get(path: string): Promise<Response>;
+  post<T>(path: string, data: T): Promise<Response>;
+  delete?(id: number): void;
+}`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TSMethodSignature with type parameters', async () => {
+			const input = `interface Collection{map<U>(fn:(item:T)=>U):U[];filter(predicate:(item:T)=>boolean):T[]}`;
+			const expected = `interface Collection {\n  map<U>(fn: (item: T) => U): U[];\n  filter(predicate: (item: T) => boolean): T[];\n}`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TSNonNullExpression', async () => {
+			const input = `component Test(){let value:string|null=null;let length=value!.length;<div>{length}</div>}`;
+			const expected = `component Test() {
+  let value: string | null = null;
+  let length = value!.length;
+  <div>{length}</div>
+}`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should format TSNonNullExpression in complex expressions', async () => {
+			const input = `function getValue(x?:string){return x!.toUpperCase()}`;
+			const expected = `function getValue(x?: string) {
+  return x!.toUpperCase();
+}`;
+			const result = await format(input);
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should retain templated declarations', async () => {
 			const expected = `function Wrapper() {
   return {
