@@ -3,6 +3,7 @@ export {
 	child_frag,
 	next_sibling as sibling,
 	document,
+	create_text,
 } from './operations.js';
 
 export {
