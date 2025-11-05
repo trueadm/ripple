@@ -26,7 +26,7 @@
   "bugs": {
     "url": "https://github.com/Ripple-TS/ripple/issues"
   },
-  "homepage": "https://ripple-ts.com",
+  "homepage": "https://ripplejs.com",
   "scripts": {
     "dist": "perl -pi -e 's/\"main\": \"src\\/index.ts\"/\"main\": \"dist\\/index.js\"/' package.json",
     "src": "perl -pi -e 's/\"main\": \"dist\\/index.js\"/\"main\": \"src\\/index.ts\"/' package.json",

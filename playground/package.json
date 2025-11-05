@@ -27,6 +27,6 @@
   },
   "dependencies": {
     "tailwindcss": "catalog:peer",
-    "@ripple-ts/compat-react": "workspace:*"
+    "@ripplejs.compat-react": "workspace:*"
   }
 }

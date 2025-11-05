@@ -1130,10 +1130,10 @@ export default defineConfig({
 
 ## Resources
 
-- **Website**: https://ripple-ts.com
+- **Website**: https://ripplejs.com
 - **GitHub**: https://github.com/Ripple-TS/ripple
 - **VSCode Extension**: https://marketplace.visualstudio.com/items?itemName=ripple-ts.vscode-plugin
 
 ---
 
-This documentation is optimized for AI/LLM understanding of the Ripple framework. For the most up-to-date information, visit https://ripple-ts.com or the GitHub repository.
+This documentation is optimized for AI/LLM understanding of the Ripple framework. For the most up-to-date information, visit https://ripplejs.com or the GitHub repository.

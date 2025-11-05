@@ -11,7 +11,7 @@ The [Open Source Guides](https://opensource.guide/) website offers valuable reso
 
 There are numerous ways to contribute to Ripple, and many don't require writing code. Here are some ideas to get started:
 
-- **Start experimenting with Ripple**: Try out the [Ripple Playground](https://www.ripple-ts.com/playground) and see how it works. If you encounter issues or unexpected behavior, we'd love to hear about it through [opening an issue](#reporting-issues).
+- **Start experimenting with Ripple**: Try out the [Ripple Playground](https://www.ripplejs.com/playground) and see how it works. If you encounter issues or unexpected behavior, we'd love to hear about it through [opening an issue](#reporting-issues).
 - **Browse existing issues**: Check out our [open issues](https://github.com/Ripple-TS/ripple/issues). You can help by providing workarounds or asking clarifying questions.
 - **Submit fixes**: Found an issue you'd like to tackle? Consider [opening a pull request](#pull-requests).
 - **Help with documentation**: As Ripple grows, we'll need comprehensive documentation. Any help improving clarity or filling gaps would be greatly appreciated.

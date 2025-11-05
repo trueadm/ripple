@@ -6,7 +6,7 @@
   "version": "0.2.155",
   "type": "module",
   "main": "index.js",
-  "homepage": "https://ripple-ts.com",
+  "homepage": "https://ripplejs.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ripple-TS/ripple.git",

@@ -1,5 +1,5 @@
 {
-  "name": "@ripple-ts/compat-react",
+  "name": "@ripplejs.compat-react",
   "version": "0.2.155",
   "description": "Ripple compatibility layer for React",
   "main": "src/index.js",

@@ -14,7 +14,7 @@
       "default": "./src/index.js"
     }
   },
-  "homepage": "https://ripple-ts.com",
+  "homepage": "https://ripplejs.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ripple-TS/ripple.git",

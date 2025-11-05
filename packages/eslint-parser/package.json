@@ -12,7 +12,7 @@
   "bugs": {
     "url": "https://github.com/Ripple-TS/ripple/issues"
   },
-  "homepage": "https://ripple-ts.com",
+  "homepage": "https://ripplejs.com",
   "exports": {
     ".": "./dist/index.js"
   },
