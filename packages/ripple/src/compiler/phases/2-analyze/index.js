@@ -36,7 +36,8 @@ function mark_control_flow_has_template(path) {
 			node.type === 'ForOfStatement' ||
 			node.type === 'TryStatement' ||
 			node.type === 'IfStatement' ||
-			node.type === 'SwitchStatement'
+			node.type === 'SwitchStatement' ||
+			node.type === 'TsxCompat'
 		) {
 			node.metadata.has_template = true;
 		}
@@ -627,6 +628,11 @@ const visitors = {
 			context.state.analysis.module.filename,
 			node,
 		);
+	},
+
+	TsxCompat(_, context) {
+		mark_control_flow_has_template(context.path);
+		return context.next();
 	},
 
 	Element(node, context) {
