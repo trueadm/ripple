@@ -67,11 +67,14 @@ export function template(content, flags) {
 	var is_comment = content === '<!>';
 	var has_start = !is_comment && !content.startsWith('<!>');
 
+	if (content === '' && !is_fragment) {
+		return () => document.createTextNode('');
+	}
+
 	return () => {
 		// If using runtime namespace, check active_namespace
 		var svg = !is_comment && (use_svg_namespace || active_namespace === 'svg');
 		var mathml = !is_comment && (use_mathml_namespace || active_namespace === 'mathml');
-
 		if (node === undefined) {
 			node = create_fragment_from_html(has_start ? content : '<!>' + content, svg, mathml);
 			if (!is_fragment) node = /** @type {Node} */ (first_child(node));
