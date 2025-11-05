@@ -491,7 +491,7 @@ importers:
 
   playground:
     dependencies:
-      '@ripplejs.compat-react':
+      '@ripple-ts/compat-react':
         specifier: workspace:*
         version: link:../packages/compat-react
       tailwindcss:
