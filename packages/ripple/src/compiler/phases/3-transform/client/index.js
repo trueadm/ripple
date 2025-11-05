@@ -2274,7 +2274,13 @@ function transform_children(children, context) {
 					}
 				} else if (normalized.length === 1) {
 					if (expression.type === 'Literal') {
-						state.template.push(escape_html(expression.value));
+						if (expression.value === '') {
+							const id = flush_node();
+							state.template.push('<!>');
+							state.init.push(b.stmt(b.assignment('=', id, b.call('_$_.create_text', expression))));
+						} else {
+							state.template.push(escape_html(expression.value));
+						}
 					} else {
 						const id = flush_node();
 						state.template.push(' ');

@@ -2,6 +2,7 @@ export {
 	first_child as child,
 	child_frag,
 	next_sibling as sibling,
+	create_text,
 	document,
 } from './operations.js';
 
