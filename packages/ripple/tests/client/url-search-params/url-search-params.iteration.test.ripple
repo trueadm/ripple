@@ -67,7 +67,9 @@ describe('TrackedURLSearchParams > iteration', () => {
 		button.click();
 		flushSync();
 
-		expect(container.querySelector('pre').textContent).toBe('[["foo","bar"],["baz","qux"],["new","value"]]');
+		expect(container.querySelector('pre').textContent).toBe(
+			'[["foo","bar"],["baz","qux"],["new","value"]]',
+		);
 	});
 
 	it('handles Symbol.iterator with reactivity', () => {

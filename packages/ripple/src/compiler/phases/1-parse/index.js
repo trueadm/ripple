@@ -1795,7 +1795,7 @@ function RipplePlugin(config) {
 /**
  * Acorn doesn't add comments to the AST by itself. This factory returns the capabilities
  * to add them after the fact. They are needed in order to support `ripple-ignore` comments
- * in JS code and so that `prettier-plugin-ripple` doesn't remove all comments when formatting.
+ * in JS code and so that `prettier-plugin` doesn't remove all comments when formatting.
  * @param {string} source
  * @param {CommentWithLocation[]} comments
  * @param {number} [index=0] - Starting index

@@ -3,14 +3,10 @@ import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 import { npmCommandsMarkdownPlugin } from 'vitepress-plugin-npm-commands'
 /** @import { DefaultTheme } from 'vitepress'; */
 
-import rippleGrammar from "../../packages/ripple-vscode-plugin/syntaxes/ripple.tmLanguage.json"
+import rippleGrammar from '../../packages/vscode-plugin/syntaxes/ripple.tmLanguage.json'
 const modifiedGrammar = {
 	...rippleGrammar,
-	embeddedLangs: [
-		'jsx',
-		'tsx',
-		'css',
-	],
+	embeddedLangs: ['jsx', 'tsx', 'css'],
 }
 
 export default defineConfig({
@@ -63,25 +59,25 @@ export default defineConfig({
 		search: { provider: 'local' },
 
 		socialLinks: [
-			{ icon: 'github', link: 'https://github.com/trueadm/ripple' },
+			{ icon: 'github', link: 'https://github.com/Ripple-TS/ripple' },
 			{ icon: 'discord', link: 'https://discord.gg/JBF2ySrh2W' },
 		],
 
 		nav: nav(),
 
 		sidebar: {
-			'/docs/': { base: '/docs/', items: docs_sidebar() }
+			'/docs/': { base: '/docs/', items: docs_sidebar() },
 		},
 
 		editLink: {
-			pattern: 'https://github.com/trueadm/ripple/edit/main/website/:path',
-			text: 'Edit this page on GitHub'
+			pattern: 'https://github.com/Ripple-TS/ripple/edit/main/website/:path',
+			text: 'Edit this page on GitHub',
 		},
 
 		footer: {
 			message: 'Released under the MIT License.',
-			copyright: 'Copyright © 2025-present Dominic Gannaway'
-		}
+			copyright: 'Copyright © 2025-present Dominic Gannaway',
+		},
 	},
 
 	locales: {
@@ -90,23 +86,22 @@ export default defineConfig({
 
 	head: [
 		['link', { rel: 'icon', href: '/favicon.ico' }],
+		['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
 		[
 			'link',
-			{ rel: 'preconnect', href: 'https://fonts.googleapis.com' }
+			{ rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
 		],
 		[
 			'link',
-			{ rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }
-		],
-		[
-			'link',
-			{ href: 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Ubuntu+Sans:ital,wght@0,100..800;1,100..800&display=swap', rel: 'stylesheet' }
+			{
+				href: 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Ubuntu+Sans:ital,wght@0,100..800;1,100..800&display=swap',
+				rel: 'stylesheet',
+			},
 		],
 	],
 
 	cleanUrls: true,
-});
-
+})
 
 /** @type {DefaultTheme.NavItem[]} */
 function nav() {
@@ -123,8 +118,8 @@ function nav() {
 		{
 			text: 'Docs',
 			link: '/docs/introduction',
-			activeMatch: '/docs/*'
-		}
+			activeMatch: '/docs/*',
+		},
 	]
 }
 
@@ -137,7 +132,7 @@ function docs_sidebar() {
 			items: [
 				{ text: 'Introduction', link: 'introduction' },
 				{ text: 'Quick Start', link: 'quick-start' },
-			]
+			],
 		},
 		{
 			text: 'Guide',
@@ -153,7 +148,7 @@ function docs_sidebar() {
 				{ text: 'State Management', link: 'guide/state-management' },
 				{ text: 'Head Management', link: 'guide/head-management' },
 				{ text: 'Styling', link: 'guide/styling' },
-			]
+			],
 		},
 		{
 			text: 'Further Reading',
@@ -163,14 +158,12 @@ function docs_sidebar() {
 				{ text: 'Best Practices', link: 'best-practices' },
 				{ text: 'Libraries', link: 'libraries' },
 				{ text: 'Troubleshooting', link: 'troubleshooting' },
-			]
+			],
 		},
 		{
 			text: 'Miscellaneous',
 			collapsed: false,
-			items: [
-				{ text: 'llms.txt', link: '../llms.txt', target: '_blank' },
-			],
+			items: [{ text: 'llms.txt', link: '../llms.txt', target: '_blank' }],
 		},
 	]
 }

@@ -1,0 +1,27 @@
+{
+  "name": "@ripple-ts/rollup-plugin",
+  "description": "Rollup plugin for Ripple",
+  "license": "MIT",
+  "author": "Dominic Gannaway",
+  "version": "0.2.156",
+  "type": "module",
+  "main": "index.js",
+  "homepage": "https://ripplejs.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
+    "directory": "packages/rollup-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/Ripple-TS/ripple/issues"
+  },
+  "dependencies": {
+    "@rollup/pluginutils": "^4.1.0"
+  },
+  "devDependencies": {
+    "ripple": "workspace:*",
+    "rollup": "^2.33.3",
+    "source-map": "^0.7.3",
+    "uvu": "^0.5.6"
+  }
+}

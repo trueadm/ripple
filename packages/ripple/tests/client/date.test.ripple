@@ -250,7 +250,9 @@ describe('TrackedDate', () => {
 			let day = track(() => date.getDate());
 			let hours = track(() => date.getHours());
 
-			<button onClick={() => date.setTime(new Date(2026, 5, 15, 14, 45, 30).getTime())}>{'Change All'}</button>
+			<button onClick={() => date.setTime(new Date(2026, 5, 15, 14, 45, 30).getTime())}>
+				{'Change All'}
+			</button>
 			<div>
 				{'Year: '}
 				{@year}

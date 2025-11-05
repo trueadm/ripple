@@ -247,8 +247,10 @@ component App() {
 		expect(count_occurrences(result, 'createRefKey')).toBe(2);
 	});
 
-	it('doesn\'t add duplicate imports for renamed imports when encountering shorthand syntax', () => {
-		const source = `
+	it(
+		'doesn\'t add duplicate imports for renamed imports when encountering shorthand syntax',
+		() => {
+			const source = `
 import {
 	TrackedArray as TA,
 	TrackedObject as TO,
@@ -266,19 +268,20 @@ component App() {
 	<div {ref () => {}} />
 }
 `;
-		const result = compile_to_volar_mappings(source, 'test.ripple').code;
+			const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-		expect(count_occurrences(result, 'TrackedArray')).toBe(1);
-		expect(count_occurrences(result, 'TA')).toBe(2);
-		expect(count_occurrences(result, 'TrackedObject')).toBe(1);
-		expect(count_occurrences(result, 'TO')).toBe(2);
-		expect(count_occurrences(result, 'TrackedSet')).toBe(1);
-		expect(count_occurrences(result, 'TS')).toBe(2);
-		expect(count_occurrences(result, 'TrackedMap')).toBe(1);
-		expect(count_occurrences(result, 'TM')).toBe(2);
-		expect(count_occurrences(result, 'createRefKey')).toBe(1);
-		expect(count_occurrences(result, 'crk')).toBe(2);
-	});
+			expect(count_occurrences(result, 'TrackedArray')).toBe(1);
+			expect(count_occurrences(result, 'TA')).toBe(2);
+			expect(count_occurrences(result, 'TrackedObject')).toBe(1);
+			expect(count_occurrences(result, 'TO')).toBe(2);
+			expect(count_occurrences(result, 'TrackedSet')).toBe(1);
+			expect(count_occurrences(result, 'TS')).toBe(2);
+			expect(count_occurrences(result, 'TrackedMap')).toBe(1);
+			expect(count_occurrences(result, 'TM')).toBe(2);
+			expect(count_occurrences(result, 'createRefKey')).toBe(1);
+			expect(count_occurrences(result, 'crk')).toBe(2);
+		},
+	);
 
 	it('adds missing imports for shorthand syntax', () => {
 		const source = `

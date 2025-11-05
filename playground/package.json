@@ -1,5 +1,5 @@
 {
-  "name": "ripple-playground",
+  "name": "@ripple-ts/playground",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -16,17 +16,17 @@
     "@tailwindcss/vite": "catalog:default",
     "@typescript-eslint/parser": "catalog:default",
     "eslint": "catalog:default",
-    "eslint-plugin-ripple": "workspace:*",
+    "@ripple-ts/eslint-plugin": "workspace:*",
     "polka": "catalog:default",
     "ripple": "workspace:*",
     "typescript": "catalog:default",
     "vite": "catalog:default",
-    "vite-plugin-ripple": "workspace:*",
+    "@ripple-ts/vite-plugin": "workspace:*",
     "vitest": "catalog:default",
-    "typescript-plugin-ripple": "workspace:*"
+    "@ripple-ts/typescript-plugin": "workspace:*"
   },
   "dependencies": {
     "tailwindcss": "catalog:peer",
-    "ripple-compat-react": "workspace:*"
+    "@ripple-ts/compat-react": "workspace:*"
   }
 }

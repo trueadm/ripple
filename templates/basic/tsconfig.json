@@ -10,6 +10,6 @@
 		"jsxImportSource": "ripple",
 		"noEmit": true,
 		"isolatedModules": true,
-		"plugins": [{ "name": "typescript-plugin-ripple" }]
+		"plugins": [{ "name": "@ripple-ts/typescript-plugin" }]
 	}
 }

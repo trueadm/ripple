@@ -1,5 +1,6 @@
+import { Readable } from 'stream';
 /** @import { Component, Derived } from '#server' */
-/** @import { render } from 'ripple/server'*/
+/** @import { render, renderToStream, SSRComponent } from 'ripple/server'*/
 import { DERIVED, UNINITIALIZED } from '../client/constants.js';
 import { is_tracked_object } from '../client/utils.js';
 import { escape } from '../../../utils/escaping.js';
@@ -34,12 +35,16 @@ class Output {
 	promises = [];
 	/** @type {Output | null} */
 	#parent = null;
+	/** @type {import('stream').Readable | null} */
+	#stream = null;
 
 	/**
 	 * @param {Output | null} parent
+	 * @param {import('stream').Readable | null} stream
 	 */
-	constructor(parent) {
+	constructor(parent, stream = null) {
 		this.#parent = parent;
+		this.#stream = stream;
 	}
 
 	/**
@@ -47,7 +52,11 @@ class Output {
 	 * @returns {void}
 	 */
 	push(str) {
-		this.body += str;
+		if (this.#stream) {
+			this.#stream.push(str);
+		} else {
+			this.body += str;
+		}
 	}
 
 	/**
@@ -61,7 +70,7 @@ class Output {
 
 /** @type {render} */
 export async function render(component) {
-	const output = new Output(null);
+	const output = new Output(null, null);
 	let head = '';
 	let body = '';
 	let css = new Set();
@@ -76,14 +85,45 @@ export async function render(component) {
 			await Promise.all(output.promises);
 		}
 
-		head = output.head
-		body = output.body
-		css = output.css
+		head = output.head;
+		body = output.body;
+		css = output.css;
+	} catch (error) {
+		console.log(error);
 	}
-	catch (error) {
-		console.log(error)
+	return { head, body, css };
+}
+
+/** @type {renderToStream} */
+export function renderToStream(component) {
+	const stream = new Readable({
+		read() {},
+	});
+	const output = new Output(null, stream);
+	render_in_chunks(component, stream, output);
+	return stream;
+}
+/**
+ *
+ * @param {SSRComponent} component
+ * @param {Readable} stream
+ * @param {Output} output
+ */
+async function render_in_chunks(component, stream, output) {
+	try {
+		if (component.async) {
+			await component(output, {});
+		} else {
+			component(output, {});
+		}
+		if (output.promises.length > 0) {
+			await Promise.all(output.promises);
+		}
+		stream.push(null);
+	} catch (error) {
+		console.error(error);
+		stream.emit('error', error);
 	}
-	return { head, body, css }
 }
 /**
  * @returns {void}
@@ -144,7 +184,7 @@ export function get(tracked) {
 		return tracked;
 	}
 
-	return (tracked.f & DERIVED) !== 0 ? get_derived(/** @type {Derived} */(tracked)) : tracked.v;
+	return (tracked.f & DERIVED) !== 0 ? get_derived(/** @type {Derived} */ (tracked)) : tracked.v;
 }
 
 /**

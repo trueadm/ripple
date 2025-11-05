@@ -14,7 +14,7 @@ describe('context', () => {
 		component TestContext() {
 			const value = MyContext.get();
 
-			MyContext.set("Hello from context!");
+			MyContext.set('Hello from context!');
 
 			<Child />
 		}
@@ -25,22 +25,24 @@ describe('context', () => {
 	});
 
 	it('handles context captured inside a computed tracked', () => {
-
-		const MyContext = new Context<number | null>(null)
+		const MyContext = new Context<number | null>(null);
 
 		const doubleContext = () => {
-			const value = MyContext.get() as number
-			return value * 2
-		}
+			const value = MyContext.get() as number;
+			return value * 2;
+		};
 
 		component App() {
-			MyContext.set(4)
+			MyContext.set(4);
 
 			<h3>{MyContext.get()}</h3>
 
-			<h4>{'2x:'} {doubleContext()}</h4>
+			<h4>
+				{'2x:'}
+				{doubleContext()}
+			</h4>
 
-			MyContext.set(8)
+			MyContext.set(8);
 		}
 
 		render(App);

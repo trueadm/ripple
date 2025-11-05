@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsdown'
+import { defineConfig } from 'tsdown';
 
 export default defineConfig({
 	entry: 'src/index.js',
@@ -6,4 +6,10 @@ export default defineConfig({
 		legalComments: 'inline',
 		minify: true,
 	},
-})
+	clean: true,
+	format: ['esm'],
+	platform: 'node',
+	target: 'node20',
+	outDir: 'dist',
+	external: ['@ripple-ts/cli'],
+});

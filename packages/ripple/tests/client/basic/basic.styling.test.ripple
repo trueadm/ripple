@@ -3,9 +3,9 @@ import { compile } from 'ripple/compiler';
 describe('basic client > styling', () => {
 	it('renders with styling scoped to component', () => {
 		component Basic() {
-			<div class='styled-container'>
+			<div class="styled-container">
 				<h1>{'Styled heading'}</h1>
-				<p class='text'>{'Styled paragraph'}</p>
+				<p class="text">{'Styled paragraph'}</p>
 			</div>
 
 			<style>

@@ -1,7 +1,6 @@
 {
   "name": "create-ripple",
-  "version": "0.2.152",
-  "description": "Interactive CLI tool for creating Ripple applications",
+  "version": "0.2.156",
   "type": "module",
   "license": "MIT",
   "author": "Ripple Team",
@@ -14,47 +13,27 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trueadm/ripple.git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
     "directory": "packages/create-ripple"
   },
   "bugs": {
-    "url": "https://github.com/trueadm/ripple/issues"
+    "url": "https://github.com/Ripple-TS/ripple/issues"
   },
-  "homepage": "https://ripple-ts.com",
-  "files": [
-    "./dist/index.js"
-  ],
-  "bin": {
-    "create-ripple": "./dist/index.js"
-  },
+  "homepage": "https://ripplejs.com",
   "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsdown",
-    "prepack": "tsdown",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "prepack": "tsdown"
+  },
+  "bin": {
+    "create-ripple": "./dist/index.js"
+  },
+  "dependencies": {
+    "@ripple-ts/cli": "workspace:*"
   },
   "devDependencies": {
-    "@types/prompts": "catalog:default",
-    "type-fest": "catalog:default",
-    "commander": "catalog:default",
-    "degit": "catalog:default",
-    "jsdom": "catalog:default",
-    "kleur": "catalog:default",
-    "ora": "catalog:default",
-    "prettier": "catalog:default",
-    "prompts": "catalog:default",
-    "tsdown": "catalog:default",
-    "vitest": "catalog:default"
-  },
-  "publishConfig": {
-    "access": "public",
-    "tag": "next"
+    "tsdown": "catalog:default"
   }
 }
