@@ -2239,8 +2239,13 @@ function printArrowFunction(node, path, options, print) {
 		parts.push(path.call(print, 'body'));
 	} else {
 		// For expression bodies, check if we need to wrap in parens
-		// Wrap ObjectExpression in parens to avoid ambiguity with block statements
-		if (node.body.type === 'ObjectExpression') {
+		// Wrap ObjectExpression, AssignmentExpression, and SequenceExpression in parens
+		// to avoid ambiguity with block statements or to clarify intent
+		if (
+			node.body.type === 'ObjectExpression' ||
+			node.body.type === 'AssignmentExpression' ||
+			node.body.type === 'SequenceExpression'
+		) {
 			parts.push('(');
 			parts.push(path.call(print, 'body'));
 			parts.push(')');
@@ -3095,9 +3100,21 @@ function printUnaryExpression(node, path, options, print) {
 		if (needsSpace) {
 			parts.push(' ');
 		}
-		parts.push(path.call(print, 'argument'));
+		const argumentDoc = path.call(print, 'argument');
+		// Preserve parentheses around the argument when present
+		if (node.argument.metadata?.parenthesized) {
+			parts.push('(', argumentDoc, ')');
+		} else {
+			parts.push(argumentDoc);
+		}
 	} else {
-		parts.push(path.call(print, 'argument'));
+		const argumentDoc = path.call(print, 'argument');
+		// Preserve parentheses around the argument when present
+		if (node.argument.metadata?.parenthesized) {
+			parts.push('(', argumentDoc, ')');
+		} else {
+			parts.push(argumentDoc);
+		}
 		parts.push(node.operator);
 	}
 

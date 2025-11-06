@@ -1496,6 +1496,31 @@ const program =
 			const result = await format(input, { singleQuote: true, printWidth: 30 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should keep parens around negating key in object expression', async () => {
+			const input = `effect(() => {
+  props.count;
+  if (props.count > 1 && 'another' in more) {
+  	untrack(() => delete more.another);
+  } else if (props.count > 2 && !('another' in more)) {
+  	untrack(() => more.another = 0);
+  }
+  untrack(() => console.log(more));
+});`;
+
+			const expected = `effect(() => {
+  props.count;
+  if (props.count > 1 && 'another' in more) {
+    untrack(() => delete more.another);
+  } else if (props.count > 2 && !('another' in more)) {
+    untrack(() => (more.another = 0));
+  }
+  untrack(() => console.log(more));
+});`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
