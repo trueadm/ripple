@@ -123,49 +123,6 @@ export function apply_styles(element, newStyles) {
 }
 
 /**
- * @param {Element} element
- * @param {Record<string, any>} prev
- * @param {Record<string, any>} next
- * @returns {void}
- */
-export function set_attributes(element, prev, next) {
-	let found_enumerable_keys = false;
-
-	for (const key in next) {
-		if (key === 'children') continue;
-		found_enumerable_keys = true;
-
-		let value = next[key];
-		if (prev[key] === value && key !== '#class') {
-			continue;
-		}
-		if (is_tracked_object(value)) {
-			value = get(value);
-		}
-		set_attribute_helper(element, key, value);
-	}
-
-	// Only if no enumerable keys but attributes object exists
-	// This handles spread_props Proxy objects from dynamic elements with {...spread}
-	if (!found_enumerable_keys && next) {
-		const allKeys = Reflect.ownKeys(next);
-		for (const key of allKeys) {
-			if (key === 'children') continue;
-			if (typeof key === 'symbol') continue; // Skip symbols - handled by apply_element_spread
-
-			let value = next[key];
-			if (prev[key] === value && key !== '#class') {
-				continue;
-			}
-			if (is_tracked_object(value)) {
-				value = get(value);
-			}
-			set_attribute_helper(element, key, value);
-		}
-	}
-}
-
-/**
  * Helper function to set a single attribute
  * @param {Element} element
  * @param {string} key
@@ -298,7 +255,7 @@ export function apply_element_spread(element, fn) {
 	var effects = {};
 
 	return () => {
-		var next = { ...fn() };
+		var next = fn();
 
 		for (let symbol of get_own_property_symbols(effects)) {
 			if (!next[symbol]) {
@@ -319,8 +276,25 @@ export function apply_element_spread(element, fn) {
 			next[symbol] = ref_fn;
 		}
 
-		set_attributes(element, prev, next);
+		/** @type {Record<string | symbol, any>} */
+		const current = {};
+		for (const key in next) {
+			if (key === 'children') continue;
 
-		prev = next;
+			let value = next[key];
+			if (is_tracked_object(value)) {
+				value = get(value);
+			}
+			current[key] = value;
+
+			if (!(key in prev) || prev[key] !== value) {
+				prev[key] = value;
+			} else if (key !== '#class') {
+				continue;
+			}
+
+			set_attribute_helper(element, key, value);
+		}
+		prev = current;
 	};
 }
