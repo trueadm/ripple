@@ -151,6 +151,18 @@ const visitors = {
 	},
 
 	NewExpression(node, context) {
+		// Special handling for TrackedMapExpression and TrackedSetExpression
+		// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
+		// and the actual arguments are in NewExpression.arguments
+		const callee = node.callee;
+		if (callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression') {
+			// Use NewExpression's arguments (the callee has empty arguments from parser)
+			const argsToUse = node.arguments.length > 0 ? node.arguments : callee.arguments;
+			// For SSR, use regular Map/Set
+			const constructorName = callee.type === 'TrackedMapExpression' ? 'Map' : 'Set';
+			return b.new(b.id(constructorName), ...argsToUse.map((arg) => context.visit(arg)));
+		}
+
 		if (!context.state.to_ts) {
 			delete node.typeArguments;
 		}

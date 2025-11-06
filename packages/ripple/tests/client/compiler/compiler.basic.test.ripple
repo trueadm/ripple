@@ -232,8 +232,8 @@ import {
 component App() {
 	const items = #[1, 2, 3];
 	const obj = #{ a: 1, b: 2, c: 3 };
-	const set = #Set([1, 2, 3]);
-	const map = #Map([['a', 1], ['b', 2], ['c', 3]]);
+	const set = new #Set([1, 2, 3]);
+	const map = new #Map([['a', 1], ['b', 2], ['c', 3]]);
 
 	<div {ref () => {}} />
 }
@@ -262,8 +262,8 @@ import {
 component App() {
 	const items = #[1, 2, 3];
 	const obj = #{ a: 1, b: 2, c: 3 };
-	const set = #Set([1, 2, 3]);
-	const map = #Map([['a', 1], ['b', 2], ['c', 3]]);
+	const set = new #Set([1, 2, 3]);
+	const map = new #Map([['a', 1], ['b', 2], ['c', 3]]);
 
 	<div {ref () => {}} />
 }
@@ -288,8 +288,8 @@ component App() {
 component App() {
 	const items = #[1, 2, 3];
 	const obj = #{ a: 1, b: 2, c: 3 };
-	const set = #Set([1, 2, 3]);
-	const map = #Map([['a', 1], ['b', 2], ['c', 3]]);
+	const set = new #Set([1, 2, 3]);
+	const map = new #Map([['a', 1], ['b', 2], ['c', 3]]);
 
 	<div {ref () => {}} />
 }
@@ -310,8 +310,8 @@ import { TrackedArray, TrackedMap, createRefKey as crk } from 'ripple';
 component App() {
 	const items = #[1, 2, 3];
 	const obj = #{ a: 1, b: 2, c: 3 };
-	const set = #Set([1, 2, 3]);
-	const map = #Map([['a', 1], ['b', 2], ['c', 3]]);
+	const set = new #Set([1, 2, 3]);
+	const map = new #Map([['a', 1], ['b', 2], ['c', 3]]);
 
 	<div {ref () => {}} />
 }

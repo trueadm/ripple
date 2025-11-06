@@ -1143,6 +1143,30 @@ const set = new #Set([1, 2, 3]);`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should keep TrackedSet parents with short syntax and no args intact', async () => {
+			const expected = `component SetTest() {
+  let items = new #Set();
+
+  <button onClick={() => items.add(1)}>{'add'}</button>
+  <pre>{items.size}</pre>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should keep TrackedMap parents with short syntax and no args intact', async () => {
+			const expected = `component MapTest() {
+  let items = new #Map();
+
+  <button onClick={() => items.set('key', 1)}>{'add'}</button>
+  <pre>{items.size}</pre>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should not remove blank lines between components and types if provided', async () => {
 			const expected = `export component App() {
   console.log('test');

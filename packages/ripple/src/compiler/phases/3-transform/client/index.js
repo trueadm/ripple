@@ -414,6 +414,30 @@ const visitors = {
 			context.state.metadata.tracking = true;
 		}
 
+		// Special handling for TrackedMapExpression and TrackedSetExpression
+		// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
+		// and the actual arguments are in NewExpression.arguments
+		if (callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression') {
+			// Use NewExpression's arguments (the callee has empty arguments from parser)
+			const argsToUse = node.arguments.length > 0 ? node.arguments : callee.arguments;
+
+			if (context.state.to_ts) {
+				const className = callee.type === 'TrackedMapExpression' ? 'TrackedMap' : 'TrackedSet';
+				const alias = import_from_ripple_if_needed(className, context);
+				const calleeId = b.id(alias);
+				calleeId.loc = callee.loc;
+				calleeId.metadata = { tracked_shorthand: callee.type === 'TrackedMapExpression' ? '#Map' : '#Set' };
+				return b.new(calleeId, ...argsToUse.map((arg) => context.visit(arg)));
+			}
+
+			const helperName = callee.type === 'TrackedMapExpression' ? 'tracked_map' : 'tracked_set';
+			return b.call(
+				`_$_.${helperName}`,
+				b.id('__block'),
+				...argsToUse.map((arg) => context.visit(arg)),
+			);
+		}
+
 		if (
 			context.state.to_ts ||
 			!is_inside_component(context, true) ||
@@ -422,22 +446,6 @@ const visitors = {
 		) {
 			if (!context.state.to_ts) {
 				delete node.typeArguments;
-			}
-
-			// Special handling for TrackedMapExpression and TrackedSetExpression
-			// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
-			// and the actual arguments are in NewExpression.arguments
-			// We need to merge them before transforming
-			if (
-				context.state.to_ts &&
-				(callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression')
-			) {
-				// If the callee has empty arguments, use the NewExpression's arguments instead
-				if (callee.arguments.length === 0 && node.arguments.length > 0) {
-					callee.arguments = node.arguments;
-				}
-				// Transform the tracked expression directly - it will return a NewExpression
-				return context.visit(callee);
 			}
 
 			return context.next();
@@ -483,44 +491,6 @@ const visitors = {
 			'_$_.tracked_object',
 			b.object(node.properties.map((prop) => context.visit(prop))),
 			b.id('__block'),
-		);
-	},
-
-	TrackedMapExpression(node, context) {
-		if (context.state.to_ts) {
-			const mapAlias = import_from_ripple_if_needed('TrackedMap', context);
-
-			const calleeId = b.id(mapAlias);
-			// Preserve location from original node for Volar mapping
-			calleeId.loc = node.loc;
-			// Add metadata for Volar mapping - map "TrackedMap" identifier to "#Map" in source
-			calleeId.metadata = { tracked_shorthand: '#Map' };
-			return b.new(calleeId, ...node.arguments.map((arg) => context.visit(arg)));
-		}
-
-		return b.call(
-			'_$_.tracked_map',
-			b.id('__block'),
-			...node.arguments.map((arg) => context.visit(arg)),
-		);
-	},
-
-	TrackedSetExpression(node, context) {
-		if (context.state.to_ts) {
-			const setAlias = import_from_ripple_if_needed('TrackedSet', context);
-
-			const calleeId = b.id(setAlias);
-			// Preserve location from original node for Volar mapping
-			calleeId.loc = node.loc;
-			// Add metadata for Volar mapping - map "TrackedSet" identifier to "#Set" in source
-			calleeId.metadata = { tracked_shorthand: '#Set' };
-			return b.new(calleeId, ...node.arguments.map((arg) => context.visit(arg)));
-		}
-
-		return b.call(
-			'_$_.tracked_set',
-			b.id('__block'),
-			...node.arguments.map((arg) => context.visit(arg)),
 		);
 	},
 
