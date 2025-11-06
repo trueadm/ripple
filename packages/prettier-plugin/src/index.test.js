@@ -3889,5 +3889,31 @@ component App() {
 				expect(result).toBeWithNewline(expected);
 			});
 		});
+
+		describe('object getters and setters', () => {
+			it('should preserve get and set keywords in object methods', async () => {
+				const input = `const foo = {
+    get bar() {
+        return 0
+    },
+
+    set baz(arg: 0) {
+        //
+    }
+}`;
+				const expected = `const foo = {
+  get bar() {
+    return 0;
+  },
+
+  set baz(arg: 0) {
+    //
+  },
+};`;
+
+				const result = await format(input);
+				expect(result).toBeWithNewline(expected);
+			});
+		});
 	});
 });

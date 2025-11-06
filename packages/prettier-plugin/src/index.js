@@ -3646,6 +3646,45 @@ function printProperty(node, path, options, print) {
 
 	const parts = [];
 
+	// Handle getter/setter methods
+	if (node.kind === 'get' || node.kind === 'set') {
+		const methodParts = [];
+		const funcValue = node.value;
+
+		// Add get/set keyword
+		methodParts.push(node.kind, ' ');
+
+		// Print key (with computed property brackets if needed)
+		if (node.computed) {
+			methodParts.push('[', path.call(print, 'key'), ']');
+		} else if (node.key.type === 'Literal' && typeof node.key.value === 'string') {
+			const key = node.key.value;
+			const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
+			if (isValidIdentifier) {
+				methodParts.push(key);
+			} else {
+				methodParts.push(formatStringLiteral(key, options));
+			}
+		} else {
+			methodParts.push(path.call(print, 'key'));
+		}
+
+		// Print parameters by calling into the value path
+		const paramsPart = path.call(
+			(valuePath) => printFunctionParameters(valuePath, options, print),
+			'value',
+		);
+		methodParts.push(group(paramsPart));
+
+		// Handle return type annotation
+		if (funcValue.returnType) {
+			methodParts.push(': ', path.call(print, 'value', 'returnType'));
+		}
+
+		methodParts.push(' ', path.call(print, 'value', 'body'));
+		return concat(methodParts);
+	}
+
 	// Handle method shorthand: increment() {} instead of increment: function() {}
 	if (node.method && node.value.type === 'FunctionExpression') {
 		const methodParts = [];
