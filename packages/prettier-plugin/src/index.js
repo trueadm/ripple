@@ -1456,13 +1456,59 @@ function printRippleNode(node, path, options, print, args) {
 			if (!node.body || node.body.length === 0) {
 				// Handle innerComments for empty blocks
 				if (innerCommentParts.length > 0) {
-					nodeContent = group([
-						'{',
-						indent([hardline, join(hardline, innerCommentParts)]),
-						hardline,
-						'}',
-					]);
-					break;
+					// Check if we need to preserve blank lines between comments
+					if (node.innerComments && node.innerComments.length > 0) {
+						const commentDocs = [];
+						const comments = node.innerComments;
+
+						for (let i = 0; i < comments.length; i++) {
+							const comment = comments[i];
+							const prevComment = i > 0 ? comments[i - 1] : null;
+
+							// Check if there's a blank line before this comment
+							const hasBlankLineBefore =
+								prevComment && getBlankLinesBetweenNodes(prevComment, comment) > 0;
+
+							let commentDoc;
+							if (comment.type === 'Line') {
+								commentDoc = '//' + comment.value;
+							} else if (comment.type === 'Block') {
+								commentDoc = '/*' + comment.value + '*/';
+							}
+
+							commentDocs.push({ doc: commentDoc, hasBlankLineBefore });
+						}
+
+						// Build the content with proper spacing
+						const contentParts = [];
+						for (let i = 0; i < commentDocs.length; i++) {
+							const { doc, hasBlankLineBefore } = commentDocs[i];
+
+							if (i > 0) {
+								// Add blank line if needed (two hardlines = one blank line)
+								if (hasBlankLineBefore) {
+									contentParts.push(hardline);
+									contentParts.push(hardline);
+								} else {
+									contentParts.push(hardline);
+								}
+							}
+
+							contentParts.push(doc);
+						}
+
+						nodeContent = group(['{', indent([hardline, concat(contentParts)]), hardline, '}']);
+						break;
+					} else {
+						// Fallback to simple join
+						nodeContent = group([
+							'{',
+							indent([hardline, join(hardline, innerCommentParts)]),
+							hardline,
+							'}',
+						]);
+						break;
+					}
 				}
 				nodeContent = '{}';
 				break;
@@ -2199,37 +2245,67 @@ function printComponent(node, path, options, print, innerCommentParts = []) {
 		// Empty component body - check for inner comments or trailing comments on id
 		// When a component body is empty with only comments, the parser attaches them
 		// as trailingComments on the id node (component name)
-		const commentsInBody = [];
+		const commentDocs = [];
 
 		// Check innerComments first (standard case for empty blocks)
 		if (innerCommentParts.length > 0) {
-			commentsInBody.push(...innerCommentParts);
+			for (const part of innerCommentParts) {
+				commentDocs.push({ doc: part, hasBlankLineBefore: false });
+			}
 		}
 
 		// Check for trailing comments on the id (component name)
 		// These are comments that appear inside an empty component body
 		if (node.id && node.id.trailingComments && node.id.trailingComments.length > 0) {
-			for (const comment of node.id.trailingComments) {
+			const comments = node.id.trailingComments;
+
+			for (let i = 0; i < comments.length; i++) {
+				const comment = comments[i];
+				const prevComment = i > 0 ? comments[i - 1] : null;
+
+				// Check if there's a blank line before this comment
+				const hasBlankLineBefore =
+					prevComment && getBlankLinesBetweenNodes(prevComment, comment) > 0;
+
+				let commentDoc;
 				if (comment.type === 'Line') {
-					commentsInBody.push('//' + comment.value);
+					commentDoc = '//' + comment.value;
 				} else if (comment.type === 'Block') {
-					commentsInBody.push('/*' + comment.value + '*/');
+					commentDoc = '/*' + comment.value + '*/';
 				}
+
+				commentDocs.push({ doc: commentDoc, hasBlankLineBefore });
 			}
 		}
 
-		if (commentsInBody.length > 0) {
+		if (commentDocs.length > 0) {
+			// Build the content with proper spacing
+			const contentParts = [];
+			for (let i = 0; i < commentDocs.length; i++) {
+				const { doc, hasBlankLineBefore } = commentDocs[i];
+
+				if (i > 0) {
+					// Add blank line if needed (two hardlines = one blank line)
+					if (hasBlankLineBefore) {
+						contentParts.push(hardline);
+						contentParts.push(hardline);
+					} else {
+						contentParts.push(hardline);
+					}
+				}
+
+				contentParts.push(doc);
+			}
+
 			return concat([
 				concat(signatureParts),
 				' ',
-				group(['{', indent([hardline, join(hardline, commentsInBody)]), hardline, '}']),
+				group(['{', indent([hardline, concat(contentParts)]), hardline, '}']),
 			]);
 		}
 
 		parts[1] = ' {}';
-	}
-
-	return concat(parts);
+	}	return concat(parts);
 }
 
 function printVariableDeclaration(node, path, options, print) {
