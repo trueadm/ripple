@@ -1497,6 +1497,27 @@ const program =
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should keep blank lines between commented out block and markup', async () => {
+			const expected = `function CounterWrapper(props) {
+  const more = {
+    double: track(() => props.count * 2),
+    another: track(0),
+    onemore: 100,
+  };
+
+  // if (props.@count > 1) {
+  // 	delete more.another;
+  // }
+
+  <div>
+    <Counter {...props} {...more} />
+  </div>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should keep parens around negating key in object expression', async () => {
 			const input = `effect(() => {
   props.count;
