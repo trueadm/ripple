@@ -1,7 +1,7 @@
 /** @import { CompatApi } from '#client' */
 
-import { ROOT_BLOCK } from "./constants";
-import { active_block } from "./runtime";
+import { ROOT_BLOCK } from "./constants.js";
+import { active_block } from "./runtime.js";
 
 /**
  * @param {string} kind
