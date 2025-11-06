@@ -156,6 +156,79 @@ function iterateFunctionParametersPath(path, iteratee) {
 	}
 }
 
+// Operator precedence (higher number = higher precedence)
+const PRECEDENCE = {
+	'||': 1,
+	'&&': 2,
+	'|': 3,
+	'^': 4,
+	'&': 5,
+	'==': 6,
+	'!=': 6,
+	'===': 6,
+	'!==': 6,
+	'<': 7,
+	'<=': 7,
+	'>': 7,
+	'>=': 7,
+	in: 7,
+	instanceof: 7,
+	'<<': 8,
+	'>>': 8,
+	'>>>': 8,
+	'+': 9,
+	'-': 9,
+	'*': 10,
+	'/': 10,
+	'%': 10,
+	'**': 11,
+};
+
+function getPrecedence(operator) {
+	return PRECEDENCE[operator] || 0;
+}
+
+// Check if a BinaryExpression needs parentheses
+function binaryExpressionNeedsParens(node, parent) {
+	if (!node.metadata?.parenthesized) {
+		return false;
+	}
+
+	// If parent is not an operator context, don't preserve parens
+	if (
+		!parent ||
+		(parent.type !== 'BinaryExpression' &&
+			parent.type !== 'LogicalExpression' &&
+			parent.type !== 'UnaryExpression')
+	) {
+		return false;
+	}
+
+	// If parent is UnaryExpression, it already handles the parentheses
+	if (parent.type === 'UnaryExpression') {
+		return false;
+	}
+
+	// For BinaryExpression/LogicalExpression parents, check precedence
+	if (parent.type === 'BinaryExpression' || parent.type === 'LogicalExpression') {
+		const nodePrecedence = getPrecedence(node.operator);
+		const parentPrecedence = getPrecedence(parent.operator);
+
+		// Need parens if:
+		// 1. Child has lower precedence than parent
+		// 2. Same precedence but different operators (for clarity)
+		// 3. Child is on the right side and precedence is equal (for left-associative operators)
+		if (nodePrecedence < parentPrecedence) {
+			return true;
+		}
+		if (nodePrecedence === parentPrecedence && node.operator !== parent.operator) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 function createSkip(characters) {
 	return (text, startIndex, options) => {
 		const backwards = Boolean(options && options.backwards);
@@ -1445,9 +1518,10 @@ function printRippleNode(node, path, options, print, args) {
 					parent.type === 'AssignmentExpression' ||
 					parent.type === 'AssignmentPattern');
 
+			let result;
 			// Don't add indent if we're in a conditional test context
 			if (args?.isConditionalTest) {
-				nodeContent = group(
+				result = group(
 					concat([
 						path.call((childPath) => print(childPath, { isConditionalTest: true }), 'left'),
 						' ',
@@ -1460,7 +1534,7 @@ function printRippleNode(node, path, options, print, args) {
 				);
 			} else if (shouldNotIndent) {
 				// In assignment context, don't add indent - parent will handle it
-				nodeContent = group(
+				result = group(
 					concat([
 						path.call(print, 'left'),
 						' ',
@@ -1469,7 +1543,7 @@ function printRippleNode(node, path, options, print, args) {
 					]),
 				);
 			} else {
-				nodeContent = group(
+				result = group(
 					concat([
 						path.call(print, 'left'),
 						' ',
@@ -1478,6 +1552,13 @@ function printRippleNode(node, path, options, print, args) {
 					]),
 				);
 			}
+
+			// Wrap in parentheses only if semantically necessary
+			if (binaryExpressionNeedsParens(node, parent)) {
+				result = concat(['(', result, ')']);
+			}
+
+			nodeContent = result;
 			break;
 		}
 		case 'LogicalExpression':
