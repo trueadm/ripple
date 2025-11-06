@@ -821,20 +821,21 @@ const visitors = {
 	 * @param {any} context
 	 */
 	AwaitExpression(node, context) {
+		const parent_block = get_parent_block_node(context);
+
 		if (is_inside_component(context)) {
 			if (context.state.metadata?.await === false) {
 				context.state.metadata.await = true;
 			}
-		}
-		const parent_block = get_parent_block_node(context);
 
-		if (parent_block !== null && parent_block.type !== 'Component') {
-			if (context.state.inside_server_block === false) {
-				error(
-					'`await` is not allowed in client-side control-flow statements',
-					context.state.analysis.module.filename,
-					node,
-				);
+			if (parent_block !== null && parent_block.type !== 'Component') {
+				if (context.state.inside_server_block === false) {
+					error(
+						'`await` is not allowed in client-side control-flow statements',
+						context.state.analysis.module.filename,
+						node,
+					);
+				}
 			}
 		}
 
