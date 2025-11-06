@@ -4,7 +4,6 @@ import ts from 'esrap/languages/ts';
 import path from 'node:path';
 import { print } from 'esrap';
 import {
-	build_getter,
 	determine_namespace_for_children,
 	escape_html,
 	is_boolean_attribute,
@@ -13,7 +12,6 @@ import {
 	is_void_element,
 	normalize_children,
 } from '../../../utils.js';
-import is_reference from 'is-reference';
 import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';

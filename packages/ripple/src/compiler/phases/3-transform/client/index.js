@@ -426,7 +426,9 @@ const visitors = {
 				const alias = import_from_ripple_if_needed(className, context);
 				const calleeId = b.id(alias);
 				calleeId.loc = callee.loc;
-				calleeId.metadata = { tracked_shorthand: callee.type === 'TrackedMapExpression' ? '#Map' : '#Set' };
+				calleeId.metadata = {
+					tracked_shorthand: callee.type === 'TrackedMapExpression' ? '#Map' : '#Set',
+				};
 				return b.new(calleeId, ...argsToUse.map((arg) => context.visit(arg)));
 			}
 

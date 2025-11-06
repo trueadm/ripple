@@ -2305,7 +2305,8 @@ function printComponent(node, path, options, print, innerCommentParts = []) {
 		}
 
 		parts[1] = ' {}';
-	}	return concat(parts);
+	}
+	return concat(parts);
 }
 
 function printVariableDeclaration(node, path, options, print) {

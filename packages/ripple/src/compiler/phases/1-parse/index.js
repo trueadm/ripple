@@ -638,7 +638,8 @@ function RipplePlugin(config) {
 
 				// If we reach here, it means #Map or #Set is being called without 'new'
 				// Throw a TypeError to match JavaScript class constructor behavior
-				const constructorName = type === 'TrackedMapExpression' ? '#Map (TrackedMap)' : '#Set (TrackedSet)';
+				const constructorName =
+					type === 'TrackedMapExpression' ? '#Map (TrackedMap)' : '#Set (TrackedSet)';
 				this.raise(
 					node.start,
 					`TypeError: Class constructor ${constructorName} cannot be invoked without 'new'`,
