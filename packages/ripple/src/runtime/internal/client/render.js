@@ -123,33 +123,6 @@ export function apply_styles(element, newStyles) {
 }
 
 /**
- * @param {Element} element
- * @param {Record<string | symbol, any>} prev
- * @param {Record<string | symbol, any>} next
- * @param {Record<string | symbol, any>} current
- * @returns {void}
- */
-export function set_attributes(element, prev, next, current) {
-	for (const key in next) {
-		if (key === 'children') continue;
-
-		let value = next[key];
-		if (is_tracked_object(value)) {
-			value = get(value);
-		}
-		current[key] = value;
-
-		if (!(key in prev) || prev[key] !== value) {
-			prev[key] = value;
-		} else if (key !== '#class') {
-			continue;
-		}
-
-		set_attribute_helper(element, key, value);
-	}
-}
-
-/**
  * Helper function to set a single attribute
  * @param {Element} element
  * @param {string} key
@@ -303,8 +276,25 @@ export function apply_element_spread(element, fn) {
 			next[symbol] = ref_fn;
 		}
 
+		/** @type {Record<string | symbol, any>} */
 		const current = {};
-		set_attributes(element, prev, next, current);
+		for (const key in next) {
+			if (key === 'children') continue;
+
+			let value = next[key];
+			if (is_tracked_object(value)) {
+				value = get(value);
+			}
+			current[key] = value;
+
+			if (!(key in prev) || prev[key] !== value) {
+				prev[key] = value;
+			} else if (key !== '#class') {
+				continue;
+			}
+
+			set_attribute_helper(element, key, value);
+		}
 		prev = current;
 	};
 }
