@@ -911,6 +911,35 @@ export component Test({ a, b }: Props) {}`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should keep @ on dynamic object member array expressions', async () => {
+			const expected = `component App() {
+  const obj = {
+    [0]: track(0),
+  };
+
+  <div>{obj.@[0]}</div>
+
+  <button
+    onClick={() => {
+      obj.@[0]++;
+    }}
+  >
+    {'Increment'}
+  </button>
+
+  <button
+    onClick={() => {
+      obj.@[0] += 1;
+    }}
+  >
+    {'Increment'}
+  </button>
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('keeps a new line between comments above and code if one is present', async () => {
 			const expected = `// comment
 

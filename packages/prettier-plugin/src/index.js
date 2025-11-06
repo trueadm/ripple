@@ -3150,7 +3150,13 @@ function printMemberExpression(node, path, options, print) {
 
 	let result;
 	if (node.computed) {
-		const openBracket = node.optional ? '?.[' : '[';
+		// Check if the MemberExpression itself is tracked to add @ symbol
+		const trackedPrefix = node.tracked ? '@' : '';
+		const openBracket = node.optional
+			? '?.' + trackedPrefix + '['
+			: trackedPrefix
+				? '.' + trackedPrefix + '['
+				: '[';
 		result = concat([objectPart, openBracket, propertyPart, ']']);
 	} else {
 		const separator = node.optional ? '?.' : '.';
