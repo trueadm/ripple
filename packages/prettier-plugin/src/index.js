@@ -627,7 +627,7 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 
 		case 'Component':
-			nodeContent = printComponent(node, path, options, print);
+			nodeContent = printComponent(node, path, options, print, innerCommentParts);
 			break;
 
 		case 'ExportNamedDeclaration':
@@ -2096,7 +2096,7 @@ function printExportNamedDeclaration(node, path, options, print) {
 	return 'export';
 }
 
-function printComponent(node, path, options, print) {
+function printComponent(node, path, options, print, innerCommentParts = []) {
 	// Use arrays instead of string concatenation
 	const signatureParts = ['component ', node.id.name];
 
@@ -2196,7 +2196,36 @@ function printComponent(node, path, options, print) {
 		// Add the body and closing brace
 		parts.push(indentedContent, hardline, '}');
 	} else {
-		// Empty component body
+		// Empty component body - check for inner comments or trailing comments on id
+		// When a component body is empty with only comments, the parser attaches them
+		// as trailingComments on the id node (component name)
+		const commentsInBody = [];
+
+		// Check innerComments first (standard case for empty blocks)
+		if (innerCommentParts.length > 0) {
+			commentsInBody.push(...innerCommentParts);
+		}
+
+		// Check for trailing comments on the id (component name)
+		// These are comments that appear inside an empty component body
+		if (node.id && node.id.trailingComments && node.id.trailingComments.length > 0) {
+			for (const comment of node.id.trailingComments) {
+				if (comment.type === 'Line') {
+					commentsInBody.push('//' + comment.value);
+				} else if (comment.type === 'Block') {
+					commentsInBody.push('/*' + comment.value + '*/');
+				}
+			}
+		}
+
+		if (commentsInBody.length > 0) {
+			return concat([
+				concat(signatureParts),
+				' ',
+				group(['{', indent([hardline, join(hardline, commentsInBody)]), hardline, '}']),
+			]);
+		}
+
 		parts[1] = ' {}';
 	}
 

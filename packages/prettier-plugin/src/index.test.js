@@ -1881,6 +1881,17 @@ const obj2 = #{
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should preserve comment if the whole component code is commented out', async () => {
+		const expected = `export component Test() {
+  // thing
+  // thing
+  // thing
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should preserve comments in arrays with width 80', async () => {
 		const input = `const arr = [
   1,
