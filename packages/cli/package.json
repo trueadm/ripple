@@ -24,6 +24,7 @@
   "files": [
     "./dist/index.js"
   ],
+  "main": "./dist/index.js",
   "bin": {
     "@ripple-ts/cli": "./dist/index.js"
   },
