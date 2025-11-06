@@ -267,32 +267,42 @@ describe('composite > reactivity', () => {
 		},
 	);
 
-	it('keeps reactivity on elements for element spreads', () => {
+	it('keeps reactivity on elements for element spreads and adds / removes dynamic props', () => {
 		component App() {
 			const count = track(0);
-			<CounterWrapper {@count} up={() => @count++} down={() => @count--} />
+			<CounterWrapper {@count} up={() => @count++} />
 		}
 
 		component CounterWrapper(props) {
-			const double = track(() => props.@count * 2);
-			let another = track(0);
-			let onemore = 100;
+			const more = #{
+				double: track(() => props.@count * 2),
+				another: track(0),
+				onemore: 100,
+			};
+
+			effect(() => {
+				props.count;
+				if (props.count === 1) {
+					delete more.another;
+				} else if (props.count === 2) {
+					more.another = 0;
+				}
+			});
+
 			<div>
-				<Counter {...props} {double} {another} {onemore} />
+				<Counter {...props} double={more.double} another={more.another} onemore={more.onemore} />
 			</div>
 		}
 
 		component Counter(props) {
-			const [count, up, down, rest] = trackSplit(props, ['count', 'up', 'down']);
+			const [count, up, rest] = trackSplit(props, ['count', 'up']);
 			<div {...@rest}>{`Counter: ${@count} Double: ${props.@double}`}</div>
 			<button onClick={() => @up()}>{'UP'}</button>
-			<button onClick={() => @down()}>{'DOWN'}</button>
 		}
 
 		render(App);
 
 		const buttonIncrement = container.querySelectorAll('button')[0];
-		const buttonDecrement = container.querySelectorAll('button')[1];
 		const div = container.querySelectorAll('div')[1];
 
 		expect(div.getAttribute('double')).toBe('0');
@@ -304,16 +314,16 @@ describe('composite > reactivity', () => {
 		flushSync();
 
 		expect(div.getAttribute('double')).toBe('2');
-		expect(div.getAttribute('another')).toBe('0');
+		expect(div.hasAttribute('another')).toBe(false);
 		expect(div.getAttribute('onemore')).toBe('100');
 		expect(div.textContent).toBe('Counter: 1 Double: 2');
 
-		buttonDecrement.click();
+		buttonIncrement.click();
 		flushSync();
 
-		expect(div.getAttribute('double')).toBe('0');
+		expect(div.getAttribute('double')).toBe('4');
 		expect(div.getAttribute('another')).toBe('0');
 		expect(div.getAttribute('onemore')).toBe('100');
-		expect(div.textContent).toBe('Counter: 0 Double: 0');
+		expect(div.textContent).toBe('Counter: 2 Double: 4');
 	});
 });

@@ -124,11 +124,12 @@ export function apply_styles(element, newStyles) {
 
 /**
  * @param {Element} element
- * @param {Record<string, any>} prev
- * @param {Record<string, any>} next
+ * @param {Record<string | symbol, any>} prev
+ * @param {Record<string | symbol, any>} next
+ * @param {Record<string | symbol, any>} current
  * @returns {void}
  */
-export function set_attributes(element, prev, next) {
+export function set_attributes(element, prev, next, current) {
 	let found_enumerable_keys = false;
 
 	for (const key in next) {
@@ -139,6 +140,7 @@ export function set_attributes(element, prev, next) {
 		if (is_tracked_object(value)) {
 			value = get(value);
 		}
+		current[key] = value;
 
 		if (!(key in prev) || prev[key] !== value) {
 			prev[key] = value;
@@ -161,6 +163,7 @@ export function set_attributes(element, prev, next) {
 			if (is_tracked_object(value)) {
 				value = get(value);
 			}
+			current[key] = value;
 
 			if (!(key in prev) || prev[key] !== value) {
 				prev[key] = value;
@@ -327,6 +330,8 @@ export function apply_element_spread(element, fn) {
 			next[symbol] = ref_fn;
 		}
 
-		set_attributes(element, prev, next);
+		const current = {};
+		set_attributes(element, prev, next, current);
+		prev = current;
 	};
 }
