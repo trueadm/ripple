@@ -902,6 +902,15 @@ export component Test({ a, b }: Props) {}`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should not strip @ from dynamic self-closing components', async () => {
+			const expected = `component App() {
+  <@tracked_object.@tracked_basic />
+}`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('keeps a new line between comments above and code if one is present', async () => {
 			const expected = `// comment
 

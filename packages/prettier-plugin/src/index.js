@@ -4735,17 +4735,21 @@ function printJSXMemberExpression(node) {
 
 function printMemberExpressionSimple(node, options, computed = false) {
 	if (node.type === 'Identifier') {
-		return node.name;
+		// When computed is true, it means we're inside brackets and tracked is already handled by .@[ or [
+		// So we should NOT add @ prefix in that case
+		return (computed ? '' : node.tracked ? '@' : '') + node.name;
 	}
 
 	if (node.type === 'MemberExpression') {
 		const obj = printMemberExpressionSimple(node.object, options);
+		// For properties, we add the .@ or . prefix, and then pass true to indicate
+		// that we're in a context where tracked has been handled
 		const prop = node.computed
 			? (node.property.tracked ? '.@[' : '[') +
-				printMemberExpressionSimple(node.property, options, node.computed) +
+				printMemberExpressionSimple(node.property, options, true) +
 				']'
 			: (node.property.tracked ? '.@' : '.') +
-				printMemberExpressionSimple(node.property, options, node.computed);
+				printMemberExpressionSimple(node.property, options, true);
 		return obj + prop;
 	}
 
@@ -4756,7 +4760,7 @@ function printMemberExpressionSimple(node, options, computed = false) {
 }
 
 function printElement(node, path, options, print) {
-	const tagName = (node.id.tracked ? '@' : '') + printMemberExpressionSimple(node.id, options);
+	const tagName = printMemberExpressionSimple(node.id, options);
 
 	const elementLeadingComments = getElementLeadingComments(node);
 	const metadataCommentParts =
