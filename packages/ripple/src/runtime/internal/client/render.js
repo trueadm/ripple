@@ -136,12 +136,16 @@ export function set_attributes(element, prev, next) {
 		found_enumerable_keys = true;
 
 		let value = next[key];
-		if (prev[key] === value && key !== '#class') {
-			continue;
-		}
 		if (is_tracked_object(value)) {
 			value = get(value);
 		}
+
+		if (!(key in prev) || prev[key] !== value) {
+			prev[key] = value;
+		} else if (key !== '#class') {
+			continue;
+		}
+
 		set_attribute_helper(element, key, value);
 	}
 
@@ -154,12 +158,16 @@ export function set_attributes(element, prev, next) {
 			if (typeof key === 'symbol') continue; // Skip symbols - handled by apply_element_spread
 
 			let value = next[key];
-			if (prev[key] === value && key !== '#class') {
-				continue;
-			}
 			if (is_tracked_object(value)) {
 				value = get(value);
 			}
+
+			if (!(key in prev) || prev[key] !== value) {
+				prev[key] = value;
+			} else if (key !== '#class') {
+				continue;
+			}
+
 			set_attribute_helper(element, key, value);
 		}
 	}
@@ -298,7 +306,7 @@ export function apply_element_spread(element, fn) {
 	var effects = {};
 
 	return () => {
-		var next = { ...fn() };
+		var next = fn();
 
 		for (let symbol of get_own_property_symbols(effects)) {
 			if (!next[symbol]) {
@@ -320,7 +328,5 @@ export function apply_element_spread(element, fn) {
 		}
 
 		set_attributes(element, prev, next);
-
-		prev = next;
 	};
 }
