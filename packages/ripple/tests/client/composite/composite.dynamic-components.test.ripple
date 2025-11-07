@@ -78,7 +78,9 @@ describe('composite > dynamic components', () => {
 				<@thing />
 			</div>
 
-			<button onClick={() => @thing = @thing === Child1 ? Child2 : Child1}>{'Change Child'}</button>
+			<button onClick={() => (@thing = @thing === Child1 ? Child2 : Child1)}>
+				{'Change Child'}
+			</button>
 		}
 
 		render(App);

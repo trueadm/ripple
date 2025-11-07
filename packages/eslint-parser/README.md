@@ -108,7 +108,7 @@ The parser will successfully parse this and allow ESLint rules (like those from 
 ## Related Packages
 
 - [@ripple-ts/eslint-plugin](https://www.npmjs.com/package/@ripple-ts/eslint-plugin) - ESLint rules for Ripple
-- [ripple](https://ripple-ts.com) - The Ripple framework
+- [ripple](https://ripplejs.com) - The Ripple framework
 - [@ripple-ts/vite-plugin](https://www.npmjs.com/package/@ripple-ts/vite-plugin) - Vite plugin for Ripple
 - [@ripple-ts/prettier-plugin](https://www.npmjs.com/package/@ripple-ts/prettier-plugin) - Prettier plugin for Ripple
 

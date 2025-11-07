@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 	<url>
-		<loc>https://ripple-ts.com/</loc>
+		<loc>https://ripplejs.com/</loc>
 		<lastmod>2024-12-19</lastmod>
 		<changefreq>weekly</changefreq>
 		<priority>1.0</priority>
 	</url>
 	<url>
-		<loc>https://ripple-ts.com/llms.txt</loc>
+		<loc>https://ripplejs.com/llms.txt</loc>
 		<lastmod>2024-12-19</lastmod>
 		<changefreq>weekly</changefreq>
 		<priority>0.8</priority>

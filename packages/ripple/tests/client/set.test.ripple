@@ -80,7 +80,7 @@ describe('TrackedSet', () => {
 
 	it('creates empty TrackedSet using #Set() shorthand syntax', () => {
 		component SetTest() {
-			let items = #Set();
+			let items = new #Set();
 
 			<button onClick={() => items.add(1)}>{'add'}</button>
 			<pre>{items.size}</pre>
@@ -99,7 +99,7 @@ describe('TrackedSet', () => {
 
 	it('creates TrackedSet with initial values using #Set() shorthand syntax', () => {
 		component SetTest() {
-			let items = #Set([1, 2, 3, 4]);
+			let items = new #Set([1, 2, 3, 4]);
 			let hasValue = track(() => items.has(3));
 
 			<button onClick={() => items.delete(3)}>{'delete'}</button>
@@ -122,7 +122,7 @@ describe('TrackedSet', () => {
 
 	it('handles all operations with #Set() shorthand syntax', () => {
 		component SetTest() {
-			let items = #Set([10, 20, 30]);
+			let items = new #Set([10, 20, 30]);
 			let values = track(() => Array.from(items.values()));
 
 			<button onClick={() => items.add(40)}>{'add'}</button>

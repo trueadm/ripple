@@ -1,6 +1,6 @@
 # @ripple-ts/eslint-plugin
 
-ESLint plugin for [Ripple](https://ripple-ts.com) - helps enforce best practices and catch common mistakes when writing Ripple applications.
+ESLint plugin for [Ripple](https://ripplejs.com) - helps enforce best practices and catch common mistakes when writing Ripple applications.
 
 Works just like `eslint-plugin-react` - simply install and use the recommended config!
 
@@ -261,6 +261,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Related
 
-- [Ripple](https://ripple-ts.com) - The Ripple framework
+- [Ripple](https://ripplejs.com) - The Ripple framework
 - [@ripple-ts/vite-plugin](https://www.npmjs.com/package/@ripple-ts/vite-plugin) - Vite plugin for Ripple
 - [@ripple-ts/prettier-plugin](https://www.npmjs.com/package/@ripple-ts/prettier-plugin) - Prettier plugin for Ripple

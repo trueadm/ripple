@@ -4,7 +4,6 @@ import ts from 'esrap/languages/ts';
 import path from 'node:path';
 import { print } from 'esrap';
 import {
-	build_getter,
 	determine_namespace_for_children,
 	escape_html,
 	is_boolean_attribute,
@@ -13,7 +12,6 @@ import {
 	is_void_element,
 	normalize_children,
 } from '../../../utils.js';
-import is_reference from 'is-reference';
 import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';
@@ -151,6 +149,18 @@ const visitors = {
 	},
 
 	NewExpression(node, context) {
+		// Special handling for TrackedMapExpression and TrackedSetExpression
+		// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
+		// and the actual arguments are in NewExpression.arguments
+		const callee = node.callee;
+		if (callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression') {
+			// Use NewExpression's arguments (the callee has empty arguments from parser)
+			const argsToUse = node.arguments.length > 0 ? node.arguments : callee.arguments;
+			// For SSR, use regular Map/Set
+			const constructorName = callee.type === 'TrackedMapExpression' ? 'Map' : 'Set';
+			return b.new(b.id(constructorName), ...argsToUse.map((arg) => context.visit(arg)));
+		}
+
 		if (!context.state.to_ts) {
 			delete node.typeArguments;
 		}

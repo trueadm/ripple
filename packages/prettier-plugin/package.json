@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/prettier-plugin",
-  "version": "0.2.155",
+  "version": "0.2.162",
   "description": "Ripple plugin for Prettier",
   "type": "module",
   "module": "src/index.js",
@@ -11,7 +11,7 @@
     "ripple",
     "formatter"
   ],
-  "homepage": "https://ripple-ts.com",
+  "homepage": "https://ripplejs.com",
   "author": "Dominic Gannaway",
   "license": "MIT",
   "repository": {

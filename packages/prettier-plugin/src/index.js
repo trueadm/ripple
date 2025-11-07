@@ -156,6 +156,79 @@ function iterateFunctionParametersPath(path, iteratee) {
 	}
 }
 
+// Operator precedence (higher number = higher precedence)
+const PRECEDENCE = {
+	'||': 1,
+	'&&': 2,
+	'|': 3,
+	'^': 4,
+	'&': 5,
+	'==': 6,
+	'!=': 6,
+	'===': 6,
+	'!==': 6,
+	'<': 7,
+	'<=': 7,
+	'>': 7,
+	'>=': 7,
+	in: 7,
+	instanceof: 7,
+	'<<': 8,
+	'>>': 8,
+	'>>>': 8,
+	'+': 9,
+	'-': 9,
+	'*': 10,
+	'/': 10,
+	'%': 10,
+	'**': 11,
+};
+
+function getPrecedence(operator) {
+	return PRECEDENCE[operator] || 0;
+}
+
+// Check if a BinaryExpression needs parentheses
+function binaryExpressionNeedsParens(node, parent) {
+	if (!node.metadata?.parenthesized) {
+		return false;
+	}
+
+	// If parent is not an operator context, don't preserve parens
+	if (
+		!parent ||
+		(parent.type !== 'BinaryExpression' &&
+			parent.type !== 'LogicalExpression' &&
+			parent.type !== 'UnaryExpression')
+	) {
+		return false;
+	}
+
+	// If parent is UnaryExpression, it already handles the parentheses
+	if (parent.type === 'UnaryExpression') {
+		return false;
+	}
+
+	// For BinaryExpression/LogicalExpression parents, check precedence
+	if (parent.type === 'BinaryExpression' || parent.type === 'LogicalExpression') {
+		const nodePrecedence = getPrecedence(node.operator);
+		const parentPrecedence = getPrecedence(parent.operator);
+
+		// Need parens if:
+		// 1. Child has lower precedence than parent
+		// 2. Same precedence but different operators (for clarity)
+		// 3. Child is on the right side and precedence is equal (for left-associative operators)
+		if (nodePrecedence < parentPrecedence) {
+			return true;
+		}
+		if (nodePrecedence === parentPrecedence && node.operator !== parent.operator) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 function createSkip(characters) {
 	return (text, startIndex, options) => {
 		const backwards = Boolean(options && options.backwards);
@@ -554,7 +627,7 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 
 		case 'Component':
-			nodeContent = printComponent(node, path, options, print);
+			nodeContent = printComponent(node, path, options, print, innerCommentParts);
 			break;
 
 		case 'ExportNamedDeclaration':
@@ -1163,10 +1236,19 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 		}
 
+		case 'TSNonNullExpression': {
+			nodeContent = concat([path.call(print, 'expression'), '!']);
+			break;
+		}
+
+		case 'JSXExpressionContainer': {
+			nodeContent = concat(['{', path.call(print, 'expression'), '}']);
+			break;
+		}
+
 		case 'NewExpression':
 			nodeContent = printNewExpression(node, path, options, print);
 			break;
-
 		case 'TemplateLiteral':
 			nodeContent = printTemplateLiteral(node, path, options, print);
 			break;
@@ -1324,8 +1406,10 @@ function printRippleNode(node, path, options, print, args) {
 			const trackedPrefix = node.tracked ? '@' : '';
 			let identifierContent;
 			if (node.typeAnnotation) {
+				const optionalMarker = node.optional ? '?' : '';
 				identifierContent = concat([
 					trackedPrefix + node.name,
+					optionalMarker,
 					': ',
 					path.call(print, 'typeAnnotation'),
 				]);
@@ -1348,7 +1432,6 @@ function printRippleNode(node, path, options, print, args) {
 			}
 			break;
 		}
-
 		case 'Literal':
 			// Handle regex literals specially
 			if (node.regex) {
@@ -1373,13 +1456,59 @@ function printRippleNode(node, path, options, print, args) {
 			if (!node.body || node.body.length === 0) {
 				// Handle innerComments for empty blocks
 				if (innerCommentParts.length > 0) {
-					nodeContent = group([
-						'{',
-						indent([hardline, join(hardline, innerCommentParts)]),
-						hardline,
-						'}',
-					]);
-					break;
+					// Check if we need to preserve blank lines between comments
+					if (node.innerComments && node.innerComments.length > 0) {
+						const commentDocs = [];
+						const comments = node.innerComments;
+
+						for (let i = 0; i < comments.length; i++) {
+							const comment = comments[i];
+							const prevComment = i > 0 ? comments[i - 1] : null;
+
+							// Check if there's a blank line before this comment
+							const hasBlankLineBefore =
+								prevComment && getBlankLinesBetweenNodes(prevComment, comment) > 0;
+
+							let commentDoc;
+							if (comment.type === 'Line') {
+								commentDoc = '//' + comment.value;
+							} else if (comment.type === 'Block') {
+								commentDoc = '/*' + comment.value + '*/';
+							}
+
+							commentDocs.push({ doc: commentDoc, hasBlankLineBefore });
+						}
+
+						// Build the content with proper spacing
+						const contentParts = [];
+						for (let i = 0; i < commentDocs.length; i++) {
+							const { doc, hasBlankLineBefore } = commentDocs[i];
+
+							if (i > 0) {
+								// Add blank line if needed (two hardlines = one blank line)
+								if (hasBlankLineBefore) {
+									contentParts.push(hardline);
+									contentParts.push(hardline);
+								} else {
+									contentParts.push(hardline);
+								}
+							}
+
+							contentParts.push(doc);
+						}
+
+						nodeContent = group(['{', indent([hardline, concat(contentParts)]), hardline, '}']);
+						break;
+					} else {
+						// Fallback to simple join
+						nodeContent = group([
+							'{',
+							indent([hardline, join(hardline, innerCommentParts)]),
+							hardline,
+							'}',
+						]);
+						break;
+					}
 				}
 				nodeContent = '{}';
 				break;
@@ -1435,9 +1564,10 @@ function printRippleNode(node, path, options, print, args) {
 					parent.type === 'AssignmentExpression' ||
 					parent.type === 'AssignmentPattern');
 
+			let result;
 			// Don't add indent if we're in a conditional test context
 			if (args?.isConditionalTest) {
-				nodeContent = group(
+				result = group(
 					concat([
 						path.call((childPath) => print(childPath, { isConditionalTest: true }), 'left'),
 						' ',
@@ -1450,7 +1580,7 @@ function printRippleNode(node, path, options, print, args) {
 				);
 			} else if (shouldNotIndent) {
 				// In assignment context, don't add indent - parent will handle it
-				nodeContent = group(
+				result = group(
 					concat([
 						path.call(print, 'left'),
 						' ',
@@ -1459,7 +1589,7 @@ function printRippleNode(node, path, options, print, args) {
 					]),
 				);
 			} else {
-				nodeContent = group(
+				result = group(
 					concat([
 						path.call(print, 'left'),
 						' ',
@@ -1468,6 +1598,13 @@ function printRippleNode(node, path, options, print, args) {
 					]),
 				);
 			}
+
+			// Wrap in parentheses only if semantically necessary
+			if (binaryExpressionNeedsParens(node, parent)) {
+				result = concat(['(', result, ')']);
+			}
+
+			nodeContent = result;
 			break;
 		}
 		case 'LogicalExpression':
@@ -1645,10 +1782,13 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printTSPropertySignature(node, path, options, print);
 			break;
 
+		case 'TSMethodSignature':
+			nodeContent = printTSMethodSignature(node, path, options, print);
+			break;
+
 		case 'TSEnumMember':
 			nodeContent = printTSEnumMember(node, path, options, print);
 			break;
-
 		case 'TSLiteralType':
 			nodeContent = path.call(print, 'literal');
 			break;
@@ -2002,7 +2142,7 @@ function printExportNamedDeclaration(node, path, options, print) {
 	return 'export';
 }
 
-function printComponent(node, path, options, print) {
+function printComponent(node, path, options, print, innerCommentParts = []) {
 	// Use arrays instead of string concatenation
 	const signatureParts = ['component ', node.id.name];
 
@@ -2102,10 +2242,70 @@ function printComponent(node, path, options, print) {
 		// Add the body and closing brace
 		parts.push(indentedContent, hardline, '}');
 	} else {
-		// Empty component body
+		// Empty component body - check for inner comments or trailing comments on id
+		// When a component body is empty with only comments, the parser attaches them
+		// as trailingComments on the id node (component name)
+		const commentDocs = [];
+
+		// Check innerComments first (standard case for empty blocks)
+		if (innerCommentParts.length > 0) {
+			for (const part of innerCommentParts) {
+				commentDocs.push({ doc: part, hasBlankLineBefore: false });
+			}
+		}
+
+		// Check for trailing comments on the id (component name)
+		// These are comments that appear inside an empty component body
+		if (node.id && node.id.trailingComments && node.id.trailingComments.length > 0) {
+			const comments = node.id.trailingComments;
+
+			for (let i = 0; i < comments.length; i++) {
+				const comment = comments[i];
+				const prevComment = i > 0 ? comments[i - 1] : null;
+
+				// Check if there's a blank line before this comment
+				const hasBlankLineBefore =
+					prevComment && getBlankLinesBetweenNodes(prevComment, comment) > 0;
+
+				let commentDoc;
+				if (comment.type === 'Line') {
+					commentDoc = '//' + comment.value;
+				} else if (comment.type === 'Block') {
+					commentDoc = '/*' + comment.value + '*/';
+				}
+
+				commentDocs.push({ doc: commentDoc, hasBlankLineBefore });
+			}
+		}
+
+		if (commentDocs.length > 0) {
+			// Build the content with proper spacing
+			const contentParts = [];
+			for (let i = 0; i < commentDocs.length; i++) {
+				const { doc, hasBlankLineBefore } = commentDocs[i];
+
+				if (i > 0) {
+					// Add blank line if needed (two hardlines = one blank line)
+					if (hasBlankLineBefore) {
+						contentParts.push(hardline);
+						contentParts.push(hardline);
+					} else {
+						contentParts.push(hardline);
+					}
+				}
+
+				contentParts.push(doc);
+			}
+
+			return concat([
+				concat(signatureParts),
+				' ',
+				group(['{', indent([hardline, concat(contentParts)]), hardline, '}']),
+			]);
+		}
+
 		parts[1] = ' {}';
 	}
-
 	return concat(parts);
 }
 
@@ -2226,8 +2426,13 @@ function printArrowFunction(node, path, options, print) {
 		parts.push(path.call(print, 'body'));
 	} else {
 		// For expression bodies, check if we need to wrap in parens
-		// Wrap ObjectExpression in parens to avoid ambiguity with block statements
-		if (node.body.type === 'ObjectExpression') {
+		// Wrap ObjectExpression, AssignmentExpression, and SequenceExpression in parens
+		// to avoid ambiguity with block statements or to clarify intent
+		if (
+			node.body.type === 'ObjectExpression' ||
+			node.body.type === 'AssignmentExpression' ||
+			node.body.type === 'SequenceExpression'
+		) {
 			parts.push('(');
 			parts.push(path.call(print, 'body'));
 			parts.push(')');
@@ -3051,7 +3256,13 @@ function printMemberExpression(node, path, options, print) {
 
 	let result;
 	if (node.computed) {
-		const openBracket = node.optional ? '?.[' : '[';
+		// Check if the MemberExpression itself is tracked to add @ symbol
+		const trackedPrefix = node.tracked ? '@' : '';
+		const openBracket = node.optional
+			? '?.' + trackedPrefix + '['
+			: trackedPrefix
+				? '.' + trackedPrefix + '['
+				: '[';
 		result = concat([objectPart, openBracket, propertyPart, ']']);
 	} else {
 		const separator = node.optional ? '?.' : '.';
@@ -3082,9 +3293,21 @@ function printUnaryExpression(node, path, options, print) {
 		if (needsSpace) {
 			parts.push(' ');
 		}
-		parts.push(path.call(print, 'argument'));
+		const argumentDoc = path.call(print, 'argument');
+		// Preserve parentheses around the argument when present
+		if (node.argument.metadata?.parenthesized) {
+			parts.push('(', argumentDoc, ')');
+		} else {
+			parts.push(argumentDoc);
+		}
 	} else {
-		parts.push(path.call(print, 'argument'));
+		const argumentDoc = path.call(print, 'argument');
+		// Preserve parentheses around the argument when present
+		if (node.argument.metadata?.parenthesized) {
+			parts.push('(', argumentDoc, ')');
+		} else {
+			parts.push(argumentDoc);
+		}
 		parts.push(node.operator);
 	}
 
@@ -3633,6 +3856,45 @@ function printProperty(node, path, options, print) {
 
 	const parts = [];
 
+	// Handle getter/setter methods
+	if (node.kind === 'get' || node.kind === 'set') {
+		const methodParts = [];
+		const funcValue = node.value;
+
+		// Add get/set keyword
+		methodParts.push(node.kind, ' ');
+
+		// Print key (with computed property brackets if needed)
+		if (node.computed) {
+			methodParts.push('[', path.call(print, 'key'), ']');
+		} else if (node.key.type === 'Literal' && typeof node.key.value === 'string') {
+			const key = node.key.value;
+			const isValidIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key);
+			if (isValidIdentifier) {
+				methodParts.push(key);
+			} else {
+				methodParts.push(formatStringLiteral(key, options));
+			}
+		} else {
+			methodParts.push(path.call(print, 'key'));
+		}
+
+		// Print parameters by calling into the value path
+		const paramsPart = path.call(
+			(valuePath) => printFunctionParameters(valuePath, options, print),
+			'value',
+		);
+		methodParts.push(group(paramsPart));
+
+		// Handle return type annotation
+		if (funcValue.returnType) {
+			methodParts.push(': ', path.call(print, 'value', 'returnType'));
+		}
+
+		methodParts.push(' ', path.call(print, 'value', 'body'));
+		return concat(methodParts);
+	}
+
 	// Handle method shorthand: increment() {} instead of increment: function() {}
 	if (node.method && node.value.type === 'FunctionExpression') {
 		const methodParts = [];
@@ -3855,6 +4117,47 @@ function printTSPropertySignature(node, path, options, print) {
 		parts.push('?');
 	}
 
+	if (node.typeAnnotation) {
+		parts.push(': ');
+		parts.push(path.call(print, 'typeAnnotation'));
+	}
+
+	return concat(parts);
+}
+
+function printTSMethodSignature(node, path, options, print) {
+	const parts = [];
+
+	// Print the method name/key
+	parts.push(path.call(print, 'key'));
+
+	// Add optional marker if present
+	if (node.optional) {
+		parts.push('?');
+	}
+
+	// Add TypeScript generics/type parameters if present
+	if (node.typeParameters) {
+		const typeParams = path.call(print, 'typeParameters');
+		if (Array.isArray(typeParams)) {
+			parts.push(...typeParams);
+		} else {
+			parts.push(typeParams);
+		}
+	}
+
+	// Print parameters - use 'parameters' property for TypeScript signature nodes
+	parts.push('(');
+	if (node.parameters && node.parameters.length > 0) {
+		const params = path.map(print, 'parameters');
+		for (let i = 0; i < params.length; i++) {
+			if (i > 0) parts.push(', ');
+			parts.push(params[i]);
+		}
+	}
+	parts.push(')');
+
+	// Return type annotation
 	if (node.typeAnnotation) {
 		parts.push(': ');
 		parts.push(path.call(print, 'typeAnnotation'));
@@ -4276,27 +4579,57 @@ function printTsxCompat(node, path, options, print) {
 	}
 
 	// Print JSXElement children - they remain as JSX
-	// Filter out whitespace-only JSXText nodes
+	// Filter out whitespace-only JSXText nodes and merge adjacent text-like nodes
 	const finalChildren = [];
+	let accumulatedText = '';
 
 	for (let i = 0; i < node.children.length; i++) {
 		const child = node.children[i];
 
-		// Skip whitespace-only JSXText nodes
-		if (child.type === 'JSXText' && !child.value.trim()) {
-			continue;
-		}
+		// Check if this is a text-like node (JSXText or Identifier in JSX context)
+		const isTextLike = child.type === 'JSXText' || child.type === 'Identifier';
 
-		const printedChild = path.call(print, 'children', i);
-		finalChildren.push(printedChild);
+		if (isTextLike) {
+			// Get the text content
+			let text;
+			if (child.type === 'JSXText') {
+				text = child.value.trim();
+			} else if (child.type === 'Identifier') {
+				text = child.name;
+			}
 
-		if (i < node.children.length - 1) {
-			// Only add hardline if the next child is not whitespace-only
-			const nextChild = node.children[i + 1];
-			if (nextChild && !(nextChild.type === 'JSXText' && !nextChild.value.trim())) {
+			if (text) {
+				if (accumulatedText) {
+					accumulatedText += ' ' + text;
+				} else {
+					accumulatedText = text;
+				}
+			}
+		} else {
+			// Before adding non-text node, flush accumulated text
+			if (accumulatedText) {
+				if (finalChildren.length > 0) {
+					finalChildren.push(hardline);
+				}
+				finalChildren.push(accumulatedText);
+				accumulatedText = '';
+			}
+
+			if (finalChildren.length > 0) {
 				finalChildren.push(hardline);
 			}
+
+			const printedChild = path.call(print, 'children', i);
+			finalChildren.push(printedChild);
 		}
+	}
+
+	// Don't forget any remaining accumulated text
+	if (accumulatedText) {
+		if (finalChildren.length > 0) {
+			finalChildren.push(hardline);
+		}
+		finalChildren.push(accumulatedText);
 	}
 
 	// Format the TsxCompat element
@@ -4355,24 +4688,43 @@ function printJSXElement(node, path, options, print) {
 		return concat(['<', tagName, attributesDoc, '></', tagName, '>']);
 	}
 
-	// Format children - filter out empty text nodes
+	// Format children - filter out empty text nodes and merge adjacent text nodes
 	const childrenDocs = [];
+	let currentText = '';
+
 	for (let i = 0; i < node.children.length; i++) {
 		const child = node.children[i];
 
 		if (child.type === 'JSXText') {
-			// Handle JSX text nodes - only include if not just whitespace
-			const text = child.value;
-			if (text.trim()) {
-				childrenDocs.push(text);
+			// Accumulate text content, preserving spaces between words
+			const trimmed = child.value.trim();
+			if (trimmed) {
+				if (currentText) {
+					currentText += ' ' + trimmed;
+				} else {
+					currentText = trimmed;
+				}
 			}
-		} else if (child.type === 'JSXExpressionContainer') {
-			// Handle JSX expression containers
-			childrenDocs.push(concat(['{', path.call(print, 'children', i, 'expression'), '}']));
 		} else {
-			// Handle nested JSX elements
-			childrenDocs.push(path.call(print, 'children', i));
+			// If we have accumulated text, push it before the non-text node
+			if (currentText) {
+				childrenDocs.push(currentText);
+				currentText = '';
+			}
+
+			if (child.type === 'JSXExpressionContainer') {
+				// Handle JSX expression containers
+				childrenDocs.push(concat(['{', path.call(print, 'children', i, 'expression'), '}']));
+			} else {
+				// Handle nested JSX elements
+				childrenDocs.push(path.call(print, 'children', i));
+			}
 		}
+	}
+
+	// Don't forget any remaining text
+	if (currentText) {
+		childrenDocs.push(currentText);
 	}
 
 	// Check if content can be inlined (single text node or single expression)
@@ -4495,17 +4847,21 @@ function printJSXMemberExpression(node) {
 
 function printMemberExpressionSimple(node, options, computed = false) {
 	if (node.type === 'Identifier') {
-		return node.name;
+		// When computed is true, it means we're inside brackets and tracked is already handled by .@[ or [
+		// So we should NOT add @ prefix in that case
+		return (computed ? '' : node.tracked ? '@' : '') + node.name;
 	}
 
 	if (node.type === 'MemberExpression') {
 		const obj = printMemberExpressionSimple(node.object, options);
+		// For properties, we add the .@ or . prefix, and then pass true to indicate
+		// that we're in a context where tracked has been handled
 		const prop = node.computed
 			? (node.property.tracked ? '.@[' : '[') +
-				printMemberExpressionSimple(node.property, options, node.computed) +
+				printMemberExpressionSimple(node.property, options, true) +
 				']'
 			: (node.property.tracked ? '.@' : '.') +
-				printMemberExpressionSimple(node.property, options, node.computed);
+				printMemberExpressionSimple(node.property, options, true);
 		return obj + prop;
 	}
 
@@ -4516,7 +4872,7 @@ function printMemberExpressionSimple(node, options, computed = false) {
 }
 
 function printElement(node, path, options, print) {
-	const tagName = (node.id.tracked ? '@' : '') + printMemberExpressionSimple(node.id, options);
+	const tagName = printMemberExpressionSimple(node.id, options);
 
 	const elementLeadingComments = getElementLeadingComments(node);
 	const metadataCommentParts =

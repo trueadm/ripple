@@ -122,7 +122,7 @@ describe('TrackedMap', () => {
 
 	it('creates empty TrackedMap using #Map() shorthand syntax', () => {
 		component MapTest() {
-			let map = #Map();
+			let map = new #Map();
 
 			<button onClick={() => map.set('a', 1)}>{'add'}</button>
 			<pre>{map.size}</pre>
@@ -141,7 +141,7 @@ describe('TrackedMap', () => {
 
 	it('creates TrackedMap with initial entries using #Map() shorthand syntax', () => {
 		component MapTest() {
-			let map = #Map([['a', 1], ['b', 2], ['c', 3]]);
+			let map = new #Map([['a', 1], ['b', 2], ['c', 3]]);
 			let value = track(() => map.get('b'));
 
 			<button onClick={() => map.set('b', 10)}>{'update'}</button>
@@ -163,7 +163,7 @@ describe('TrackedMap', () => {
 
 	it('handles all operations with #Map() shorthand syntax', () => {
 		component MapTest() {
-			let map = #Map([['x', 100], ['y', 200]]);
+			let map = new #Map([['x', 100], ['y', 200]]);
 			let keys = track(() => Array.from(map.keys()));
 
 			<button onClick={() => map.set('z', 300)}>{'add'}</button>

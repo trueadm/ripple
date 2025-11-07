@@ -636,6 +636,15 @@ function RipplePlugin(config) {
 					return this.finishNode(node, type);
 				}
 
+				// If we reach here, it means #Map or #Set is being called without 'new'
+				// Throw a TypeError to match JavaScript class constructor behavior
+				const constructorName =
+					type === 'TrackedMapExpression' ? '#Map (TrackedMap)' : '#Set (TrackedSet)';
+				this.raise(
+					node.start,
+					`TypeError: Class constructor ${constructorName} cannot be invoked without 'new'`,
+				);
+
 				this.expect(tt.parenL); // expect '('
 
 				node.arguments = [];
@@ -1591,10 +1600,40 @@ function RipplePlugin(config) {
 						if (this.type === tt.braceL) {
 							const node = this.jsx_parseExpressionContainer();
 							body.push(node);
-						} else {
-							// Parse regular JSX expression (JSXElement, JSXFragment, etc.)
+						} else if (this.type === tstt.jsxTagStart) {
+							// Parse JSX element
 							const node = super.parseExpression();
 							body.push(node);
+						} else {
+							const start = this.start;
+							this.pos = start;
+							let text = '';
+
+							while (this.pos < this.input.length) {
+								const ch = this.input.charCodeAt(this.pos);
+
+								// Stop at opening tag, closing tag, or expression
+								if (ch === 60 || ch === 123) {
+									// < or {
+									break;
+								}
+
+								text += this.input[this.pos];
+								this.pos++;
+							}
+
+							if (text) {
+								const node = {
+									type: 'JSXText',
+									value: text,
+									raw: text,
+									start,
+									end: this.pos,
+								};
+								body.push(node);
+							}
+
+							this.next();
 						}
 					}
 				}
@@ -2097,6 +2136,73 @@ function get_comment_handlers(source, comments, index = 0) {
 										// Otherwise leave it for next parameter's leading comments
 									} else {
 										node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+									}
+								} else if (hasBlankLine && onlyWhitespace && array_prop && parent[array_prop]) {
+									// When there's a blank line between node and comment(s),
+									// check if there's also a blank line after the comment(s) before the next node
+									// If so, attach comments as trailing to preserve the grouping
+									// Only do this for statement-level contexts (BlockStatement, Program),
+									// not for Element children or other contexts
+									const isStatementContext =
+										parent.type === 'BlockStatement' || parent.type === 'Program';
+
+									// Don't apply for Component - let Prettier handle comment attachment there
+									// Component bodies have different comment handling via metadata.elementLeadingComments
+									if (!isStatementContext) {
+										return;
+									}
+
+									const currentIndex = parent[array_prop].indexOf(node);
+									const nextSibling = parent[array_prop][currentIndex + 1];
+
+									if (nextSibling && nextSibling.loc) {
+										// Find where the comment block ends
+										let lastCommentIndex = 0;
+										let lastCommentEnd = comments[0].end;
+
+										// Collect consecutive comments (without blank lines between them)
+										while (comments[lastCommentIndex + 1]) {
+											const currentComment = comments[lastCommentIndex];
+											const nextComment = comments[lastCommentIndex + 1];
+											const sliceBetween = source.slice(currentComment.end, nextComment.start);
+
+											// If there's a blank line, stop
+											if (/\n\s*\n/.test(sliceBetween)) {
+												break;
+											}
+
+											lastCommentIndex++;
+											lastCommentEnd = nextComment.end;
+										}
+
+										// Check if there's a blank line after the last comment and before next sibling
+										const sliceAfterComments = source.slice(lastCommentEnd, nextSibling.start);
+										const hasBlankLineAfter = /\n\s*\n/.test(sliceAfterComments);
+
+										if (hasBlankLineAfter) {
+											// Don't attach comments as trailing if next sibling is an Element
+											// and any comment falls within the Element's line range
+											// This means the comments are inside the Element (between opening and closing tags)
+											const nextIsElement = nextSibling.type === 'Element';
+											const commentsInsideElement =
+												nextIsElement &&
+												nextSibling.loc &&
+												comments.some((c) => {
+													if (!c.loc) return false;
+													// Check if comment is on a line between Element's start and end lines
+													return (
+														c.loc.start.line >= nextSibling.loc.start.line &&
+														c.loc.end.line <= nextSibling.loc.end.line
+													);
+												});
+
+											if (!commentsInsideElement) {
+												// Attach all the comments as trailing
+												for (let i = 0; i <= lastCommentIndex; i++) {
+													(node.trailingComments ||= []).push(comments.shift());
+												}
+											}
+										}
 									}
 								}
 							}

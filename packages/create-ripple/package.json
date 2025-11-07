@@ -1,6 +1,6 @@
 {
   "name": "create-ripple",
-  "version": "0.2.155",
+  "version": "0.2.162",
   "type": "module",
   "license": "MIT",
   "author": "Ripple Team",
@@ -19,7 +19,7 @@
   "bugs": {
     "url": "https://github.com/Ripple-TS/ripple/issues"
   },
-  "homepage": "https://ripple-ts.com",
+  "homepage": "https://ripplejs.com",
   "engines": {
     "node": ">=20.0.0"
   },
