@@ -1,7 +1,7 @@
 /** @import { Block } from '#client' */
 
 import { destroy_block, ref } from './blocks.js';
-import { REF_PROP, TRACKED, TRACKED_OBJECT } from './constants.js';
+import { REF_PROP } from './constants.js';
 import {
 	get_descriptors,
 	get_own_property_symbols,
@@ -69,25 +69,29 @@ function get_setters(element) {
 
 /**
  * @param {Element} element
+ * @param {any} value
+ * @returns {void}
+ */
+export function set_style(element, value) {
+	if (value == null) {
+		element.removeAttribute('style');
+	} else if (typeof value !== 'string') {
+		apply_styles(/** @type {HTMLElement} */ (element), value);
+	} else {
+		// @ts-ignore
+		element.style.cssText = value;
+	}
+}
+
+/**
+ * @param {Element} element
  * @param {string} attribute
  * @param {any} value
  * @returns {void}
  */
 export function set_attribute(element, attribute, value) {
-	// @ts-expect-error
-	var attributes = (element.__attributes ??= {});
-
-	if (attributes[attribute] === (attributes[attribute] = value)) return;
-
-	if (attribute === 'style' && '__styles' in element) {
-		// reset styles to force style: directive to update
-		element.__styles = {};
-	}
-
 	if (value == null) {
 		element.removeAttribute(attribute);
-	} else if (attribute === 'style' && typeof value !== 'string') {
-		apply_styles(/** @type {HTMLElement} */ (element), value);
 	} else if (typeof value !== 'string' && get_setters(element).includes(attribute)) {
 		/** @type {any} */ (element)[attribute] = value;
 	} else {
@@ -97,13 +101,13 @@ export function set_attribute(element, attribute, value) {
 
 /**
  * @param {HTMLElement} element
- * @param {HTMLElement['style']} newStyles
+ * @param {HTMLElement['style']} new_styles
  */
-export function apply_styles(element, newStyles) {
+export function apply_styles(element, new_styles) {
 	const style = element.style;
 	const new_properties = new Set();
 
-	for (const [property, value] of Object.entries(newStyles)) {
+	for (const [property, value] of Object.entries(new_styles)) {
 		const normalized_property = normalize_css_property_name(property);
 		const normalized_value = String(value);
 
@@ -132,6 +136,8 @@ function set_attribute_helper(element, key, value) {
 	if (key === 'class') {
 		const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
 		set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
+	} else if (key === 'style') {
+		set_style(/** @type {HTMLElement} */ (element), value);
 	} else if (key === '#class') {
 		// Special case for static class when spreading props
 		element.classList.add(value);

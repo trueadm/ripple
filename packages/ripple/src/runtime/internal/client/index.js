@@ -9,6 +9,7 @@ export {
 export {
 	set_text,
 	set_class,
+	set_style,
 	set_attribute,
 	set_value,
 	set_checked,

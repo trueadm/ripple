@@ -1,4 +1,4 @@
-/** @import {Expression, FunctionExpression, Node, Program} from 'estree' */
+/** @import {Expression, FunctionExpression, Node, Program, Statement} from 'estree' */
 
 /** @typedef {Map<number, {offset: number, delta: number}>} PostProcessingChanges */
 /** @typedef {number[]} LineOffsets */
@@ -129,7 +129,7 @@ function visit_head_element(node, context) {
 	}
 }
 
-function apply_updates(init, update) {
+function apply_updates(init, update, state) {
 	if (update.length === 1) {
 		init.push(
 			b.stmt(
@@ -155,8 +155,25 @@ function apply_updates(init, update) {
 		const render_statements = [];
 		let index = 0;
 
+		const grouped_updates = new Map();
+
 		for (const u of update) {
 			if (u.initial) {
+				const id =
+					u.identity.type === 'Identifier' ? state.scope.get(u.identity.name)?.initial : u.identity;
+				let updates = grouped_updates.get(id);
+
+				if (updates === undefined) {
+					updates = [];
+					grouped_updates.set(id, updates);
+				}
+				updates.push(u);
+			}
+		}
+
+		for (const [, updates] of grouped_updates) {
+			if (updates.length === 1) {
+				const u = updates[0];
 				const key = index_to_key(index);
 				index_map.set(u.operation, key);
 				initial.push(b.prop('init', b.id(key), u.initial));
@@ -171,6 +188,29 @@ function apply_updates(init, update) {
 				);
 				index++;
 			} else {
+				const key = index_to_key(index);
+				/** @type {Array<Statement>} */
+				const if_body = [
+					b.stmt(b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key))),
+				];
+				initial.push(b.prop('init', b.id(key), updates[0].initial));
+				render_statements.push(
+					b.var('__' + key, updates[0].expression),
+					b.if(
+						b.binary('!==', b.member(b.id('__prev'), b.id(key)), b.id('__' + key)),
+						b.block(if_body),
+					),
+				);
+				for (const u of updates) {
+					index_map.set(u.operation, key);
+					if_body.push(u.operation(b.id('__' + key)));
+					index++;
+				}
+			}
+		}
+
+		for (const u of update) {
+			if (!u.initial) {
 				render_statements.push(u.operation);
 			}
 		}
@@ -835,6 +875,7 @@ const visitors = {
 		if (is_dom_element) {
 			let class_attribute = null;
 			let style_attribute = null;
+			/** @type {Array<Statement>} */
 			const local_updates = [];
 			const is_void = is_void_element(node.id.name);
 
@@ -997,9 +1038,11 @@ const visitors = {
 								});
 							} else {
 								local_updates.push({
-									operation: b.stmt(
-										b.call('_$_.set_attribute', id, b.literal(attribute), expression),
-									),
+									operation: (key) =>
+										b.stmt(b.call('_$_.set_attribute', id, b.literal(attribute), key)),
+									expression,
+									identity: attr.value,
+									initial: b.void0,
 								});
 							}
 						} else {
@@ -1044,6 +1087,7 @@ const visitors = {
 							operation: (key) =>
 								b.stmt(b.call('_$_.set_class', id, key, hash_arg, b.literal(is_html))),
 							expression,
+							identity: class_attribute.value,
 							initial: b.literal(''),
 						});
 					} else {
@@ -1063,14 +1107,16 @@ const visitors = {
 					const id = state.flush_node();
 					const metadata = { tracking: false, await: false };
 					const expression = visit(style_attribute.value, { ...state, metadata });
-					const name = style_attribute.name.name;
-
-					const statement = b.stmt(b.call('_$_.set_attribute', id, b.literal(name), expression));
 
 					if (metadata.tracking) {
-						local_updates.push({ operation: statement });
+						local_updates.push({
+							operation: (key) => b.stmt(b.call('_$_.set_style', id, key)),
+							identity: style_attribute.value,
+							expression,
+							initial: b.void0,
+						});
 					} else {
-						state.init.push(statement);
+						state.init.push(b.stmt(b.call('_$_.set_style', id, expression)));
 					}
 				}
 			}
@@ -1084,7 +1130,9 @@ const visitors = {
 				);
 			}
 
+			/** @type {Array<Statement>} */
 			const init = [];
+			/** @type {Array<Statement>} */
 			const update = [];
 
 			if (!is_void) {
@@ -1100,7 +1148,7 @@ const visitors = {
 
 			if (update.length > 0) {
 				if (state.scope.parent.declarations.size > 0) {
-					apply_updates(init, update);
+					apply_updates(init, update, state);
 				} else {
 					state.update.push(...update);
 				}
@@ -2252,6 +2300,7 @@ function transform_children(children, context) {
 					state.update.push({
 						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
 						expression,
+						identity: node.expression,
 						initial: b.literal(' '),
 					});
 					if (metadata.await) {
@@ -2279,6 +2328,7 @@ function transform_children(children, context) {
 					state.update.push({
 						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
 						expression,
+						identity: node.expression,
 						initial: b.literal(' '),
 					});
 					if (metadata.await) {
@@ -2356,7 +2406,7 @@ function transform_body(body, { visit, state }) {
 			// In TypeScript mode, just add the update statements directly
 			body_state.init.push(...body_state.update);
 		} else {
-			apply_updates(body_state.init, body_state.update);
+			apply_updates(body_state.init, body_state.update, state);
 		}
 	}
 
