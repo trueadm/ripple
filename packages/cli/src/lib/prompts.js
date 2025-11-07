@@ -35,11 +35,18 @@ export async function promptProjectName(defaultName = 'my-ripple-app') {
  * @returns {Promise<string>} - Selected template name
  */
 export async function promptTemplate() {
+	const choices = getTemplateChoices();
+
+	// If there's only one template, use it automatically without prompting
+	if (choices.length === 1) {
+		return choices[0].value;
+	}
+
 	const response = await prompts({
 		type: 'select',
 		name: 'template',
 		message: 'Which template would you like to use?',
-		choices: getTemplateChoices(),
+		choices: choices,
 		initial: 0,
 	});
 
