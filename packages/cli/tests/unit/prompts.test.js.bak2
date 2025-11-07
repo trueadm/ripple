@@ -43,11 +43,8 @@ import {
 } from '../../src/lib/prompts.js';
 import * as templates from '../../src/lib/templates.js';
 
+// @ts-expect-error - prompts is mocked
 const mockedPrompts = /** @type {import('vitest').MockedFunction<typeof prompts>} */ (prompts);
-const mockedGetTemplateChoices =
-	/** @type {import('vitest').MockedFunction<typeof templates.getTemplateChoices>} */ (
-		templates.getTemplateChoices
-	);
 
 describe('Prompts', () => {
 	beforeEach(() => {
@@ -64,7 +61,7 @@ describe('Prompts', () => {
 
 			const result = await promptProjectName();
 			expect(result).toBe('my-app');
-			expect(mockedPrompts).toHaveBeenCalledWith({
+			expect(prompts).toHaveBeenCalledWith({
 				type: 'text',
 				name: 'projectName',
 				message: 'What is your project named?',
@@ -77,7 +74,7 @@ describe('Prompts', () => {
 			mockedPrompts.mockResolvedValue({ projectName: 'custom-app' });
 
 			await promptProjectName('custom-default');
-			expect(mockedPrompts).toHaveBeenCalledWith(
+			expect(prompts).toHaveBeenCalledWith(
 				expect.objectContaining({
 					initial: 'custom-default',
 				}),
@@ -96,7 +93,7 @@ describe('Prompts', () => {
 			mockedPrompts.mockResolvedValue({ projectName: 'valid-name' });
 
 			await promptProjectName();
-			const call = /** @type {any} */ (mockedPrompts.mock.calls[0][0]);
+			const call = prompts.mock.calls[0][0];
 			const validate = call.validate;
 
 			expect(validate('valid-name')).toBe(true);
@@ -108,7 +105,7 @@ describe('Prompts', () => {
 
 	describe('promptTemplate', () => {
 		it('should return the template directly when only one is available', async () => {
-			mockedGetTemplateChoices.mockReturnValue([
+			templates.getTemplateChoices.mockReturnValue([
 				{
 					title: 'Basic Ripple App',
 					description: 'A minimal Ripple application with Vite and TypeScript',
@@ -118,11 +115,11 @@ describe('Prompts', () => {
 
 			const result = await promptTemplate();
 			expect(result).toBe('basic');
-			expect(mockedPrompts).not.toHaveBeenCalled();
+			expect(prompts).not.toHaveBeenCalled();
 		});
 
 		it('should prompt user when multiple templates are available', async () => {
-			mockedGetTemplateChoices.mockReturnValue([
+			templates.getTemplateChoices.mockReturnValue([
 				{
 					title: 'Basic Ripple App',
 					description: 'A minimal Ripple application',
@@ -138,7 +135,7 @@ describe('Prompts', () => {
 
 			const result = await promptTemplate();
 			expect(result).toBe('advanced');
-			expect(mockedPrompts).toHaveBeenCalledWith({
+			expect(prompts).toHaveBeenCalledWith({
 				type: 'select',
 				name: 'template',
 				message: 'Which template would you like to use?',
@@ -148,15 +145,13 @@ describe('Prompts', () => {
 		});
 
 		it('should exit when user cancels with multiple templates', async () => {
-			mockedGetTemplateChoices.mockReturnValue([
+			templates.getTemplateChoices.mockReturnValue([
 				{
 					title: 'Basic Ripple App',
-					description: 'A minimal Ripple application',
 					value: 'basic',
 				},
 				{
 					title: 'Advanced Ripple App',
-					description: 'An advanced Ripple application',
 					value: 'advanced',
 				},
 			]);
@@ -174,7 +169,7 @@ describe('Prompts', () => {
 
 			const result = await promptPackageManager();
 			expect(result).toBe('pnpm');
-			expect(mockedPrompts).toHaveBeenCalledWith({
+			expect(prompts).toHaveBeenCalledWith({
 				type: 'select',
 				name: 'packageManager',
 				message: 'Which package manager would you like to use?',
@@ -201,7 +196,7 @@ describe('Prompts', () => {
 
 			const result = await promptTypeScript();
 			expect(result).toBe(false);
-			expect(mockedPrompts).toHaveBeenCalledWith({
+			expect(prompts).toHaveBeenCalledWith({
 				type: 'confirm',
 				name: 'typescript',
 				message: 'Would you like to use TypeScript?',
@@ -222,7 +217,7 @@ describe('Prompts', () => {
 			mockedPrompts.mockResolvedValue({ gitInit: true });
 			const result = await promptGitInit();
 			expect(result).toBe(true);
-			expect(mockedPrompts).toHaveBeenCalledWith({
+			expect(prompts).toHaveBeenCalledWith({
 				type: 'confirm',
 				name: 'gitInit',
 				message: 'Initialize a new Git repository?',
@@ -242,7 +237,7 @@ describe('Prompts', () => {
 			mockedPrompts.mockResolvedValue({ gitInit: false });
 			const result = await promptGitInit();
 			expect(result).toBe(false);
-			expect(mockedPrompts).toHaveBeenCalledWith({
+			expect(prompts).toHaveBeenCalledWith({
 				type: 'confirm',
 				name: 'gitInit',
 				message: 'Initialize a new Git repository?',
@@ -263,7 +258,7 @@ describe('Prompts', () => {
 
 			const result = await promptStylingFramework();
 			expect(result).toBe('tailwind');
-			expect(mockedPrompts).toHaveBeenCalledWith({
+			expect(prompts).toHaveBeenCalledWith({
 				type: 'select',
 				name: 'stylingFramework',
 				message: 'Which styling framework would you like to integrate with Ripple?',

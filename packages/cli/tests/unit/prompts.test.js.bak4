@@ -108,7 +108,7 @@ describe('Prompts', () => {
 
 	describe('promptTemplate', () => {
 		it('should return the template directly when only one is available', async () => {
-			mockedGetTemplateChoices.mockReturnValue([
+			templates.getTemplateChoices.mockReturnValue([
 				{
 					title: 'Basic Ripple App',
 					description: 'A minimal Ripple application with Vite and TypeScript',
@@ -122,7 +122,7 @@ describe('Prompts', () => {
 		});
 
 		it('should prompt user when multiple templates are available', async () => {
-			mockedGetTemplateChoices.mockReturnValue([
+			templates.getTemplateChoices.mockReturnValue([
 				{
 					title: 'Basic Ripple App',
 					description: 'A minimal Ripple application',
@@ -148,15 +148,13 @@ describe('Prompts', () => {
 		});
 
 		it('should exit when user cancels with multiple templates', async () => {
-			mockedGetTemplateChoices.mockReturnValue([
+			templates.getTemplateChoices.mockReturnValue([
 				{
 					title: 'Basic Ripple App',
-					description: 'A minimal Ripple application',
 					value: 'basic',
 				},
 				{
 					title: 'Advanced Ripple App',
-					description: 'An advanced Ripple application',
 					value: 'advanced',
 				},
 			]);
