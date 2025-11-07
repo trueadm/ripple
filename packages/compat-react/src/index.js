@@ -2,7 +2,14 @@
 /** @import { ReactNode } from 'react' */
 
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
-import { useSyncExternalStore, useLayoutEffect, useRef, useState, Component } from 'react';
+import {
+	useSyncExternalStore,
+	useLayoutEffect,
+	useRef,
+	useState,
+	Component,
+	Suspense,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
@@ -14,6 +21,9 @@ import {
 	tracked,
 	get_tracked,
 	handle_error,
+	suspend,
+	TRY_BLOCK,
+	destroy_block,
 } from 'ripple/internal/client';
 import { Context } from 'ripple';
 
@@ -34,6 +44,22 @@ function map_portals(portals) {
 	return Array.from(portals.entries()).map(([el, { component, key }], i) => {
 		return createPortal(jsx(component, {}, key), el);
 	});
+}
+
+/**
+ * @param {any} block
+ * @returns {boolean}
+ */
+function is_inside_try_pending(block) {
+	let current = block;
+
+	while (current) {
+		if (current.f & TRY_BLOCK && current.s.a !== null) {
+			return true;
+		}
+		current = current.p;
+	}
+	return false;
 }
 
 export function createReactCompat() {
@@ -76,17 +102,30 @@ export function createReactCompat() {
 				};
 			}
 
+			const use_suspense = is_inside_try_pending(e);
+
 			function ReactCompat() {
 				return useSyncExternalStore(subscribe, () => react_node);
+			}
+
+			function SuspenseHandler() {
+				useLayoutEffect(() => {
+					return with_block(e, () => suspend());
+				}, []);
+
+				return null;
 			}
 
 			class ReactCompatBoundary extends Component {
 				state = { e: false };
 
-				static getDerivedStateFromError(error) {
+				static getDerivedStateFromError() {
 					return { e: true };
 				}
 
+				/**
+				 * @param {unknown} error
+				 */
 				componentDidCatch(error) {
 					handle_error(error, e);
 				}
@@ -94,6 +133,12 @@ export function createReactCompat() {
 				render() {
 					if (this.state?.e) {
 						return null;
+					}
+					if (use_suspense) {
+						return jsx(Suspense, {
+							fallback: jsx(SuspenseHandler, {}),
+							children: jsx(ReactCompat, {}),
+						});
 					}
 					return jsx(ReactCompat, {});
 				}
@@ -169,6 +214,7 @@ export function Ripple({ component, props }) {
 		const proxied_props = proxy_props(() => get_tracked(tracked_props));
 		frag.append(anchor);
 
+		/** @type {any} */
 		const b = with_block(block, () => {
 			PortalContext.set({ portals, update });
 			return branch(() => {
@@ -180,6 +226,7 @@ export function Ripple({ component, props }) {
 
 		return () => {
 			anchor.remove();
+			destroy_block(b);
 		};
 	}, [component]);
 

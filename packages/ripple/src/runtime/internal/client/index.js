@@ -15,7 +15,7 @@ export {
 	set_selected,
 } from './render.js';
 
-export { render, render_spread, async, ref, branch } from './blocks.js';
+export { render, render_spread, async, ref, branch, destroy_block } from './blocks.js';
 
 export { event, delegate } from './events.js';
 
@@ -60,7 +60,7 @@ export { for_block as for, for_block_keyed as for_keyed } from './for.js';
 
 export { if_block as if } from './if.js';
 
-export { try_block as try, aborted } from './try.js';
+export { try_block as try, aborted, suspend } from './try.js';
 
 export { switch_block as switch } from './switch.js';
 
@@ -83,3 +83,5 @@ export { html } from './html.js';
 export { rpc } from './rpc.js';
 
 export { tsx_compat } from './compat.js';
+
+export { TRY_BLOCK } from './constants.js';
