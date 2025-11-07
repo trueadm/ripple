@@ -1,6 +1,6 @@
 {
 	"name": "@ripple-ts/nvim-plugin",
-	"version": "0.0.41",
+	"version": "0.0.46",
 	"description": "Neovim plugin that wires Ripple tree-sitter highlights and language server integration.",
 	"author": "Dominic Gannaway",
 	"license": "MIT",
@@ -12,7 +12,7 @@
 		"directory": "packages/nvim-plugin"
 	},
 	"config": {
-		"@ripple-ts/language-server": "0.2.153"
+		"@ripple-ts/language-server": "0.2.162"
 	},
 	"files": [
 		"lua",

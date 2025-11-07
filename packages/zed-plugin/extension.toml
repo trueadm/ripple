@@ -1,15 +1,15 @@
 id = "ripple"
 name = "Ripple"
 description = "Ripple language support with LSP and Tree-sitter syntax highlighting"
-version = "0.0.41"
+version = "0.0.46"
 schema_version = 1
 authors = ["Dominic Gannaway <trueadm@users.noreply.github.com>"]
 repository = "https://github.com/trueadm/ripple"
 
 [grammars.ripple]
-repository = "file://Z:/ripple/ripple"
-rev = "2475a385f3e28050e554583706bf9f071397f0af"
-path = "packages/tree-sitter-ripple"
+repository = "https://github.com/Ripple-TS/ripple"
+rev = "1b35809e5d18aab72f6c0aff82e228981662d315"
+path = "packages/tree-sitter"
 
 [language_servers.ripple-language-server]
 name = "Ripple Language Server"
