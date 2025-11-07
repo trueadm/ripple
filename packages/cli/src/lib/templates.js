@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import degit from 'degit';
-import { GITHUB_REPO, GITHUB_TEMPLATES_DIRECTORY, TEMPLATES } from '../constants.js';
+import { GITHUB_REPO, GITHUB_BRANCH, GITHUB_TEMPLATES_DIRECTORY, TEMPLATES } from '../constants.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -64,7 +64,8 @@ export async function downloadTemplate(templateName) {
 	mkdirSync(tempDir, { recursive: true });
 
 	// Use degit to download the specific template from GitHub
-	const repoUrl = `${GITHUB_REPO}/${GITHUB_TEMPLATES_DIRECTORY}/${templateName}`;
+	// Use format with branch so it works on Windows: user/repo/subdirectory#branch
+	const repoUrl = `${GITHUB_REPO}/${GITHUB_TEMPLATES_DIRECTORY}/${templateName}#${GITHUB_BRANCH}`;
 	const emitter = degit(repoUrl, {
 		cache: false,
 		force: true,
