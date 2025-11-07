@@ -11,19 +11,38 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/** @typedef {"major" | "minor" | "patch"} BumpType */
+/** @typedef {"all" | "editors"} ScopeType */
+/** @typedef {[number, number, number]} SemverTuple */
+/**
+ * @typedef {object} PackageInfo
+ * @property {string} name Name of the directory the package is located in inside `packages`. For example, `ripple` or `ripple-vscode-plugin`.
+ * @property {string} dir Absolute path to the package directory.
+ * @property {string} packageJsonPath Absolute path to the package.json file.
+ * @property {Record<string, any>} json Parsed contents of the package.json file.
+ */
+
+/** @type {Set<BumpType>} */
 const ALLOWED_BUMPS = new Set(['major', 'minor', 'patch']);
-const ALLOWED_SCOPES = new Set(['all', 'vscode']);
+/** @type {Set<ScopeType>} */
+const ALLOWED_SCOPES = new Set(['all', 'editors']);
+const EDITOR_PACKAGE_DIRS = new Set([
+	'nvim-plugin',
+	'sublime-text-plugin',
+	'vscode-plugin',
+	'zed-plugin',
+]);
 const VSCodePackageDirName = 'vscode-plugin';
 const VSCodePackageName = '@ripple-ts/vscode-plugin';
 
 const bumpArg = process.argv[2] ?? '';
 const maybeScope = process.argv[3] ?? null;
-/** @type {"all" | "vscode"} */
+/** @type {ScopeType} */
 let scope = 'all';
 let overrideArg = null;
 
 if (maybeScope && ALLOWED_SCOPES.has(maybeScope)) {
-	scope = /** @type {"all" | "vscode"} */ (maybeScope);
+	scope = /** @type {ScopeType} */ (maybeScope);
 	overrideArg = process.argv[4] ?? null;
 } else {
 	overrideArg = maybeScope;
@@ -34,7 +53,7 @@ if (!ALLOWED_BUMPS.has(bumpArg)) {
 	process.exit(1);
 }
 
-const bumpType = /** @type {"major" | "minor" | "patch"} */ (bumpArg);
+const bumpType = /** @type {BumpType} */ (bumpArg);
 
 const repoRoot = path.resolve(__dirname, '..');
 
@@ -123,19 +142,19 @@ function ensureGitState(remote) {
 
 /**
  * @param {string} version
- * @returns {[number, number, number]}
+ * @returns {SemverTuple}
  */
 function parseSemver(version) {
 	const parts = version.split('.').map((value) => Number.parseInt(value, 10));
 	if (parts.length !== 3 || parts.some(Number.isNaN)) {
 		throw new Error(`Invalid semantic version: ${version}`);
 	}
-	return /** @type {[number, number, number]} */ ([parts[0], parts[1], parts[2]]);
+	return /** @type {SemverTuple} */ ([parts[0], parts[1], parts[2]]);
 }
 
 /**
- * @param {[number, number, number]} a
- * @param {[number, number, number]} b
+ * @param {SemverTuple} a
+ * @param {SemverTuple} b
  */
 function isGreaterVersion(a, b) {
 	if (a[0] !== b[0]) return a[0] > b[0];
@@ -145,7 +164,7 @@ function isGreaterVersion(a, b) {
 
 /**
  * @param {string} version
- * @param {"major" | "minor" | "patch"} type
+ * @param {BumpType} type
  */
 function bumpVersion(version, type) {
 	const [major, minor, patch] = parseSemver(version);
@@ -159,9 +178,9 @@ function bumpVersion(version, type) {
 }
 
 /**
- * @param {"major" | "minor" | "patch"} type
+ * @param {BumpType} type
  * @param {string} override
- * @param {[number, number, number]} currentTuple
+ * @param {SemverTuple} currentTuple
  */
 function parseOverride(type, override, currentTuple) {
 	if (!/^\d+$/.test(override)) {
@@ -182,17 +201,18 @@ function parseOverride(type, override, currentTuple) {
 }
 
 /**
- * @param {"all" | "vscode"} targetScope
+ * @param {ScopeType} targetScope
  */
 function loadPackages(targetScope) {
 	const packagesDir = path.join(repoRoot, 'packages');
 	const entries = fs.readdirSync(packagesDir, { withFileTypes: true });
+	/** @type {PackageInfo[]} */
 	const packages = [];
 
 	for (const entry of entries) {
 		if (!entry.isDirectory()) continue;
-		if (targetScope === 'all' && entry.name === VSCodePackageDirName) continue;
-		if (targetScope === 'vscode' && entry.name !== VSCodePackageDirName) continue;
+		if (targetScope === "all" && EDITOR_PACKAGE_DIRS.has(entry.name)) continue;
+		if (targetScope === "editors" && !EDITOR_PACKAGE_DIRS.has(entry.name)) continue;
 
 		const packageJsonPath = path.join(packagesDir, entry.name, 'package.json');
 		if (!fs.existsSync(packageJsonPath)) continue;
@@ -201,6 +221,7 @@ function loadPackages(targetScope) {
 		const json = JSON.parse(raw);
 
 		packages.push({
+			name: entry.name,
 			dir: path.join(packagesDir, entry.name),
 			packageJsonPath,
 			json,
@@ -215,7 +236,7 @@ function loadPackages(targetScope) {
 }
 
 /**
- * @param {{ packageJsonPath: string; json: Record<string, any> }} pkg
+ * @param {PackageInfo} pkg
  */
 function writePackage(pkg) {
 	const content = `${JSON.stringify(pkg.json, null, 2)}\n`;
@@ -223,7 +244,56 @@ function writePackage(pkg) {
 }
 
 /**
- * @param {{ dir: string; json: Record<string, any> }} pkg
+ * @param {string} fileDir
+ * @param {string} fileName
+ * @param {string} newVersion
+ */
+function updateVersionInTomlFile(fileDir, fileName, newVersion) {
+	const filePath = path.join(fileDir, fileName);
+	if (!fs.existsSync(filePath)) {
+		throw new Error(
+			`Failed to update version in ${path.relative(repoRoot, filePath)}: file does not exist.`,
+		);
+	}
+	const original = fs.readFileSync(filePath, "utf8");
+	let replaced = false;
+	const updatedContent = original.replace(
+		/(\bversion\s*=\s*")([^"]+)(")/,
+		(match, prefix, _current, suffix) => {
+			replaced = true;
+			return `${prefix}${newVersion}${suffix}`;
+		},
+	);
+	if (!replaced) {
+		throw new Error(
+			`Failed to update version in ${path.relative(repoRoot, filePath)}: version field not found.`,
+		);
+	}
+	fs.writeFileSync(filePath, updatedContent);
+}
+
+/**
+ * @param {PackageInfo} pkg
+ * @param {string} version
+ * @return {string[]}
+ */
+function updateAdditionalVersionFiles(pkg, version) {
+	/** @type {string[]} */
+	const changedPaths = [];
+
+	if (pkg.json.name === "ripple-zed-plugin") {
+		updateVersionInTomlFile(pkg.dir, "Cargo.toml", version);
+		changedPaths.push(path.relative(repoRoot, path.join(pkg.dir, "Cargo.toml")));
+
+		updateVersionInTomlFile(pkg.dir, "extension.toml", version);
+		changedPaths.push(path.relative(repoRoot, path.join(pkg.dir, "extension.toml")));
+	}
+
+	return changedPaths;
+}
+
+/**
+ * @param {PackageInfo} pkg
  * @param {string} newVersion
  */
 function publishPackage(pkg, newVersion) {
@@ -236,7 +306,7 @@ function publishPackage(pkg, newVersion) {
 }
 
 /**
- * @param {{ dir: string; json: Record<string, any> }} pkg
+ * @param {PackageInfo} pkg
  * @param {string} version
  */
 function ensureVersionNotPublished(pkg, version) {
@@ -284,7 +354,7 @@ function cleanupPackOutputDir(directory) {
 }
 
 /**
- * @param {{ dir: string; json: Record<string, any> }} pkg
+ * @param {PackageInfo} pkg
  * @param {string} destination
  */
 function runPackagePack(pkg, destination) {
@@ -296,9 +366,9 @@ function runPackagePack(pkg, destination) {
 }
 
 /**
- * @param {readonly { dir: string; json: Record<string, any> }[]} packages
+ * @param {readonly PackageInfo[]} packages
  * @param {string} version
- * @param {"all" | "vscode"} targetScope
+ * @param {ScopeType} targetScope
  */
 function runPrePublishChecks(packages, version, targetScope) {
 	console.log('\nPerforming pre-publish checks...');
@@ -306,8 +376,8 @@ function runPrePublishChecks(packages, version, targetScope) {
 	preparePackOutputDir(packOutputDir);
 
 	try {
-		if (targetScope === 'vscode') {
-			runVscodeScopePreCheck(packages);
+		if (targetScope === "editors") {
+			runEditorsScopePreCheck(packages);
 		}
 
 		for (const pkg of packages) {
@@ -359,12 +429,12 @@ function attemptRebaseAndPush(remote, version) {
 }
 
 /**
- * @param {readonly { dir: string; json: Record<string, any> }[]} packages
+ * @param {readonly PackageInfo[]} packages
  */
-function runVscodeScopePreCheck(packages) {
+function runEditorsScopePreCheck(packages) {
 	const vscodePackage = packages.find((pkg) => pkg.json.name === VSCodePackageName);
 	if (!vscodePackage) {
-		throw new Error(`Unable to locate '${VSCodePackageName}' package for VS Code scope checks.`);
+		throw new Error(`Unable to locate '${VSCodePackageName}' package for editors scope checks.`);
 	}
 
 	console.log('\nRunning VS Code extension pre-check: pnpm run build-and-package');
@@ -380,12 +450,17 @@ function runVscodeScopePreCheck(packages) {
 		ensureGitState(remote);
 
 		const packages = loadPackages(scope);
-		const basePackage =
-			scope === 'vscode'
-				? packages.find((pkg) => pkg.json.name === VSCodePackageName)
-				: packages.find((pkg) => pkg.json.name === 'ripple');
-		if (!basePackage) {
-			const target = scope === 'vscode' ? `'${VSCodePackageName}'` : "'ripple'";
+		const parsedPackages = packages.map((pkg) => ({
+			pkg,
+			tuple: parseSemver(pkg.json.version)
+		}));
+
+		const basePackageEntry =
+			scope === "editors"
+				? parsedPackages.find((entry) => entry.pkg.json.name === VSCodePackageName)
+				: parsedPackages.find((entry) => entry.pkg.json.name === "ripple");
+		if (!basePackageEntry) {
+			const target = scope === "editors" ? `'${VSCodePackageName}'` : "'ripple'";
 			throw new Error(`Unable to locate the ${target} package to determine the base version.`);
 		}
 
@@ -407,11 +482,14 @@ function runVscodeScopePreCheck(packages) {
 			return;
 		}
 
+		const changedPaths = [];
 		for (const pkg of packages) {
 			pkg.json.version = newVersion;
 			writePackage(pkg);
+			changedPaths.push(path.relative(repoRoot, pkg.packageJsonPath));
+			const additional = updateAdditionalVersionFiles(pkg, newVersion);
+			changedPaths.push(...additional);
 		}
-		const changedPaths = packages.map((pkg) => path.relative(repoRoot, pkg.packageJsonPath));
 		execSafe('git', ['add', ...changedPaths]);
 
 		const scopeLabel = scope;
@@ -428,6 +506,10 @@ function runVscodeScopePreCheck(packages) {
 			runPrePublishChecks(packages, newVersion, scope);
 
 			for (const pkg of packages) {
+				if (EDITOR_PACKAGE_DIRS.has(pkg.name)) {
+					console.log(`Skipping publish for editor plugin package ${pkg.name}.`);
+					continue;
+				}
 				if (!publishStarted) {
 					publishStarted = true;
 				}

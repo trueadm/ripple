@@ -1,0 +1,7 @@
+{
+  "name": "lsp-ripple-language-server",
+  "version": "1.0.0",
+  "dependencies": {
+    "@ripple-ts/language-server": "0.2.162"
+  }
+}
