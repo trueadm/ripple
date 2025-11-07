@@ -17,7 +17,7 @@ function M.setup()
 			"src/scanner.c",
 		},
 		branch = "main",
-		location = "packages/tree-sitter-ripple",
+		location = "packages/tree-sitter",
 	}
 
 	local config = parser_config.ripple or {}

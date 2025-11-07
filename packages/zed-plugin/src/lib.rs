@@ -139,7 +139,7 @@ impl RippleExtension {
             .join("node_modules")
             .join(PACKAGE_NAME)
             .join("bin")
-            .join("ripple-language-server.js");
+            .join("language-server.js");
 
         if fs::metadata(&fallback_path).map_or(false, |stat| stat.is_file()) {
             return Ok(fallback_path);

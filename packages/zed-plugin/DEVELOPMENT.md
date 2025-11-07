@@ -3,11 +3,13 @@
 ## Building the Extension
 
 1. **Install Rust toolchain** with WebAssembly target:
+
    ```bash
    rustup target add wasm32-wasip1
    ```
 
 2. **Build the extension**:
+
    ```bash
    cargo build --target wasm32-wasip1 --release
    ```
@@ -54,13 +56,16 @@ zed-ripple/
    - Must fork to personal account, not organization
 
 2. **Add as submodule**:
+
    ```bash
    cd /path/to/forked/extensions
    git submodule add https://github.com/trueadm/ripple.git extensions/ripple
    ```
+
    **Important**: Use HTTPS URL, not SSH
 
 3. **Update extensions.toml**:
+
    ```toml
    [ripple]
    submodule = "extensions/ripple"
@@ -75,7 +80,7 @@ zed-ripple/
 
 ### After Grammar Changes
 
-If you update the tree-sitter grammar in `packages/tree-sitter-ripple`:
+If you update the tree-sitter grammar in `packages/tree-sitter`:
 
 1. Update query files in `languages/ripple/` if needed
 2. Update the `rev` field in `extension.toml` to the new commit SHA
@@ -86,6 +91,7 @@ If you update the tree-sitter grammar in `packages/tree-sitter-ripple`:
 ### After Language Server Changes
 
 The extension just launches the language server binary - no changes needed to the extension itself unless:
+
 - Binary name changes
 - Command-line arguments change
 - Installation method changes
@@ -94,14 +100,16 @@ The extension just launches the language server binary - no changes needed to th
 
 ### Language server not found
 
-Make sure `ripple-language-server` is installed:
+Make sure `@ripple-ts/language-server` is installed:
+
 ```bash
-npm install -g ripple-language-server
+npm install -g @ripple-ts/language-server
 ```
 
 Or in your project:
+
 ```bash
-npm install --save-dev ripple-language-server
+npm install --save-dev @ripple-ts/language-server
 ```
 
 ### Syntax highlighting not working
