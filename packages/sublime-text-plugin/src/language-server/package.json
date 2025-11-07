@@ -1,7 +1,10 @@
 {
   "name": "lsp-ripple-language-server",
   "version": "1.0.0",
+  "scripts": {
+    "update-lockfile": "npm install --lockfile-only"
+  },
   "dependencies": {
-    "@ripple-ts/language-server": "0.2.162"
+    "@ripple-ts/language-server": "0.2.164"
   }
 }

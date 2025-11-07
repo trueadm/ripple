@@ -36,14 +36,14 @@ impl RippleExtension {
         let (os, _) = zed::current_platform();
         let candidates: &[&str] = match os {
             zed::Os::Windows => &[
-                "language-server.cmd",
-                "language-server",
-                "node_modules/.bin/language-server.cmd",
-                "node_modules/.bin/language-server",
+                "ripple-language-server.cmd",
+                "ripple-language-server",
+                "node_modules/.bin/ripple-language-server.cmd",
+                "node_modules/.bin/ripple-language-server",
             ],
             _ => &[
-                "@ripple-ts/language-server",
-                "node_modules/.bin/@ripple-ts/language-server",
+                "ripple-language-server",
+                "node_modules/.bin/ripple-language-server",
             ],
         };
 
