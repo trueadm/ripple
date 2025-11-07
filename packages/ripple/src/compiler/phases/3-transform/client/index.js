@@ -1159,7 +1159,9 @@ const visitors = {
 						),
 					);
 				} else if (attr.type === 'RefAttribute') {
-					props.push(b.prop('init', b.call('_$_.ref_prop'), visit(attr.argument, state), true));
+					const ref_id = state.scope.generate('ref');
+					state.setup.push(b.var(ref_id, b.call('_$_.ref_prop')));
+					props.push(b.prop('init', b.id(ref_id), visit(attr.argument, state), true));
 				} else {
 					throw new Error('TODO');
 				}
