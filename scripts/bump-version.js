@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 /** @typedef {[number, number, number]} SemverTuple */
 /**
  * @typedef {object} PackageInfo
- * @property {string} name Name of the directory the package is located in inside `packages`. For example, `ripple` or `ripple-vscode-plugin`.
+ * @property {string} dirName directory the package
  * @property {string} dir Absolute path to the package directory.
  * @property {string} packageJsonPath Absolute path to the package.json file.
  * @property {Record<string, any>} json Parsed contents of the package.json file.
@@ -26,36 +26,36 @@ const __dirname = path.dirname(__filename);
 const ALLOWED_BUMPS = new Set(['major', 'minor', 'patch']);
 /** @type {Set<ScopeType>} */
 const ALLOWED_SCOPES = new Set(['all', 'editors']);
+const VSCODE_PACKAGE_DIR_NAME = 'vscode-plugin';
+const RIPPLE_PACKAGE_DIR_NAME = 'ripple';
+const ZED_PACKAGE_DIR_NAME = 'zed-plugin';
 const EDITOR_PACKAGE_DIRS = new Set([
 	'nvim-plugin',
 	'sublime-text-plugin',
-	'vscode-plugin',
-	'zed-plugin',
+	VSCODE_PACKAGE_DIR_NAME,
+	ZED_PACKAGE_DIR_NAME,
 ]);
-const VSCodePackageDirName = 'vscode-plugin';
-const VSCodePackageName = '@ripple-ts/vscode-plugin';
-
 const bumpArg = process.argv[2] ?? '';
 const maybeScope = process.argv[3] ?? null;
 /** @type {ScopeType} */
 let scope = 'all';
 let overrideArg = null;
 
-if (maybeScope && ALLOWED_SCOPES.has(maybeScope)) {
+if (maybeScope && ALLOWED_SCOPES.has(/** @type {ScopeType} */ (maybeScope))) {
 	scope = /** @type {ScopeType} */ (maybeScope);
 	overrideArg = process.argv[4] ?? null;
 } else {
 	overrideArg = maybeScope;
 }
 
-if (!ALLOWED_BUMPS.has(bumpArg)) {
+if (!ALLOWED_BUMPS.has(/** @type {BumpType} */ (bumpArg))) {
 	console.error('Usage: node scripts/bump-version.js <major|minor|patch> [scope] [override]');
 	process.exit(1);
 }
 
 const bumpType = /** @type {BumpType} */ (bumpArg);
 
-const repoRoot = path.resolve(__dirname, '..');
+const REPO_ROOT = path.resolve(__dirname, '..');
 
 /**
  * @param {string} command
@@ -69,7 +69,7 @@ function execSafe(command, args, options = {}) {
 	try {
 		if (stdio === 'pipe') {
 			const output = execFileSync(command, args, {
-				cwd: options.cwd ?? repoRoot,
+				cwd: options.cwd ?? REPO_ROOT,
 				stdio,
 				encoding: 'utf8',
 			});
@@ -77,7 +77,7 @@ function execSafe(command, args, options = {}) {
 		}
 
 		execFileSync(command, args, {
-			cwd: options.cwd ?? repoRoot,
+			cwd: options.cwd ?? REPO_ROOT,
 			stdio,
 		});
 		return '';
@@ -204,15 +204,15 @@ function parseOverride(type, override, currentTuple) {
  * @param {ScopeType} targetScope
  */
 function loadPackages(targetScope) {
-	const packagesDir = path.join(repoRoot, 'packages');
+	const packagesDir = path.join(REPO_ROOT, 'packages');
 	const entries = fs.readdirSync(packagesDir, { withFileTypes: true });
 	/** @type {PackageInfo[]} */
 	const packages = [];
 
 	for (const entry of entries) {
 		if (!entry.isDirectory()) continue;
-		if (targetScope === "all" && EDITOR_PACKAGE_DIRS.has(entry.name)) continue;
-		if (targetScope === "editors" && !EDITOR_PACKAGE_DIRS.has(entry.name)) continue;
+		if (targetScope === 'all' && EDITOR_PACKAGE_DIRS.has(entry.name)) continue;
+		if (targetScope === 'editors' && !EDITOR_PACKAGE_DIRS.has(entry.name)) continue;
 
 		const packageJsonPath = path.join(packagesDir, entry.name, 'package.json');
 		if (!fs.existsSync(packageJsonPath)) continue;
@@ -221,7 +221,7 @@ function loadPackages(targetScope) {
 		const json = JSON.parse(raw);
 
 		packages.push({
-			name: entry.name,
+			dirName: entry.name,
 			dir: path.join(packagesDir, entry.name),
 			packageJsonPath,
 			json,
@@ -252,10 +252,10 @@ function updateVersionInTomlFile(fileDir, fileName, newVersion) {
 	const filePath = path.join(fileDir, fileName);
 	if (!fs.existsSync(filePath)) {
 		throw new Error(
-			`Failed to update version in ${path.relative(repoRoot, filePath)}: file does not exist.`,
+			`Failed to update version in ${path.relative(REPO_ROOT, filePath)}: file does not exist.`,
 		);
 	}
-	const original = fs.readFileSync(filePath, "utf8");
+	const original = fs.readFileSync(filePath, 'utf8');
 	let replaced = false;
 	const updatedContent = original.replace(
 		/(\bversion\s*=\s*")([^"]+)(")/,
@@ -266,7 +266,7 @@ function updateVersionInTomlFile(fileDir, fileName, newVersion) {
 	);
 	if (!replaced) {
 		throw new Error(
-			`Failed to update version in ${path.relative(repoRoot, filePath)}: version field not found.`,
+			`Failed to update version in ${path.relative(REPO_ROOT, filePath)}: version field not found.`,
 		);
 	}
 	fs.writeFileSync(filePath, updatedContent);
@@ -281,12 +281,12 @@ function updateAdditionalVersionFiles(pkg, version) {
 	/** @type {string[]} */
 	const changedPaths = [];
 
-	if (pkg.json.name === "ripple-zed-plugin") {
-		updateVersionInTomlFile(pkg.dir, "Cargo.toml", version);
-		changedPaths.push(path.relative(repoRoot, path.join(pkg.dir, "Cargo.toml")));
+	if (pkg.dirName === ZED_PACKAGE_DIR_NAME) {
+		updateVersionInTomlFile(pkg.dir, 'Cargo.toml', version);
+		changedPaths.push(path.relative(REPO_ROOT, path.join(pkg.dir, 'Cargo.toml')));
 
-		updateVersionInTomlFile(pkg.dir, "extension.toml", version);
-		changedPaths.push(path.relative(repoRoot, path.join(pkg.dir, "extension.toml")));
+		updateVersionInTomlFile(pkg.dir, 'extension.toml', version);
+		changedPaths.push(path.relative(REPO_ROOT, path.join(pkg.dir, 'extension.toml')));
 	}
 
 	return changedPaths;
@@ -372,11 +372,11 @@ function runPackagePack(pkg, destination) {
  */
 function runPrePublishChecks(packages, version, targetScope) {
 	console.log('\nPerforming pre-publish checks...');
-	const packOutputDir = path.join(repoRoot, '.tmp', 'prepublish-pack');
+	const packOutputDir = path.join(REPO_ROOT, '.tmp', 'prepublish-pack');
 	preparePackOutputDir(packOutputDir);
 
 	try {
-		if (targetScope === "editors") {
+		if (targetScope === 'editors') {
 			runEditorsScopePreCheck(packages);
 		}
 
@@ -432,9 +432,11 @@ function attemptRebaseAndPush(remote, version) {
  * @param {readonly PackageInfo[]} packages
  */
 function runEditorsScopePreCheck(packages) {
-	const vscodePackage = packages.find((pkg) => pkg.json.name === VSCodePackageName);
+	const vscodePackage = packages.find((pkg) => pkg.dirName === VSCODE_PACKAGE_DIR_NAME);
 	if (!vscodePackage) {
-		throw new Error(`Unable to locate '${VSCodePackageName}' package for editors scope checks.`);
+		throw new Error(
+			`Unable to locate '${VSCODE_PACKAGE_DIR_NAME}' package for editors scope checks.`,
+		);
 	}
 
 	console.log('\nRunning VS Code extension pre-check: pnpm run build-and-package');
@@ -450,17 +452,15 @@ function runEditorsScopePreCheck(packages) {
 		ensureGitState(remote);
 
 		const packages = loadPackages(scope);
-		const parsedPackages = packages.map((pkg) => ({
-			pkg,
-			tuple: parseSemver(pkg.json.version)
-		}));
 
-		const basePackageEntry =
-			scope === "editors"
-				? parsedPackages.find((entry) => entry.pkg.json.name === VSCodePackageName)
-				: parsedPackages.find((entry) => entry.pkg.json.name === "ripple");
-		if (!basePackageEntry) {
-			const target = scope === "editors" ? `'${VSCodePackageName}'` : "'ripple'";
+		const basePackage =
+			scope === 'editors'
+				? packages.find((pkg) => pkg.dirName === VSCODE_PACKAGE_DIR_NAME)
+				: packages.find((pkg) => pkg.dirName === RIPPLE_PACKAGE_DIR_NAME);
+
+		if (!basePackage) {
+			const target =
+				scope === 'editors' ? `'${VSCODE_PACKAGE_DIR_NAME}'` : `'${RIPPLE_PACKAGE_DIR_NAME}'`;
 			throw new Error(`Unable to locate the ${target} package to determine the base version.`);
 		}
 
@@ -486,7 +486,7 @@ function runEditorsScopePreCheck(packages) {
 		for (const pkg of packages) {
 			pkg.json.version = newVersion;
 			writePackage(pkg);
-			changedPaths.push(path.relative(repoRoot, pkg.packageJsonPath));
+			changedPaths.push(path.relative(REPO_ROOT, pkg.packageJsonPath));
 			const additional = updateAdditionalVersionFiles(pkg, newVersion);
 			changedPaths.push(...additional);
 		}
@@ -506,8 +506,8 @@ function runEditorsScopePreCheck(packages) {
 			runPrePublishChecks(packages, newVersion, scope);
 
 			for (const pkg of packages) {
-				if (EDITOR_PACKAGE_DIRS.has(pkg.name)) {
-					console.log(`Skipping publish for editor plugin package ${pkg.name}.`);
+				if (EDITOR_PACKAGE_DIRS.has(pkg.dirName)) {
+					console.log(`Skipping publish for editor plugin package '${pkg.dirName}'.`);
 					continue;
 				}
 				if (!publishStarted) {
