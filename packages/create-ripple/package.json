@@ -27,6 +27,10 @@
     "build": "tsdown",
     "prepack": "tsdown"
   },
+  "files": [
+    "./dist/index.js"
+  ],
+  "main": "./dist/index.js",
   "bin": {
     "create-ripple": "./dist/index.js"
   },
