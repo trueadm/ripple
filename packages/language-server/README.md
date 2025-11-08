@@ -51,8 +51,10 @@ Use the official plugin.
    ```lua
    {
      "Ripple-TS/ripple",
-     dir = "packages/nvim-plugin",
-     config = true,
+     config = function(plugin)
+       vim.opt.rtp:append(plugin.dir .. "/packages/nvim-plugin")
+       require("ripple").setup(plugin)
+     end
    }
    ```
 

@@ -1,6 +1,6 @@
 local M = {}
 
-function M.setup()
+function M.setup(dir)
 	local ok, parsers = pcall(require, "nvim-treesitter.parsers")
 	if not ok then
 		vim.schedule(function()
@@ -11,7 +11,7 @@ function M.setup()
 
 	local parser_config = parsers.get_parser_configs()
 	local default_install = {
-		url = "https://github.com/trueadm/ripple",
+		url = dir,
 		files = {
 			"src/parser.c",
 			"src/scanner.c",
