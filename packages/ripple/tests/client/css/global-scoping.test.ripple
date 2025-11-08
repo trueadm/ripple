@@ -1,0 +1,229 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global scoping verification', () => {
+	it('verifies scoped styles are isolated', () => {
+		const source = `
+export component Test() {
+	<div class="scoped">{'content'}</div>
+
+	<style>
+		.scoped {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/\.scoped\.ripple-[a-z0-9]+/);
+		expect(css).not.toContain('.scoped {');
+	});
+
+	it('verifies :global styles bypass scoping', () => {
+		const source = `
+export component Test() {
+	<div class="global">{'content'}</div>
+
+	<style>
+		:global(.global) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('.global {');
+		expect(css).not.toMatch(/\.global\.ripple-[a-z0-9]+/);
+	});
+
+	it('verifies mixed local and global maintain proper scoping', () => {
+		const source = `
+export component Test() {
+	<div class="outer">
+		<span class="inner">{'content'}</span>
+	</div>
+
+	<style>
+		.outer {
+			color: red;
+		}
+
+		:global(.outer) {
+			color: blue;
+		}
+
+		.outer .inner {
+			color: green;
+		}
+
+		:global(.outer) .inner {
+			color: yellow;
+		}
+
+		.outer :global(.inner) {
+			color: purple;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/\.outer\.ripple-[a-z0-9]+ {/);
+		expect(css).toMatch(/\.outer {/);
+		expect(css).toMatch(/\.outer\.ripple-[a-z0-9]+ \.inner:where\(\.ripple-[a-z0-9]+\) {/);
+		expect(css).toMatch(/\.outer \.inner\.ripple-[a-z0-9]+/);
+		expect(css).toMatch(/\.outer\.ripple-[a-z0-9]+ \.inner {/);
+	});
+
+	it('verifies :global blocks scope all nested selectors globally', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>
+			<button>{'click'}</button>
+		</span>
+	</div>
+
+	<style>
+		:global {
+			div {
+				color: red;
+			}
+
+			span {
+				color: blue;
+			}
+
+			button {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div {');
+		expect(css).toContain('span {');
+		expect(css).toContain('button {');
+		expect(css).not.toMatch(/div\.ripple-[a-z0-9]+/);
+		expect(css).not.toMatch(/span\.ripple-[a-z0-9]+/);
+		expect(css).not.toMatch(/button\.ripple-[a-z0-9]+/);
+	});
+
+	it('verifies element selectors are scoped by default', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>
+			<button>{'click'}</button>
+		</span>
+	</div>
+
+	<style>
+		div {
+			color: red;
+		}
+
+		span {
+			color: blue;
+		}
+
+		button {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+/);
+		expect(css).toMatch(/span\.ripple-[a-z0-9]+/);
+		expect(css).toMatch(/button\.ripple-[a-z0-9]+/);
+	});
+
+	it('verifies :global() escapes only the wrapped selector', () => {
+		const source = `
+export component Test() {
+	<div class="local">
+		<span class="global">
+			<button class="local">{'click'}</button>
+		</span>
+	</div>
+
+	<style>
+		.local :global(.global .local) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/\.local\.ripple-[a-z0-9]+ \.global \.local {/);
+		expect(css).not.toMatch(/\.global\.ripple-[a-z0-9]+/);
+	});
+
+	it('verifies multiple components have different scope hashes', () => {
+		const source1 = `
+export component Test1() {
+	<div class="test">{'one'}</div>
+
+	<style>
+		.test {
+			color: red;
+		}
+	</style>
+}`;
+		const source2 = `
+export component Test2() {
+	<div class="test">{'two'}</div>
+
+	<style>
+		.test {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css: css1 } = compile(source1, 'test1.ripple');
+		const { css: css2 } = compile(source2, 'test2.ripple');
+
+		expect(css1).toMatch(/\.test\.ripple-[a-z0-9]+/);
+		expect(css2).toMatch(/\.test\.ripple-[a-z0-9]+/);
+
+		const hash1Match = css1.match(/\.test\.ripple-([a-z0-9]+)/);
+		const hash2Match = css2.match(/\.test\.ripple-([a-z0-9]+)/);
+
+		expect(hash1Match).toBeTruthy();
+		expect(hash2Match).toBeTruthy();
+
+		if (hash1Match && hash2Match) {
+			expect(hash1Match[1]).not.toBe(hash2Match[1]);
+		}
+	});
+
+	it('verifies :global styles are consistent across components', () => {
+		const source1 = `
+export component Test1() {
+	<div class="global">{'one'}</div>
+
+	<style>
+		:global(.global) {
+			color: red;
+		}
+	</style>
+}`;
+		const source2 = `
+export component Test2() {
+	<div class="global">{'two'}</div>
+
+	<style>
+		:global(.global) {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css: css1 } = compile(source1, 'test1.ripple');
+		const { css: css2 } = compile(source2, 'test2.ripple');
+
+		expect(css1).toContain('.global {');
+		expect(css1).not.toMatch(/\.global\.ripple-[a-z0-9]+/);
+		expect(css2).toContain('.global {');
+		expect(css2).not.toMatch(/\.global\.ripple-[a-z0-9]+/);
+	});
+});

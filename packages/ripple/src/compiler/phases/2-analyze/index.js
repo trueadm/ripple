@@ -13,6 +13,7 @@ import {
 import { extract_paths } from '../../../utils/ast.js';
 import is_reference from 'is-reference';
 import { prune_css } from './prune.js';
+import { analyze_css } from './css-analyze.js';
 import { error } from '../../errors.js';
 import { is_event_attribute } from '../../../utils/events.js';
 import { validate_nesting } from './validation.js';
@@ -350,6 +351,9 @@ const visitors = {
 		const css = node.css;
 
 		if (css !== null) {
+			// Analyze CSS to set global selector metadata
+			analyze_css(css);
+
 			for (const node of elements) {
 				prune_css(css, node);
 			}

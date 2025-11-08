@@ -1,0 +1,165 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global basic tests', () => {
+	it('applies global selector to all elements', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global(div) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div {');
+		expect(css).toContain('color: red;');
+		expect(css).not.toMatch(/div\.ripple-[a-z0-9]+/);
+	});
+
+	it('applies global selector with class', () => {
+		const source = `
+export component Test() {
+	<div class="foo">{'content'}</div>
+
+	<style>
+		:global(div.foo) {
+			color: pink;
+		}
+
+		:global(.foo) {
+			font-weight: bold;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div.foo {');
+		expect(css).toContain('.foo {');
+		expect(css).not.toMatch(/\.foo\.ripple-[a-z0-9]+/);
+	});
+
+	it('mixes global and local selectors', () => {
+		const source = `
+export component Test() {
+	<div>
+		<p class="foo">{'red/bold'}</p>
+	</div>
+
+	<style>
+		:global(div) .foo {
+			color: red;
+		}
+
+		:global(div) > .foo {
+			font-weight: bold;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div .foo');
+		expect(css).toContain('div > .foo');
+		expect(css).toMatch(/\.foo\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles global block syntax', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global {
+			.x {
+				color: green;
+			}
+
+			.a, .selector, .list {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('.x {');
+		expect(css).toContain('.a, .selector, .list {');
+		expect(css).not.toMatch(/\.x\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles global with pseudo-classes', () => {
+		const source = `
+export component Test() {
+	<button>{'click'}</button>
+
+	<style>
+		:global(button:hover) {
+			opacity: 0.8;
+		}
+
+		:global(button):focus {
+			outline: none;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('button:hover {');
+		expect(css).toContain('button:focus {');
+		expect(css).not.toMatch(/button\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles multiple global selectors in selector list', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global(html),
+		:global(body) {
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('html,');
+		expect(css).toContain('body {');
+	});
+
+	it('scopes local selectors while keeping globals unscoped', () => {
+		const source = `
+export component Test() {
+	<div class="styled-container">
+				<h1>{'Styled heading'}</h1>
+				<p class="text">{'Styled paragraph'}</p>
+			</div>
+
+	<style>
+		.styled-container {
+			background-color: rgb(0, 0, 255);
+			padding: 16px;
+		}
+
+		:global(h1) {
+			color: rgb(255, 255, 255);
+			font-size: 32px;
+		}
+
+		.text {
+			color: rgb(200, 200, 200);
+			font-size: 14px;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/\.styled-container\.ripple-[a-z0-9]+/);
+		expect(css).toMatch(/\.text\.ripple-[a-z0-9]+/);
+		expect(css).toContain('h1 {');
+		expect(css).not.toMatch(/h1\.ripple-[a-z0-9]+/);
+	});
+});

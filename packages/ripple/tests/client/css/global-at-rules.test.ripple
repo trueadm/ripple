@@ -1,0 +1,126 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global with @media and @supports', () => {
+	it('handles :global inside @media queries', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		@media (min-width: 768px) {
+			:global(div) {
+				color: red;
+			}
+
+			div :global(span) {
+				color: blue;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@media (min-width: 768px) {');
+		expect(css).toContain('div {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ span {/);
+	});
+
+	it('handles :global inside @supports queries', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		@supports (display: grid) {
+			:global(.container) {
+				display: grid;
+			}
+
+			div :global(.item) {
+				grid-column: 1;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@supports (display: grid) {');
+		expect(css).toContain('.container {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ \.item {/);
+	});
+
+	it('handles nested @media with :global', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		div {
+			color: black;
+
+			@media (min-width: 768px) {
+				:global {
+					.foo {
+						color: red;
+					}
+				}
+
+				color: blue;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@media (min-width: 768px) {');
+		expect(css).toContain('.foo {');
+		expect(css).not.toMatch(/\.foo\.ripple-[a-z0-9]+/);
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+	});
+
+	it('handles :global in @container queries', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		@container (min-width: 400px) {
+			:global(div) {
+				color: red;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@container (min-width: 400px) {');
+		expect(css).toContain('div {');
+	});
+
+	it('handles multiple at-rules with :global', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		@media screen {
+			@supports (display: flex) {
+				:global(.flex-container) {
+					display: flex;
+				}
+
+				div :global(.flex-item) {
+					flex: 1;
+				}
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@media screen {');
+		expect(css).toContain('@supports (display: flex) {');
+		expect(css).toContain('.flex-container {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ \.flex-item {/);
+	});
+});

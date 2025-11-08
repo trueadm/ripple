@@ -279,7 +279,6 @@ describe('dynamic DOM elements', () => {
 
 		const element = container.querySelector('div');
 		expect(element).toBeTruthy();
-		console.log(element);
 		expect(element.classList.contains('test-class')).toBe(true);
 
 		// Check if scoped CSS class is present - THIS MIGHT FAIL if CSS pruning issue exists

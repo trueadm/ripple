@@ -2,6 +2,9 @@ import { beforeEach, afterEach } from 'vitest';
 import { mount } from 'ripple';
 import { createReactCompat } from '../src/index.js';
 
+// Configure React testing environment for act() support
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
 /**
  * @param {() => void} component
  */

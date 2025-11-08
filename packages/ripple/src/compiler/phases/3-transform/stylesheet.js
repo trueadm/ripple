@@ -24,6 +24,65 @@ function is_in_global_block(path) {
 	return path.some((node) => node.type === 'Rule' && node.metadata.is_global_block);
 }
 
+/**
+ * Check if we're inside a pseudo-class selector that's INSIDE a :global() wrapper
+ * or adjacent to a :global modifier
+ * @param {any[]} path
+ */
+function is_in_global_pseudo(path) {
+	// Walk up the path to find if we're inside a :global() pseudo-class selector with args
+	// or if we're in a pseudo-class that's in the same RelativeSelector as a :global modifier
+	for (let i = path.length - 1; i >= 0; i--) {
+		const node = path[i];
+
+		// Case 1: :global(...) with args - we're inside it
+		if (node.type === 'PseudoClassSelector' && node.name === 'global' && node.args !== null) {
+			return true;
+		}
+
+		// Case 2: We're in a PseudoClassSelector (like :is, :where, :has, :not)
+		// Check if there's a :global modifier in the same RelativeSelector
+		if (
+			node.type === 'PseudoClassSelector' &&
+			(node.name === 'is' || node.name === 'where' || node.name === 'has' || node.name === 'not')
+		) {
+			// Look for the parent RelativeSelector
+			for (let j = i - 1; j >= 0; j--) {
+				const ancestor = path[j];
+				if (ancestor.type === 'RelativeSelector') {
+					// Check if this RelativeSelector has a :global modifier (no args)
+					const hasGlobalModifier = ancestor.selectors.some(
+						(s) => s.type === 'PseudoClassSelector' && s.name === 'global' && s.args === null,
+					);
+					if (hasGlobalModifier) {
+						return true;
+					}
+					break;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+/**
+ * Check if a rule has :global in the middle (like `div :global p`)
+ * These rules should treat nested selectors as global
+ * @param {AST.CSS.Rule} rule
+ */
+function has_global_in_middle(rule) {
+	for (const complex_selector of rule.prelude.children) {
+		for (let i = 0; i < complex_selector.children.length; i++) {
+			const child = complex_selector.children[i];
+			// Check if this is a :global selector that's not at the start
+			if (i > 0 && child.metadata.is_global) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 function remove_global_pseudo_class(selector, combinator, state) {
 	if (selector.args === null) {
 		let start = selector.start;
@@ -75,13 +134,19 @@ function is_empty(rule, is_in_global_block) {
 		return rule.block.children.length === 0;
 	}
 
+	// Rules with :global in the middle (like `div :global p`) should treat nested rules as global
+	const has_mid_global = has_global_in_middle(rule);
+
 	for (const child of rule.block.children) {
 		if (child.type === 'Declaration') {
 			return false;
 		}
 
 		if (child.type === 'Rule') {
-			if ((is_used(child) || is_in_global_block) && !is_empty(child, is_in_global_block)) {
+			if (
+				(is_used(child) || is_in_global_block || has_mid_global) &&
+				!is_empty(child, is_in_global_block || has_mid_global)
+			) {
 				return false;
 			}
 		}
@@ -196,8 +261,10 @@ const visitors = {
 	},
 	SelectorList(node, { state, next, path }) {
 		// Only add comments if we're not inside a complex selector that itself is unused or a global block
+		// or inside a pseudo-class that's part of a global selector
 		if (
 			!is_in_global_block(path) &&
+			!is_in_global_pseudo(path) &&
 			!path.find((n) => n.type === 'ComplexSelector' && !n.metadata.used)
 		) {
 			const children = node.children;
@@ -280,8 +347,39 @@ const visitors = {
 	ComplexSelector(node, context) {
 		const before_bumped = context.state.specificity.bumped;
 
+		// Check if we're inside a :has/:is/:where/:not pseudo-class that's part of a global selector
+		// In that case, we should still scope the contents even though the parent is global
+		const parentPath = context.path;
+		let insideScopingPseudo = false;
+
+		// Walk up the path to find if we're inside args of :has/:is/:where/:not
+		for (let i = parentPath.length - 1; i >= 0; i--) {
+			const pathNode = parentPath[i];
+
+			// Check if we're inside a SelectorList that belongs to a scoping pseudo-class
+			if (pathNode.type === 'SelectorList' && i > 0) {
+				const parent = parentPath[i - 1];
+				if (
+					parent.type === 'PseudoClassSelector' &&
+					(parent.name === 'has' ||
+						parent.name === 'is' ||
+						parent.name === 'where' ||
+						parent.name === 'not')
+				) {
+					// Now check if this pseudo-class is part of a global RelativeSelector
+					for (let j = i - 2; j >= 0; j--) {
+						if (parentPath[j].type === 'RelativeSelector' && parentPath[j].metadata?.is_global) {
+							insideScopingPseudo = true;
+							break;
+						}
+					}
+					break;
+				}
+			}
+		}
+
 		for (const relative_selector of node.children) {
-			if (relative_selector.metadata.is_global) {
+			if (relative_selector.metadata.is_global && !insideScopingPseudo) {
 				const global = /** @type {AST.CSS.PseudoClassSelector} */ (relative_selector.selectors[0]);
 				remove_global_pseudo_class(global, relative_selector.combinator, context.state);
 
@@ -303,7 +401,8 @@ const visitors = {
 				}
 			}
 
-			if (relative_selector.metadata.scoped) {
+			// Skip scoping if we're inside a global block
+			if (relative_selector.metadata.scoped && !is_in_global_block(context.path)) {
 				if (relative_selector.selectors.length === 1) {
 					// skip standalone :is/:where/& selectors
 					const selector = relative_selector.selectors[0];

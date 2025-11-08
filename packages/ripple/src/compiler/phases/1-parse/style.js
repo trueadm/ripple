@@ -1,5 +1,7 @@
 import { hash } from '../../utils.js';
 
+const REGEX_MATCHER = /^[~^$*|]?=/;
+const REGEX_ATTRIBUTE_FLAGS = /^[a-zA-Z]+/;
 const REGEX_COMMENT_CLOSE = /\*\//;
 const REGEX_HTML_COMMENT_CLOSE = /-->/;
 const REGEX_PERCENTAGE = /^\d+(\.\d+)?%/;
@@ -155,7 +157,7 @@ function read_at_rule(parser) {
 		end: parser.index,
 		name,
 		prelude,
-		block
+		block,
 	};
 }
 
@@ -548,6 +550,39 @@ function read_selector(parser, inside_pseudo_class = false) {
 				e.css_selector_invalid(parser.index);
 			}
 		}
+	}
+
+	throw new Error('Unexpected end of input');
+}
+
+/**
+ * Read a property that may or may not be quoted, e.g.
+ * `foo` or `'foo bar'` or `"foo bar"`
+ * @param {Parser} parser
+ */
+function read_attribute_value(parser) {
+	let value = '';
+	let escaped = false;
+	const quote_mark = parser.eat('"') ? '"' : parser.eat("'") ? "'" : null;
+
+	while (parser.index < parser.template.length) {
+		const char = parser.template[parser.index];
+		if (escaped) {
+			value += '\\' + char;
+			escaped = false;
+		} else if (char === '\\') {
+			escaped = true;
+		} else if (quote_mark ? char === quote_mark : /[\s\]]/.test(char)) {
+			if (quote_mark) {
+				parser.eat(quote_mark, true);
+			}
+
+			return value.trim();
+		} else {
+			value += char;
+		}
+
+		parser.index++;
 	}
 
 	throw new Error('Unexpected end of input');

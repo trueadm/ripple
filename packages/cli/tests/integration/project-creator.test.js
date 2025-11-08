@@ -9,6 +9,9 @@ import {
 	validateTemplate,
 } from '../../src/lib/templates.js';
 
+// Suppress console.log output during tests
+vi.spyOn(console, 'log').mockImplementation(() => {});
+
 // Mock ora for cleaner test output
 vi.mock('ora', () => ({
 	default: () => ({
