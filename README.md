@@ -100,7 +100,7 @@ export component App() {
 
 ### Reactivity
 
-Create reactive state with `track` and access it with the `@` operator:
+Create a reactive state with `track` and access it with the `@` operator:
 
 ```jsx
 import { track } from 'ripple';
