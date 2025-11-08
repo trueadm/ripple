@@ -1,5 +1,5 @@
 import { track, flushSync } from 'ripple';
-import { act } from 'react';
+import { act, createContext, useContext } from 'react';
 
 describe('compat-react', () => {
 	it('should render basic React JSX inside tsx:react tags', async () => {
@@ -300,5 +300,57 @@ describe('compat-react', () => {
 		const reactContent = container.querySelector('div > div');
 		expect(reactContent).toBeTruthy();
 		expect(reactContent.textContent).toBe('This is rendered from a React component!');
+	});
+
+	it('should handle a React context propagation', async () => {
+		const SomeContext = createContext('Default Value');
+
+		function ReactChild() {
+			return useContext(SomeContext);
+		}
+
+		component App() {
+			<div>
+				<tsx:react>
+					<SomeContext.Provider value="Provided Value">
+						<ReactChild />
+					</SomeContext.Provider>
+				</tsx:react>
+			</div>
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const reactContent = container.querySelector('div > div');
+		expect(reactContent).toBeTruthy();
+		expect(reactContent.textContent).toBe('Provided Value');
+	});
+
+	it('should handle a React errors', async () => {
+		function ReactChild() {
+			throw new Error('Test Error');
+		}
+
+		component App() {
+			try {
+				<div>
+					<tsx:react>
+						<ReactChild />
+					</tsx:react>
+				</div>
+			} catch (e) {
+				<div class="error">{'ReactChiild had an error'}</div>
+			}
+		}
+
+		await act(async () => {
+			render(App);
+		});
+
+		const reactContent = container.querySelector('div > div');
+		expect(reactContent).toBeTruthy();
+		expect(reactContent.textContent).toBe('ReactChiild had an error');
 	});
 });
