@@ -7,7 +7,7 @@ function M.setup(plugin)
 		},
 	}
 
-	require("ripple.treesitter").setup("Z:/ripple/ripple")
+	require("ripple.treesitter").setup()
 	require("ripple.lsp").setup()
 end
 
