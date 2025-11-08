@@ -38,7 +38,7 @@ templates and regular JavaScript logic, making code more predictable and easier
 to analyze.
 
 ```ripple
-// ❌ Wrong - Templates outside component
+// ❌ Wrong - Templates outside the component
 const element = <div>{"Hello"}</div>;  // Compilation error
 
 function regularFunction() {
@@ -81,7 +81,7 @@ the DOM.
 ## Example: Displaying Text
 
 This is the first place we can notice the difference between Ripple and JSX.
-You'll need to place your text inside {braces} to make start an expression.
+You'll need to place your text inside {braces} to start an expression.
 Again, this is because Ripple templates are statements rather than expressions,
 so we cannot have text in the middle of the template, as it would be akin to
 writing text in the middle of your code.
@@ -103,8 +103,8 @@ let greet_text = Hello World!;
 
 ## Example: Text Interpolation
 
-The most basic form of data-binding is text interpolation. In the below example,
-we'll declared a `<span>` element as a statement, then use a pair of {braces} to
+The most basic form of data-binding is text interpolation. In the example below,
+we'll declare a `<span>` element as a statement, then use a pair of {braces} to
 declare an expression, inside which we put our string expression, like we would
 in plain JavaScript.
 
@@ -167,7 +167,7 @@ component TemplateScope() {
 
 ## Attribute Binding
 
-Attribute Binding in Ripple is acheieved the same way as JSX. To bind an
+Attribute Binding in Ripple is achieved the same way as JSX. To bind an
 expression to an attribute, we write the attribute's name and an equal sign,
 like plain HTML, but instead of quotes, we use {braces}, within which, we can
 write a JS expression that evaluates to our desired value.
