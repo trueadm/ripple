@@ -18,16 +18,18 @@
     "bump:major": "node scripts/bump-version.js major",
     "bump:minor": "node scripts/bump-version.js minor",
     "bump:patch": "node scripts/bump-version.js patch",
-    "bump:vscode:major": "node scripts/bump-version.js major vscode",
-    "bump:vscode:minor": "node scripts/bump-version.js minor vscode",
-    "bump:vscode:patch": "node scripts/bump-version.js patch vscode"
+    "bump:editors:major": "node scripts/bump-version.js major editors",
+    "bump:editors:minor": "node scripts/bump-version.js minor editors",
+    "bump:editors:patch": "node scripts/bump-version.js patch editors",
+    "regenerate-textmate": "node scripts/regenerate-textmate.js",
+    "copy-tree-sitter-queries": "cp packages/tree-sitter/queries/*.scm packages/zed-plugin/languages/ripple && cp packages/tree-sitter/queries/*.scm packages/nvim-plugin/queries/ripple"
   },
   "devDependencies": {
     "jsdom": "catalog:default",
     "prettier": "catalog:default",
-    "prettier-plugin-ripple": "workspace:*",
-    "vite-plugin-ripple": "workspace:*",
-    "eslint-plugin-ripple": "workspace:*",
+    "@ripple-ts/prettier-plugin": "workspace:*",
+    "@ripple-ts/vite-plugin": "workspace:*",
+    "@ripple-ts/eslint-plugin": "workspace:*",
     "eslint": "catalog:default",
     "vitest": "catalog:default"
   },

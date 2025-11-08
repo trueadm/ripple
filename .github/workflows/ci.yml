@@ -3,23 +3,23 @@ name: CI
 on:
   push:
     branches: [main, develop]
-    tags: ["!**"]
+    tags: ['!**']
     paths:
-      - "packages/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "vitest.config.js"
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'vitest.config.js'
 
   pull_request:
     branches: [main, develop]
-    tags: ["!**"]
+    tags: ['!**']
     paths:
-      - "packages/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "vitest.config.js"
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'vitest.config.js'
 
 jobs:
   test:
@@ -47,12 +47,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --prod false --frozen-lockfile
 
-      - name: Build create-ripple
-        working-directory: ./packages/create-ripple
+      - name: Build cli
+        working-directory: ./packages/cli
         run: pnpm build
 
-      - name: Build eslint-parser-ripple
-        working-directory: ./packages/eslint-parser-ripple
+      - name: Build eslint-parser
+        working-directory: ./packages/eslint-parser
         run: pnpm build
 
       - name: Run tests

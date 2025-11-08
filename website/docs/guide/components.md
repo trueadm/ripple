@@ -7,9 +7,10 @@ title: Components in Ripple
 ## Lifecycle
 
 ::: details Glossary
+
 - **Pure**: The idea that a function should produce no side-effects.
 - **Side-effect**: A permanent, externally observable state change.
-:::
+  :::
 
 Ripple's component lifecycle is akin to Vue/Svelte/Solid. The root scope of your
 component only runs once, akin to the "setup" scope in Vue/Svelte/Solid. However,

@@ -1,7 +1,7 @@
 /** @import { Block } from '#client' */
 
 import { destroy_block, ref } from './blocks.js';
-import { REF_PROP, TRACKED, TRACKED_OBJECT } from './constants.js';
+import { REF_PROP } from './constants.js';
 import {
 	get_descriptors,
 	get_own_property_symbols,
@@ -69,25 +69,29 @@ function get_setters(element) {
 
 /**
  * @param {Element} element
+ * @param {any} value
+ * @returns {void}
+ */
+export function set_style(element, value) {
+	if (value == null) {
+		element.removeAttribute('style');
+	} else if (typeof value !== 'string') {
+		apply_styles(/** @type {HTMLElement} */ (element), value);
+	} else {
+		// @ts-ignore
+		element.style.cssText = value;
+	}
+}
+
+/**
+ * @param {Element} element
  * @param {string} attribute
  * @param {any} value
  * @returns {void}
  */
 export function set_attribute(element, attribute, value) {
-	// @ts-expect-error
-	var attributes = (element.__attributes ??= {});
-
-	if (attributes[attribute] === (attributes[attribute] = value)) return;
-
-	if (attribute === 'style' && '__styles' in element) {
-		// reset styles to force style: directive to update
-		element.__styles = {};
-	}
-
 	if (value == null) {
 		element.removeAttribute(attribute);
-	} else if (attribute === 'style' && typeof value !== 'string') {
-		apply_styles(/** @type {HTMLElement} */ (element), value);
 	} else if (typeof value !== 'string' && get_setters(element).includes(attribute)) {
 		/** @type {any} */ (element)[attribute] = value;
 	} else {
@@ -97,13 +101,13 @@ export function set_attribute(element, attribute, value) {
 
 /**
  * @param {HTMLElement} element
- * @param {HTMLElement['style']} newStyles
+ * @param {HTMLElement['style']} new_styles
  */
-export function apply_styles(element, newStyles) {
+export function apply_styles(element, new_styles) {
 	const style = element.style;
 	const new_properties = new Set();
 
-	for (const [property, value] of Object.entries(newStyles)) {
+	for (const [property, value] of Object.entries(new_styles)) {
 		const normalized_property = normalize_css_property_name(property);
 		const normalized_value = String(value);
 
@@ -123,49 +127,6 @@ export function apply_styles(element, newStyles) {
 }
 
 /**
- * @param {Element} element
- * @param {Record<string, any>} prev
- * @param {Record<string, any>} next
- * @returns {void}
- */
-export function set_attributes(element, prev, next) {
-	let found_enumerable_keys = false;
-
-	for (const key in next) {
-		if (key === 'children') continue;
-		found_enumerable_keys = true;
-
-		let value = next[key];
-		if (prev[key] === value && key !== '#class') {
-			continue;
-		}
-		if (is_tracked_object(value)) {
-			value = get(value);
-		}
-		set_attribute_helper(element, key, value);
-	}
-
-	// Only if no enumerable keys but attributes object exists
-	// This handles spread_props Proxy objects from dynamic elements with {...spread}
-	if (!found_enumerable_keys && next) {
-		const allKeys = Reflect.ownKeys(next);
-		for (const key of allKeys) {
-			if (key === 'children') continue;
-			if (typeof key === 'symbol') continue; // Skip symbols - handled by apply_element_spread
-
-			let value = next[key];
-			if (prev[key] === value && key !== '#class') {
-				continue;
-			}
-			if (is_tracked_object(value)) {
-				value = get(value);
-			}
-			set_attribute_helper(element, key, value);
-		}
-	}
-}
-
-/**
  * Helper function to set a single attribute
  * @param {Element} element
  * @param {string} key
@@ -175,6 +136,8 @@ function set_attribute_helper(element, key, value) {
 	if (key === 'class') {
 		const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
 		set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
+	} else if (key === 'style') {
+		set_style(/** @type {HTMLElement} */ (element), value);
 	} else if (key === '#class') {
 		// Special case for static class when spreading props
 		element.classList.add(value);
@@ -298,7 +261,7 @@ export function apply_element_spread(element, fn) {
 	var effects = {};
 
 	return () => {
-		var next = { ...fn() };
+		var next = fn();
 
 		for (let symbol of get_own_property_symbols(effects)) {
 			if (!next[symbol]) {
@@ -319,8 +282,25 @@ export function apply_element_spread(element, fn) {
 			next[symbol] = ref_fn;
 		}
 
-		set_attributes(element, prev, next);
+		/** @type {Record<string | symbol, any>} */
+		const current = {};
+		for (const key in next) {
+			if (key === 'children') continue;
 
-		prev = next;
+			let value = next[key];
+			if (is_tracked_object(value)) {
+				value = get(value);
+			}
+			current[key] = value;
+
+			if (!(key in prev) || prev[key] !== value) {
+				prev[key] = value;
+			} else if (key !== '#class') {
+				continue;
+			}
+
+			set_attribute_helper(element, key, value);
+		}
+		prev = current;
 	};
 }

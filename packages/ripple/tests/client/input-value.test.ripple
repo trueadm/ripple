@@ -24,7 +24,7 @@ describe('use value()', () => {
 		expect(logs).toEqual(['text changed', '', 'text changed', 'Hello']);
 	});
 
-		it('should update value on input with a predefined value', () => {
+	it('should update value on input with a predefined value', () => {
 		const logs: string[] = [];
 
 		component App() {
@@ -83,9 +83,9 @@ describe('use value()', () => {
 			});
 
 			<select {ref bindValue(select)}>
-				<option value="1">{"One"}</option>
-				<option value="2">{"Two"}</option>
-				<option value="3">{"Three"}</option>
+				<option value="1">{'One'}</option>
+				<option value="2">{'Two'}</option>
+				<option value="3">{'Three'}</option>
 			</select>
 		}
 

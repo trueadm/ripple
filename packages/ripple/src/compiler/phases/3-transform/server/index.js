@@ -4,7 +4,6 @@ import ts from 'esrap/languages/ts';
 import path from 'node:path';
 import { print } from 'esrap';
 import {
-	build_getter,
 	determine_namespace_for_children,
 	escape_html,
 	is_boolean_attribute,
@@ -13,7 +12,6 @@ import {
 	is_void_element,
 	normalize_children,
 } from '../../../utils.js';
-import is_reference from 'is-reference';
 import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';
@@ -120,14 +118,23 @@ const visitors = {
 			component_fn = b.async(component_fn);
 		}
 
-		const declaration = b.function_declaration(node.id, component_fn.params, component_fn.body, component_fn.async);
+		const declaration = b.function_declaration(
+			node.id,
+			component_fn.params,
+			component_fn.body,
+			component_fn.async,
+		);
 
 		if (metadata.await) {
 			const parent = context.path.at(-1);
 			if (parent.type === 'Program' || parent.type === 'BlockStatement') {
 				const body = parent.body;
 				const index = body.indexOf(node);
-				body.splice(index + 1, 0, b.stmt(b.assignment('=', b.member(node.id, b.id('async')), b.true)));
+				body.splice(
+					index + 1,
+					0,
+					b.stmt(b.assignment('=', b.member(node.id, b.id('async')), b.true)),
+				);
 			}
 		}
 
@@ -142,6 +149,18 @@ const visitors = {
 	},
 
 	NewExpression(node, context) {
+		// Special handling for TrackedMapExpression and TrackedSetExpression
+		// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
+		// and the actual arguments are in NewExpression.arguments
+		const callee = node.callee;
+		if (callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression') {
+			// Use NewExpression's arguments (the callee has empty arguments from parser)
+			const argsToUse = node.arguments.length > 0 ? node.arguments : callee.arguments;
+			// For SSR, use regular Map/Set
+			const constructorName = callee.type === 'TrackedMapExpression' ? 'Map' : 'Set';
+			return b.new(b.id(constructorName), ...argsToUse.map((arg) => context.visit(arg)));
+		}
+
 		if (!context.state.to_ts) {
 			delete node.typeArguments;
 		}
@@ -281,10 +300,11 @@ const visitors = {
 			let class_attribute = null;
 
 			const handle_static_attr = (name, value) => {
-				const attr_str = ` ${name}${is_boolean_attribute(name) && value === true
+				const attr_str = ` ${name}${
+					is_boolean_attribute(name) && value === true
 						? ''
 						: `="${value === true ? '' : escape_html(value, true)}"`
-					}`;
+				}`;
 
 				if (is_spreading) {
 					// For spread attributes, store just the actual value, not the full attribute string
@@ -566,14 +586,12 @@ const visitors = {
 			return b.call(
 				'set',
 				context.visit(left, { ...context.state, metadata: { tracking: false } }),
-				context.visit(node.right)
+				context.visit(node.right),
 			);
 		}
 
 		return context.next();
 	},
-
-
 
 	ServerIdentifier(node, context) {
 		return b.id('_$_server_$_');
@@ -617,27 +635,36 @@ const visitors = {
 				context.state.metadata.await = true;
 			}
 
+			// Render pending block first
+			if (node.pending) {
+				const pending_body = transform_body(node.pending.body, {
+					...context,
+					state: { ...context.state, scope: context.state.scopes.get(node.pending) },
+				});
+				context.state.init.push(...pending_body);
+			}
+
 			// For SSR with pending block: render the resolved content wrapped in async
 			// In a streaming SSR implementation, we'd render pending first, then stream resolved
 			const try_statements =
 				node.handler !== null
 					? [
-						b.try(
-							b.block(body),
-							b.catch_clause(
-								node.handler.param || b.id('error'),
-								b.block(
-									transform_body(node.handler.body.body, {
-										...context,
-										state: {
-											...context.state,
-											scope: context.state.scopes.get(node.handler.body),
-										},
-									}),
+							b.try(
+								b.block(body),
+								b.catch_clause(
+									node.handler.param || b.id('error'),
+									b.block(
+										transform_body(node.handler.body.body, {
+											...context,
+											state: {
+												...context.state,
+												scope: context.state.scopes.get(node.handler.body),
+											},
+										}),
+									),
 								),
 							),
-						),
-					]
+						]
 					: body;
 
 			context.state.init.push(
@@ -664,8 +691,8 @@ const visitors = {
 	},
 
 	AwaitExpression(node, context) {
-		context.state.scope.server_block = true
-		context.inside_server_block = true
+		context.state.scope.server_block = true;
+		context.inside_server_block = true;
 		if (context.state.to_ts) {
 			return context.next();
 		}
@@ -715,7 +742,9 @@ const visitors = {
 
 		if (expression.type === 'Literal') {
 			state.init.push(
-				b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(escape(expression.value)))),
+				b.stmt(
+					b.call(b.member(b.id('__output'), b.id('push')), b.literal(escape(expression.value))),
+				),
 			);
 		} else {
 			state.init.push(
@@ -810,7 +839,6 @@ export function transform_server(filename, source, analysis) {
 	}
 
 	// Add async property to component functions
-	
 
 	for (const import_node of state.imports) {
 		program.body.unshift(b.stmt(b.id(import_node)));

@@ -51,7 +51,7 @@ describe('for statements', () => {
 				}
 			</div>
 
-			<button onClick={() => items.push(items.length + 1)}>{"Add Item"}</button>
+			<button onClick={() => items.push(items.length + 1)}>{'Add Item'}</button>
 		}
 
 		render(App);
@@ -76,7 +76,9 @@ describe('for statements', () => {
 				}
 			</div>
 
-			<button onClick={() => items.push(String.fromCharCode(97 + items.length))}>{'Add Item'}</button>
+			<button onClick={() => items.push(String.fromCharCode(97 + items.length))}>
+				{'Add Item'}
+			</button>
 			<button onClick={() => items.reverse()}>{'Reverse'}</button>
 		}
 
@@ -109,9 +111,13 @@ describe('for statements', () => {
 				<div>{i + ':' + item.text}</div>
 			}
 
-			<button onClick={() => {
-				@items = @items.toReversed();
-			}}>{'Reverse'}</button>
+			<button
+				onClick={() => {
+					@items = @items.toReversed();
+				}}
+			>
+				{'Reverse'}
+			</button>
 		}
 
 		render(App);
@@ -138,17 +144,21 @@ describe('for statements', () => {
 				<div>{i + ':' + item.text}</div>
 			}
 
-			<button onClick={() => {
-				@items[0].id = 3;
-				@items[1].id = 2;
-				@items[2].id = 1;
+			<button
+				onClick={() => {
+					@items[0].id = 3;
+					@items[1].id = 2;
+					@items[2].id = 1;
 
-				@items = [
-					{...@items[0], text: 'Item 1!'},
-					{...@items[1], text: 'Item 2!'},
-					{...@items[2], text: 'Item 3!'},
-				];
-			}}>{"Reverse"}</button>
+					@items = [
+						{ ...@items[0], text: 'Item 1!' },
+						{ ...@items[1], text: 'Item 2!' },
+						{ ...@items[2], text: 'Item 3!' },
+					];
+				}}
+			>
+				{'Reverse'}
+			</button>
 		}
 
 		render(App);
@@ -159,5 +169,5 @@ describe('for statements', () => {
 		flushSync();
 
 		expect(container).toMatchSnapshot();
-	})
+	});
 });

@@ -24,7 +24,9 @@ describe('TrackedArray > iteration', () => {
 		flushSync();
 
 		expect(container.querySelectorAll('pre')[0].textContent).toBe('["a","b","c","d"]');
-		expect(container.querySelectorAll('pre')[1].textContent).toBe('[[0,"a"],[1,"b"],[2,"c"],[3,"d"]]');
+		expect(container.querySelectorAll('pre')[1].textContent).toBe(
+			'[[0,"a"],[1,"b"],[2,"c"],[3,"d"]]',
+		);
 	});
 
 	it('handles keys method with reactivity', () => {

@@ -6,7 +6,13 @@ describe('refs', () => {
 		let div: HTMLDivElement | undefined;
 
 		component Component() {
-			<div {ref (node: HTMLDivElement) => { div = node; }}>{'Hello World'}</div>
+			<div
+				{ref (node: HTMLDivElement) => {
+					div = node;
+				}}
+			>
+				{'Hello World'}
+			</div>
 		}
 		render(Component);
 		flushSync();
@@ -49,14 +55,44 @@ describe('refs', () => {
 			}
 
 			const props = {
-				id: "example",
+				id: 'example',
 				@value,
-				[createRefKey()]: inputRef
+				[createRefKey()]: inputRef,
 			};
 
 			<input type="text" {...props} />
 
 			<Input {...props} />
+		}
+
+		component Input({ id, value, ...rest }) {
+			<input type="text" {id} {value} {...rest} />
+		}
+
+		render(App);
+		flushSync();
+
+		expect(logs).toEqual(['ref called', 'ref called']);
+	});
+
+	it('should handle spreading props with a static ref', () => {
+		let logs: string[] = [];
+
+		component App() {
+			let value = track('test');
+
+			function inputRef(node) {
+				logs.push('ref called');
+			}
+
+			const props = {
+				id: 'example',
+				@value,
+			};
+
+			<input type="text" {ref inputRef} {...props} />
+
+			<Input {ref inputRef} {...props} />
 		}
 
 		component Input({ id, value, ...rest }) {

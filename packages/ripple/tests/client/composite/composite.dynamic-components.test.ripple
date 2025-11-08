@@ -28,7 +28,7 @@ describe('composite > dynamic components', () => {
 
 			const obj = {
 				tracked_basic,
-			}
+			};
 
 			<obj.@tracked_basic />
 		}
@@ -49,7 +49,7 @@ describe('composite > dynamic components', () => {
 
 			const obj = {
 				tracked_basic,
-			}
+			};
 
 			const tracked_object = track(obj);
 
@@ -64,21 +64,23 @@ describe('composite > dynamic components', () => {
 
 	it('handles dynamic component switching', () => {
 		component Child1() {
-			<div>{"I am child 1"}</div>
+			<div>{'I am child 1'}</div>
 		}
 
 		component Child2() {
-			<div>{"I am child 2"}</div>
+			<div>{'I am child 2'}</div>
 		}
 
 		component App() {
-			let thing = track(() => Child1)
+			let thing = track(() => Child1);
 
 			<div id="container">
 				<@thing />
 			</div>
 
-			<button onClick={() => @thing = @thing === Child1 ? Child2 : Child1}>{"Change Child"}</button>
+			<button onClick={() => (@thing = @thing === Child1 ? Child2 : Child1)}>
+				{'Change Child'}
+			</button>
 		}
 
 		render(App);

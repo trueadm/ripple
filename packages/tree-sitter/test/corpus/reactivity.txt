@@ -1,0 +1,150 @@
+==================
+Reactive Primitives - track and unbox
+==================
+
+import { track } from 'ripple';
+
+component Counter() {
+  let count = track(0);
+  <div>{@count}</div>
+}
+
+---
+
+(program
+  (import_statement
+    (import_clause
+      (named_imports
+        (import_specifier
+          name: (identifier))))
+    (from_clause (string)))
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (variable_declaration
+        (variable_declarator
+          name: (identifier)
+          (call_expression
+            function: (identifier)
+            arguments: (arguments (number)))))
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier))
+        children: (jsx_expression
+          (unbox_expression
+            (identifier)))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))
+
+==================
+Reactive Arrays
+==================
+
+let items = #[1, 2, 3];
+
+---
+
+(program
+  (variable_declaration
+    (variable_declarator
+      name: (identifier)
+      (reactive_array
+        (number)
+        (number)
+        (number)))))
+
+==================
+Reactive Objects
+==================
+
+let obj = #{a: 1, b: 2};
+
+---
+
+(program
+  (variable_declaration
+    (variable_declarator
+      name: (identifier)
+      (reactive_object
+        (pair
+          key: (identifier)
+          value: (number))
+        (pair
+          key: (identifier)
+          value: (number))))))
+
+==================
+Unbox Expression
+==================
+
+component App() {
+  let count = track(0);
+  <button onClick={() => @count++}>{'+'}</button>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (variable_declaration
+        (variable_declarator
+          name: (identifier)
+          (call_expression
+            function: (identifier)
+            arguments: (arguments (number)))))
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier)
+          attribute: (jsx_attribute
+            name: (identifier)
+            value: (jsx_expression
+              (arrow_function
+                body: (update_expression
+                  argument: (unbox_expression
+                    (identifier))
+                  operator: (string))))))
+        children: (jsx_expression (string))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))
+
+==================
+Augmented Assignment with Unbox
+==================
+
+component App() {
+  let count = track(0);
+  <button onClick={() => @count += 1}>{'+'}</button>
+}
+
+---
+
+(program
+  (component_declaration
+    name: (identifier)
+    parameters: (formal_parameters)
+    body: (component_body
+      (variable_declaration
+        (variable_declarator
+          name: (identifier)
+          (call_expression
+            function: (identifier)
+            arguments: (arguments (number)))))
+      (jsx_element
+        open_tag: (jsx_opening_element
+          name: (identifier)
+          attribute: (jsx_attribute
+            name: (identifier)
+            value: (jsx_expression
+              (arrow_function
+                body: (augmented_assignment_expression
+                  left: (unbox_expression
+                    (identifier))
+                  operator: (string)
+                  right: (number))))))
+        children: (jsx_expression (string))
+        close_tag: (jsx_closing_element
+          name: (identifier))))))

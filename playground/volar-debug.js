@@ -17,7 +17,7 @@ for (const filename of await fs.readdir(dir)) {
 		// Also output mappings for debugging
 		await fs.writeFile(
 			`${output_dir}/${filename.replace('.ripple', '.mappings.json')}`,
-			JSON.stringify(result.mappings, null, 2)
+			JSON.stringify(result.mappings, null, 2),
 		);
 	}
 }

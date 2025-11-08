@@ -1,4 +1,4 @@
-/** @import {Expression, FunctionExpression, Node, Program} from 'estree' */
+/** @import {Expression, FunctionExpression, Node, Program, Statement} from 'estree' */
 
 /** @typedef {Map<number, {offset: number, delta: number}>} PostProcessingChanges */
 /** @typedef {number[]} LineOffsets */
@@ -129,7 +129,7 @@ function visit_head_element(node, context) {
 	}
 }
 
-function apply_updates(init, update) {
+function apply_updates(init, update, state) {
 	if (update.length === 1) {
 		init.push(
 			b.stmt(
@@ -155,8 +155,25 @@ function apply_updates(init, update) {
 		const render_statements = [];
 		let index = 0;
 
+		const grouped_updates = new Map();
+
 		for (const u of update) {
 			if (u.initial) {
+				const id =
+					u.identity.type === 'Identifier' ? state.scope.get(u.identity.name)?.initial : u.identity;
+				let updates = grouped_updates.get(id);
+
+				if (updates === undefined) {
+					updates = [];
+					grouped_updates.set(id, updates);
+				}
+				updates.push(u);
+			}
+		}
+
+		for (const [, updates] of grouped_updates) {
+			if (updates.length === 1) {
+				const u = updates[0];
 				const key = index_to_key(index);
 				index_map.set(u.operation, key);
 				initial.push(b.prop('init', b.id(key), u.initial));
@@ -171,6 +188,29 @@ function apply_updates(init, update) {
 				);
 				index++;
 			} else {
+				const key = index_to_key(index);
+				/** @type {Array<Statement>} */
+				const if_body = [
+					b.stmt(b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key))),
+				];
+				initial.push(b.prop('init', b.id(key), updates[0].initial));
+				render_statements.push(
+					b.var('__' + key, updates[0].expression),
+					b.if(
+						b.binary('!==', b.member(b.id('__prev'), b.id(key)), b.id('__' + key)),
+						b.block(if_body),
+					),
+				);
+				for (const u of updates) {
+					index_map.set(u.operation, key);
+					if_body.push(u.operation(b.id('__' + key)));
+					index++;
+				}
+			}
+		}
+
+		for (const u of update) {
+			if (!u.initial) {
 				render_statements.push(u.operation);
 			}
 		}
@@ -305,6 +345,13 @@ const visitors = {
 		};
 	},
 
+	TSNonNullExpression(node, context) {
+		if (context.state.to_ts) {
+			return context.next();
+		}
+		return context.visit(node.expression);
+	},
+
 	CallExpression(node, context) {
 		if (!context.state.to_ts) {
 			delete node.typeArguments;
@@ -407,6 +454,32 @@ const visitors = {
 			context.state.metadata.tracking = true;
 		}
 
+		// Special handling for TrackedMapExpression and TrackedSetExpression
+		// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
+		// and the actual arguments are in NewExpression.arguments
+		if (callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression') {
+			// Use NewExpression's arguments (the callee has empty arguments from parser)
+			const argsToUse = node.arguments.length > 0 ? node.arguments : callee.arguments;
+
+			if (context.state.to_ts) {
+				const className = callee.type === 'TrackedMapExpression' ? 'TrackedMap' : 'TrackedSet';
+				const alias = import_from_ripple_if_needed(className, context);
+				const calleeId = b.id(alias);
+				calleeId.loc = callee.loc;
+				calleeId.metadata = {
+					tracked_shorthand: callee.type === 'TrackedMapExpression' ? '#Map' : '#Set',
+				};
+				return b.new(calleeId, ...argsToUse.map((arg) => context.visit(arg)));
+			}
+
+			const helperName = callee.type === 'TrackedMapExpression' ? 'tracked_map' : 'tracked_set';
+			return b.call(
+				`_$_.${helperName}`,
+				b.id('__block'),
+				...argsToUse.map((arg) => context.visit(arg)),
+			);
+		}
+
 		if (
 			context.state.to_ts ||
 			!is_inside_component(context, true) ||
@@ -415,22 +488,6 @@ const visitors = {
 		) {
 			if (!context.state.to_ts) {
 				delete node.typeArguments;
-			}
-
-			// Special handling for TrackedMapExpression and TrackedSetExpression
-			// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
-			// and the actual arguments are in NewExpression.arguments
-			// We need to merge them before transforming
-			if (
-				context.state.to_ts &&
-				(callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression')
-			) {
-				// If the callee has empty arguments, use the NewExpression's arguments instead
-				if (callee.arguments.length === 0 && node.arguments.length > 0) {
-					callee.arguments = node.arguments;
-				}
-				// Transform the tracked expression directly - it will return a NewExpression
-				return context.visit(callee);
 			}
 
 			return context.next();
@@ -476,44 +533,6 @@ const visitors = {
 			'_$_.tracked_object',
 			b.object(node.properties.map((prop) => context.visit(prop))),
 			b.id('__block'),
-		);
-	},
-
-	TrackedMapExpression(node, context) {
-		if (context.state.to_ts) {
-			const mapAlias = import_from_ripple_if_needed('TrackedMap', context);
-
-			const calleeId = b.id(mapAlias);
-			// Preserve location from original node for Volar mapping
-			calleeId.loc = node.loc;
-			// Add metadata for Volar mapping - map "TrackedMap" identifier to "#Map" in source
-			calleeId.metadata = { tracked_shorthand: '#Map' };
-			return b.new(calleeId, ...node.arguments.map((arg) => context.visit(arg)));
-		}
-
-		return b.call(
-			'_$_.tracked_map',
-			b.id('__block'),
-			...node.arguments.map((arg) => context.visit(arg)),
-		);
-	},
-
-	TrackedSetExpression(node, context) {
-		if (context.state.to_ts) {
-			const setAlias = import_from_ripple_if_needed('TrackedSet', context);
-
-			const calleeId = b.id(setAlias);
-			// Preserve location from original node for Volar mapping
-			calleeId.loc = node.loc;
-			// Add metadata for Volar mapping - map "TrackedSet" identifier to "#Set" in source
-			calleeId.metadata = { tracked_shorthand: '#Set' };
-			return b.new(calleeId, ...node.arguments.map((arg) => context.visit(arg)));
-		}
-
-		return b.call(
-			'_$_.tracked_set',
-			b.id('__block'),
-			...node.arguments.map((arg) => context.visit(arg)),
 		);
 	},
 
@@ -856,6 +875,7 @@ const visitors = {
 		if (is_dom_element) {
 			let class_attribute = null;
 			let style_attribute = null;
+			/** @type {Array<Statement>} */
 			const local_updates = [];
 			const is_void = is_void_element(node.id.name);
 
@@ -1018,9 +1038,11 @@ const visitors = {
 								});
 							} else {
 								local_updates.push({
-									operation: b.stmt(
-										b.call('_$_.set_attribute', id, b.literal(attribute), expression),
-									),
+									operation: (key) =>
+										b.stmt(b.call('_$_.set_attribute', id, b.literal(attribute), key)),
+									expression,
+									identity: attr.value,
+									initial: b.void0,
 								});
 							}
 						} else {
@@ -1065,6 +1087,7 @@ const visitors = {
 							operation: (key) =>
 								b.stmt(b.call('_$_.set_class', id, key, hash_arg, b.literal(is_html))),
 							expression,
+							identity: class_attribute.value,
 							initial: b.literal(''),
 						});
 					} else {
@@ -1084,14 +1107,16 @@ const visitors = {
 					const id = state.flush_node();
 					const metadata = { tracking: false, await: false };
 					const expression = visit(style_attribute.value, { ...state, metadata });
-					const name = style_attribute.name.name;
-
-					const statement = b.stmt(b.call('_$_.set_attribute', id, b.literal(name), expression));
 
 					if (metadata.tracking) {
-						local_updates.push({ operation: statement });
+						local_updates.push({
+							operation: (key) => b.stmt(b.call('_$_.set_style', id, key)),
+							identity: style_attribute.value,
+							expression,
+							initial: b.void0,
+						});
 					} else {
-						state.init.push(statement);
+						state.init.push(b.stmt(b.call('_$_.set_style', id, expression)));
 					}
 				}
 			}
@@ -1105,7 +1130,9 @@ const visitors = {
 				);
 			}
 
+			/** @type {Array<Statement>} */
 			const init = [];
+			/** @type {Array<Statement>} */
 			const update = [];
 
 			if (!is_void) {
@@ -1121,7 +1148,7 @@ const visitors = {
 
 			if (update.length > 0) {
 				if (state.scope.parent.declarations.size > 0) {
-					apply_updates(init, update);
+					apply_updates(init, update, state);
 				} else {
 					state.update.push(...update);
 				}
@@ -1180,7 +1207,9 @@ const visitors = {
 						),
 					);
 				} else if (attr.type === 'RefAttribute') {
-					props.push(b.prop('init', b.call('_$_.ref_prop'), visit(attr.argument, state), true));
+					const ref_id = state.scope.generate('ref');
+					state.setup.push(b.var(ref_id, b.call('_$_.ref_prop')));
+					props.push(b.prop('init', b.id(ref_id), visit(attr.argument, state), true));
 				} else {
 					throw new Error('TODO');
 				}
@@ -2193,7 +2222,17 @@ function transform_children(children, context) {
 		} else if (state.to_ts) {
 			transform_ts_child(node, { visit, state });
 		} else {
-			if (initial === null && root) {
+			let metadata;
+			let expression;
+			let isCreateTextOnly = false;
+			if (node.type === 'Text' || node.type === 'Html') {
+				metadata = { tracking: false, await: false };
+				expression = visit(node.expression, { ...state, metadata });
+				isCreateTextOnly =
+					node.type === 'Text' && normalized.length === 1 && expression.type === 'Literal';
+			}
+
+			if (initial === null && root && !isCreateTextOnly) {
 				create_initial(node);
 			}
 
@@ -2240,9 +2279,6 @@ function transform_children(children, context) {
 			} else if (node.type === 'TsxCompat') {
 				visit(node, { ...state, flush_node, namespace: state.namespace });
 			} else if (node.type === 'Html') {
-				const metadata = { tracking: false, await: false };
-				const expression = visit(node.expression, { ...state, metadata });
-
 				context.state.template.push('<!>');
 
 				const id = flush_node();
@@ -2258,15 +2294,13 @@ function transform_children(children, context) {
 					),
 				});
 			} else if (node.type === 'Text') {
-				const metadata = { tracking: false, await: false };
-				const expression = visit(node.expression, { ...state, metadata });
-
 				if (metadata.tracking) {
 					state.template.push(' ');
 					const id = flush_node();
 					state.update.push({
 						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
 						expression,
+						identity: node.expression,
 						initial: b.literal(' '),
 					});
 					if (metadata.await) {
@@ -2274,7 +2308,13 @@ function transform_children(children, context) {
 					}
 				} else if (normalized.length === 1) {
 					if (expression.type === 'Literal') {
-						state.template.push(escape_html(expression.value));
+						if (state.template.length > 0) {
+							state.template.push(escape_html(expression.value));
+						} else {
+							const id = flush_node();
+							state.init.push(b.var(id, b.call('_$_.create_text', expression)));
+							state.final.push(b.stmt(b.call('_$_.append', b.id('__anchor'), id)));
+						}
 					} else {
 						const id = flush_node();
 						state.template.push(' ');
@@ -2288,6 +2328,7 @@ function transform_children(children, context) {
 					state.update.push({
 						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
 						expression,
+						identity: node.expression,
 						initial: b.literal(' '),
 					});
 					if (metadata.await) {
@@ -2365,7 +2406,7 @@ function transform_body(body, { visit, state }) {
 			// In TypeScript mode, just add the update statements directly
 			body_state.init.push(...body_state.update);
 		} else {
-			apply_updates(body_state.init, body_state.update);
+			apply_updates(body_state.init, body_state.update, state);
 		}
 	}
 

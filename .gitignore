@@ -8,7 +8,7 @@ node_modules/
 coverage
 *.lcov
 
-packages/ripple-vscode-plugin/*.vsix
+packages/vscode-plugin/*.vsix
 playground/src
 
 website/.vitepress/dist/
@@ -29,6 +29,8 @@ website/.vitepress/cache/
 
 # VS Code settings
 .vscode/
+!.vscode/settings.json
+!.vscode/launch.json
 
 # Chrome Debugger
 .chrome-debug-profile/

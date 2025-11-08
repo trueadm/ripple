@@ -1,35 +1,41 @@
 import { flushSync, track } from 'ripple';
 
 describe('html directive', () => {
-  it('renders static html', () => {
-    component App() {
-      let str = '<div>Test</div>';
+	it('renders static html', () => {
+		component App() {
+			let str = '<div>Test</div>';
 
-      {html str}
-    }
+			{html str}
+		}
 
-    render(App);
-    expect(container).toMatchSnapshot();
-  });
+		render(App);
+		expect(container).toMatchSnapshot();
+	});
 
-  it('renders dynamic html', () => {
-    component App() {
-      let str = track('<div>Test</div>');
+	it('renders dynamic html', () => {
+		component App() {
+			let str = track('<div>Test</div>');
 
-      {html @str}
+			{html @str}
 
-      <button onClick={() => { @str = '<div>Updated</div>'; }}>{'Update'}</button>
-    }
+			<button
+				onClick={() => {
+					@str = '<div>Updated</div>';
+				}}
+			>
+				{'Update'}
+			</button>
+		}
 
-    render(App);
-    expect(container).toMatchSnapshot();
+		render(App);
+		expect(container).toMatchSnapshot();
 
-    const button = container.querySelector('button');
-    button.click();
-    flushSync();
+		const button = container.querySelector('button');
+		button.click();
+		flushSync();
 
-    expect(container).toMatchSnapshot();
-  });
+		expect(container).toMatchSnapshot();
+	});
 
 	it('renders the correct namespace for child svg element when html is surrounded by <svg>', () => {
 		component App() {
@@ -44,18 +50,22 @@ describe('html directive', () => {
 		expect(circle.namespaceURI).toBe('http://www.w3.org/2000/svg');
 	});
 
-	it('renders the correct namespace for child math element when html is surrounded by <math>', () => {
-		component App() {
-			let str = '<mi>x</mi><mo>+</mo><mi>y</mi>';
+	it(
+		'renders the correct namespace for child math element when html is surrounded by <math>',
+		() => {
+			component App() {
+				let str = '<mi>x</mi><mo>+</mo><mi>y</mi>';
 
-			<math>{html str}</math>;
-		}
+				<math>{html str}</math>
 
-		render(App);
+			}
 
-		const mi = container.querySelector('mi');
-		const mo = container.querySelector('mo');
-		expect(mi.namespaceURI).toBe('http://www.w3.org/1998/Math/MathML');
-		expect(mo.namespaceURI).toBe('http://www.w3.org/1998/Math/MathML');
-	});
+			render(App);
+
+			const mi = container.querySelector('mi');
+			const mo = container.querySelector('mo');
+			expect(mi.namespaceURI).toBe('http://www.w3.org/1998/Math/MathML');
+			expect(mo.namespaceURI).toBe('http://www.w3.org/1998/Math/MathML');
+		},
+	);
 });

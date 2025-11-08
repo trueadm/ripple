@@ -1,4 +1,5 @@
-import type { Props } from '#public'
+import type { Props } from '#public';
+import type { Readable } from 'node:stream';
 
 export interface SSRRenderOutput {
 	head: string;
@@ -21,6 +22,6 @@ export interface SSRRenderResult {
 
 export type SSRRender = (component: SSRComponent) => Promise<SSRRenderResult>;
 
-export declare function render(
-	component: SSRComponent,
-): Promise<SSRRenderResult>;
+export declare function render(component: SSRComponent): Promise<SSRRenderResult>;
+
+export declare function renderToStream(component: SSRComponent): Readable;
