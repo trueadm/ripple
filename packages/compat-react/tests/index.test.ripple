@@ -7,9 +7,7 @@ describe('compat-react', () => {
 			<div>
 				<h1>{'Hello from Ripple'}</h1>
 				<tsx:react>
-					<div className="react-content">
-						{'Hello from React'}
-					</div>
+					<div className="react-content">Hello from React</div>
 				</tsx:react>
 			</div>
 		}
@@ -31,12 +29,8 @@ describe('compat-react', () => {
 			<div>
 				<tsx:react>
 					<>
-						<span className="first">
-							{'First'}
-						</span>
-						<span className="second">
-							{'Second'}
-						</span>
+						<span className="first">First</span>
+						<span className="second">Second</span>
 					</>
 				</tsx:react>
 			</div>
@@ -60,9 +54,7 @@ describe('compat-react', () => {
 				<tsx:react>
 					<div className="wrapper">
 						<div className="inner">
-							<span className="content">
-								{'Nested content'}
-							</span>
+							<span className="content">Nested content</span>
 						</div>
 					</div>
 				</tsx:react>
@@ -87,9 +79,7 @@ describe('compat-react', () => {
 			<div class="container">
 				<div class="ripple">{'This is Ripple'}</div>
 				<tsx:react>
-					<div className="react">
-						{'This is React'}
-					</div>
+					<div className="react">This is React</div>
 				</tsx:react>
 				<div class="ripple-2">{'Back to Ripple'}</div>
 			</div>
@@ -114,15 +104,11 @@ describe('compat-react', () => {
 		component App() {
 			<div>
 				<tsx:react>
-					<div className="react-1">
-						{'React Block 1'}
-					</div>
+					<div className="react-1">React Block 1</div>
 				</tsx:react>
 				<div class="ripple-middle">{'Ripple in between'}</div>
 				<tsx:react>
-					<div className="react-2">
-						{'React Block 2'}
-					</div>
+					<div className="react-2">React Block 2</div>
 				</tsx:react>
 			</div>
 		}
@@ -147,9 +133,7 @@ describe('compat-react', () => {
 			<div>
 				<tsx:react>
 					<div className="react" id="test-id">
-						<span>
-							{'Content'}
-						</span>
+						<span>Content</span>
 					</div>
 				</tsx:react>
 			</div>
@@ -170,13 +154,9 @@ describe('compat-react', () => {
 			<div>
 				<tsx:react>
 					<>
-						<div className="outer">
-							{'Outer'}
-						</div>
+						<div className="outer">Outer</div>
 						<>
-							<div className="inner">
-								{'Inner'}
-							</div>
+							<div className="inner">Inner</div>
 						</>
 					</>
 				</tsx:react>
@@ -201,15 +181,9 @@ describe('compat-react', () => {
 				<tsx:react>
 					<div className="list">
 						<ul>
-							<li>
-								{'Item 1'}
-							</li>
-							<li>
-								{'Item 2'}
-							</li>
-							<li>
-								{'Item 3'}
-							</li>
+							<li>Item 1</li>
+							<li>Item 2</li>
+							<li>Item 3</li>
 						</ul>
 					</div>
 				</tsx:react>
