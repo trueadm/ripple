@@ -1,6 +1,6 @@
 # Contributing to Ripple
 
-Ripple is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte into one cohesive package. Built as a love letter to frontend development, Ripple introduces a JS/TS-first approach with `.ripple` modules that provide excellent developer experience for both humans and LLMs.
+Ripple is a TypeScript UI framework that combines the best parts of React, Solid, and Svelte into one cohesive package. Built as a love letter to frontend development, Ripple introduces a JS/TS-first approach with `.ripple` modules that provide an excellent developer experience for both humans and LLMs.
 
 The [Open Source Guides](https://opensource.guide/) website offers valuable resources for individuals, communities, and companies looking to contribute to open source projects. Both newcomers and experienced contributors will find these guides particularly helpful:
 
@@ -16,7 +16,7 @@ There are numerous ways to contribute to Ripple, and many don't require writing 
 - **Submit fixes**: Found an issue you'd like to tackle? Consider [opening a pull request](#pull-requests).
 - **Help with documentation**: As Ripple grows, we'll need comprehensive documentation. Any help improving clarity or filling gaps would be greatly appreciated.
 
-We welcome all contributions! If you need guidance planning your contribution, please reach out on our Discord server and let us know you're looking for some direction.
+We welcome all contributions! If you need guidance in planning your contribution, please reach out on our Discord server and let us know you're looking for some direction.
 
 ### Issue Triage
 
