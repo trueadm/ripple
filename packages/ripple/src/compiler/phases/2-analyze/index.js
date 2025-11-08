@@ -15,6 +15,7 @@ import is_reference from 'is-reference';
 import { prune_css } from './prune.js';
 import { error } from '../../errors.js';
 import { is_event_attribute } from '../../../utils/events.js';
+import { validate_nesting } from './validation.js';
 
 const valid_in_head = new Set(['title', 'base', 'link', 'meta', 'style', 'script', 'noscript']);
 
@@ -641,6 +642,8 @@ const visitors = {
 		const attribute_names = new Set();
 
 		mark_control_flow_has_template(path);
+
+		validate_nesting(node, state, context);
 
 		// Store capitalized name for dynamic components/elements
 		if (node.id.tracked) {
