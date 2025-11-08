@@ -34,7 +34,7 @@ let counter = { current: track(0) };
 counter.@current++;
 ```
 
-Tracked derived values are also `Tracked<T>` objects, except you pass a function
+Tracked derived values are also `Tracked<T>` objects, except that you pass a function
 to `track` rather than a value:
 
 ```ts
@@ -72,7 +72,7 @@ expressed as pure functions. The get function receives the current stored value
 and its return value is exposed when the tracked value is accessed / unboxed
 with `@`. The set function should return the value that will actually be stored
 and receives two parameters: the first is the one being assigned and the second
-with the previous value. The get and set functions may be useful for tasks such
+is the previous value. The get and set functions may be useful for tasks such
 as logging, validating, or transforming values before they are exposed or stored.
 
 ```ripple
@@ -400,13 +400,13 @@ component basic() {
 - Reactive state must be connected to a component
 - Cannot be global or created at module/global scope
 - Use arrays `[ trackedVar ]` or objects `{ trackedVar }` to transport reactivity
-- Functions can accept and return reactive state using these patterns
+- Functions can accept and return a reactive state using these patterns
 - This enables composable reactive logic outside of component boundaries
 
 ## Effects
 
-When dealing with reactive state, you might want to be able to create
-side-effects based upon changes that happen upon updates. To do this, you can
+When dealing with a reactive state, you might want to be able to create
+side-effects based on changes that happen upon updates. To do this, you can
 use `effect`:
 
 <Code console>
@@ -488,7 +488,7 @@ primitives that Ripple offers for reactivity for an entire collection.
 #### Simple Reactive Array
 
 Just like objects, you can use the `Tracked<T>` objects in any standard
-JavaScript object, like arrays:
+JavaScript objects, like arrays:
 
 <Code console>
 
@@ -510,7 +510,7 @@ export component App() {
 
 </Code>
 
-Like shown in the above example, you can compose normal arrays with reactivity
+As shown in the above example, you can compose normal arrays with reactivity
 and pass them through props or boundaries.
 
 However, if you need the entire array to be fully reactive, including when new
@@ -523,7 +523,7 @@ supports all of its methods and properties. Import it from the `'ripple'`
 namespace or use the provided syntactic sugar for a quick creation via the
 bracketed notation. All elements existing or new of the `TrackedArray` are
 reactive and respond to the various array operations such as push, pop, shift,
-unshift, etc. Even if you reference a non-existent element, once it added, the
+unshift, etc. Even if you reference a non-existent element, once it is added, the
 original reference will react to the change. You do NOT need to use the unboxing
 `@` with the elements of the array.
 
@@ -539,7 +539,7 @@ const arr = new TrackedArray(1, 2, 3);
 // using static from method
 const arr = TrackedArray.from([1, 2, 3]);
 
-// using static of method
+// using static method
 const arr = TrackedArray.of(1, 2, 3);
 ```
 
