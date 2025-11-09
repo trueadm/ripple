@@ -1,4 +1,5 @@
 import { walk } from 'zimmerframe';
+import { is_element_dom_element } from '../../utils.js';
 
 const seen = new Set();
 const regex_backslash_and_following_character = /\\(.)/g;
@@ -223,31 +224,14 @@ function get_descendant_elements(node, adjacent_only) {
  * @returns {boolean}
  */
 function can_render_dynamic_content(element, check_classes = false) {
-	if (!element || element.type !== 'Element') {
-		return element?.type === 'Component';
-	}
-
-	// Check if it's the special <children /> element
-	if (element.id?.name === 'children') {
+	if (!is_element_dom_element(element)) {
 		return true;
 	}
 
-	// Check if it's a dynamic component <@Component />
-	// Dynamic elements should be treated same as regular elements need class as object
-	if (element.id?.type === 'UnboxExpression') {
+	// Either a dynamic element or component (only can tell at runtime)
+	// But dynamic elements should return false ideally
+	if (element.id?.tracked) {
 		return true;
-	}
-
-	// Check if it's a Component (capitalized and not a DOM element)
-	// A Component is an Element with a capitalized name
-	if (element.id?.type === 'Identifier' && element.id.name) {
-		const firstChar = element.id.name[0];
-		if (firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase()) {
-			// It's capitalized, so it's a Component unless it's a DOM element
-			// DOM elements would be like SVG elements (e.g., <svg>, <path>)
-			// But those are lowercase in HTML, so this is a Component
-			return true;
-		}
 	}
 
 	// Check for dynamic class attributes if requested (for class-based selectors)
