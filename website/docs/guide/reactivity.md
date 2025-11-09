@@ -400,7 +400,7 @@ component basic() {
 - Reactive state must be connected to a component
 - Cannot be global or created at module/global scope
 - Use arrays `[ trackedVar ]` or objects `{ trackedVar }` to transport reactivity
-- Functions can accept and return a reactive state using these patterns
+- Functions can accept and return reactive state using these patterns
 - This enables composable reactive logic outside of component boundaries
 
 ## Effects
