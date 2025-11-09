@@ -1197,16 +1197,20 @@ export function safe_scope(err = 'Cannot access outside of a component context')
 	return /** @type {Block} */ (active_scope);
 }
 
-/**
- * @returns {void}
- */
-export function push_component() {
-	var component = {
+export function create_component_ctx() {
+	return {
 		c: null,
 		e: null,
 		m: false,
 		p: active_component,
 	};
+}
+
+/**
+ * @returns {void}
+ */
+export function push_component() {
+	var component = create_component_ctx();
 	active_component = component;
 }
 

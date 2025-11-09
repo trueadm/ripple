@@ -5,6 +5,7 @@ import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import {
 	useSyncExternalStore,
 	useLayoutEffect,
+	useEffect,
 	useRef,
 	useState,
 	Component,
@@ -24,6 +25,9 @@ import {
 	suspend,
 	TRY_BLOCK,
 	destroy_block,
+	root,
+	create_component_ctx,
+	init_operations,
 } from 'ripple/internal/client';
 import { Context } from 'ripple';
 
@@ -202,7 +206,7 @@ export function Ripple({ component, props }) {
 	}
 	const portals = portals_ref.current;
 
-	useLayoutEffect(() => {
+	useEffect(() => {
 		const span = /** @type {HTMLSpanElement | null} */ (ref.current);
 		if (span === null) {
 			return;
@@ -210,6 +214,12 @@ export function Ripple({ component, props }) {
 		const frag = document.createDocumentFragment();
 		const anchor = document.createTextNode('');
 		const block = get_block_from_dom(span);
+
+		if (block === null) {
+			throw new Error(
+				'Ripple component must be rendered inside a Ripple root. If you are using Ripple inside a React app, ensure your React root contains <RippleRoot>.',
+			);
+		}
 		const tracked_props = (tracked_props_ref.current = tracked(props || {}, block));
 		const proxied_props = proxy_props(() => get_tracked(tracked_props));
 		frag.append(anchor);
@@ -230,7 +240,7 @@ export function Ripple({ component, props }) {
 		};
 	}, [component]);
 
-	useLayoutEffect(() => {
+	useEffect(() => {
 		set(/** @type {any} */ (tracked_props_ref.current), props || {});
 	}, [props]);
 
@@ -240,4 +250,25 @@ export function Ripple({ component, props }) {
 			...map_portals(portals),
 		],
 	});
+}
+
+/**
+ * @param {{ children: React.ReactNode }} props
+ */
+export function RippleRoot({ children }) {
+	const ref = useRef(null);
+
+	useLayoutEffect(() => {
+		const target_element = /** @type {HTMLSpanElement | null} */ (ref.current);
+		if (target_element === null) {
+			return;
+		}
+		init_operations();
+		const e = root(() => {});
+		e.co = create_component_ctx();
+		// @ts-ignore
+		target_element.__ripple_block = e;
+	}, []);
+
+	return jsx('span', { ref, style: { display: 'contents' }, children });
 }

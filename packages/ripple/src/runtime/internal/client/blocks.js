@@ -151,7 +151,7 @@ export function root(fn, compat) {
 		};
 	}
 
-	return block(ROOT_BLOCK, fn, { compat });
+	return block(ROOT_BLOCK, target_fn, { compat });
 }
 
 /**

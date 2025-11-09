@@ -4,6 +4,7 @@ export {
 	next_sibling as sibling,
 	document,
 	create_text,
+	init_operations,
 } from './operations.js';
 
 export {
@@ -16,7 +17,7 @@ export {
 	set_selected,
 } from './render.js';
 
-export { render, render_spread, async, ref, branch, destroy_block } from './blocks.js';
+export { render, render_spread, async, ref, branch, destroy_block, root } from './blocks.js';
 
 export { event, delegate } from './events.js';
 
@@ -42,6 +43,7 @@ export {
 	update_pre_property,
 	push_component,
 	pop_component,
+	create_component_ctx,
 	untrack,
 	ref_prop,
 	fallback,
