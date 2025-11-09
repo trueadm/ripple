@@ -405,7 +405,7 @@ component basic() {
 
 ## Effects
 
-When dealing with a reactive state, you might want to be able to create
+When dealing with reactive state, you might want to be able to create
 side-effects based on changes that happen upon updates. To do this, you can
 use `effect`:
 
@@ -488,7 +488,7 @@ primitives that Ripple offers for reactivity for an entire collection.
 #### Simple Reactive Array
 
 Just like objects, you can use the `Tracked<T>` objects in any standard
-JavaScript objects, like arrays:
+JavaScript object, like arrays:
 
 <Code console>
 
