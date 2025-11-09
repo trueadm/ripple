@@ -26,7 +26,6 @@ import {
 	TRY_BLOCK,
 	destroy_block,
 	root,
-	create_component_ctx,
 	init_operations,
 } from 'ripple/internal/client';
 import { Context } from 'ripple';
@@ -265,7 +264,6 @@ export function RippleRoot({ children }) {
 		}
 		init_operations();
 		const e = root(() => {});
-		e.co = create_component_ctx();
 		// @ts-ignore
 		target_element.__ripple_block = e;
 	}, []);

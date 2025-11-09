@@ -43,7 +43,6 @@ export {
 	update_pre_property,
 	push_component,
 	pop_component,
-	create_component_ctx,
 	untrack,
 	ref_prop,
 	fallback,
