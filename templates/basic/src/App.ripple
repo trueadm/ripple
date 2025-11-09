@@ -5,11 +5,7 @@ export component App() {
 
 	<div class="app">
 		<div class="card">
-			<img
-				src="https://www.ripplejs.com/ripple-logo-horizontal.png"
-				alt="Ripple Logo"
-				class="logo"
-			/>
+			<img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
 
 			<p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
 
