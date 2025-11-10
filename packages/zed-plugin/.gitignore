@@ -7,6 +7,6 @@ grammars/ripple/
 # Zed extension build artifacts
 *.wasm
 
-# .scm files are located in tree-sitter-ripple
+# .scm files are located in tree-sitter
 # ignore their copies
 languages/ripple/*.scm

@@ -1,0 +1,229 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global with advanced selectors', () => {
+	it('handles :global with ::slotted()', () => {
+		const source = `
+export component Test() {
+	<div>
+		<slot />
+	</div>
+
+	<style>
+		:global(::slotted(*)) {
+			color: red;
+		}
+
+		div :global(::slotted(span)) {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ ::slotted\(span\) {/);
+		expect(css).toContain('::slotted(*) {');
+	});
+
+	it('handles :global with ::part()', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global(::part(button)) {
+			color: red;
+		}
+
+		div :global(::part(input)) {
+			border: 1px solid blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ ::part\(input\) {/);
+		expect(css).toContain('::part(button) {');
+	});
+
+	it('handles :global with :host and :host-context', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global(:host) {
+			display: block;
+		}
+
+		:global(:host(.active)) {
+			color: red;
+		}
+
+		:global(:host-context(.dark)) {
+			background: black;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain(':host {');
+		expect(css).toContain(':host(.active) {');
+		expect(css).toContain(':host-context(.dark) {');
+	});
+
+	it('handles :global with complex :nth-* selectors', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'one'}</span>
+		<span>{'two'}</span>
+		<span>{'three'}</span>
+	</div>
+
+	<style>
+		:global(span:nth-child(odd)) {
+			color: red;
+		}
+
+		:global(span:nth-last-child(2)) {
+			color: blue;
+		}
+
+		:global(div:nth-of-type(3n+1)) {
+			margin-top: 10px;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('span:nth-child(odd) {');
+		expect(css).toContain('span:nth-last-child(2) {');
+		expect(css).toContain('div:nth-of-type(3n+1) {');
+	});
+
+	it('handles :global with language and directional pseudo-classes', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global(:lang(en)) {
+			quotes: '"' '"';
+		}
+
+		:global(:dir(rtl)) {
+			direction: rtl;
+		}
+
+		:global(div:lang(fr)) {
+			quotes: '«' '»';
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain(':lang(en) {');
+		expect(css).toContain(':dir(rtl) {');
+		expect(css).toContain('div:lang(fr) {');
+	});
+
+	it('handles :global with :focus-within and :focus-visible', () => {
+		const source = `
+export component Test() {
+	<div>
+		<input type="text" />
+	</div>
+
+	<style>
+		:global(div:focus-within) {
+			border: 2px solid blue;
+		}
+
+		:global(input:focus-visible) {
+			outline: 2px solid red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div:focus-within {');
+		expect(css).toContain('input:focus-visible {');
+	});
+
+	it('handles :global with :any-link, :target, :scope', () => {
+		const source = `
+export component Test() {
+	<div>
+		<a href="#">{'link'}</a>
+	</div>
+
+	<style>
+		:global(:any-link) {
+			color: blue;
+		}
+
+		:global(:target) {
+			background: yellow;
+		}
+
+		:global(:scope) {
+			border: 1px solid black;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain(':any-link {');
+		expect(css).toContain(':target {');
+		expect(css).toContain(':scope {');
+	});
+
+	it('handles :global with form-related pseudo-classes', () => {
+		const source = `
+export component Test() {
+	<form>
+		<input type="text" required />
+		<input type="checkbox" checked />
+	</form>
+
+	<style>
+		:global(input:required) {
+			border-color: red;
+		}
+
+		:global(input:optional) {
+			border-color: gray;
+		}
+
+		:global(input:checked) {
+			background: blue;
+		}
+
+		:global(input:disabled) {
+			opacity: 0.5;
+		}
+
+		:global(input:read-only) {
+			background: lightgray;
+		}
+
+		:global(input:valid) {
+			border-color: green;
+		}
+
+		:global(input:invalid) {
+			border-color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('input:required {');
+		expect(css).toContain('input:optional {');
+		expect(css).toContain('input:checked {');
+		expect(css).toContain('input:disabled {');
+		expect(css).toContain('input:read-only {');
+		expect(css).toContain('input:valid {');
+		expect(css).toContain('input:invalid {');
+	});
+});

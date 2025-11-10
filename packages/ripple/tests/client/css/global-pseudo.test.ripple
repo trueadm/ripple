@@ -1,0 +1,155 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global with pseudo-classes', () => {
+	it('handles :global with :has()', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'content'}</span>
+	</div>
+
+	<style>
+		div:has(:global(span)) {
+			color: red;
+		}
+
+		:global(div:has(span)) {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+:has\(span\)/);
+		expect(css).toContain('div:has(span)');
+	});
+
+	it('handles :global with :is()', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'one'}</span>
+		<p>{'two'}</p>
+	</div>
+
+	<style>
+		div :is(:global(span), p) {
+			color: red;
+		}
+
+		:global(div:is(.foo, .bar)) {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ :is\(span, p:where\(\.ripple-[a-z0-9]+\)\) {/);
+		expect(css).not.toMatch(/span:where/);
+		expect(css).not.toMatch(/span\.ripple/);
+		expect(css).toContain('div:is(.foo, .bar)');
+	});
+
+	it('handles :global with :where()', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'one'}</span>
+		<p>{'two'}</p>
+	</div>
+
+	<style>
+		div :where(:global(span), p) {
+			color: red;
+		}
+
+		:global(div:where(.foo, .bar)) {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ :where\(span, p:where\(\.ripple-[a-z0-9]+\)\) {/);
+		expect(css).not.toMatch(/span:where/);
+		expect(css).not.toMatch(/span\.ripple/);
+		expect(css).toContain('div:where(.foo, .bar)');
+	});
+
+	it('handles :global with :not()', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'content'}</span>
+	</div>
+
+	<style>
+		div:not(:global(span)) {
+			color: red;
+		}
+
+		:global(div:not(.foo)) {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+:not\(span\)/);
+		expect(css).toContain('div:not(.foo)');
+	});
+
+	it('handles nested pseudo-classes with :global', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'content'}</span>
+	</div>
+
+	<style>
+		div:is(:has(:global(span))) {
+			color: red;
+		}
+
+		:global(div:where(:is(.foo))) {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+:is\(:where\(\.ripple-[a-z0-9]+\):has\(span\)\) {/);
+		expect(css).toContain('div:where(:is(.foo))');
+	});
+
+	it('handles :global with :nth-child and other structural pseudo-classes', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'one'}</span>
+		<span>{'two'}</span>
+		<span>{'three'}</span>
+	</div>
+
+	<style>
+		:global(span):nth-child(2) {
+			color: red;
+		}
+
+		div > :global(span:first-child) {
+			color: blue;
+		}
+
+		:global(div):last-child {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('span:nth-child(2) {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ > span:first-child {/);
+		expect(css).toContain('div:last-child {');
+		expect(css).not.toMatch(/span\.ripple-[a-z0-9]+:nth-child/);
+	});
+});

@@ -15,16 +15,16 @@ def plugin_loaded() -> None:
 def plugin_unloaded() -> None:
     LspRipplePlugin.cleanup()
 
-
 class LspRipplePlugin(NpmClientHandler):
     package_name = __package__
     server_directory = 'language-server'
     server_binary_path = os.path.join(
         server_directory,
         'node_modules',
-        'ripple-language-server',
+        '@ripple-ts',
+        'language-server',
         'bin',
-        'ripple-language-server.js'
+        'language-server.js'
     )
 
     @classmethod

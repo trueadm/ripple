@@ -1,0 +1,200 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global edge cases', () => {
+	it('handles multiple :global selectors in one rule', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global(div), :global(span), p {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div, span ');
+		expect(css).toContain('(unused) p');
+	});
+
+	it('handles :global with attribute selectors', () => {
+		const source = `
+export component Test() {
+	<div data-test="value">{'content'}</div>
+
+	<style>
+		:global([data-test]) {
+			color: red;
+		}
+
+		div:global([data-foo="bar"]) {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('[data-test] {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+\[data-foo="bar"\]/);
+	});
+
+	it('handles :global with universal selector', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global(*) {
+			box-sizing: border-box;
+		}
+
+		div :global(*) {
+			margin: 0;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('* {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ \* {/);
+	});
+
+	it('handles :global with ID selectors', () => {
+		const source = `
+export component Test() {
+	<div id="test">{'content'}</div>
+
+	<style>
+		:global(#app) {
+			width: 100%;
+		}
+
+		div :global(#test) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('#app {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ #test {/);
+		expect(css).not.toMatch(/#app\.ripple-[a-z0-9]+/);
+		expect(css).not.toMatch(/#test\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles :global with pseudo-elements', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		:global(div)::before {
+			content: "before";
+		}
+
+		div :global(span)::after {
+			content: "after";
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div::before {');
+		``;
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ span::after {/);
+	});
+
+	it('handles empty :global blocks', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		div {
+			:global {
+			}
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('color: red');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+	});
+
+	it('handles :global with complex selector chains', () => {
+		const source = `
+export component Test() {
+	<div class="container">
+		<span class="wrapper foo">
+			<button class="bar"><span>{'click'}</span></button>
+		</span>
+	</div>
+
+	<style>
+		:global(div.container) > span.wrapper + :global(button[disabled]) {
+			color: red;
+		}
+
+		:global(.foo > .bar) span {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.container > span.wrapper\.ripple-[a-z0-9]+ \+ button\[disabled\] {/);
+		expect(css).toMatch(/\.foo > \.bar span\.ripple-[a-z0-9]+ {/);
+	});
+
+	it('rejects :global in the middle of a selector sequence', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span class="foo">
+			<button class="bar">{'click'}</button>
+		</span>
+	</div>
+
+	<style>
+		div :global(.foo > .bar) span {
+			color: red;
+		}
+	</style>
+}`;
+
+		expect(() => compile(source, 'test.ripple')).toThrow(
+			':global(...) can be at the start or end of a selector sequence, but not in the middle',
+		);
+	});
+
+	it('handles :global at start and end of selector', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'content'}</span>
+	</div>
+
+	<style>
+		:global(html) div span {
+			color: red;
+		}
+
+		div span :global(strong) {
+			color: blue;
+		}
+
+		:global(body) div :global(em) {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/html div\.ripple-[a-z0-9]+ span:where\(\.ripple-[a-z0-9]+\) {/);
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ span:where\(\.ripple-[a-z0-9]+\) strong {/);
+		expect(css).toMatch(/body div\.ripple-[a-z0-9]+ em {/);
+	});
+});

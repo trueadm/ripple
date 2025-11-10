@@ -1,4 +1,4 @@
-# ripple-language-server
+# @ripple-ts/language-server
 
 Language Server Protocol (LSP) implementation for Ripple. This package provides language intelligence features for
 Ripple files and can be integrated into any editor that supports LSP.
@@ -30,9 +30,9 @@ It uses this language server internally.
 #### WebStorm/IntelliJ
 
 1. Install the language server:
-    ```bash
-    npm install @ripple-ts/language-server -g
-    ```
+   ```bash
+   npm install @ripple-ts/language-server -g
+   ```
 2. Install the [LSP4IJ plugin](https://plugins.jetbrains.com/plugin/23257-lsp4ij).
 3. Add a new language server in it
 4. Specify `ripple-language-server --stdio` as the command in it.
@@ -51,8 +51,10 @@ Use the official plugin.
    ```lua
    {
      "Ripple-TS/ripple",
-     dir = "packages/nvim-plugin",
-     config = true,
+     config = function(plugin)
+       vim.opt.rtp:append(plugin.dir .. "/packages/nvim-plugin")
+       require("ripple").setup(plugin)
+     end
    }
    ```
 
@@ -79,16 +81,19 @@ Diagnostics, completions, and other features should work in `.ripple` files now.
 ## Standalone Usage
 
 You can use the language server in any other editor that supports LSP. You can install it globally:
+
 ```bash
 npm install -g @ripple-ts/language-server
 ```
 
 Then run the server with:
+
 ```bash
 ripple-language-server --stdio
 ```
 
 Or you can run it via `npx` without installing:
+
 ```bash
 npx @ripple-ts/language-server --stdio
 ```

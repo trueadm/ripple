@@ -12,3 +12,5 @@ export declare function createReactCompat(): {
 };
 
 export declare function Ripple<P>(component: Component<P>, props?: P): React.JSX.Element;
+
+export declare function RippleRoot(props: { children: React.ReactNode }): React.JSX.Element;

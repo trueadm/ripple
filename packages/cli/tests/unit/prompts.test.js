@@ -1,21 +1,32 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as prompts from 'prompts';
+import prompts from 'prompts';
 
 // Mock prompts module
 vi.mock('prompts', () => ({
-	default: vi.fn()
+	default: vi.fn(),
 }));
 
 // Mock kleur colors
 vi.mock('kleur/colors', () => ({
-	red: vi.fn((text) => text)
+	red: vi.fn((text) => text),
+}));
+
+// Mock templates
+vi.mock('../../src/lib/templates.js', () => ({
+	getTemplateChoices: vi.fn(() => [
+		{
+			title: 'Basic Ripple App',
+			description: 'A minimal Ripple application with Vite and TypeScript',
+			value: 'basic',
+		},
+	]),
 }));
 
 // Mock process.exit
 const mockExit = vi.fn();
 Object.defineProperty(process, 'exit', {
 	value: mockExit,
-	writable: true
+	writable: true,
 });
 
 // Mock console.log
@@ -28,8 +39,15 @@ import {
 	promptPackageManager,
 	promptTypeScript,
 	promptGitInit,
-	promptStylingFramework
+	promptStylingFramework,
 } from '../../src/lib/prompts.js';
+import * as templates from '../../src/lib/templates.js';
+
+const mockedPrompts = /** @type {import('vitest').MockedFunction<typeof prompts>} */ (prompts);
+const mockedGetTemplateChoices =
+	/** @type {import('vitest').MockedFunction<typeof templates.getTemplateChoices>} */ (
+		templates.getTemplateChoices
+	);
 
 describe('Prompts', () => {
 	beforeEach(() => {
@@ -42,32 +60,32 @@ describe('Prompts', () => {
 
 	describe('promptProjectName', () => {
 		it('should return project name when valid input provided', async () => {
-			prompts.default.mockResolvedValue({ projectName: 'my-app' });
+			mockedPrompts.mockResolvedValue({ projectName: 'my-app' });
 
 			const result = await promptProjectName();
 			expect(result).toBe('my-app');
-			expect(prompts.default).toHaveBeenCalledWith({
+			expect(mockedPrompts).toHaveBeenCalledWith({
 				type: 'text',
 				name: 'projectName',
 				message: 'What is your project named?',
 				initial: 'my-ripple-app',
-				validate: expect.any(Function)
+				validate: expect.any(Function),
 			});
 		});
 
 		it('should use custom default name', async () => {
-			prompts.default.mockResolvedValue({ projectName: 'custom-app' });
+			mockedPrompts.mockResolvedValue({ projectName: 'custom-app' });
 
 			await promptProjectName('custom-default');
-			expect(prompts.default).toHaveBeenCalledWith(
+			expect(mockedPrompts).toHaveBeenCalledWith(
 				expect.objectContaining({
-					initial: 'custom-default'
-				})
+					initial: 'custom-default',
+				}),
 			);
 		});
 
 		it('should exit when user cancels', async () => {
-			prompts.default.mockResolvedValue({});
+			mockedPrompts.mockResolvedValue({});
 
 			await promptProjectName();
 			expect(mockExit).toHaveBeenCalledWith(1);
@@ -75,36 +93,74 @@ describe('Prompts', () => {
 		});
 
 		it('should validate project name input', async () => {
-			prompts.default.mockResolvedValue({ projectName: 'valid-name' });
+			mockedPrompts.mockResolvedValue({ projectName: 'valid-name' });
 
 			await promptProjectName();
-			const call = prompts.default.mock.calls[0][0];
+			const call = /** @type {any} */ (mockedPrompts.mock.calls[0][0]);
 			const validate = call.validate;
 
 			expect(validate('valid-name')).toBe(true);
 			expect(validate('Invalid Name!')).toBe(
-				'Project name can only contain lowercase letters, numbers, hyphens, dots, and underscores'
+				'Project name can only contain lowercase letters, numbers, hyphens, dots, and underscores',
 			);
 		});
 	});
 
 	describe('promptTemplate', () => {
-		it('should return selected template', async () => {
-			prompts.default.mockResolvedValue({ template: 'basic' });
+		it('should return the template directly when only one is available', async () => {
+			mockedGetTemplateChoices.mockReturnValue([
+				{
+					title: 'Basic Ripple App',
+					description: 'A minimal Ripple application with Vite and TypeScript',
+					value: 'basic',
+				},
+			]);
 
 			const result = await promptTemplate();
 			expect(result).toBe('basic');
-			expect(prompts.default).toHaveBeenCalledWith({
+			expect(mockedPrompts).not.toHaveBeenCalled();
+		});
+
+		it('should prompt user when multiple templates are available', async () => {
+			mockedGetTemplateChoices.mockReturnValue([
+				{
+					title: 'Basic Ripple App',
+					description: 'A minimal Ripple application',
+					value: 'basic',
+				},
+				{
+					title: 'Advanced Ripple App',
+					description: 'An advanced Ripple application',
+					value: 'advanced',
+				},
+			]);
+			mockedPrompts.mockResolvedValue({ template: 'advanced' });
+
+			const result = await promptTemplate();
+			expect(result).toBe('advanced');
+			expect(mockedPrompts).toHaveBeenCalledWith({
 				type: 'select',
 				name: 'template',
 				message: 'Which template would you like to use?',
 				choices: expect.any(Array),
-				initial: 0
+				initial: 0,
 			});
 		});
 
-		it('should exit when user cancels', async () => {
-			prompts.default.mockResolvedValue({});
+		it('should exit when user cancels with multiple templates', async () => {
+			mockedGetTemplateChoices.mockReturnValue([
+				{
+					title: 'Basic Ripple App',
+					description: 'A minimal Ripple application',
+					value: 'basic',
+				},
+				{
+					title: 'Advanced Ripple App',
+					description: 'An advanced Ripple application',
+					value: 'advanced',
+				},
+			]);
+			mockedPrompts.mockResolvedValue({});
 
 			await promptTemplate();
 			expect(mockExit).toHaveBeenCalledWith(1);
@@ -114,25 +170,25 @@ describe('Prompts', () => {
 
 	describe('promptPackageManager', () => {
 		it('should return selected package manager', async () => {
-			prompts.default.mockResolvedValue({ packageManager: 'pnpm' });
+			mockedPrompts.mockResolvedValue({ packageManager: 'pnpm' });
 
 			const result = await promptPackageManager();
 			expect(result).toBe('pnpm');
-			expect(prompts.default).toHaveBeenCalledWith({
+			expect(mockedPrompts).toHaveBeenCalledWith({
 				type: 'select',
 				name: 'packageManager',
 				message: 'Which package manager would you like to use?',
 				choices: [
 					{ title: 'npm', value: 'npm', description: 'Use npm for dependency management' },
 					{ title: 'yarn', value: 'yarn', description: 'Use Yarn for dependency management' },
-					{ title: 'pnpm', value: 'pnpm', description: 'Use pnpm for dependency management' }
+					{ title: 'pnpm', value: 'pnpm', description: 'Use pnpm for dependency management' },
 				],
-				initial: 0
+				initial: 0,
 			});
 		});
 
 		it('should exit when user cancels', async () => {
-			prompts.default.mockResolvedValue({});
+			mockedPrompts.mockResolvedValue({});
 
 			await promptPackageManager();
 			expect(mockExit).toHaveBeenCalledWith(1);
@@ -141,20 +197,20 @@ describe('Prompts', () => {
 
 	describe('promptTypeScript', () => {
 		it('should return TypeScript preference', async () => {
-			prompts.default.mockResolvedValue({ typescript: false });
+			mockedPrompts.mockResolvedValue({ typescript: false });
 
 			const result = await promptTypeScript();
 			expect(result).toBe(false);
-			expect(prompts.default).toHaveBeenCalledWith({
+			expect(mockedPrompts).toHaveBeenCalledWith({
 				type: 'confirm',
 				name: 'typescript',
 				message: 'Would you like to use TypeScript?',
-				initial: true
+				initial: true,
 			});
 		});
 
 		it('should exit when user cancels', async () => {
-			prompts.default.mockResolvedValue({});
+			mockedPrompts.mockResolvedValue({});
 
 			await promptTypeScript();
 			expect(mockExit).toHaveBeenCalledWith(1);
@@ -163,19 +219,19 @@ describe('Prompts', () => {
 
 	describe('promptGitInit', () => {
 		it('should return Git initialization preference', async () => {
-			prompts.default.mockResolvedValue({ gitInit: true });
+			mockedPrompts.mockResolvedValue({ gitInit: true });
 			const result = await promptGitInit();
 			expect(result).toBe(true);
-			expect(prompts.default).toHaveBeenCalledWith({
+			expect(mockedPrompts).toHaveBeenCalledWith({
 				type: 'confirm',
 				name: 'gitInit',
 				message: 'Initialize a new Git repository?',
-				initial: true
+				initial: true,
 			});
 		});
 
 		it('should exit when user cancels', async () => {
-			prompts.default.mockResolvedValue({});
+			mockedPrompts.mockResolvedValue({});
 			await promptGitInit();
 			expect(mockExit).toHaveBeenCalledWith(1);
 		});
@@ -183,19 +239,19 @@ describe('Prompts', () => {
 
 	describe('promptGitInit', () => {
 		it('should return Git initialization preference as false', async () => {
-			prompts.default.mockResolvedValue({ gitInit: false });
+			mockedPrompts.mockResolvedValue({ gitInit: false });
 			const result = await promptGitInit();
 			expect(result).toBe(false);
-			expect(prompts.default).toHaveBeenCalledWith({
+			expect(mockedPrompts).toHaveBeenCalledWith({
 				type: 'confirm',
 				name: 'gitInit',
 				message: 'Initialize a new Git repository?',
-				initial: true
+				initial: true,
 			});
 		});
 
 		it('should exit when user cancels', async () => {
-			prompts.default.mockResolvedValue({});
+			mockedPrompts.mockResolvedValue({});
 			await promptGitInit();
 			expect(mockExit).toHaveBeenCalledWith(1);
 		});
@@ -203,32 +259,36 @@ describe('Prompts', () => {
 
 	describe('promptStylingFramework', () => {
 		it('should return selected styling framework', async () => {
-			prompts.default.mockResolvedValue({ stylingFramework: 'tailwind' });
+			mockedPrompts.mockResolvedValue({ stylingFramework: 'tailwind' });
 
 			const result = await promptStylingFramework();
 			expect(result).toBe('tailwind');
-			expect(prompts.default).toHaveBeenCalledWith({
+			expect(mockedPrompts).toHaveBeenCalledWith({
 				type: 'select',
 				name: 'stylingFramework',
 				message: 'Which styling framework would you like to integrate with Ripple?',
-				choices: [{
-					title: 'Vanilla CSS',
-					value: 'vanilla',
-					description: 'Use Vanilla CSS for styling your components'
-				}, {
-					title: 'Bootstrap',
-					value: 'bootstrap',
-					description: 'Use Bootstrap classes to style your components'
-				}, {
-					title: 'TailwindCSS',
-					value: 'tailwind',
-					description: 'Use TailwindCSS to style your components'
-				}]
+				choices: [
+					{
+						title: 'Vanilla CSS',
+						value: 'vanilla',
+						description: 'Use Vanilla CSS for styling your components',
+					},
+					{
+						title: 'Bootstrap',
+						value: 'bootstrap',
+						description: 'Use Bootstrap classes to style your components',
+					},
+					{
+						title: 'TailwindCSS',
+						value: 'tailwind',
+						description: 'Use TailwindCSS to style your components',
+					},
+				],
 			});
 		});
 
 		it('should return undefined when user cancels', async () => {
-			prompts.default.mockResolvedValue({ stylingFramework: undefined });
+			mockedPrompts.mockResolvedValue({ stylingFramework: undefined });
 			const result = await promptStylingFramework();
 			expect(result).toBeUndefined();
 		});

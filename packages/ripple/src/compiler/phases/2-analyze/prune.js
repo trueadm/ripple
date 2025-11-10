@@ -1,4 +1,5 @@
 import { walk } from 'zimmerframe';
+import { is_element_dom_element } from '../../utils.js';
 
 const seen = new Set();
 const regex_backslash_and_following_character = /\\(.)/g;
@@ -216,6 +217,41 @@ function get_descendant_elements(node, adjacent_only) {
 	return descendants;
 }
 
+/**
+ * Check if an element can render dynamic content that might affect CSS matching
+ * @param {any} element
+ * @param {boolean} check_classes - Whether to check for dynamic class attributes
+ * @returns {boolean}
+ */
+function can_render_dynamic_content(element, check_classes = false) {
+	if (!is_element_dom_element(element)) {
+		return true;
+	}
+
+	// Either a dynamic element or component (only can tell at runtime)
+	// But dynamic elements should return false ideally
+	if (element.id?.tracked) {
+		return true;
+	}
+
+	// Check for dynamic class attributes if requested (for class-based selectors)
+	if (check_classes && element.attributes) {
+		for (const attr of element.attributes) {
+			if (attr.type === 'Attribute' && attr.name?.name === 'class') {
+				// Check if class value is an expression (not a static string)
+				if (attr.value && typeof attr.value === 'object') {
+					// If it's a CallExpression or other dynamic value, it's dynamic
+					if (attr.value.type !== 'Literal' && attr.value.type !== 'Text') {
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 function get_possible_element_siblings(node, direction, adjacent_only) {
 	const siblings = new Map();
 	const parent = get_element_parent(node);
@@ -248,7 +284,12 @@ function get_possible_element_siblings(node, direction, adjacent_only) {
 
 		if (sibling.type === 'Element' || sibling.type === 'Component') {
 			siblings.set(sibling, true);
-			if (adjacent_only) break; // Only immediate sibling for '+' combinator
+			// Don't break for dynamic elements (children, Components, dynamic components)
+			// as they can render dynamic content or might render nothing
+			const isDynamic = can_render_dynamic_content(sibling, false);
+			if (adjacent_only && !isDynamic) {
+				break; // Only immediate sibling for '+' combinator
+			}
 		}
 		// Stop at non-whitespace text nodes for adjacent selectors
 		else if (adjacent_only && sibling.type === 'Text' && sibling.value?.trim()) {
@@ -295,11 +336,64 @@ function apply_combinator(relative_selector, rest_selectors, rule, node, directi
 			let sibling_matched = false;
 
 			for (const possible_sibling of siblings.keys()) {
-				if (possible_sibling.type === 'Component') {
-					if (rest_selectors.length === 1 && rest_selectors[0].metadata.is_global) {
+				// Check if this sibling can render dynamic content
+				// For class selectors, also check if element has dynamic classes
+				const has_class_selector = rest_selectors.some((sel) =>
+					sel.selectors?.some((s) => s.type === 'ClassSelector'),
+				);
+				const is_dynamic = can_render_dynamic_content(possible_sibling, has_class_selector);
+
+				if (is_dynamic) {
+					if (rest_selectors.length > 0) {
+						// Check if the first selector in the rest is global
+						const first_rest_selector = rest_selectors[0];
+						if (is_global(first_rest_selector, rule)) {
+							// Global selector followed by possibly more selectors
+							// Check if remaining selectors could match elements after this component
+							const remaining = rest_selectors.slice(1);
+							if (remaining.length === 0) {
+								// Just a global selector, mark as matched
+								sibling_matched = true;
+							} else {
+								// Check if there are any elements after this component that could match the remaining selectors
+								const parent = get_element_parent(node);
+								if (parent) {
+									const container = parent.children || parent.body || [];
+									const component_index = container.indexOf(possible_sibling);
+
+									// For adjacent combinator, only check immediate next element
+									// For general sibling, check all following elements
+									const search_start = component_index + 1;
+									const search_end = combinator.name === '+' ? search_start + 1 : container.length;
+
+									for (let i = search_start; i < search_end; i++) {
+										const subsequent = container[i];
+										if (subsequent.type === 'Element') {
+											if (apply_selector(remaining, rule, subsequent, direction)) {
+												sibling_matched = true;
+												break;
+											}
+											if (combinator.name === '+') break; // For adjacent, only check first element
+										} else if (subsequent.type === 'Component') {
+											// Skip components when looking for the target element
+											if (combinator.name === '+') {
+												// For adjacent, continue looking
+												continue;
+											}
+										}
+									}
+								}
+							}
+						}
+					} else if (rest_selectors.length === 1 && rest_selectors[0].metadata.is_global) {
+						// Single global selector always matches
 						sibling_matched = true;
 					}
-				} else if (apply_selector(rest_selectors, rule, possible_sibling, direction)) {
+					// Don't apply_selector for dynamic elements - they won't match regular element selectors
+				} else if (
+					possible_sibling.type === 'Element' &&
+					apply_selector(rest_selectors, rule, possible_sibling, direction)
+				) {
 					sibling_matched = true;
 				}
 			}
@@ -338,19 +432,67 @@ function get_element_parent(node) {
 	return null;
 }
 
+/**
+ * `true` if is a pseudo class that cannot be or is not scoped
+ * @param {Compiler.AST.CSS.SimpleSelector} selector
+ */
+function is_unscoped_pseudo_class(selector) {
+	return (
+		selector.type === 'PseudoClassSelector' &&
+		// These make the selector scoped
+		((selector.name !== 'has' &&
+			selector.name !== 'is' &&
+			selector.name !== 'where' &&
+			// :not is special because we want to scope as specific as possible, but because :not
+			// inverses the result, we want to leave the unscoped, too. The exception is more than
+			// one selector in the :not (.e.g :not(.x .y)), then .x and .y should be scoped
+			(selector.name !== 'not' ||
+				selector.args === null ||
+				selector.args.children.every((c) => c.children.length === 1))) ||
+			// selectors with has/is/where/not can also be global if all their children are global
+			selector.args === null ||
+			selector.args.children.every((c) => c.children.every((r) => is_global_simple(r))))
+	);
+}
+
+/**
+ * True if is `:global(...)` or `:global` and no pseudo class that is scoped.
+ * @param {Compiler.AST.CSS.RelativeSelector} relative_selector
+ */
+function is_global_simple(relative_selector) {
+	const first = relative_selector.selectors[0];
+
+	return (
+		first.type === 'PseudoClassSelector' &&
+		first.name === 'global' &&
+		(first.args === null ||
+			// Only these two selector types keep the whole selector global, because e.g.
+			// :global(button).x means that the selector is still scoped because of the .x
+			relative_selector.selectors.every(
+				(selector) =>
+					is_unscoped_pseudo_class(selector) || selector.type === 'PseudoElementSelector',
+			))
+	);
+}
+
 function is_global(selector, rule) {
 	if (selector.metadata.is_global || selector.metadata.is_global_like) {
 		return true;
 	}
 
+	let explicitly_global = false;
+
 	for (const s of selector.selectors) {
 		/** @type {Compiler.AST.CSS.SelectorList | null} */
 		let selector_list = null;
+		let can_be_global = false;
 		let owner = rule;
 
 		if (s.type === 'PseudoClassSelector') {
 			if ((s.name === 'is' || s.name === 'where') && s.args) {
 				selector_list = s.args;
+			} else {
+				can_be_global = is_unscoped_pseudo_class(s);
 			}
 		}
 
@@ -359,18 +501,19 @@ function is_global(selector, rule) {
 			selector_list = owner.prelude;
 		}
 
-		const has_global_selectors = selector_list?.children.some((complex_selector) => {
+		const has_global_selectors = !!selector_list?.children.some((complex_selector) => {
 			return complex_selector.children.every((relative_selector) =>
 				is_global(relative_selector, owner),
 			);
 		});
+		explicitly_global ||= has_global_selectors;
 
-		if (!has_global_selectors) {
+		if (!has_global_selectors && !can_be_global) {
 			return false;
 		}
 	}
 
-	return true;
+	return explicitly_global || selector.selectors.length === 0;
 }
 
 function is_text_attribute(attribute) {
@@ -425,6 +568,7 @@ function is_outer_global(relative_selector) {
 	const first = relative_selector.selectors[0];
 
 	return (
+		first &&
 		first.type === 'PseudoClassSelector' &&
 		first.name === 'global' &&
 		(first.args === null ||
@@ -710,7 +854,7 @@ export function prune_css(css, element) {
 				context.next();
 			}
 		},
-		ComplexSelector(node) {
+		ComplexSelector(node, context) {
 			const selectors = get_relative_selectors(node);
 
 			seen.clear();
@@ -726,9 +870,19 @@ export function prune_css(css, element) {
 				node.metadata.used = true;
 			}
 
-			// note: we don't call context.next() here, we only recurse into
-			// selectors that don't belong to rules (i.e. inside `:is(...)` etc)
-			// when we encounter them below
+			context.next();
+		},
+		PseudoClassSelector(node, context) {
+			// Visit nested selectors inside :has(), :is(), :where(), and :not()
+			if (
+				(node.name === 'has' ||
+					node.name === 'is' ||
+					node.name === 'where' ||
+					node.name === 'not') &&
+				node.args
+			) {
+				context.next();
+			}
 		},
 	});
 }

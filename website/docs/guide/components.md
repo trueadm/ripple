@@ -21,8 +21,8 @@ within `effect()` to ensure they only run when intended.
 
 ## Children
 
-To pass elements to be nested within a component, simply nest it as you would when
-writing HTML. By default, Ripple will make the content available as the
+To pass elements to be nested within a component, simply nest them as you would
+write HTML. By default, Ripple will make the content available as the
 `children` prop, which you can then render using `<props.children />` (or simply
 `<children />` if you destructured your props).
 

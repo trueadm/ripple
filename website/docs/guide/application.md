@@ -47,4 +47,4 @@ attach the application to the DOM.
 
 `mount()` expects a component, and an options object. Inside the options object,
 we'll use `document.getElementById()` to acquire a reference to the DOM element
-we want the app to be attached to as the `target` property.
+we want the app to be attached to the `target` property.

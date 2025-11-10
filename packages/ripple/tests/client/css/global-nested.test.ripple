@@ -1,0 +1,150 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global nested blocks', () => {
+	it('handles nested global blocks', () => {
+		const source = `
+export component Test() {
+	<div>
+		<p>{'content'}</p>
+	</div>
+
+	<style>
+		div {
+			:global {
+				.x {
+					color: green;
+				}
+			}
+
+			:global(.x) {
+				color: green;
+			}
+
+			p :global {
+				.y {
+					color: green;
+				}
+			}
+
+			p :global(.y) {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+		expect(css).toContain('.x {');
+		expect(css).toContain('.y {');
+		expect(css).not.toMatch(/\.x\.ripple-[a-z0-9]+/);
+		expect(css).not.toMatch(/\.y\.ripple-[a-z0-9]+/);
+		expect(css).toMatch(/p\.ripple-[a-z0-9]+ \.y {/);
+	});
+
+	it('handles :global with nesting selector', () => {
+		const source = `
+export component Test() {
+	<div class="x">{'content'}</div>
+
+	<style>
+		div {
+			:global {
+				&.x {
+					color: green;
+				}
+			}
+		}
+
+		div :global {
+			&.x {
+				color: green;
+			}
+		}
+
+		div :global.x {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('&.x {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+\.x {/);
+	});
+
+	it('handles global block with de-nested syntax', () => {
+		const source = `
+export component Test() {
+	<div><p>{'content'}</p></div>
+
+	<style>
+		:global div {
+			.y {
+				color: green;
+			}
+		}
+
+		div :global p {
+			.y {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div {');
+		expect(css).toContain('.y {');
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ p {/);
+	});
+
+	it('handles global local nested combinations', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		div {
+			:global(.whatever) {
+				color: green;
+			}
+		}
+
+		:global(.whatever) {
+			div {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('.whatever {');
+		expect(css).not.toMatch(/\.whatever\.ripple-[a-z0-9]+ {/);
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+	});
+
+	it('handles :global with :is and :where pseudoclasses', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'content'}</span>
+	</div>
+
+	<style>
+		div :global(:is(span)) {
+			color: green;
+		}
+
+		:global(.foo) :is(div) {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ :is\(span\) {/);
+		expect(css).toMatch(/\.foo :is\(div\.ripple-[a-z0-9]+\) {/);
+	});
+});

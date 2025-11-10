@@ -35,6 +35,7 @@ const EDITOR_PACKAGE_DIRS = new Set([
 	VSCODE_PACKAGE_DIR_NAME,
 	ZED_PACKAGE_DIR_NAME,
 ]);
+const EXCLUDE_PACKAGE_DIRS_FROM_PUBLISH = new Set(['tree-sitter']);
 const bumpArg = process.argv[2] ?? '';
 const maybeScope = process.argv[3] ?? null;
 /** @type {ScopeType} */
@@ -510,9 +511,14 @@ function runEditorsScopePreCheck(packages) {
 					console.log(`Skipping publish for editor plugin package '${pkg.dirName}'.`);
 					continue;
 				}
+				if (EXCLUDE_PACKAGE_DIRS_FROM_PUBLISH.has(pkg.dirName)) {
+					console.log(`Skipping publish for excluded package '${pkg.dirName}'.`);
+					continue;
+				}
 				if (!publishStarted) {
 					publishStarted = true;
 				}
+
 				publishPackage(pkg, newVersion);
 			}
 			publishCompleted = true;

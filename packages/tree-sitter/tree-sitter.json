@@ -6,9 +6,7 @@
       "camelcase": "Ripple",
       "title": "Ripple",
       "scope": "source.ripple",
-      "file-types": [
-        "ripple"
-      ],
+      "file-types": ["ripple"],
       "injection-regex": "^ripple$",
       "class-name": "TreeSitterRipple"
     }
@@ -23,7 +21,7 @@
       }
     ],
     "links": {
-      "repository": "https://github.com/trueadm/ripple/packages/tree-sitter-ripple"
+      "repository": "https://github.com/trueadm/ripple/packages/tree-sitter"
     }
   },
   "bindings": {

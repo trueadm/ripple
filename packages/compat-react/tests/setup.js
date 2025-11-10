@@ -1,6 +1,13 @@
-import { beforeEach, afterEach } from 'vitest';
+import { beforeEach, afterEach, vi } from 'vitest';
 import { mount } from 'ripple';
 import { createReactCompat } from '../src/index.js';
+
+// Configure React testing environment for act() support
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+// Suppress React error/warning logs during tests
+vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, 'warn').mockImplementation(() => {});
 
 /**
  * @param {() => void} component

@@ -1,4 +1,4 @@
-/** @import { Block, Derived, CompatOptions } from '#client' */
+/** @import { Block, Derived, CompatOptions, Component } from '#client' */
 
 import {
 	BLOCK_HAS_RUN,
@@ -19,6 +19,7 @@ import {
 	active_block,
 	active_component,
 	active_reaction,
+	create_component_ctx,
 	is_block_dirty,
 	run_block,
 	run_teardown,
@@ -151,7 +152,7 @@ export function root(fn, compat) {
 		};
 	}
 
-	return block(ROOT_BLOCK, fn, { compat });
+	return block(ROOT_BLOCK, target_fn, { compat }, create_component_ctx());
 }
 
 /**
@@ -181,13 +182,14 @@ function push_block(block, parent_block) {
 /**
  * @param {number} flags
  * @param {Function} fn
- * @param {any} state
+ * @param {any} [state]
+ * @param {Component} [co]
  * @returns {Block}
  */
-export function block(flags, fn, state = null) {
+export function block(flags, fn, state = null, co) {
 	/** @type {Block} */
 	var block = {
-		co: active_component,
+		co: co || active_component,
 		d: null,
 		first: null,
 		f: flags,

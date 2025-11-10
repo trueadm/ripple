@@ -1,0 +1,702 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global additional use cases', () => {
+	it('handles :global as modifier with dot notation', () => {
+		const source = `
+export component Test() {
+	<div class="x">{'content'}</div>
+
+	<style>
+		div :global.x {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+\.x {/);
+	});
+
+	it('handles :global modifier in nested syntax', () => {
+		const source = `
+export component Test() {
+	<div class="x">{'content'}</div>
+
+	<style>
+		div {
+			:global.x {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('&.x {');
+	});
+
+	it('handles :global with & nesting selector inside block', () => {
+		const source = `
+export component Test() {
+	<div class="x">{'content'}</div>
+
+	<style>
+		div {
+			& :global.x {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('&.x {');
+	});
+
+	it('handles :global with :is pseudo-class modifier', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		div :global:is(html.dark-mode *) {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+:is\(html\.dark-mode \*\) {/);
+	});
+
+	it('handles :global with & inside :global block', () => {
+		const source = `
+export component Test() {
+	<div class="class">{'content'}</div>
+
+	<style>
+		div {
+			&:global(.class) {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+		expect(css).toContain('&.class {');
+	});
+
+	it('handles :global(*) with & and descendant', () => {
+		const source = `
+export component Test() {
+	<div class="class">{'content'}</div>
+
+	<style>
+		:global(*) {
+			&:hover .class {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('* {');
+		expect(css).toMatch(/&:hover \.class\.ripple-[a-z0-9]+ {/);
+	});
+
+	it('handles multiple :global selectors in list', () => {
+		const source = `
+export component Test() {
+	<x>{'content'}</x>
+	<y>{'content'}</y>
+
+	<style>
+		:global x, :global y {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain(' x,  y {');
+	});
+
+	it('handles :global block with nested selector list', () => {
+		const source = `
+export component Test() {
+	<div>
+		<y>{'content'}</y>
+	</div>
+
+	<style>
+		div :global, div :global y, unused :global {
+			z {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+/);
+		expect(css).toContain('z {');
+	});
+
+	it('handles keyframes inside :global block', () => {
+		const source = `
+export component Test() {
+	<div class="x">{'animated'}</div>
+
+	<style>
+		:global {
+			.x {
+				animation: test 1s;
+			}
+
+			.y {
+				animation: test-in 1s;
+			}
+
+			@keyframes test-in {
+				to {
+					opacity: 1;
+				}
+			}
+		}
+
+		@keyframes test {
+			to {
+				opacity: 1;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@keyframes test-in {');
+		expect(css).toContain('.x {');
+		expect(css).toContain('.y {');
+		expect(css).toMatch(/@keyframes ripple-[a-z0-9]+-test/);
+		expect(css).not.toMatch(/\.x\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles global keyframes with no component elements', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		@keyframes -global-orphan {
+			0% { color: red; }
+			100% { color: blue; }
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@keyframes orphan');
+		expect(css).not.toContain('-global-orphan');
+	});
+
+	it('handles :global with class modifier syntax', () => {
+		const source = `
+export component Test() {
+	<div class="blue">{'might be programmatically added'}</div>
+	<span class="x blue">{'span content'}</span>
+
+	<style>
+		div:global(.blue) {
+			color: blue;
+		}
+		span:global(.blue).x {
+			color: blue;
+		}
+		span.x:global(.bg) {
+			background: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+\.blue {/);
+		expect(css).toMatch(/span\.blue\.x\.ripple-[a-z0-9]+ {/);
+		expect(css).toMatch(/span\.x\.ripple-[a-z0-9]+\.bg {/);
+	});
+
+	it('handles multiple :global() in descendant sequence', () => {
+		const source = `
+export component Test() {
+	<p>{'this may or may not be styled'}</p>
+
+	<style>
+		:global(div) > :global(section) > p {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div > section > p');
+		expect(css).toMatch(/p\.ripple-[a-z0-9]+ {/);
+	});
+
+	it('handles :is with :global and html context', () => {
+		const source = `
+export component Test() {
+	<x>
+		<y>
+			<z>{'content'}</z>
+		</y>
+	</x>
+
+	<style>
+		x :is(:global(html *)) {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/x\.ripple-[a-z0-9]+ :is\(html \*\) {/);
+	});
+
+	it('handles :global block with :has inside', () => {
+		const source = `
+export component Test() {
+	<div>
+		<x>{'content'}</x>
+	</div>
+
+	<style>
+		:global(.foo) {
+			:has(x) {
+				color: green;
+			}
+			&:has(x) {
+				color: green;
+			}
+		}
+
+		:global(.foo):has(x) {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('.foo {');
+		expect(css).toMatch(/\.ripple-[a-z0-9]+:has\(x:where\(\.ripple-[a-z0-9]+\)\) {/);
+		expect(css).toMatch(/&:has\(x\.ripple-[a-z0-9]+\) {/);
+		expect(css).toMatch(/.foo:has\(x\.ripple-[a-z0-9]+\) {/);
+	});
+
+	it('handles :not with :global in complex nesting', () => {
+		const source = `
+export component Test() {
+	<p class="foo">{'foo'}</p>
+	<p class="bar">
+		{'bar'}
+		<span>{'baz'}</span>
+	</p>
+	<span>{'buzz'}</span>
+
+	<style>
+		:not(:global(.foo)) {
+			color: green;
+		}
+		:not(.foo):not(:global(.unused)) {
+			color: green;
+		}
+		:global(.x):not(.foo) {
+			color: green;
+		}
+		:global(.x) :not(p) {
+			color: green;
+		}
+		:global(.x):not(p) {
+			color: green;
+		}
+
+		:global(span):not(p span) {
+			color: green;
+		}
+		span:not(:global(p span)) {
+			color: green;
+		}
+		:global(span:not(p span)) {
+			color: green;
+		}
+
+		:global(.x) {
+			:not(.foo) {
+				color: green;
+			}
+			&:not(.foo) {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain(':not(.foo)');
+		expect(css).toContain('span');
+	});
+
+	it('handles sibling combinators with children and :global before scoped elements', () => {
+		const source = `
+export component Test({ children }) {
+	<div>
+		<p class="before">{'before'}</p>
+
+		<children />
+
+		<p class="foo">
+			<span>{'foo'}</span>
+		</p>
+		<p class="bar">{'bar'}</p>
+	</div>
+
+	<style>
+		.before + .foo { color: green; }
+		.before ~ .foo { color: green; }
+		.before ~ .bar { color: green; }
+
+		:global(.x) + .foo { color: green; }
+		:global(.x) + .foo span { color: green; }
+		:global(.x) ~ .foo { color: green; }
+		:global(.x) ~ .foo span { color: green; }
+		:global(.x) ~ .bar { color: green; }
+
+		/* should be unused as this is not a possibility */
+		:global(.x) + .bar { color: green; }
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/\.before\.ripple-[a-z0-9]+ \+ \.foo:where\(\.ripple-[a-z0-9]+\) {/);
+		expect((css.match(/\.x\ /g) || []).length).toBe(5);
+		expect((css.match(/\(unused\) :global\(\.x\) /g) || []).length).toBe(1);
+		expect(css).toContain('(unused) :global(.x) + .bar {');
+	});
+
+	it('handles sibling combinators with component and :global before scoped elements', () => {
+		const source = `
+export component Test({ children }) {
+	<div>
+		<p class="before">{'before'}</p>
+
+		<Child1 />
+
+		<p class="foo">
+			<span>{'foo'}</span>
+		</p>
+		<p class="bar">{'bar'}</p>
+	</div>
+
+	<style>
+		.before + .foo { color: green; }
+		.before ~ .foo { color: green; }
+		.before ~ .bar { color: green; }
+
+		:global(.x) + .foo { color: green; }
+		:global(.x) + .foo span { color: green; }
+		:global(.x) ~ .foo { color: green; }
+		:global(.x) ~ .foo span { color: green; }
+		:global(.x) ~ .bar { color: green; }
+
+		/* should be unused as this is not a possibility */
+		:global(.x) + .bar { color: green; }
+	</style>
+}
+
+component Child1() {
+	<div>{'child1'}</div>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/\.before\.ripple-[a-z0-9]+ \+ \.foo:where\(\.ripple-[a-z0-9]+\) {/);
+		expect((css.match(/\.x\ /g) || []).length).toBe(5);
+		expect((css.match(/\(unused\) :global\(\.x\) /g) || []).length).toBe(1);
+		expect(css).toContain('(unused) :global(.x) + .bar {');
+	});
+
+	it(
+		'handles sibling combinators with dynamic component and :global before scoped elements',
+		() => {
+			const source = `
+import { track } from 'ripple';
+export component Test({ children }) {
+	const DynamicComponent = track(() => Child1);
+	<div>
+		<p class="before">{'before'}</p>
+
+		<@DynamicComponent />
+
+		<p class="foo">
+			<span>{'foo'}</span>
+		</p>
+		<p class="bar">{'bar'}</p>
+	</div>
+
+	<style>
+		.before + .foo { color: green; }
+		.before ~ .foo { color: green; }
+		.before ~ .bar { color: green; }
+
+		:global(.x) + .foo { color: green; }
+		:global(.x) + .foo span { color: green; }
+		:global(.x) ~ .foo { color: green; }
+		:global(.x) ~ .foo span { color: green; }
+		:global(.x) ~ .bar { color: green; }
+
+		/* should be unused as this is not a possibility */
+		:global(.x) + .bar { color: green; }
+	</style>
+}
+
+component Child1() {
+	<div>{'child1'}</div>
+}`;
+			const { css } = compile(source, 'test.ripple');
+
+			expect(css).toMatch(/\.before\.ripple-[a-z0-9]+ \+ \.foo:where\(\.ripple-[a-z0-9]+\) {/);
+			expect((css.match(/\.x\ /g) || []).length).toBe(5);
+			expect((css.match(/\(unused\) :global\(\.x\) /g) || []).length).toBe(1);
+			expect(css).toContain('(unused) :global(.x) + .bar {');
+		},
+	);
+
+	it(
+		'handles sibling combinators with dynamic element or regular element and :global before scoped elements',
+		() => {
+			const source = `
+import { track } from 'ripple';
+export component Test({ children, classes }) {
+	const dynamicElement = track('div');
+	<div>
+		<p class="before">{'before'}</p>
+		// Use Dynamic Element but it's the same with a regular one
+		<@dynamicElement class={classes} />
+
+		<p class="foo">
+			<span>{'foo'}</span>
+		</p>
+		<p class="bar">{'bar'}</p>
+	</div>
+
+	<style>
+		.before + .foo { color: green; }
+		.before ~ .foo { color: green; }
+		.before ~ .bar { color: green; }
+
+		:global(.x) + .foo { color: green; }
+		:global(.x) + .foo span { color: green; }
+		:global(.x) ~ .foo { color: green; }
+		:global(.x) ~ .foo span { color: green; }
+		:global(.x) ~ .bar { color: green; }
+
+		/* should be unused as this is not a possibility */
+		:global(.x) + .bar { color: green; }
+	</style>
+}`;
+
+			const { css } = compile(source, 'test.ripple');
+
+			expect(css).toMatch(/\.before\.ripple-[a-z0-9]+ \+ \.foo:where\(\.ripple-[a-z0-9]+\) {/);
+			expect((css.match(/\.x\ /g) || []).length).toBe(5);
+			expect((css.match(/\(unused\) :global\(\.x\) /g) || []).length).toBe(1);
+			expect(css).toContain('(unused) :global(.x) + .bar {');
+		},
+	);
+
+	it('handles :global with multiple global descendants', () => {
+		const source = `
+export component Test() {
+	<div class="root">
+		<section class="whatever">
+			<p>{'hello'}</p>
+		</section>
+	</div>
+
+	<style>
+		:global(html) :global(body) .root p {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/html body \.root\.ripple-[a-z0-9]+ p:where\(\.ripple-[a-z0-9]+\) {/);
+	});
+
+	it('handles nested @media with :global blocks', () => {
+		const source = `
+export component Test() {
+	<div>{'content'}</div>
+
+	<style>
+		div {
+			color: black;
+
+			@media (min-width: 768px) {
+				:global {
+					.foo {
+						color: red;
+					}
+				}
+
+				color: blue;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@media (min-width: 768px) {');
+		expect(css).toContain('.foo {');
+		expect(css).not.toMatch(/\.foo\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles :has with complex combinators', () => {
+		const source = `
+export component Test() {
+	<g>
+		<h>
+			<i>{'content'}</i>
+		</h>
+		<j>
+			<k>{'content'}</k>
+		</j>
+	</g>
+
+	<style>
+		g:has(> h > i) {
+			color: green;
+		}
+		h:has(> h > i) {
+			color: red;
+		}
+		g:has(+ j > k) {
+			color: green;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(
+			/g\.ripple-[a-z0-9]+:has\(> h:where\(\.ripple-[a-z0-9]+\) > i:where\(\.ripple-[a-z0-9]+\)\)/,
+		);
+		expect(css).toContain('(unused) h:has(> h > i)');
+	});
+
+	it('handles :global with attribute selectors containing special characters', () => {
+		const source = `
+export component Test() {
+	<div>
+		<h1 data-title="Hello, world!">{'hello world'}</h1>
+	</div>
+
+	<style>
+		div :global(h1[data-title="Hello, world!"]) {
+			color: red;
+		}
+		div :global(h1[attribute], video[autoplay]) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ h1\[data-title="Hello, world!"\]/);
+		expect(css).toContain('h1[attribute], video[autoplay]');
+	});
+
+	it('handles escaped commas in :global class names', () => {
+		const source = `
+export component Test() {
+	<div>
+		<h1 class="h1,h2,h3">{'hello world'}</h1>
+	</div>
+
+	<style>
+		div :global(.h1\\,h2\\,h3) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ \.h1\\,h2\\,h3 {/);
+	});
+
+	/**
+ * :global WITH :is/:where CONTAINING MULTIPLE SELECTORS
+ */
+	it('handles :global with :is containing multiple selectors', () => {
+		const source = `
+export component Test() {
+	<div>
+		<h1>{'hello world'}</h1>
+		<h2>{'subtitle'}</h2>
+	</div>
+
+	<style>
+		div :global(:is(h1, h2)) {
+			color: red;
+		}
+		div :global(:where(h1, h2)) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ :is\(h1, h2\)/);
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ :where\(h1, h2\)/);
+	});
+
+	it('handles :global with :is containing compound selectors', () => {
+		const source = `
+export component Test() {
+	<div>
+		<h1>{'hello world'}</h1>
+		<h2>{'subtitle'}</h2>
+		<h3>{'sub-subtitle'}</h3>
+	</div>
+
+	<style>
+		div :global(h1 ~ :is(h2, h3)) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ h1 ~ :is\(h2, h3\)/);
+	});
+
+	it('handles :global with pseudo-elements', () => {
+		const source = `
+export component Test() {
+	<div>
+		<h1 class="foo">{'hello world'}</h1>
+	</div>
+
+	<style>
+		.foo :global(.bar)::after {
+			color: red;
+		}
+		.foo :global(.bar)::after .baz {
+			color: red;
+		}
+	</style>
+}`;
+		expect(() => compile(source, 'test.ripple')).toThrow(
+			':global(...) can be at the start or end of a selector sequence, but not in the middle',
+		);
+	});
+});

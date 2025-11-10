@@ -29,6 +29,8 @@ website/.vitepress/cache/
 
 # VS Code settings
 .vscode/
+!.vscode/settings.json
+!.vscode/launch.json
 
 # Chrome Debugger
 .chrome-debug-profile/

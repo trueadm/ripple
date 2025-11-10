@@ -1,0 +1,124 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global with combinators', () => {
+	it('handles :global with child combinator', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'content'}</span>
+	</div>
+
+	<style>
+		div > :global(span) {
+			color: red;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ > span {/);
+		expect(css).not.toMatch(/span\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles :global with adjacent sibling combinator', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'one'}</span>
+		<span>{'two'}</span>
+	</div>
+
+	<style>
+		span + :global(span) {
+			color: red;
+		}
+
+		:global(div) + span {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/span\.ripple-[a-z0-9]+ \+ span {/);
+		expect(css).toContain('(unused) :global(div) + span {');
+	});
+
+	it('handles :global with general sibling combinator', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'one'}</span>
+		<span>{'two'}</span>
+	</div>
+
+	<style>
+		span ~ :global(span) {
+			color: red;
+		}
+
+		:global(div) ~ span {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('~');
+
+		expect(css).toMatch(/span\.ripple-[a-z0-9]+ ~ span {/);
+		expect(css).toMatch('(unused) :global(div) ~ span {');
+	});
+
+	it('handles complex combinator chains with :global', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>
+			<button>{'nested button'}</button>
+		</span>
+		<button>{'sibling button'}</button>
+	</div>
+
+	<style>
+		div > :global(span > button) {
+			color: red;
+		}
+
+		:global(div) > span + button {
+			color: blue;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ > span > button {/);
+		expect(css).toMatch(/div > span\.ripple-[a-z0-9]+ \+ button:where\(\.ripple-[a-z0-9]+\) {/);
+	});
+
+	it('handles :global with descendant combinator', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>
+			<button>{'click'}</button>
+		</span>
+	</div>
+
+	<style>
+		div :global(span button) {
+			color: red;
+		}
+
+		:global(div) span button {
+			color: blue;
+		}
+	</style>
+}`;
+
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ span button {/);
+		expect(css).toMatch(/div span\.ripple-[a-z0-9]+ button:where\(\.ripple-[a-z0-9]+\) {/);
+	});
+});

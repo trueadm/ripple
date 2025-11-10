@@ -1,0 +1,221 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global with complex nesting', () => {
+	it('handles :global block with nested selectors', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>
+			<button>{'click'}</button>
+		</span>
+	</div>
+
+	<style>
+		:global {
+			div {
+				span {
+					color: red;
+
+					button {
+						color: blue;
+					}
+				}
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).not.toMatch(/div\.ripple-[a-z0-9]+ {/);
+		expect(css).not.toMatch(/span\.ripple-[a-z0-9]+ {/);
+		expect(css).not.toMatch(/button\.ripple-[a-z0-9]+ {/);
+	});
+
+	it('handles local block with :global nested inside', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>{'content'}</span>
+	</div>
+
+	<style>
+		div {
+			color: red;
+
+			:global(span) {
+				color: blue;
+			}
+
+			p {
+				color: green;
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+		expect(css).not.toMatch(/span\.ripple-[a-z0-9]+ {/);
+		expect(css).toContain('(unused) p {');
+	});
+
+	it('handles :global block with local nested inside', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>
+			<button>{'click'}</button>
+		</span>
+	</div>
+
+	<style>
+		:global {
+			div {
+				.local {
+					color: red;
+				}
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('div {');
+		expect(css).toContain('.local {');
+		expect(css).not.toMatch(/div\.ripple-[a-z0-9]+ {/);
+		expect(css).not.toMatch(/\.local\.ripple-[a-z0-9]+ {/);
+	});
+
+	it('handles alternating :global and local nesting', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>
+			<button>
+				<em>{'text'}</em>
+			</button>
+		</span>
+	</div>
+
+	<style>
+		div {
+			:global(span) {
+				button {
+					:global(em) {
+						color: red;
+					}
+				}
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+		expect(css).toMatch(/button\.ripple-[a-z0-9]+ {/);
+		expect(css).toContain('span {');
+		expect(css).toContain('em {');
+	});
+
+	it('handles deeply nested :global blocks', () => {
+		const source = `
+export component Test() {
+	<div>
+		<span>
+			<button>{'click'}</button>
+		</span>
+	</div>
+
+	<style>
+		div {
+			:global {
+				span {
+					:global {
+						button {
+							color: red;
+						}
+					}
+				}
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+		expect(css).toContain('span {');
+		expect(css).toContain('button {');
+		expect(css).not.toMatch(/span\.ripple-[a-z0-9]+/);
+		expect(css).not.toMatch(/button\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles :global with nesting combinator &', () => {
+		const source = `
+export component Test() {
+	<div class="container">
+		<button class="active">{'click'}</button>
+	</div>
+
+	<style>
+		.container {
+			:global {
+				&.active {
+					color: red;
+				}
+			}
+
+			button {
+				:global(&.pressed) {
+					color: blue;
+				}
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/\.container\.ripple-[a-z0-9]+ {/);
+		expect(css).toMatch(/button\.ripple-[a-z0-9]+ {/);
+		expect(css).toContain('&.active {');
+		expect(css).toContain('&.pressed {');
+	});
+
+	it('handles complex :global nesting with multiple levels', () => {
+		const source = `
+export component Test() {
+	<div>
+		<nav>
+			<ul>
+				<li>
+					<a href="#">{'link'}</a>
+				</li>
+			</ul>
+		</nav>
+	</div>
+
+	<style>
+		div {
+			:global(nav) {
+				ul {
+					:global(li) {
+						a {
+							color: red;
+						}
+					}
+				}
+			}
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/div\.ripple-[a-z0-9]+ {/);
+		expect(css).toMatch(/ul\.ripple-[a-z0-9]+ {/);
+		expect(css).toMatch(/a\.ripple-[a-z0-9]+ {/);
+
+		expect(css).toContain('nav {');
+		expect(css).toContain('li {');
+		expect(css).not.toMatch(/nav\.ripple-[a-z0-9]+ {/);
+		expect(css).not.toMatch(/li\.ripple-[a-z0-9]+ {/);
+	});
+});

@@ -1,0 +1,101 @@
+import { compile } from 'ripple/compiler';
+
+describe('CSS :global with keyframes', () => {
+	it('handles -global- prefix for keyframes', () => {
+		const source = `
+export component Test() {
+	<div>{'animated'}</div>
+
+	<style>
+		@keyframes -global-foo {
+			0% { opacity: 0; }
+			100% { opacity: 1; }
+		}
+
+		div {
+			animation: foo 1s;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@keyframes foo');
+		expect(css).not.toContain('-global-foo');
+		expect(css).toContain('animation: foo 1s;');
+	});
+
+	it('handles scoped keyframes without -global- prefix', () => {
+		const source = `
+export component Test() {
+	<div>{'animated'}</div>
+
+	<style>
+		@keyframes foo {
+			0% { opacity: 0; }
+			100% { opacity: 1; }
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toMatch(/@keyframes ripple-[a-z0-9]+-foo/);
+	});
+
+	it('handles mix of global and scoped keyframes', () => {
+		const source = `
+export component Test() {
+	<div class="global-anim">{'one'}</div>
+	<div class="scoped-anim">{'two'}</div>
+
+	<style>
+		@keyframes -global-fadeIn {
+			0% { opacity: 0; }
+			100% { opacity: 1; }
+		}
+
+		@keyframes slideIn {
+			0% { transform: translateX(-100%); }
+			100% { transform: translateX(0); }
+		}
+
+		.global-anim {
+			animation: fadeIn 1s;
+		}
+
+		.scoped-anim {
+			animation: slideIn 1s;
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@keyframes fadeIn');
+		expect(css).not.toContain('-global-fadeIn');
+		expect(css).toMatch(/@keyframes ripple-[a-z0-9]+-slideIn/);
+		expect(css).toMatch(/\.scoped-anim\.ripple-[a-z0-9]+/);
+		expect(css).toMatch(/\.global-anim\.ripple-[a-z0-9]+/);
+	});
+
+	it('handles multiple animations with global keyframes', () => {
+		const source = `
+export component Test() {
+	<div>{'animated'}</div>
+
+	<style>
+		@keyframes -global-foo {
+			0% { opacity: 0; }
+			100% { opacity: 1; }
+		}
+
+		@keyframes -global-bar {
+			0% { transform: scale(0); }
+			100% { transform: scale(1); }
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		expect(css).toContain('@keyframes foo');
+		expect(css).toContain('@keyframes bar');
+	});
+});

@@ -1,18 +1,35 @@
 import { track } from 'ripple';
 
 export component App() {
-	<div class="container">
-		<h1>{'Welcome to Ripple!'}</h1>
-		<div class="counter">
-			let count = track(0);
+	let count = track(0);
 
-			<button onClick={() => @count--}>{'-'}</button>
-			<span class="count">{@count}</span>
-			<button onClick={() => @count++}>{'+'}</button>
-		</div>
-		<div>
-			<p>{'This is a basic Ripple application template.'}</p>
-			<p>
+	<div class="app">
+		<div class="card">
+			<img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
+
+			<p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
+
+			<div class="counter">
+				<button onClick={() => @count--}>{'-'}</button>
+				<span class="count">{@count}</span>
+				<button onClick={() => @count++}>{'+'}</button>
+			</div>
+
+			<div class="links">
+				<a href="https://www.ripplejs.com/" target="_blank" class="link-btn docs">
+					{'Docs'}
+				</a>
+				<a
+					href="https://github.com/Ripple-TS/ripple"
+					target="_blank"
+					class="link-btn github"
+				>
+					{'GitHub'}
+				</a>
+			</div>
+
+			<p class="info">{'This is a basic Ripple application template.'}</p>
+			<p class="edit-hint">
 				{'Edit '}
 				<code>{'src/App.ripple'}</code>
 				{' to get started.'}
@@ -21,40 +38,119 @@ export component App() {
 	</div>
 
 	<style>
-		.container {
+		.app {
+			min-height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background: radial-gradient(circle at top left, #1a1c2b, #0d0e17 85%);
+			color: #f2f4f8;
+			font-family: 'Inter', 'Segoe UI', sans-serif;
+			letter-spacing: 0.25px;
+			padding: 1rem;
+		}
+
+		.card {
+			background: rgba(18, 19, 29, 0.75);
+			padding: 2.5rem 2rem;
+			border-radius: 1rem;
 			text-align: center;
-			font-family: "Arial", sans-serif;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			backdrop-filter: blur(10px);
+			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+			max-width: 400px;
+			box-sizing: border-box;
 		}
 
-		p {
-			margin: 12px 0;
-			font-family: "Arial", sans-serif;
+		.logo {
+			width: 160px;
+			margin-bottom: 1rem;
+			display: block;
+			margin-left: auto;
+			margin-right: auto;
 		}
 
-		code {
-			background: #f4f4f4;
-			padding: 2px 6px;
-			border-radius: 4px;
-			font-family: "Courier New", monospace;
-			color: #333;
+		.subtitle {
+			color: #b0b3c2;
+			font-size: 1rem;
+			margin-bottom: 1.5rem;
+			font-weight: 500;
+		}
+
+		.counter {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 1rem;
+			margin: 1.5rem 0;
 		}
 
 		button {
-			font-size: 1.5em;
-			padding: 6px 12px;
-			margin: 0 6px;
+			background-color: rgba(42, 43, 56, 0.9);
+			color: #f2f4f8;
+			font-size: 1.1rem;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			border-radius: 0.75rem;
+			padding: 0.5rem 1rem;
 			cursor: pointer;
-			border: none;
-			font-family: "Courier New", monospace;
+			transition: background 0.15s ease;
 		}
 
-		button/* Unknown: PseudoClassSelector */ {
-			background-color: #e0e0e0;
+		button {
+			background-color: rgba(58, 58, 72, 0.9);
 		}
 
 		.count {
-			margin: 0 12px;
-			font-size: 1.5em;
+			font-size: 1.4rem;
+			font-weight: 500;
+			color: #f2f4f8;
+			min-width: 2rem;
+			display: inline-block;
+			text-align: center;
+		}
+
+		.links {
+			display: flex;
+			justify-content: center;
+			gap: 0.75rem;
+			margin-top: 1.5rem;
+		}
+
+		.link-btn {
+			text-decoration: none;
+			padding: 0.45rem 1.2rem;
+			border-radius: 0.75rem;
+			font-weight: 500;
+			font-size: 0.95rem;
+			background-color: rgba(42, 43, 56, 0.9);
+			color: #f2f4f8;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			transition: background 0.15s ease;
+		}
+
+		.link-btn {
+			background-color: rgba(58, 58, 72, 0.9);
+		}
+
+		.info {
+			margin-top: 1.5rem;
+			font-size: 0.9rem;
+			color: #c8cbda;
+		}
+
+		.edit-hint {
+			margin-top: 0.3rem;
+			font-size: 0.8rem;
+			color: #9fa3b9;
+		}
+
+		code {
+			background-color: rgba(31, 32, 46, 0.9);
+			padding: 2px 6px;
+			border-radius: 0.4rem;
+			font-family: 'Fira Code', monospace;
+			color: #a8b2ff;
+			font-size: 0.88rem;
 		}
 	</style>
 }

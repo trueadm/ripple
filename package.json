@@ -22,7 +22,7 @@
     "bump:editors:minor": "node scripts/bump-version.js minor editors",
     "bump:editors:patch": "node scripts/bump-version.js patch editors",
     "regenerate-textmate": "node scripts/regenerate-textmate.js",
-		"copy-tree-sitter-queries": "cp packages/tree-sitter-ripple/queries/*.scm packages/ripple-zed-plugin/languages/ripple && cp packages/tree-sitter-ripple/queries/*.scm packages/ripple-nvim-plugin/queries/ripple"
+    "copy-tree-sitter-queries": "cp packages/tree-sitter/queries/*.scm packages/zed-plugin/languages/ripple && cp packages/tree-sitter/queries/*.scm packages/nvim-plugin/queries/ripple"
   },
   "devDependencies": {
     "jsdom": "catalog:default",

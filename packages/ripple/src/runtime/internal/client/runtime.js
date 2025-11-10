@@ -933,12 +933,14 @@ export function spread_props(fn) {
  * @returns {Object}
  */
 export function proxy_props(fn) {
+	const memo = derived(fn, active_block);
+
 	return new Proxy(
 		{},
 		{
 			get(_, property) {
 				/** @type {Record<string | symbol, any> | Record<string | symbol, any>[]} */
-				var obj = fn();
+				var obj = get_derived(memo);
 
 				// Handle array of objects/spreads (for multiple props)
 				if (is_array(obj)) {
@@ -962,7 +964,7 @@ export function proxy_props(fn) {
 					return true;
 				}
 				/** @type {Record<string | symbol, any> | Record<string | symbol, any>[]} */
-				var obj = fn();
+				var obj = get_derived(memo);
 
 				// Handle array of objects/spreads
 				if (is_array(obj)) {
@@ -978,7 +980,7 @@ export function proxy_props(fn) {
 			},
 			getOwnPropertyDescriptor(_, key) {
 				/** @type {Record<string | symbol, any> | Record<string | symbol, any>[]} */
-				var obj = fn();
+				var obj = get_derived(memo);
 
 				// Handle array of objects/spreads
 				if (is_array(obj)) {
@@ -999,7 +1001,7 @@ export function proxy_props(fn) {
 			},
 			ownKeys() {
 				/** @type {Record<string | symbol, any> | Record<string | symbol, any>[]} */
-				var obj = fn();
+				var obj = get_derived(memo);
 				/** @type {Record<string | symbol, 1>} */
 				var done = {};
 				/** @type {(string | symbol)[]} */
@@ -1195,16 +1197,20 @@ export function safe_scope(err = 'Cannot access outside of a component context')
 	return /** @type {Block} */ (active_scope);
 }
 
-/**
- * @returns {void}
- */
-export function push_component() {
-	var component = {
+export function create_component_ctx() {
+	return {
 		c: null,
 		e: null,
 		m: false,
 		p: active_component,
 	};
+}
+
+/**
+ * @returns {void}
+ */
+export function push_component() {
+	var component = create_component_ctx();
 	active_component = component;
 }
 

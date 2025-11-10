@@ -1382,7 +1382,36 @@ function RipplePlugin(config) {
 				element.loc.start = position;
 				element.metadata = {};
 				element.children = [];
-				const open = this.jsx_parseOpeningElementAt();
+
+				// Check if this is a <script> or <style> tag
+				const tagName = this.value;
+				const isScriptOrStyle = tagName === 'script' || tagName === 'style';
+
+				let open;
+				if (isScriptOrStyle) {
+					// Manually parse opening tag to avoid jsx_parseOpeningElementAt consuming content
+					const tagStart = this.start;
+					const tagEndPos = this.input.indexOf('>', tagStart);
+
+					open = {
+						type: 'JSXOpeningElement',
+						name: { type: 'JSXIdentifier', name: tagName },
+						attributes: [],
+						selfClosing: false,
+						end: tagEndPos + 1,
+						loc: {
+							end: {
+								line: this.curLine,
+								column: tagEndPos + 1,
+							},
+						},
+					};
+
+					// Position after the '>'
+					this.pos = tagEndPos + 1;
+				} else {
+					open = this.jsx_parseOpeningElementAt();
+				}
 
 				// Check if this is a namespaced element (tsx:react)
 				const is_tsx_compat = open.name.type === 'JSXNamespacedName';
