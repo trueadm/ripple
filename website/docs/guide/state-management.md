@@ -40,7 +40,7 @@ export component App() {
 
   // create another tracked variable
   const count2 = track(0);
-  // context2 now contains a trackrf variable
+  // context2 now contains a tracked variable
   context2.set(count2);
 
   <button onClick={() => { obj.@count++; @count2++ }}>

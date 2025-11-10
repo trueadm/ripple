@@ -25,7 +25,7 @@ component Hello() {
 
 ::: info Notice Anything Missing?
 The lack of a return statement, unlike a (functional-style) JSX component isn't
-errorneous. As explained above, templates are statements rather than expressions,
+erroneous. As explained above, templates are statements rather than expressions,
 unlike JSX. We'll explore what you can do with that later!
 :::
 
@@ -104,7 +104,7 @@ let greet_text = Hello World!;
 ## Example: Text Interpolation
 
 The most basic form of data-binding is text interpolation. In the below example,
-we'll declared a `<span>` element as a statement, then use a pair of {braces} to
+we'll declare a `<span>` element as a statement, then use a pair of {braces} to
 declare an expression, inside which we put our string expression, like we would
 in plain JavaScript.
 
@@ -167,7 +167,7 @@ component TemplateScope() {
 
 ## Attribute Binding
 
-Attribute Binding in Ripple is acheieved the same way as JSX. To bind an
+Attribute Binding in Ripple is achieved the same way as JSX. To bind an
 expression to an attribute, we write the attribute's name and an equal sign,
 like plain HTML, but instead of quotes, we use {braces}, within which, we can
 write a JS expression that evaluates to our desired value.
