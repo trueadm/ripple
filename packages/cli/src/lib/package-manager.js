@@ -12,11 +12,11 @@
  * @returns {PackageManager} The detected package manager, defaulting to 'npm'
  *
  * @example
- * // When executed via: pnpm create ripple-app my-app
+ * // When executed via: pnpm create ripple my-app
  * const pm = getUsedPackageManager(); // Returns 'pnpm'
  *
  * @example
- * // When executed via: npm create ripple-app my-app
+ * // When executed via: npm create ripple my-app
  * const pm = getUsedPackageManager(); // Returns 'npm'
  */
 export function getUsedPackageManager() {
