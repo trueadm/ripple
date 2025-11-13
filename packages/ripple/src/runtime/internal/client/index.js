@@ -19,7 +19,7 @@ export {
 
 export { render, render_spread, async, ref, branch, destroy_block, root } from './blocks.js';
 
-export { event, render_event, static_event, delegate } from './events.js';
+export { event, render_event, delegate } from './events.js';
 
 export {
 	active_block,

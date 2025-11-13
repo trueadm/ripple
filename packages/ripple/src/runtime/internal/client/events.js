@@ -1,8 +1,13 @@
-/** @import { AddEventObject, AddEventOptions, OnEventOptions } from '#public'*/
+/** @import { AddEventObject, AddEventOptions, ExtendedEventOptions } from '#public'*/
 /**
  * @typedef {EventTarget & Record<string, any>} DelegatedEventTarget
  */
-import { is_non_delegated, is_passive_event } from '../../../utils/events.js';
+import {
+	event_name_from_capture,
+	is_capture_event,
+	is_non_delegated,
+	is_passive_event,
+} from '../../../utils/events.js';
 import {
 	active_block,
 	active_reaction,
@@ -47,7 +52,7 @@ function get_event_options(options) {
  * @param {EventTarget} element
  * @param {string} type
  * @param {EventListener} handler
- * @param {OnEventOptions} [options]
+ * @param {ExtendedEventOptions} [options]
  */
 export function on(element, type, handler, options = {}) {
 	var remove_listener = create_event(type, element, handler, options);
@@ -204,9 +209,18 @@ export function handle_event_propagation(event) {
 function create_event(event_name, dom, handler, options) {
 	var is_delegated = true;
 
-	if (!options.custom) {
-		event_name = event_name.toLowerCase();
+	if (is_capture_event(event_name)) {
+		event_name = event_name_from_capture(event_name);
+
+		if (!('capture' in options) || options.capture !== false) {
+			options.capture = true;
+		}
 	}
+
+	event_name =
+		options.customName && options.customName?.length
+			? options.customName
+			: event_name.toLowerCase();
 
 	if (
 		options.delegated === false ||

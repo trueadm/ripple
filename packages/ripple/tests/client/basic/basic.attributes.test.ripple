@@ -616,7 +616,38 @@ describe('basic client > attribute rendering', () => {
 		expect(orderDiv.textContent).toBe('capture -> bubble');
 	});
 
-	it('handles custom events with custom option', () => {
+	it('handles events with Capture suffix in the name', () => {
+		component Basic() {
+			let captureOrder = #[];
+
+			const handleCaptureClick = () => {
+				captureOrder.push('capture');
+			};
+
+			const handleBubbleClick = () => {
+				captureOrder.push('bubble');
+			};
+
+			<div onClickCapture={handleCaptureClick} class="outer">
+				<button onClick={handleBubbleClick} class="inner">{'Click'}</button>
+				<div class="order">{captureOrder.join(' -> ')}</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('.inner');
+		const orderDiv = container.querySelector('.order');
+
+		expect(orderDiv.textContent).toBe('');
+
+		// Test that capture fires before bubble
+		button.click();
+		flushSync();
+		expect(orderDiv.textContent).toBe('capture -> bubble');
+	});
+
+	it('handles custom events with customName option', () => {
 		component Basic() {
 			let customEventCount = track(0);
 
@@ -624,7 +655,7 @@ describe('basic client > attribute rendering', () => {
 				handleEvent(event: CustomEvent) {
 					@customEventCount += event.detail.value;
 				},
-				custom: true,
+				customName: 'MyCustomEvent',
 			};
 
 			<div>

@@ -2,7 +2,7 @@ import * as b from '../../../utils/builders.js';
 import { walk } from 'zimmerframe';
 import { create_scopes, ScopeRoot } from '../../scope.js';
 import {
-	get_delegated_event,
+	is_delegated_event,
 	get_parent_block_node,
 	is_element_dom_element,
 	is_inside_component,
@@ -729,16 +729,15 @@ const visitors = {
 						}
 
 						if (is_event_attribute(attr.name.name)) {
-							const event_name = attr.name.name.slice(2).toLowerCase();
 							const handler = visit(attr.value, state);
-							const delegated_event = get_delegated_event(event_name, handler, state);
+							const is_delegated = is_delegated_event(attr.name.name, handler, context);
 
-							if (delegated_event) {
+							if (is_delegated) {
 								if (attr.metadata === undefined) {
 									attr.metadata = {};
 								}
 
-								attr.metadata.delegated = delegated_event;
+								attr.metadata.delegated = is_delegated;
 							}
 						} else if (attr.value !== null) {
 							visit(attr.value, state);

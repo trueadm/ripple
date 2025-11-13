@@ -2,7 +2,7 @@
 /** @import { Component, Element, RippleNode, TransformContext } from '#compiler' */
 import { build_assignment_value, extract_paths } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
-import { is_non_delegated } from '../utils/events.js';
+import { is_capture_event, is_non_delegated, normalize_event_name } from '../utils/events.js';
 
 const regex_return_characters = /\r/g;
 
@@ -176,11 +176,12 @@ export function is_dom_property(name) {
  * @param {TransformContext} context
  * @returns {boolean}
  */
-export function get_delegated_event(event_name, handler, context) {
+export function is_delegated_event(event_name, handler, context) {
 	// Handle delegated event handlers. Bail out if not a delegated event.
 	if (
 		!handler ||
-		is_non_delegated(event_name) ||
+		is_capture_event(event_name) ||
+		is_non_delegated(normalize_event_name(event_name)) ||
 		(handler.type !== 'FunctionExpression' &&
 			handler.type !== 'ArrowFunctionExpression' &&
 			!is_declared_function_within_component(/** @type {Identifier}*/ (handler), context))

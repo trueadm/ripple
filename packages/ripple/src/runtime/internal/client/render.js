@@ -9,11 +9,7 @@ import {
 	is_tracked_object,
 } from './utils.js';
 import { event } from './events.js';
-import {
-	get_attribute_event_name,
-	is_event_attribute,
-	is_event_handler_function,
-} from '../../../utils/events.js';
+import { get_attribute_event_name, is_event_attribute } from '../../../utils/events.js';
 import { get } from './runtime.js';
 import { clsx } from 'clsx';
 import { normalize_css_property_name } from '../../../utils/normalize_css_property_name.js';
@@ -142,12 +138,7 @@ function set_attribute_helper(element, key, value, remove_listeners) {
 	} else if (key === '#class') {
 		// Special case for static class when spreading props
 		element.classList.add(value);
-	} else if (
-		typeof key === 'string' &&
-		is_event_attribute(key) &&
-		// Account for event being null/undefined
-		((value ?? null) === null || is_event_handler_function(value))
-	) {
+	} else if (typeof key === 'string' && is_event_attribute(key)) {
 		// Handle event handlers in spread props
 		const event_name = get_attribute_event_name(key, value);
 		if (remove_listeners[key]) {

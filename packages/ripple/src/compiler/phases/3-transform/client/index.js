@@ -40,7 +40,11 @@ import {
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
 import { render_stylesheets } from '../stylesheet.js';
-import { is_event_attribute } from '../../../../utils/events.js';
+import {
+	get_original_event_name,
+	is_event_attribute,
+	normalize_event_name,
+} from '../../../../utils/events.js';
 import { createHash } from 'node:crypto';
 
 function add_ripple_internal_import(context) {
@@ -976,13 +980,12 @@ const visitors = {
 						}
 
 						if (is_event_attribute(name)) {
-							let event_name = name.slice(2);
 							const metadata = { tracking: false, await: false };
 							let handler = visit(attr.value, { ...state, metadata });
 							const id = state.flush_node();
 
 							if (attr.metadata?.delegated) {
-								event_name = event_name.toLowerCase();
+								const event_name = normalize_event_name(name);
 
 								if (!state.events.has(event_name)) {
 									state.events.add(event_name);
@@ -992,6 +995,7 @@ const visitors = {
 									b.stmt(b.assignment('=', b.member(id, '__' + event_name), handler)),
 								);
 							} else {
+								const event_name = get_original_event_name(name);
 								// Check if handler is reactive (contains tracking)
 								if (metadata.tracking) {
 									// Use reactive_event with a thunk to re-evaluate when dependencies change
