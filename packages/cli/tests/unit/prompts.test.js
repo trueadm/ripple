@@ -42,6 +42,7 @@ import {
 	promptStylingFramework,
 } from '../../src/lib/prompts.js';
 import * as templates from '../../src/lib/templates.js';
+import { getCurrentPackageManager } from '../../src/lib/package-manager.js';
 
 const mockedPrompts = /** @type {import('vitest').MockedFunction<typeof prompts>} */ (prompts);
 const mockedGetTemplateChoices =
@@ -172,7 +173,8 @@ describe('Prompts', () => {
 		it('should return selected package manager', async () => {
 			mockedPrompts.mockResolvedValue({ packageManager: 'pnpm' });
 
-			const result = await promptPackageManager();
+			const detected = getCurrentPackageManager();
+			const result = await promptPackageManager(detected);
 			expect(result).toBe('pnpm');
 			expect(mockedPrompts).toHaveBeenCalledWith({
 				type: 'select',
@@ -183,14 +185,15 @@ describe('Prompts', () => {
 					{ title: 'yarn', value: 'yarn', description: 'Use Yarn for dependency management' },
 					{ title: 'pnpm', value: 'pnpm', description: 'Use pnpm for dependency management' },
 				],
-				initial: 0,
+				initial: ['npm', 'yarn', 'pnpm'].indexOf(detected),
 			});
 		});
 
 		it('should exit when user cancels', async () => {
 			mockedPrompts.mockResolvedValue({});
 
-			await promptPackageManager();
+			const detected = getCurrentPackageManager();
+			await promptPackageManager(detected);
 			expect(mockExit).toHaveBeenCalledWith(1);
 		});
 	});

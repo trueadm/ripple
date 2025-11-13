@@ -60,9 +60,10 @@ export async function promptTemplate() {
 
 /**
  * Prompt for package manager selection
+ * @param {PackageManager} defaultPackageManager - Default package manager
  * @returns {Promise<PackageManager>} - Selected package manager
  */
-export async function promptPackageManager() {
+export async function promptPackageManager(defaultPackageManager) {
 	const response = await /** @type {Promise<{packageManager: PackageManager}>} */ (
 		prompts({
 			type: 'select',
@@ -73,7 +74,7 @@ export async function promptPackageManager() {
 				{ title: 'yarn', value: 'yarn', description: 'Use Yarn for dependency management' },
 				{ title: 'pnpm', value: 'pnpm', description: 'Use pnpm for dependency management' },
 			],
-			initial: 0,
+			initial: ['npm', 'yarn', 'pnpm'].indexOf(defaultPackageManager),
 		})
 	);
 

@@ -18,6 +18,7 @@ import {
 } from '../lib/prompts.js';
 import { createProject } from '../lib/project-creator.js';
 import { isFolderEmpty } from '../lib/is-folder-empty.js';
+import { getCurrentPackageManager } from '../lib/package-manager.js';
 
 /**
  * Create command handler
@@ -64,9 +65,15 @@ export async function createCommand(projectName, options) {
 	}
 
 	// Step 4: Get package manager
-	let packageManager = options.packageManager || 'npm';
+	// Auto-detect the package manager used to execute this CLI
+	let packageManager;
+	const detected = getCurrentPackageManager();
 	if (!options.packageManager && !options.yes) {
-		packageManager = await promptPackageManager();
+		// interactive mode
+		packageManager = await promptPackageManager(detected);
+	} else {
+		// non-interactive mode
+		packageManager = options.packageManager || detected;
 	}
 
 	// Step 5: Git initialization preference
