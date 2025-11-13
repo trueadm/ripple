@@ -1,25 +1,10 @@
-/**
- * @typedef PackageManager @type {'npm' | 'yarn' | 'pnpm'}
- */
+/** @import {PackageManager} from '../lib/project-creator.js' */
 
 /**
- * Detects the package manager used to execute the current process.
- *
- * This function analyzes environment variables set by package managers when they
- * spawn child processes. It primarily relies on `npm_execpath` and `npm_config_user_agent`
- * which are set by npm, yarn, and pnpm.
- *
- * @returns {PackageManager} The detected package manager, defaulting to 'npm'
- *
- * @example
- * // When executed via: pnpm create ripple my-app
- * const pm = getUsedPackageManager(); // Returns 'pnpm'
- *
- * @example
- * // When executed via: npm create ripple my-app
- * const pm = getUsedPackageManager(); // Returns 'npm'
+ * Detect the package manager used to run the current process
+ * @returns {PackageManager}
  */
-export function getUsedPackageManager() {
+export function getCurrentPackageManager() {
 	// Check npm_config_user_agent first (most reliable for all package managers)
 	const userAgent = process.env.npm_config_user_agent;
 	if (userAgent) {
