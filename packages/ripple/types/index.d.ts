@@ -137,39 +137,46 @@ export declare function trackSplit<V extends Props, const K extends readonly (ke
 	splitKeys: K,
 ): SplitResult<V, K>;
 
+export interface AddEventOptions extends AddEventListenerOptions {
+	custom?: boolean;
+	delegated?: boolean;
+}
+
+export interface AddEventObject extends AddEventOptions, EventListenerObject {}
+
 export function on<Type extends keyof WindowEventMap>(
 	window: Window,
 	type: Type,
 	handler: (this: Window, event: WindowEventMap[Type]) => any,
-	options?: AddEventListenerOptions | undefined,
+	options?: AddEventOptions | undefined,
 ): () => void;
 
 export function on<Type extends keyof DocumentEventMap>(
 	document: Document,
 	type: Type,
 	handler: (this: Document, event: DocumentEventMap[Type]) => any,
-	options?: AddEventListenerOptions | undefined,
+	options?: AddEventOptions | undefined,
 ): () => void;
 
 export function on<Element extends HTMLElement, Type extends keyof HTMLElementEventMap>(
 	element: Element,
 	type: Type,
 	handler: (this: Element, event: HTMLElementEventMap[Type]) => any,
-	options?: AddEventListenerOptions | undefined,
+	options?: AddEventOptions | undefined,
 ): () => void;
 
 export function on<Element extends MediaQueryList, Type extends keyof MediaQueryListEventMap>(
 	element: Element,
 	type: Type,
 	handler: (this: Element, event: MediaQueryListEventMap[Type]) => any,
-	options?: AddEventListenerOptions | undefined,
+	options?: AddEventOptions | undefined,
 ): () => void;
 
 export function on(
 	element: EventTarget,
 	type: string,
 	handler: EventListener,
-	options?: AddEventListenerOptions | undefined,
+	options?: AddEventOptions | undefined,
 ): () => void;
 
 export type TrackedObjectShallow<T> = {

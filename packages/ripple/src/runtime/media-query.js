@@ -20,8 +20,8 @@ export function MediaQuery(query, fallback) {
 
 	let final_query =
 		parenthesis_regex.test(query) ||
-			// we need to use `some` here because technically this `window.matchMedia('random,screen')` still returns true
-			query.split(/[\s,]+/).some((keyword) => non_parenthesized_keywords.has(keyword.trim()))
+		// we need to use `some` here because technically this `window.matchMedia('random,screen')` still returns true
+		query.split(/[\s,]+/).some((keyword) => non_parenthesized_keywords.has(keyword.trim()))
 			? query
 			: `(${query})`;
 	const q = window.matchMedia(final_query);
@@ -29,11 +29,17 @@ export function MediaQuery(query, fallback) {
 
 	return new ReactiveValue(
 		() => get(matches),
-		() => on(q, 'change', () => {
-			// skip wrapping in untrack as createSubscriber already does it
-			if (q.matches !== get(matches)) {
-				set(matches, q.matches)
-			}
-		})
+		() =>
+			on(
+				q,
+				'change',
+				() => {
+					// skip wrapping in untrack as createSubscriber already does it
+					if (q.matches !== get(matches)) {
+						set(matches, q.matches);
+					}
+				},
+				{ delegated: false },
+			),
 	);
 }

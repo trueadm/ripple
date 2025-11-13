@@ -1,8 +1,8 @@
-/** @import { Identifier, Pattern, Super, FunctionExpression, FunctionDeclaration, ArrowFunctionExpression, MemberExpression, AssignmentExpression, Expression, Node, AssignmentOperator, CallExpression } from 'estree' */
-/** @import { Component, Element, Attribute, SpreadAttribute, ScopeInterface, Binding, RippleNode, CompilerState, TransformContext, DelegatedEventResult, TextNode } from '#compiler' */
+/** @import { Identifier, Pattern, Super, MemberExpression, AssignmentExpression, Expression, Node, AssignmentOperator } from 'estree' */
+/** @import { Component, Element, RippleNode, TransformContext } from '#compiler' */
 import { build_assignment_value, extract_paths } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
-import { get_attribute_event_name, is_delegated, is_event_attribute } from '../utils/events.js';
+import { is_non_delegated } from '../utils/events.js';
 
 const regex_return_characters = /\r/g;
 
@@ -173,12 +173,18 @@ export function is_dom_property(name) {
  * Determines if an event handler can be delegated
  * @param {string} event_name
  * @param {Expression} handler
- * @param {CompilerState} state
+ * @param {TransformContext} context
  * @returns {boolean}
  */
-export function get_delegated_event(event_name, handler, state) {
+export function get_delegated_event(event_name, handler, context) {
 	// Handle delegated event handlers. Bail out if not a delegated event.
-	if (!handler || !is_delegated(event_name)) {
+	if (
+		!handler ||
+		is_non_delegated(event_name) ||
+		(handler.type !== 'FunctionExpression' &&
+			handler.type !== 'ArrowFunctionExpression' &&
+			!is_declared_function_within_component(/** @type {Identifier}*/ (handler), context))
+	) {
 		return false;
 	}
 	return true;

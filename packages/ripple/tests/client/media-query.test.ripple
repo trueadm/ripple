@@ -89,7 +89,7 @@ describe('MediaQuery', () => {
 				<Child />
 			}
 
-			<button onClick={() => @show = !@show}>{'Toggle Child'}</button>
+			<button onClick={() => (@show = !@show)}>{'Toggle Child'}</button>
 		}
 
 		component Child() {

@@ -524,4 +524,415 @@ describe('basic client > attribute rendering', () => {
 		render(App);
 		expect(container).toMatchSnapshot();
 	});
+
+	it('handles reactive event handler changes', () => {
+		component Basic() {
+			let count = track(0);
+			let mode = track<'increment' | 'decrement'>('increment');
+
+			const incrementHandler = () => {
+				@count++;
+			};
+
+			const decrementHandler = () => {
+				@count--;
+			};
+
+			<button
+				onClick={() => {
+					@mode = @mode === 'increment' ? 'decrement' : 'increment';
+				}}
+				class="toggle-mode"
+			>
+				{'Toggle Mode'}
+			</button>
+			<button onClick={@mode === 'increment' ? incrementHandler : decrementHandler} class="action">
+				{@mode === 'increment' ? '+' : '-'}
+			</button>
+			<div class="count">{@count}</div>
+		}
+
+		render(Basic);
+
+		const toggleBtn = container.querySelector('.toggle-mode');
+		const actionBtn = container.querySelector('.action');
+		const countDiv = container.querySelector('.count');
+
+		expect(actionBtn.textContent).toBe('+');
+		expect(countDiv.textContent).toBe('0');
+
+		actionBtn.click();
+		flushSync();
+		expect(countDiv.textContent).toBe('1');
+
+		actionBtn.click();
+		flushSync();
+		expect(countDiv.textContent).toBe('2');
+
+		toggleBtn.click();
+		flushSync();
+		expect(actionBtn.textContent).toBe('-');
+
+		actionBtn.click();
+		flushSync();
+		expect(countDiv.textContent).toBe('1');
+
+		actionBtn.click();
+		flushSync();
+		expect(countDiv.textContent).toBe('0');
+	});
+
+	it('handles events with capture option', () => {
+		component Basic() {
+			let captureOrder = #[];
+
+			const handleCaptureClick = {
+				handleEvent() {
+					captureOrder.push('capture');
+				},
+				capture: true,
+			};
+
+			const handleBubbleClick = () => {
+				captureOrder.push('bubble');
+			};
+
+			<div onClick={handleCaptureClick} class="outer">
+				<button onClick={handleBubbleClick} class="inner">{'Click'}</button>
+				<div class="order">{captureOrder.join(' -> ')}</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const button = container.querySelector('.inner');
+		const orderDiv = container.querySelector('.order');
+
+		expect(orderDiv.textContent).toBe('');
+
+		// Test that capture fires before bubble
+		button.click();
+		flushSync();
+		expect(orderDiv.textContent).toBe('capture -> bubble');
+	});
+
+	it('handles custom events with custom option', () => {
+		component Basic() {
+			let customEventCount = track(0);
+
+			const handleCustom = {
+				handleEvent(event: CustomEvent) {
+					@customEventCount += event.detail.value;
+				},
+				custom: true,
+			};
+
+			<div>
+				<div onMyCustomEvent={handleCustom} class="custom-target">{'Custom'}</div>
+				<div class="custom-count">{@customEventCount}</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const customTarget = container.querySelector('.custom-target');
+		const customCountDiv = container.querySelector('.custom-count');
+
+		expect(customCountDiv.textContent).toBe('0');
+
+		const customEvent = new CustomEvent('MyCustomEvent', { bubbles: true, detail: { value: 5 } });
+		customTarget.dispatchEvent(customEvent);
+		flushSync();
+		expect(customCountDiv.textContent).toBe('5');
+
+		const customEvent2 = new CustomEvent('MyCustomEvent', { bubbles: true, detail: { value: 3 } });
+		customTarget.dispatchEvent(customEvent2);
+		flushSync();
+		expect(customCountDiv.textContent).toBe('8');
+	});
+
+	it('handles events with delegated: false option to bypass delegation', () => {
+		component Basic() {
+			let delegatedCount = track(0);
+			let nonDelegatedCount = track(0);
+
+			const delegatedHandler = () => {
+				@delegatedCount++;
+			};
+
+			const nonDelegatedHandler = {
+				handleEvent() {
+					@nonDelegatedCount++;
+				},
+				delegated: false,
+			};
+
+			<div>
+				<button onClick={delegatedHandler} class="delegated-btn">{'Delegated'}</button>
+				<button onClick={nonDelegatedHandler} class="non-delegated-btn">{'Non-Delegated'}</button>
+				<div class="delegated-count">{@delegatedCount}</div>
+				<div class="non-delegated-count">{@nonDelegatedCount}</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const delegatedBtn = container.querySelector('.delegated-btn');
+		const nonDelegatedBtn = container.querySelector('.non-delegated-btn');
+
+		// Check that delegated event has __click property set on the element
+		expect(delegatedBtn.__click).toBeDefined();
+		expect(typeof delegatedBtn.__click).toBe('function');
+
+		// Check that non-delegated event does NOT have __click property (it's attached directly)
+		expect(nonDelegatedBtn.__click).toBeUndefined();
+
+		// Verify both handlers work correctly
+		delegatedBtn.click();
+		flushSync();
+		expect(container.querySelector('.delegated-count').textContent).toBe('1');
+
+		nonDelegatedBtn.click();
+		flushSync();
+		expect(container.querySelector('.non-delegated-count').textContent).toBe('1');
+	});
+
+	it('measures effect of delegated vs non-delegated events', () => {
+		const delegatedClicks: number[] = [];
+		const nonDelegatedClicks: number[] = [];
+
+		component Basic() {
+			const makeDelegatedHandler = (id: number) => () => {
+				delegatedClicks.push(id);
+			};
+
+			const makeNonDelegatedHandler = (id: number) => ({
+				handleEvent() {
+					nonDelegatedClicks.push(id);
+				},
+				delegated: false,
+			});
+
+			const buttonIds = [0, 1, 2, 3, 4];
+
+			<div>
+				<div class="delegated-buttons">
+					for (const i of buttonIds) {
+						<button onClick={makeDelegatedHandler(i)} class={`delegated-${i}`}>{`D${i}`}</button>
+					}
+				</div>
+				<div class="non-delegated-buttons">
+					for (const i of buttonIds) {
+						<button onClick={makeNonDelegatedHandler(i)} class={`non-delegated-${i}`}>
+							{`ND${i}`}
+						</button>
+					}
+				</div>
+			</div>
+		}
+
+		render(Basic);
+
+		// Test delegated buttons
+		for (let i = 0; i < 5; i++) {
+			const btn = container.querySelector(`.delegated-${i}`);
+			btn.click();
+			flushSync();
+		}
+
+		expect(delegatedClicks).toEqual([0, 1, 2, 3, 4]);
+
+		// Test non-delegated buttons
+		for (let i = 0; i < 5; i++) {
+			const btn = container.querySelector(`.non-delegated-${i}`);
+			btn.click();
+			flushSync();
+		}
+
+		expect(nonDelegatedClicks).toEqual([0, 1, 2, 3, 4]);
+
+		// Verify both can be called in mixed order
+		delegatedClicks.length = 0;
+		nonDelegatedClicks.length = 0;
+
+		container.querySelector('.delegated-2').click();
+		container.querySelector('.non-delegated-1').click();
+		container.querySelector('.delegated-0').click();
+		container.querySelector('.non-delegated-3').click();
+		flushSync();
+
+		expect(delegatedClicks).toEqual([2, 0]);
+		expect(nonDelegatedClicks).toEqual([1, 3]);
+	});
+
+	it('handles events defined as function directly vs as object', () => {
+		component Basic() {
+			let functionCount = track(0);
+			let objectCount = track(0);
+
+			const functionHandler = () => {
+				@functionCount++;
+			};
+
+			const objectHandler = {
+				handleEvent() {
+					@objectCount++;
+				},
+			};
+
+			<div>
+				<button onClick={functionHandler} class="function-btn">{'Function'}</button>
+				<button onClick={objectHandler} class="object-btn">{'Object'}</button>
+				<div class="function-count">{@functionCount}</div>
+				<div class="object-count">{@objectCount}</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const functionBtn = container.querySelector('.function-btn');
+		const objectBtn = container.querySelector('.object-btn');
+		const functionCountDiv = container.querySelector('.function-count');
+		const objectCountDiv = container.querySelector('.object-count');
+
+		expect(functionCountDiv.textContent).toBe('0');
+		expect(objectCountDiv.textContent).toBe('0');
+
+		functionBtn.click();
+		flushSync();
+		expect(functionCountDiv.textContent).toBe('1');
+
+		objectBtn.click();
+		flushSync();
+		expect(objectCountDiv.textContent).toBe('1');
+
+		// Test multiple clicks
+		functionBtn.click();
+		functionBtn.click();
+		flushSync();
+		expect(functionCountDiv.textContent).toBe('3');
+
+		objectBtn.click();
+		objectBtn.click();
+		flushSync();
+		expect(objectCountDiv.textContent).toBe('3');
+	});
+
+	it('handles passive event option', () => {
+		component Basic() {
+			let passiveDefaultPrevented = track<boolean | null>(null);
+			let nonPassiveDefaultPrevented = track<boolean | null>(null);
+
+			const passiveHandler = {
+				handleEvent(event: Event) {
+					event.preventDefault();
+					// In passive listeners, preventDefault() is ignored
+					@passiveDefaultPrevented = event.defaultPrevented;
+				},
+				passive: true,
+				delegated: false, // Need to ensure it's not delegated to test passive properly
+			};
+
+			const nonPassiveHandler = {
+				handleEvent(event: Event) {
+					event.preventDefault();
+					// In non-passive listeners, preventDefault() works
+					@nonPassiveDefaultPrevented = event.defaultPrevented;
+				},
+				delegated: false,
+			};
+
+			<div>
+				<div onWheel={passiveHandler} class="passive-target">{'Passive'}</div>
+				<div onWheel={nonPassiveHandler} class="non-passive-target">{'Non-Passive'}</div>
+				<div class="passive-result">
+					{@passiveDefaultPrevented === null
+						? 'not-tested'
+						: @passiveDefaultPrevented
+							? 'prevented'
+							: 'not-prevented'}
+				</div>
+				<div class="non-passive-result">
+					{@nonPassiveDefaultPrevented === null
+						? 'not-tested'
+						: @nonPassiveDefaultPrevented
+							? 'prevented'
+							: 'not-prevented'}
+				</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const passiveTarget = container.querySelector('.passive-target');
+		const nonPassiveTarget = container.querySelector('.non-passive-target');
+		const passiveResultDiv = container.querySelector('.passive-result');
+		const nonPassiveResultDiv = container.querySelector('.non-passive-result');
+
+		expect(passiveResultDiv.textContent).toBe('not-tested');
+		expect(nonPassiveResultDiv.textContent).toBe('not-tested');
+
+		// Test passive event - preventDefault should be ignored, defaultPrevented stays false
+		passiveTarget.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true }));
+		flushSync();
+		expect(passiveResultDiv.textContent).toBe('not-prevented');
+
+		// Test non-passive event - preventDefault should work, defaultPrevented becomes true
+		nonPassiveTarget.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true }));
+		flushSync();
+		expect(nonPassiveResultDiv.textContent).toBe('prevented');
+	});
+
+	it('handles once option to fire event only once', () => {
+		component Basic() {
+			let onceCount = track(0);
+			let regularCount = track(0);
+
+			const onceHandler = {
+				handleEvent() {
+					@onceCount++;
+				},
+				once: true,
+			};
+
+			const regularHandler = () => {
+				@regularCount++;
+			};
+
+			<div>
+				<button onClick={onceHandler} class="once-btn">{'Once'}</button>
+				<button onClick={regularHandler} class="regular-btn">{'Regular'}</button>
+				<div class="once-count">{@onceCount}</div>
+				<div class="regular-count">{@regularCount}</div>
+			</div>
+		}
+
+		render(Basic);
+
+		const onceBtn = container.querySelector('.once-btn');
+		const regularBtn = container.querySelector('.regular-btn');
+		const onceCountDiv = container.querySelector('.once-count');
+		const regularCountDiv = container.querySelector('.regular-count');
+
+		expect(onceCountDiv.textContent).toBe('0');
+		expect(regularCountDiv.textContent).toBe('0');
+
+		onceBtn.click();
+		flushSync();
+		expect(onceCountDiv.textContent).toBe('1');
+
+		// Second click should not increment because of once: true
+		onceBtn.click();
+		flushSync();
+		expect(onceCountDiv.textContent).toBe('1');
+
+		// Regular handler should work multiple times
+		regularBtn.click();
+		flushSync();
+		expect(regularCountDiv.textContent).toBe('1');
+
+		regularBtn.click();
+		flushSync();
+		expect(regularCountDiv.textContent).toBe('2');
+	});
 });

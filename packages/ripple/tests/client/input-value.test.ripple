@@ -18,7 +18,7 @@ describe('use value()', () => {
 
 		const input = container.querySelector('input') as HTMLInputElement;
 		input.value = 'Hello';
-		input.dispatchEvent(new Event('input'));
+		input.dispatchEvent(new Event('input', { bubbles: true }));
 		flushSync();
 		expect(input.value).toBe('Hello');
 		expect(logs).toEqual(['text changed', '', 'text changed', 'Hello']);
@@ -42,7 +42,7 @@ describe('use value()', () => {
 		const input = container.querySelector('input') as HTMLInputElement;
 		expect(input.value).toBe('foo');
 		input.value = 'Hello';
-		input.dispatchEvent(new Event('input'));
+		input.dispatchEvent(new Event('input', { bubbles: true }));
 		flushSync();
 		expect(input.value).toBe('Hello');
 		expect(logs).toEqual(['text changed', 'foo', 'text changed', 'Hello']);
@@ -65,7 +65,7 @@ describe('use value()', () => {
 
 		const input = container.querySelector('input') as HTMLInputElement;
 		input.checked = true;
-		input.dispatchEvent(new Event('change'));
+		input.dispatchEvent(new Event('change', { bubbles: true }));
 		flushSync();
 
 		expect(input.checked).toBe(true);
@@ -94,7 +94,7 @@ describe('use value()', () => {
 
 		const select = container.querySelector('select') as HTMLSelectElement;
 		select.value = '3';
-		select.dispatchEvent(new Event('change'));
+		select.dispatchEvent(new Event('change', { bubbles: true }));
 		flushSync();
 
 		expect(select.value).toBe('3');

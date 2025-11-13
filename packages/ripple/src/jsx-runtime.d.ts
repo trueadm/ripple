@@ -1,3 +1,5 @@
+import type { AddEventObject } from '#public';
+
 /**
  * Ripple JSX Runtime Type Definitions
  * Ripple components are imperative and don't return JSX elements
@@ -40,9 +42,9 @@ interface HTMLAttributes {
 	className?: string;
 	id?: string;
 	style?: string | Record<string, string | number>;
-	onClick?: (event: MouseEvent) => void;
-	onInput?: (event: InputEvent) => void;
-	onChange?: (event: Event) => void;
+	onClick?: EventListener | AddEventObject;
+	onInput?: EventListener | AddEventObject;
+	onChange?: EventListener | AddEventObject;
 	children?: any;
 	[key: string]: any;
 }
