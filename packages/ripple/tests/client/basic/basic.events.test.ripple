@@ -42,9 +42,9 @@ describe('basic client > events', () => {
 			let bubbleClicks = track(0);
 
 			<div
-				onClickCapture={() => {
+				onClick={{handleEvent: () => {
 					@captureClicks++;
-				}}
+				}, capture: true}}
 			>
 				<button
 					onClick={() => {

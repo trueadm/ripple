@@ -1,3 +1,4 @@
+import type { Tracked } from 'ripple';
 import { track, trackSplit, flushSync, effect } from 'ripple';
 
 describe('composite > reactivity', () => {
@@ -277,7 +278,7 @@ describe('composite > reactivity', () => {
 			const more = #{
 				double: track(() => props.@count * 2),
 				another: track(0),
-				onemore: 100,
+				extra: 100,
 			};
 
 			effect(() => {
@@ -290,7 +291,7 @@ describe('composite > reactivity', () => {
 			});
 
 			<div>
-				<Counter {...props} double={more.double} another={more.another} onemore={more.onemore} />
+				<Counter {...props} double={more.double} another={more.another} extra={more.extra} />
 			</div>
 		}
 
@@ -307,7 +308,7 @@ describe('composite > reactivity', () => {
 
 		expect(div.getAttribute('double')).toBe('0');
 		expect(div.getAttribute('another')).toBe('0');
-		expect(div.getAttribute('onemore')).toBe('100');
+		expect(div.getAttribute('extra')).toBe('100');
 		expect(div.textContent).toBe('Counter: 0 Double: 0');
 
 		buttonIncrement.click();
@@ -315,7 +316,7 @@ describe('composite > reactivity', () => {
 
 		expect(div.getAttribute('double')).toBe('2');
 		expect(div.hasAttribute('another')).toBe(false);
-		expect(div.getAttribute('onemore')).toBe('100');
+		expect(div.getAttribute('extra')).toBe('100');
 		expect(div.textContent).toBe('Counter: 1 Double: 2');
 
 		buttonIncrement.click();
@@ -323,7 +324,7 @@ describe('composite > reactivity', () => {
 
 		expect(div.getAttribute('double')).toBe('4');
 		expect(div.getAttribute('another')).toBe('0');
-		expect(div.getAttribute('onemore')).toBe('100');
+		expect(div.getAttribute('extra')).toBe('100');
 		expect(div.textContent).toBe('Counter: 2 Double: 4');
 	});
 });

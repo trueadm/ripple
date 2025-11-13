@@ -1,6 +1,6 @@
 /** @import { Block } from '#client' */
 
-import { destroy_block, ref } from './blocks.js';
+import { branch, destroy_block, ref } from './blocks.js';
 import { REF_PROP } from './constants.js';
 import {
 	get_descriptors,
@@ -8,12 +8,8 @@ import {
 	get_prototype_of,
 	is_tracked_object,
 } from './utils.js';
-import { delegate, event } from './events.js';
-import {
-	get_attribute_event_name,
-	is_delegated,
-	is_event_attribute,
-} from '../../../utils/events.js';
+import { event } from './events.js';
+import { get_attribute_event_name, is_event_attribute } from '../../../utils/events.js';
 import { get } from './runtime.js';
 import { clsx } from 'clsx';
 import { normalize_css_property_name } from '../../../utils/normalize_css_property_name.js';
@@ -131,8 +127,9 @@ export function apply_styles(element, new_styles) {
  * @param {Element} element
  * @param {string} key
  * @param {any} value
+ * @param {Record<string, (() => void) | undefined>} remove_listeners
  */
-function set_attribute_helper(element, key, value) {
+function set_attribute_helper(element, key, value, remove_listeners) {
 	if (key === 'class') {
 		const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
 		set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
@@ -143,16 +140,11 @@ function set_attribute_helper(element, key, value) {
 		element.classList.add(value);
 	} else if (typeof key === 'string' && is_event_attribute(key)) {
 		// Handle event handlers in spread props
-		const event_name = get_attribute_event_name(key);
-
-		if (is_delegated(event_name)) {
-			// Use delegation for delegated events
-			/** @type {any} */ (element)['__' + event_name] = value;
-			delegate([event_name]);
-		} else {
-			// Use addEventListener for non-delegated events
-			event(event_name, element, value);
+		const event_name = get_attribute_event_name(key, value);
+		if (remove_listeners[key]) {
+			remove_listeners[key]();
 		}
+		remove_listeners[key] = event(event_name, element, value);
 	} else {
 		set_attribute(element, key, value);
 	}
@@ -257,22 +249,25 @@ export function set_selected(element, selected) {
 export function apply_element_spread(element, fn) {
 	/** @type {Record<string | symbol, any>} */
 	var prev = {};
-	/** @type {Record<symbol, Block>} */
+	/** @type {Record<symbol, Block | undefined>} */
 	var effects = {};
+	/** @type {Record<string | symbol, (() => void) | undefined>} */
+	var remove_listeners = {};
 
 	return () => {
 		var next = fn();
 
-		for (let symbol of get_own_property_symbols(effects)) {
-			if (!next[symbol]) {
+		for (const symbol of get_own_property_symbols(effects)) {
+			if (!next[symbol] && effects[symbol]) {
 				destroy_block(effects[symbol]);
+				effects[symbol] = undefined;
 			}
 		}
 
 		for (const symbol of get_own_property_symbols(next)) {
 			var ref_fn = next[symbol];
 
-			if (symbol.description === REF_PROP && (!prev || ref_fn !== prev[symbol])) {
+			if (symbol.description === REF_PROP && (!(symbol in prev) || ref_fn !== prev[symbol])) {
 				if (effects[symbol]) {
 					destroy_block(effects[symbol]);
 				}
@@ -282,7 +277,24 @@ export function apply_element_spread(element, fn) {
 			next[symbol] = ref_fn;
 		}
 
-		/** @type {Record<string | symbol, any>} */
+		for (let key in remove_listeners) {
+			// Remove event listeners that are no longer present
+			if (!(key in next) && remove_listeners[key]) {
+				remove_listeners[key]();
+				remove_listeners[key] = undefined;
+			}
+		}
+
+		for (const key in prev) {
+			if (!(key in next)) {
+				if (key === '#class') {
+					continue;
+				}
+				set_attribute_helper(element, key, null, remove_listeners);
+			}
+		}
+
+		/** @type {typeof prev} */
 		const current = {};
 		for (const key in next) {
 			if (key === 'children') continue;
@@ -293,13 +305,11 @@ export function apply_element_spread(element, fn) {
 			}
 			current[key] = value;
 
-			if (!(key in prev) || prev[key] !== value) {
-				prev[key] = value;
-			} else if (key !== '#class') {
+			if (key in prev && prev[key] === value && key !== '#class') {
 				continue;
 			}
 
-			set_attribute_helper(element, key, value);
+			set_attribute_helper(element, key, value, remove_listeners);
 		}
 		prev = current;
 	};

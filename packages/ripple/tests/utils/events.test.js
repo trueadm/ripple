@@ -1,37 +1,39 @@
+/** @import { AddEventObject } from '#public'*/
+
 import { describe, it, expect } from 'vitest';
 import {
-	is_delegated,
+	is_non_delegated,
 	is_event_attribute,
-	is_capture_event,
 	get_attribute_event_name,
-	is_passive_event
+	is_passive_event,
+	is_capture_event,
 } from '../../src/utils/events.js';
 
 describe('events utility', () => {
-	describe('is_delegated', () => {
-		it('should return true for delegated events', () => {
-			expect(is_delegated('click')).toBe(true);
-			expect(is_delegated('input')).toBe(true);
-			expect(is_delegated('change')).toBe(true);
-			expect(is_delegated('mousedown')).toBe(true);
-			expect(is_delegated('keydown')).toBe(true);
-			expect(is_delegated('pointerdown')).toBe(true);
-			expect(is_delegated('touchstart')).toBe(true);
-			expect(is_delegated('focusin')).toBe(true);
-			expect(is_delegated('focusout')).toBe(true);
+	describe('is event delegated', () => {
+		it('should confirm delegated events', () => {
+			expect(is_non_delegated('click')).toBe(false);
+			expect(is_non_delegated('input')).toBe(false);
+			expect(is_non_delegated('change')).toBe(false);
+			expect(is_non_delegated('mousedown')).toBe(false);
+			expect(is_non_delegated('keydown')).toBe(false);
+			expect(is_non_delegated('pointerdown')).toBe(false);
+			expect(is_non_delegated('touchstart')).toBe(false);
+			expect(is_non_delegated('focusin')).toBe(false);
+			expect(is_non_delegated('focusout')).toBe(false);
 		});
 
-		it('should return false for non-delegated events', () => {
-			expect(is_delegated('focus')).toBe(false);
-			expect(is_delegated('blur')).toBe(false);
-			expect(is_delegated('scroll')).toBe(false);
-			expect(is_delegated('load')).toBe(false);
-			expect(is_delegated('resize')).toBe(false);
+		it('should confirm non-delegated events', () => {
+			expect(is_non_delegated('focus')).toBe(true);
+			expect(is_non_delegated('blur')).toBe(true);
+			expect(is_non_delegated('scroll')).toBe(true);
+			expect(is_non_delegated('load')).toBe(true);
+			expect(is_non_delegated('resize')).toBe(true);
 		});
 
-		it('should be case-sensitive', () => {
-			expect(is_delegated('Click')).toBe(false);
-			expect(is_delegated('CLICK')).toBe(false);
+		it('should confirm that events with any capital letters are delegated', () => {
+			expect(is_non_delegated('Click')).toBe(false);
+			expect(is_non_delegated('CLICK')).toBe(false);
 		});
 	});
 
@@ -74,6 +76,32 @@ describe('events utility', () => {
 		});
 	});
 
+	describe('get_attribute_event_name', () => {
+		it('should convert event attribute names to lowercase and strip "on" prefix', () => {
+			const fn = () => {};
+			expect(get_attribute_event_name('onClick', fn)).toBe('click');
+			expect(get_attribute_event_name('onInput', fn)).toBe('input');
+			expect(get_attribute_event_name('onMouseDown', fn)).toBe('mousedown');
+			expect(get_attribute_event_name('onKeyPress', fn)).toBe('keypress');
+			expect(get_attribute_event_name('onChange', fn)).toBe('change');
+			expect(get_attribute_event_name('onFocus', fn)).toBe('focus');
+		});
+
+		it('should keep event attribute names letter case and strip "on" prefix', () => {
+			/** @type AddEventObject */
+			const customHandler = { handleEvent: () => {} };
+			expect(get_attribute_event_name('onClick', { ...customHandler, customName: 'Click' })).toBe(
+				'Click',
+			);
+			expect(get_attribute_event_name('onInput', { ...customHandler, customName: 'Input' })).toBe(
+				'Input',
+			);
+			expect(
+				get_attribute_event_name('onMouseDown', { ...customHandler, customName: 'MouseDown' }),
+			).toBe('MouseDown');
+		});
+	});
+
 	describe('is_capture_event', () => {
 		it('should return true for capture events', () => {
 			expect(is_capture_event('clickCapture')).toBe(true);
@@ -104,25 +132,6 @@ describe('events utility', () => {
 			expect(is_capture_event('keypressCapture')).toBe(true);
 			expect(is_capture_event('clickcapture')).toBe(false);
 			expect(is_capture_event('keypresscapture')).toBe(false);
-		})
-	});
-
-	describe('get_attribute_event_name', () => {
-		it('should convert event attribute names to lowercase and strip "on" prefix', () => {
-			expect(get_attribute_event_name('onClick')).toBe('click');
-			expect(get_attribute_event_name('onInput')).toBe('input');
-			expect(get_attribute_event_name('onMouseDown')).toBe('mousedown');
-			expect(get_attribute_event_name('onKeyPress')).toBe('keypress');
-			expect(get_attribute_event_name('onChange')).toBe('change');
-			expect(get_attribute_event_name('onFocus')).toBe('focus');
-		});
-
-		it('should handle capture events and strip both "on" and "Capture"', () => {
-			expect(get_attribute_event_name('onClickCapture')).toBe('click');
-			expect(get_attribute_event_name('onMouseDownCapture')).toBe('mousedown');
-			expect(get_attribute_event_name('onMouseDownCapture')).toBe('mousedown');
-			expect(get_attribute_event_name('onGotPointerCapture')).toBe('gotpointercapture');
-			expect(get_attribute_event_name('onLostPointerCapture')).toBe('lostpointercapture');
 		});
 	});
 
@@ -130,6 +139,8 @@ describe('events utility', () => {
 		it('should return true for passive events', () => {
 			expect(is_passive_event('touchstart')).toBe(true);
 			expect(is_passive_event('touchmove')).toBe(true);
+			expect(is_passive_event('wheel')).toBe(true);
+			expect(is_passive_event('mousewheel')).toBe(true);
 		});
 
 		it('should return false for non-passive events', () => {

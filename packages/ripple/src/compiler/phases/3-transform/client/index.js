@@ -40,7 +40,11 @@ import {
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
 import { render_stylesheets } from '../stylesheet.js';
-import { is_event_attribute, is_passive_event } from '../../../../utils/events.js';
+import {
+	get_original_event_name,
+	is_event_attribute,
+	normalize_event_name,
+} from '../../../../utils/events.js';
 import { createHash } from 'node:crypto';
 
 function add_ripple_internal_import(context) {
@@ -976,55 +980,35 @@ const visitors = {
 						}
 
 						if (is_event_attribute(name)) {
-							let capture = name.endsWith('Capture');
-							let event_name = capture
-								? name.slice(2, -7).toLowerCase()
-								: name.slice(2).toLowerCase();
-							let handler = visit(attr.value, state);
+							const metadata = { tracking: false, await: false };
+							let handler = visit(attr.value, { ...state, metadata });
+							const id = state.flush_node();
 
 							if (attr.metadata?.delegated) {
-								let delegated_assignment;
+								const event_name = normalize_event_name(name);
 
 								if (!state.events.has(event_name)) {
 									state.events.add(event_name);
 								}
 
-								if (
-									(handler.type === 'Identifier' &&
-										is_declared_function_within_component(handler, context)) ||
-									handler.type === 'ArrowFunctionExpression' ||
-									handler.type === 'FunctionExpression'
-								) {
-									delegated_assignment = handler;
-								} else {
-									delegated_assignment = b.array([handler, b.id('__block')]);
-								}
-								const id = state.flush_node();
-
 								state.init.push(
-									b.stmt(b.assignment('=', b.member(id, '__' + event_name), delegated_assignment)),
+									b.stmt(b.assignment('=', b.member(id, '__' + event_name), handler)),
 								);
 							} else {
-								const passive = is_passive_event(event_name);
-								const id = state.flush_node();
-
-								state.init.push(
-									b.stmt(
-										b.call(
-											'_$_.event',
-											b.literal(event_name),
-											id,
-											handler,
-											capture && b.true,
-											passive === undefined ? undefined : b.literal(passive),
-										),
-									),
-								);
+								const event_name = get_original_event_name(name);
+								// Check if handler is reactive (contains tracking)
+								if (metadata.tracking) {
+									// Use reactive_event with a thunk to re-evaluate when dependencies change
+									state.init.push(
+										b.stmt(b.call('_$_.render_event', b.literal(event_name), id, b.thunk(handler))),
+									);
+								} else {
+									state.init.push(b.stmt(b.call('_$_.event', b.literal(event_name), id, handler)));
+								}
 							}
 
 							continue;
 						}
-
 						const metadata = { tracking: false, await: false };
 						const expression = visit(attr.value, { ...state, metadata });
 						// All other attributes

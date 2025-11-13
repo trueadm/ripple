@@ -1,4 +1,13 @@
-import { is_passive_event } from '../../../utils/events.js';
+/** @import { AddEventObject, AddEventOptions, ExtendedEventOptions } from '#public'*/
+/**
+ * @typedef {EventTarget & Record<string, any>} DelegatedEventTarget
+ */
+import {
+	event_name_from_capture,
+	is_capture_event,
+	is_non_delegated,
+	is_passive_event,
+} from '../../../utils/events.js';
 import {
 	active_block,
 	active_reaction,
@@ -8,6 +17,7 @@ import {
 	tracking,
 } from './runtime.js';
 import { array_from, define_property, is_array } from './utils.js';
+import { render } from './blocks.js';
 
 /** @type {Set<string>} */
 var all_registered_events = new Set();
@@ -16,20 +26,43 @@ var all_registered_events = new Set();
 var root_event_handles = new Set();
 
 /**
+ * @param {AddEventOptions} options
+ * @returns {AddEventListenerOptions}
+ */
+function get_event_options(options) {
+	/** @type AddEventListenerOptions */
+	var event_options = {};
+
+	if (options.capture) {
+		event_options.capture = true;
+	}
+	if (options.once) {
+		event_options.once = true;
+	}
+	if (options.passive) {
+		event_options.passive = true;
+	}
+	if (options.signal) {
+		event_options.signal = options.signal;
+	}
+	return event_options;
+}
+
+/**
  * @param {EventTarget} element
  * @param {string} type
  * @param {EventListener} handler
- * @param {AddEventListenerOptions} [options]
+ * @param {ExtendedEventOptions} [options]
  */
 export function on(element, type, handler, options = {}) {
-	var target_handler = create_event(type.toLowerCase(), element, handler, options);
+	var remove_listener = create_event(type, element, handler, options);
 
 	return () => {
-		element.removeEventListener(type, target_handler, options);
+		remove_listener();
 	};
 }
 
-let last_propagated_event = null;
+var last_propagated_event = null;
 
 /**
  * @this {EventTarget}
@@ -130,12 +163,7 @@ export function handle_event_propagation(event) {
 				var delegated = current_target['__' + event_name];
 
 				if (delegated !== undefined && !(/** @type {any} */ (current_target).disabled)) {
-					if (is_array(delegated)) {
-						var [fn, block, ...data] = delegated;
-						fn.apply(current_target, [event, ...data, block]);
-					} else {
-						delegated.call(current_target, event);
-					}
+					delegated.call(current_target, event);
 				}
 			} catch (error) {
 				if (throw_error) {
@@ -174,12 +202,51 @@ export function handle_event_propagation(event) {
 /**
  * @param {string} event_name
  * @param {EventTarget} dom
- * @param {EventListener} [handler]
- * @param {AddEventListenerOptions} [options]
+ * @param {EventListener} handler
+ * @param {AddEventOptions} options
+ * @returns {() => void}
  */
-function create_event(event_name, dom, handler, options = {}) {
-	/** @this {any} */
-	function target_handler(/** @type {Event} */ event) {
+function create_event(event_name, dom, handler, options) {
+	var is_delegated = true;
+
+	if (is_capture_event(event_name)) {
+		event_name = event_name_from_capture(event_name);
+
+		if (!('capture' in options) || options.capture !== false) {
+			options.capture = true;
+		}
+	}
+
+	event_name =
+		options.customName && options.customName?.length
+			? options.customName
+			: event_name.toLowerCase();
+
+	if (
+		options.delegated === false ||
+		options.capture ||
+		options.passive ||
+		options.once ||
+		options.signal ||
+		is_non_delegated(event_name)
+	) {
+		is_delegated = false;
+	}
+
+	if (is_delegated) {
+		var prop = '__' + event_name;
+		/** @type {DelegatedEventTarget} */ (dom)[prop] = handler;
+		delegate([event_name]);
+		return () => {
+			/** @type {DelegatedEventTarget} */ (dom)[prop] = undefined;
+		};
+	}
+
+	/**
+	 * @type {EventListener}
+	 * @this {Element}
+	 */
+	function target_handler(event) {
 		var previous_block = active_block;
 		var previous_reaction = active_reaction;
 		var previous_tracking = tracking;
@@ -203,22 +270,64 @@ function create_event(event_name, dom, handler, options = {}) {
 		}
 	}
 
-	dom.addEventListener(event_name, target_handler, options);
+	var event_options = get_event_options(options);
 
-	return target_handler;
+	dom.addEventListener(event_name, target_handler, event_options);
+	return () => {
+		dom.removeEventListener(event_name, target_handler, event_options);
+	};
 }
 
 /**
  * @param {string} event_name
  * @param {Element} dom
- * @param {EventListener} [handler]
- * @param {boolean} [capture]
- * @param {boolean} [passive]
- * @returns {void}
+ * @param {EventListener | AddEventObject} handler
+ * @returns {() => void}
  */
-export function event(event_name, dom, handler, capture, passive) {
-	var options = { capture, passive };
-	create_event(event_name, dom, handler, options);
+export function event(event_name, dom, handler) {
+	/** @type AddEventOptions */
+	var options = {};
+	/** @type {EventListener} */
+	var event_handler;
+
+	if (typeof handler === 'object' && 'handleEvent' in handler) {
+		({ handleEvent: event_handler, ...options } = handler);
+	} else {
+		event_handler = handler;
+	}
+
+	return create_event(event_name, dom, event_handler, options);
+}
+
+/**
+ * Reactive version of event that automatically cleans up and re-attaches
+ * when the handler changes
+ * @param {string} event_name
+ * @param {Element} dom
+ * @param {() => EventListener | AddEventObject} get_handler
+ */
+export function render_event(event_name, dom, get_handler) {
+	/** @type {EventListener | AddEventObject | undefined} */
+	var prev;
+	/** @type {(() => void) | undefined} */
+	var remove_listener;
+
+	render(() => {
+		var handler = get_handler();
+
+		if (handler !== prev) {
+			if (remove_listener) {
+				remove_listener();
+				remove_listener = undefined;
+			}
+
+			prev = handler;
+
+			if (handler) {
+				remove_listener = event(event_name, dom, handler);
+			}
+		}
+	});
 }
 
 /**
