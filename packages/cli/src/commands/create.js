@@ -124,42 +124,25 @@ function showNextSteps(projectPath, packageManager) {
 	const installCommand = getInstallCommand(packageManager);
 	const devCommand = getDevCommand(packageManager);
 	const relativePath = relative(process.cwd(), projectPath);
-
 	console.log();
 	console.log(green('🎉 Success! Your Ripple app is ready to go.'));
 	console.log();
 	console.log(bold('Next steps:'));
 	console.log();
-
-	console.log(`  ${cyan('1.')} Navigate to your project:`);
-	console.log(`     ${dim('cd')} ${relativePath}`);
+	console.log(`  ${green('1.')} ${dim('cd')} ${relativePath}`);
+	console.log(`  ${green('2.')} ${dim(installCommand)}`);
+	console.log(`  ${green('3.')} ${dim(devCommand)}`);
+	console.log(`  ${green('4.')} visit: ${cyan('http://localhost:3000')}`);
+	console.log(`  ${green('5.')} make changes in the: ${cyan('src/')} directory`);
 	console.log();
-
-	console.log(`  ${cyan('2.')} Install dependencies:`);
-	console.log(`     ${dim(installCommand)}`);
-	console.log();
-
-	console.log(`  ${cyan('3.')} Start the development server:`);
-	console.log(`     ${dim(devCommand)}`);
-	console.log();
-
-	console.log(`  ${cyan('4.')} Open your browser and visit:`);
-	console.log(`     ${green('http://localhost:3000')}`);
-	console.log();
-
-	console.log(
-		`  ${dim('Your app is now running! Edit files in the')} ${cyan('src/')} ${dim('directory to see changes live.')}`,
-	);
-	console.log();
-
 	console.log(bold('Need help? Check out:'));
 	console.log(`  ${dim('•')} README.md in your project folder`);
 	console.log(`  ${dim('•')} Documentation: ${cyan('https://www.ripplejs.com/docs/introduction')}`);
 	console.log();
-
 	console.log('Happy coding! 🌊');
 	console.log();
 }
+
 /**
  * Get install command for package manager
  * @param {PackageManager} packageManager - Package manager name
