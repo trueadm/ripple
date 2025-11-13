@@ -54,7 +54,7 @@ and then come back! You can check your knowledge level with these overviews for
 [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/A_re-introduction_to_JavaScript),
 [HTML](https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML)
 and [CSS](https://developer.mozilla.org/en-US/docs/Learn/CSS/First_steps) if
-needed. Prior experience with other frameworks helps, but is not required.
+needed. Prior experience with other frameworks is helpful but not required.
 :::
 
 ## Features

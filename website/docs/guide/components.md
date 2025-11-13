@@ -15,7 +15,7 @@ title: Components in Ripple
 Ripple's component lifecycle is akin to Vue/Svelte/Solid. The root scope of your
 component only runs once, akin to the "setup" scope in Vue/Svelte/Solid. However,
 all child scopes such as nested template scopes, and blocks like `if` and `for`,
-may rerun if they have reactive variables within them. Therefore, it is
+may rerun if they contain reactive variables within them. Therefore, it is
 advisable to only write pure code within your components, and place side-effects
 within `effect()` to ensure they only run when intended.
 
@@ -88,7 +88,7 @@ export component App() {
 Using what we've learnt, let's make a versatile card component that can display
 an optional header and footer.
 
-This is a common pattern you'll see achieved with "slots" from Vue/Web
+This pattern is commonly achieved with "slots" from Vue/Web
 Components, "render props" from React, and "snippets" from Svelte.
 
 <Code>

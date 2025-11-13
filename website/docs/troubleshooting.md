@@ -6,7 +6,7 @@ title: Troubleshooting in Ripple
 
 ## Unterminated regular expression
 
-While this may be caused by an actual unterminated regular expression, most of
+While this may be caused by an actual unterminated regular expression, most of the
 time, it's caused by not putting your DOM text nodes within expression {braces}.
 
 ```ripple

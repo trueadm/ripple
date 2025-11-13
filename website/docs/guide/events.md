@@ -22,7 +22,7 @@ For `capture` phase events, just add `Capture` to the end of the prop name:
 - `onKeyDownCapture`
 
 ::: info
-Some events are automatically delegated by the compiler where possible
+Some events are automatically delegated by the compiler wherever possible,
 to improve runtime performance.
 :::
 

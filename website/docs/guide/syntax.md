@@ -25,7 +25,7 @@ component Hello() {
 
 ::: info Notice Anything Missing?
 The lack of a return statement, unlike a (functional-style) JSX component isn't
-errorneous. As explained above, templates are statements rather than expressions,
+erroneous. As explained above, templates are statements rather than expressions,
 unlike JSX. We'll explore what you can do with that later!
 :::
 
