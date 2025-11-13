@@ -6,7 +6,7 @@
 
 import { basename, resolve, relative } from 'node:path';
 import { existsSync } from 'node:fs';
-import { green, cyan, dim, red } from 'kleur/colors';
+import { green, cyan, dim, red, bold } from 'kleur/colors';
 import { validateProjectName } from '../lib/validation.js';
 import { validateTemplate, getTemplateNames } from '../lib/templates.js';
 import {
@@ -123,19 +123,43 @@ export async function createCommand(projectName, options) {
 function showNextSteps(projectPath, packageManager) {
 	const installCommand = getInstallCommand(packageManager);
 	const devCommand = getDevCommand(packageManager);
+	const relativePath = relative(process.cwd(), projectPath);
 
 	console.log();
 	console.log(green('🎉 Success! Your Ripple app is ready to go.'));
 	console.log();
-	console.log('Next steps:');
-	console.log(`  ${dim('cd')} ${relative(process.cwd(), projectPath)}`);
-	console.log(`  ${dim(installCommand)}`);
-	console.log(`  ${dim(devCommand)}`);
+	console.log(bold('Next steps:'));
 	console.log();
+
+	console.log(`  ${cyan('1.')} Navigate to your project:`);
+	console.log(`     ${dim('cd')} ${relativePath}`);
+	console.log();
+
+	console.log(`  ${cyan('2.')} Install dependencies:`);
+	console.log(`     ${dim(installCommand)}`);
+	console.log();
+
+	console.log(`  ${cyan('3.')} Start the development server:`);
+	console.log(`     ${dim(devCommand)}`);
+	console.log();
+
+	console.log(`  ${cyan('4.')} Open your browser and visit:`);
+	console.log(`     ${green('http://localhost:3000')}`);
+	console.log();
+
+	console.log(
+		`  ${dim('Your app is now running! Edit files in the')} ${cyan('src/')} ${dim('directory to see changes live.')}`,
+	);
+	console.log();
+
+	console.log(bold('Need help? Check out:'));
+	console.log(`  ${dim('•')} README.md in your project folder`);
+	console.log(`  ${dim('•')} Documentation: ${cyan('https://www.ripplejs.com/docs/introduction')}`);
+	console.log();
+
 	console.log('Happy coding! 🌊');
 	console.log();
 }
-
 /**
  * Get install command for package manager
  * @param {PackageManager} packageManager - Package manager name
