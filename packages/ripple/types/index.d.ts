@@ -137,13 +137,13 @@ export declare function trackSplit<V extends Props, const K extends readonly (ke
 	splitKeys: K,
 ): SplitResult<V, K>;
 
-export interface AddEventOptions extends AddEventListenerOptions, ExtendedEventOptions {
+export interface AddEventOptions extends ExtendedEventOptions {
 	customName?: string;
 }
 
 export interface AddEventObject extends AddEventOptions, EventListenerObject {}
 
-export interface ExtendedEventOptions extends EventListenerOptions {
+export interface ExtendedEventOptions extends AddEventListenerOptions, EventListenerOptions {
 	delegated?: boolean;
 }
 
