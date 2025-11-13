@@ -212,13 +212,13 @@ function createDouble(count) {
     console.log('Count:', @count)
   });
 
-  return [ double ];
+  return double;
 }
 
 export component App() {
   let count = track(0);
 
-  const [ double ] = createDouble(count);
+  const double = createDouble(count);
 
   <div>{'Double: ' + @double}</div>
   <button onClick={() => { @count++; }}>{'Increment'}</button>
