@@ -999,9 +999,7 @@ const visitors = {
 										b.stmt(b.call('_$_.render_event', b.literal(event_name), id, b.thunk(handler))),
 									);
 								} else {
-									state.init.push(
-										b.stmt(b.call('_$_.static_event', b.literal(event_name), id, handler)),
-									);
+									state.init.push(b.stmt(b.call('_$_.event', b.literal(event_name), id, handler)));
 								}
 							}
 

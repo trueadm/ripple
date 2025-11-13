@@ -263,16 +263,6 @@ export function apply_element_spread(element, fn) {
 	/** @type {Record<string | symbol, (() => void) | undefined>} */
 	var remove_listeners = {};
 
-	branch(() => {
-		return () => {
-			for (const key in remove_listeners) {
-				if (remove_listeners[key]) {
-					remove_listeners[key]();
-				}
-			}
-		};
-	});
-
 	return () => {
 		var next = fn();
 
