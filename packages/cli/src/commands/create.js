@@ -6,7 +6,7 @@
 
 import { basename, resolve, relative } from 'node:path';
 import { existsSync } from 'node:fs';
-import { green, cyan, dim, red } from 'kleur/colors';
+import { green, cyan, dim, red, bold } from 'kleur/colors';
 import { validateProjectName } from '../lib/validation.js';
 import { validateTemplate, getTemplateNames } from '../lib/templates.js';
 import {
@@ -123,14 +123,21 @@ export async function createCommand(projectName, options) {
 function showNextSteps(projectPath, packageManager) {
 	const installCommand = getInstallCommand(packageManager);
 	const devCommand = getDevCommand(packageManager);
-
+	const relativePath = relative(process.cwd(), projectPath);
 	console.log();
 	console.log(green('🎉 Success! Your Ripple app is ready to go.'));
 	console.log();
-	console.log('Next steps:');
-	console.log(`  ${dim('cd')} ${relative(process.cwd(), projectPath)}`);
-	console.log(`  ${dim(installCommand)}`);
-	console.log(`  ${dim(devCommand)}`);
+	console.log(bold('Next steps:'));
+	console.log();
+	console.log(`  ${green('1.')} ${dim('cd')} ${relativePath}`);
+	console.log(`  ${green('2.')} ${dim(installCommand)}`);
+	console.log(`  ${green('3.')} ${dim(devCommand)}`);
+	console.log(`  ${green('4.')} visit: ${cyan('http://localhost:3000')}`);
+	console.log(`  ${green('5.')} make changes in the: ${cyan('src/')} directory`);
+	console.log();
+	console.log(bold('Need help? Check out:'));
+	console.log(`  ${dim('•')} README.md in your project folder`);
+	console.log(`  ${dim('•')} Documentation: ${cyan('https://www.ripplejs.com/docs/introduction')}`);
 	console.log();
 	console.log('Happy coding! 🌊');
 	console.log();
