@@ -213,6 +213,7 @@ function create_event(event_name, dom, handler, options) {
 		options.capture ||
 		options.passive ||
 		options.once ||
+		options.signal ||
 		is_non_delegated(event_name)
 	) {
 		is_delegated = false;
