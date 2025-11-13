@@ -324,6 +324,24 @@ export function render_event(event_name, dom, get_handler) {
 }
 
 /**
+ * Non-reactive version of event that automatically cleans up
+ * @param {string} event_name
+ * @param {Element} dom
+ * @param {EventListener | AddEventObject} handler
+ */
+export function static_event(event_name, dom, handler) {
+	/** @type {(() => void) */
+	var remove_listener;
+
+	render(() => {
+		remove_listener = event(event_name, dom, handler);
+		return () => {
+			remove_listener();
+		};
+	});
+}
+
+/**
  * @param {Array<string>} events
  * @returns {void}
  */
