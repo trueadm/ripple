@@ -1,4 +1,4 @@
-/** @import { AddEventObject, AddEventOptions } from '#public'*/
+/** @import { AddEventObject, AddEventOptions, OnEventOptions } from '#public'*/
 /**
  * @typedef {EventTarget & Record<string, any>} DelegatedEventTarget
  */
@@ -47,7 +47,7 @@ function get_event_options(options) {
  * @param {EventTarget} element
  * @param {string} type
  * @param {EventListener} handler
- * @param {AddEventOptions} [options]
+ * @param {OnEventOptions} [options]
  */
 export function on(element, type, handler, options = {}) {
 	var remove_listener = create_event(type, element, handler, options);
