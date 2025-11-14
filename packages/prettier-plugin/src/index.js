@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
-import * as prettier from 'prettier';
 
 const { builders, utils } = doc;
 const {
@@ -22,12 +21,6 @@ const {
 } = builders;
 const { willBreak } = utils;
 
-// Embed function for formatting embedded content (like CSS in <style> tags)
-// Note: Currently not used as we handle style formatting directly in printElement
-export function embed(path, options) {
-	return null;
-}
-
 export const languages = [
 	{
 		name: 'ripple',
@@ -40,42 +33,8 @@ export const languages = [
 export const parsers = {
 	ripple: {
 		astFormat: 'ripple-ast',
-		async parse(text, parsers, options) {
-			const ast = parse(text);
-
-			// Pre-format CSS in style tags so it's ready for printing
-			// We need to do this here because the print function is synchronous
-			const formatCSS = async (node) => {
-				if (node && typeof node === 'object') {
-					// If this is a style Element with CSS, format it
-					if (node.type === 'Element' && node.id?.name === 'style' && node.css) {
-						try {
-							const formatted = await prettier.format(node.css, {
-								parser: 'css',
-								printWidth: options.printWidth,
-								tabWidth: options.tabWidth,
-								useTabs: options.useTabs,
-							});
-							// Store the formatted CSS
-							node.formattedCSS = formatted.trim();
-						} catch (error) {
-							console.error('Error pre-formatting CSS:', error);
-						}
-					}
-
-					// Recursively process all properties
-					for (const key in node) {
-						if (Array.isArray(node[key])) {
-							await Promise.all(node[key].map(formatCSS));
-						} else if (node[key] && typeof node[key] === 'object') {
-							await formatCSS(node[key]);
-						}
-					}
-				}
-			};
-
-			await formatCSS(ast);
-			return ast;
+		parse(text, parsers, options) {
+			return parse(text);
 		},
 
 		locStart(node) {
@@ -101,16 +60,47 @@ export const printers = {
 			}
 			return typeof parts === 'string' ? parts : parts;
 		},
+		embed(path, options) {
+			const node = path.getValue();
+
+			// Handle StyleSheet nodes inside style tags
+			if (node.type === 'StyleSheet' && node.source) {
+				// Return async function that will be called by Prettier
+				return async (textToDoc) => {
+					try {
+						// Format CSS using Prettier's textToDoc
+						const body = await textToDoc(node.source, {
+							parser: 'css',
+						});
+
+						// Return the formatted CSS
+						// Note: printElement will wrap this in indent(), so we don't add indent here
+						return body;
+					} catch (error) {
+						// If CSS has syntax errors, return original unformatted content
+						console.error('Error formatting CSS:', error);
+						return node.source;
+					}
+				};
+			}
+
+			return null;
+		},
 		getVisitorKeys(node) {
+			// Exclude metadata and raw text properties that shouldn't be traversed
+			// The css property is specifically excluded so embed() can handle it
+			const excludedKeys = new Set([
+				'start',
+				'end',
+				'loc',
+				'metadata',
+				'css', // Handled by embed()
+				'raw',
+				'regex',
+			]);
+
 			const keys = Object.keys(node).filter((key) => {
-				// Exclude metadata keys and the css property (css is handled by embed)
-				if (
-					key === 'start' ||
-					key === 'end' ||
-					key === 'loc' ||
-					key === 'metadata' ||
-					key === 'css'
-				) {
+				if (excludedKeys.has(key)) {
 					return false;
 				}
 				return typeof node[key] === 'object' && node[key] !== null;
@@ -4684,52 +4674,6 @@ function printMemberExpressionSimple(node, options, computed = false) {
 
 function printElement(node, path, options, print) {
 	const tagName = printMemberExpressionSimple(node.id, options);
-
-	// Special handling for <style> tags - use pre-formatted CSS
-	if (tagName === 'style' && node.formattedCSS) {
-		// Build the style tag with formatted CSS
-		const hasAttributes = Array.isArray(node.attributes) && node.attributes.length > 0;
-		const attrLineBreak = options.singleAttributePerLine ? hardline : line;
-
-		const openingTag = hasAttributes
-			? group([
-					'<',
-					tagName,
-					indent(
-						concat([
-							...path.map((attrPath) => {
-								return concat([attrLineBreak, print(attrPath)]);
-							}, 'attributes'),
-						]),
-					),
-					options.bracketSameLine ? '' : softline,
-					'>',
-				])
-			: '<style>';
-
-		const closingTag = '</style>';
-
-		// Split CSS into lines and preserve blank lines
-		// Map each line to either the line content or hardline for blank lines
-		const cssLines = node.formattedCSS.split('\n');
-		const cssDocs = [];
-		for (let i = 0; i < cssLines.length; i++) {
-			const line = cssLines[i];
-			if (line.trim() === '' && i > 0 && i < cssLines.length - 1) {
-				// This is a blank line in the middle - add an extra hardline
-				cssDocs.push(hardline);
-			} else if (line.trim() !== '') {
-				// This is a content line
-				if (cssDocs.length > 0) {
-					cssDocs.push(hardline);
-				}
-				cssDocs.push(line);
-			}
-		}
-
-		// Indent the CSS content
-		return group([openingTag, indent([hardline, ...cssDocs]), hardline, closingTag]);
-	}
 
 	const elementLeadingComments = getElementLeadingComments(node);
 	const metadataCommentParts =
