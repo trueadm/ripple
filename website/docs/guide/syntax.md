@@ -179,7 +179,7 @@ write a JS expression that evaluates to our desired value.
 ::: info
 Plain attributes can still be used.
 ```ripple
-<input type="textarea" />
+<input type="text" />
 ```
 :::
 
