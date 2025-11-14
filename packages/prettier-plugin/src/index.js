@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { parse } from 'ripple/compiler';
 import { doc } from 'prettier';
+import * as prettier from 'prettier';
 
 const { builders, utils } = doc;
 const {
@@ -21,7 +22,8 @@ const {
 } = builders;
 const { willBreak } = utils;
 
-// Embed function - not needed for now
+// Embed function for formatting embedded content (like CSS in <style> tags)
+// Note: Currently not used as we handle style formatting directly in printElement
 export function embed(path, options) {
 	return null;
 }
@@ -38,8 +40,41 @@ export const languages = [
 export const parsers = {
 	ripple: {
 		astFormat: 'ripple-ast',
-		parse(text, parsers, options) {
+		async parse(text, parsers, options) {
 			const ast = parse(text);
+
+			// Pre-format CSS in style tags so it's ready for printing
+			// We need to do this here because the print function is synchronous
+			const formatCSS = async (node) => {
+				if (node && typeof node === 'object') {
+					// If this is a style Element with CSS, format it
+					if (node.type === 'Element' && node.id?.name === 'style' && node.css) {
+						try {
+							const formatted = await prettier.format(node.css, {
+								parser: 'css',
+								printWidth: options.printWidth,
+								tabWidth: options.tabWidth,
+								useTabs: options.useTabs,
+							});
+							// Store the formatted CSS
+							node.formattedCSS = formatted.trim();
+						} catch (error) {
+							console.error('Error pre-formatting CSS:', error);
+						}
+					}
+
+					// Recursively process all properties
+					for (const key in node) {
+						if (Array.isArray(node[key])) {
+							await Promise.all(node[key].map(formatCSS));
+						} else if (node[key] && typeof node[key] === 'object') {
+							await formatCSS(node[key]);
+						}
+					}
+				}
+			};
+
+			await formatCSS(ast);
 			return ast;
 		},
 
@@ -68,9 +103,17 @@ export const printers = {
 		},
 		getVisitorKeys(node) {
 			const keys = Object.keys(node).filter((key) => {
-				return key === 'start' || key === 'end' || key === 'loc' || key === 'metadata' || 'css'
-					? false
-					: typeof node[key] === 'object' && node[key] !== null;
+				// Exclude metadata keys and the css property (css is handled by embed)
+				if (
+					key === 'start' ||
+					key === 'end' ||
+					key === 'loc' ||
+					key === 'metadata' ||
+					key === 'css'
+				) {
+					return false;
+				}
+				return typeof node[key] === 'object' && node[key] !== null;
 			});
 
 			return keys;
@@ -1976,6 +2019,10 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'Block':
 			nodeContent = printCSSBlock(node, path, options, print);
+			break;
+
+		case 'Percentage':
+			nodeContent = node.value || '';
 			break;
 
 		case 'Attribute':
@@ -4905,6 +4952,52 @@ function printMemberExpressionSimple(node, options, computed = false) {
 
 function printElement(node, path, options, print) {
 	const tagName = printMemberExpressionSimple(node.id, options);
+
+	// Special handling for <style> tags - use pre-formatted CSS
+	if (tagName === 'style' && node.formattedCSS) {
+		// Build the style tag with formatted CSS
+		const hasAttributes = Array.isArray(node.attributes) && node.attributes.length > 0;
+		const attrLineBreak = options.singleAttributePerLine ? hardline : line;
+
+		const openingTag = hasAttributes
+			? group([
+					'<',
+					tagName,
+					indent(
+						concat([
+							...path.map((attrPath) => {
+								return concat([attrLineBreak, print(attrPath)]);
+							}, 'attributes'),
+						]),
+					),
+					options.bracketSameLine ? '' : softline,
+					'>',
+				])
+			: '<style>';
+
+		const closingTag = '</style>';
+
+		// Split CSS into lines and preserve blank lines
+		// Map each line to either the line content or hardline for blank lines
+		const cssLines = node.formattedCSS.split('\n');
+		const cssDocs = [];
+		for (let i = 0; i < cssLines.length; i++) {
+			const line = cssLines[i];
+			if (line.trim() === '' && i > 0 && i < cssLines.length - 1) {
+				// This is a blank line in the middle - add an extra hardline
+				cssDocs.push(hardline);
+			} else if (line.trim() !== '') {
+				// This is a content line
+				if (cssDocs.length > 0) {
+					cssDocs.push(hardline);
+				}
+				cssDocs.push(line);
+			}
+		}
+
+		// Indent the CSS content
+		return group([openingTag, indent([hardline, ...cssDocs]), hardline, closingTag]);
+	}
 
 	const elementLeadingComments = getElementLeadingComments(node);
 	const metadataCommentParts =

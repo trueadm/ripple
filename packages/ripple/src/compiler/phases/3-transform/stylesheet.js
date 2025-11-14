@@ -195,7 +195,7 @@ const visitors = {
 				const character = state.code.original[index];
 
 				if (regex_css_name_boundary.test(character)) {
-					if (character !== ' ') {
+					if (name) {
 						const append_index = index - name.length;
 						state.keyframes[name] ??= { indexes: [], local: undefined };
 						if (state.keyframes[name].local) {

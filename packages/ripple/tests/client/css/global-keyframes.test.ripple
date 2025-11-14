@@ -98,4 +98,61 @@ export component Test() {
 		expect(css).toContain('@keyframes foo');
 		expect(css).toContain('@keyframes bar');
 	});
+
+	it('handles animation property referencing keyframes (not marking as unused)', () => {
+		const source = `
+export component Parent() {
+	<div class="parent">
+		<Child />
+	</div>
+
+	<style>
+		/* Scoped keyframe - only usable within Parent */
+		@keyframes slideIn {
+			from { transform: translateX(-100%); }
+			to { transform: translateX(0); }
+		}
+
+		/* Global keyframe - usable in any component */
+		@keyframes -global-fadeIn {
+			0% { opacity: 0; }
+			100% { opacity: 1; }
+		}
+
+		.parent {
+			animation: slideIn 1s;
+		}
+	</style>
+}
+
+component Child() {
+	<div class="child">{'Child content'}</div>
+
+	<style>
+		.child {
+			animation: fadeIn 3s; /* Uses global fadeIn from Parent */
+		}
+	</style>
+}`;
+		const { css } = compile(source, 'test.ripple');
+
+		// Parent should have scoped slideIn and global fadeIn
+		expect(css).toMatch(/@keyframes ripple-[a-z0-9]+-slideIn/);
+		expect(css).toContain('@keyframes fadeIn');
+		expect(css).not.toContain('-global-fadeIn');
+
+		// Parent .parent should reference scoped slideIn
+		expect(css).toMatch(
+			/\.parent\.ripple-[a-z0-9]+\s*{[\s\S]*?animation:\s*ripple-[a-z0-9]+-slideIn 1s/,
+		);
+
+		// .parent should NOT be marked as unused
+		expect(css).not.toContain('(unused) .parent');
+
+		// Child .child should reference global fadeIn
+		expect(css).toMatch(/\.child\.ripple-[a-z0-9]+\s*{[\s\S]*?animation:\s*fadeIn 3s/);
+
+		// .child should NOT be marked as unused
+		expect(css).not.toContain('(unused) .child');
+	});
 });

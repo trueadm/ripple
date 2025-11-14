@@ -1135,6 +1135,59 @@ const [obj1, obj2] = arrayOfObjects;`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should keep css @keyframes syntax intact', async () => {
+			const input = `export component App() {
+  <style>
+    /* Scoped keyframe - only usable within Parent */
+    @keyframes slideIn {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+
+    /* Global keyframe - usable in any component */
+    @keyframes -global-fadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .parent {
+      animation: slideIn 1s;
+    }
+  </style>
+}`;
+
+			const expected = `export component App() {
+  <style>
+    /* Scoped keyframe - only usable within Parent */
+    @keyframes slideIn {
+      from {
+        transform: translateX(-100%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    /* Global keyframe - usable in any component */
+    @keyframes -global-fadeIn {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+
+    .parent {
+      animation: slideIn 1s;
+    }
+  </style>
+}`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should keep TrackedMap short syntax intact', async () => {
 			const expected = `const map = new #Map([['key1', 'value1'], ['key2', 'value2']]);
 const set = new #Set([1, 2, 3]);`;

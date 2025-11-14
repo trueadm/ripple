@@ -845,6 +845,26 @@ function get_parent_rules(rule) {
 	return rules;
 }
 
+/**
+ * Check if a CSS rule contains animation or animation-name properties
+ * @param {Compiler.AST.CSS.Rule} rule
+ * @returns {boolean}
+ */
+function rule_has_animation(rule) {
+	if (!rule.block) return false;
+
+	for (const child of rule.block.children) {
+		if (child.type === 'Declaration') {
+			const prop = child.property?.toLowerCase();
+			if (prop === 'animation' || prop === 'animation-name') {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 export function prune_css(css, element) {
 	walk(css, null, {
 		Rule(node, context) {
@@ -859,14 +879,9 @@ export function prune_css(css, element) {
 
 			seen.clear();
 
-			if (
-				apply_selector(
-					selectors,
-					/** @type {Compiler.AST.CSS.Rule} */ (node.metadata.rule),
-					element,
-					BACKWARD,
-				)
-			) {
+			const rule = /** @type {Compiler.AST.CSS.Rule} */ (node.metadata.rule);
+
+			if (apply_selector(selectors, rule, element, BACKWARD) || rule_has_animation(rule)) {
 				node.metadata.used = true;
 			}
 
