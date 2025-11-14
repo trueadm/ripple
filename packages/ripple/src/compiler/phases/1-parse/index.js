@@ -950,6 +950,16 @@ function RipplePlugin(config) {
 				return this.finishNode(node, isForIn ? 'ForInStatement' : 'ForOfStatement');
 			}
 
+			checkUnreserved(ref) {
+				if (ref.name === 'component') {
+					this.raise(
+						ref.start,
+						'"component" is a Ripple keyword and cannot be used as an identifier',
+					);
+				}
+				return super.checkUnreserved(ref);
+			}
+
 			shouldParseExportStatement() {
 				if (super.shouldParseExportStatement()) {
 					return true;
