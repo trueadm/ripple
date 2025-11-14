@@ -307,7 +307,7 @@ describe('compat-react', () => {
 			expect(reactContent.textContent).toBe('Provided Value');
 		});
 
-		it('should handle a React errors', async () => {
+		it('should handle React errors', async () => {
 			function ReactChild() {
 				throw new Error('Test Error');
 			}
@@ -333,7 +333,7 @@ describe('compat-react', () => {
 			expect(reactContent.textContent).toBe('ReactChiild had an error');
 		});
 
-		it('should handle a React errors #2', async () => {
+		it('should handle React errors #2', async () => {
 			function ReactChild() {
 				throw new Error('Test Error');
 			}
@@ -363,6 +363,43 @@ describe('compat-react', () => {
 			const reactContent = container.querySelector('div > div');
 			expect(reactContent).toBeTruthy();
 			expect(reactContent.textContent).toBe('ReactChiild had an error');
+		});
+
+		it('Should handle React context', async () => {
+			const DemoContext = createContext(null);
+
+			function DeepReactChild() {
+				const contextValue = useContext(DemoContext);
+				return jsx('div', { children: `Deep child, context value is: ${contextValue}` });
+			}
+
+			component RippleChild() {
+				<tsx:react>
+					<DeepReactChild />
+				</tsx:react>
+			}
+
+			function ReactChild() {
+				return jsx(Ripple, {
+					component: RippleChild,
+				});
+			}
+
+			component App() {
+				<tsx:react>
+					<DemoContext.Provider value={"Hello from Context!"}>
+						<ReactChild />
+					</DemoContext.Provider>
+				</tsx:react>
+			}
+
+			await act(async () => {
+				render(App);
+			});
+
+			const deepChild = container.querySelector('div');
+			expect(deepChild).toBeTruthy();
+			expect(deepChild.textContent).toBe('Deep child, context value is: Hello from Context!');
 		});
 	});
 
