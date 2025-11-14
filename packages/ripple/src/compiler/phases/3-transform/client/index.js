@@ -954,7 +954,7 @@ const visitors = {
 							const metadata = { tracking: false, await: false };
 							const expression = visit(attr.value, { ...state, metadata });
 
-							if (name === '$checked' || metadata.tracking) {
+							if (metadata.tracking) {
 								local_updates.push({
 									operation: b.stmt(b.call('_$_.set_checked', id, expression)),
 								});
