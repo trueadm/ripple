@@ -169,7 +169,12 @@ export component App() {
     </label>
     <p>{'Checked: '}{@checked ? 'Yes' : 'No'}</p>
     <p>{'Indeterminate: '}{@indeterminate ? 'Yes' : 'No'}</p>
-    <button onClick={() => @indeterminate = !@indeterminate}>
+    <button onClick={() => {
+      @indeterminate = !@indeterminate;
+      if (@indeterminate) {
+        @checked = false;
+      }
+    }}>
       {'Toggle Indeterminate'}
     </button>
   </div>
