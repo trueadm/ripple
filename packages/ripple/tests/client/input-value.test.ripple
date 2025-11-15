@@ -1,4 +1,71 @@
-import { flushSync, track, effect, bindValue, bindChecked } from 'ripple';
+import {
+	flushSync,
+	track,
+	effect,
+	bindValue,
+	bindChecked,
+	bindIndeterminate,
+	bindGroup,
+	bindClientWidth,
+	bindClientHeight,
+	bindOffsetWidth,
+	bindOffsetHeight,
+	bindContentRect,
+	bindContentBoxSize,
+	bindBorderBoxSize,
+	bindDevicePixelContentBoxSize,
+	bindInnerHTML,
+	bindInnerText,
+	bindTextContent,
+	bindNode,
+} from 'ripple';
+
+// Mock ResizeObserver for testing
+const resizeObserverCallbacks = new Map<any, ResizeObserverCallback>();
+const observedElements = new Map();
+
+function createMockResizeObserver(callback: ResizeObserverCallback) {
+	const instance = {
+		observe(element: Element, options?: ResizeObserverOptions) {
+			observedElements.set(element, options);
+		},
+		unobserve(element: Element) {
+			observedElements.delete(element);
+		},
+		disconnect() {
+			observedElements.clear();
+		},
+	};
+
+	resizeObserverCallbacks.set(instance, callback);
+	return instance;
+}
+
+function triggerResize(element: Element, entry: Partial<ResizeObserverEntry>) {
+	const defaultEntry: ResizeObserverEntry = {
+		target: element,
+		contentRect: entry.contentRect || new DOMRectReadOnly(0, 0, 100, 100),
+		borderBoxSize: entry.borderBoxSize || [],
+		contentBoxSize: entry.contentBoxSize || [],
+		devicePixelContentBoxSize: entry.devicePixelContentBoxSize || [],
+		...entry,
+	} as ResizeObserverEntry;
+
+	// Trigger all callbacks for this element
+	for (const [instance, callback] of resizeObserverCallbacks) {
+		callback([defaultEntry], instance as any);
+	}
+}
+
+// Setup ResizeObserver mock
+beforeAll(() => {
+	(global as any).ResizeObserver = createMockResizeObserver;
+});
+
+afterAll(() => {
+	resizeObserverCallbacks.clear();
+	observedElements.clear();
+});
 
 describe('use value()', () => {
 	it('should update value on input', () => {
@@ -48,6 +115,29 @@ describe('use value()', () => {
 		expect(logs).toEqual(['text changed', 'foo', 'text changed', 'Hello']);
 	});
 
+	it('should update text input element when tracked value changes', () => {
+		component App() {
+			const text = track('initial');
+
+			<div>
+				<input type="text" {ref bindValue(text)} />
+				<button onClick={() => (@text = 'updated')}>{'Update'}</button>
+			</div>
+		}
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(input.value).toBe('initial');
+
+		button.click();
+		flushSync();
+
+		expect(input.value).toBe('updated');
+	});
+
 	it('should update checked on input', () => {
 		const logs: string[] = [];
 
@@ -70,6 +160,78 @@ describe('use value()', () => {
 
 		expect(input.checked).toBe(true);
 		expect(logs).toEqual(['checked changed', false, 'checked changed', true]);
+	});
+
+	it('should update checkbox element when tracked value changes', () => {
+		component App() {
+			const value = track(false);
+
+			<div>
+				<input type="checkbox" {ref bindChecked(value)} />
+				<button onClick={() => (@value = true)}>{'Check'}</button>
+			</div>
+		}
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(input.checked).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(input.checked).toBe(true);
+	});
+
+	it('should update indeterminate on input', () => {
+		const logs: string[] = [];
+
+		component App() {
+			const value = track(false);
+
+			effect(() => {
+				logs.push('indeterminate changed', @value);
+			});
+
+			<input type="checkbox" {ref bindIndeterminate(value)} />
+		}
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		expect(input.indeterminate).toBe(false);
+
+		input.indeterminate = true;
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(input.indeterminate).toBe(true);
+		expect(logs).toEqual(['indeterminate changed', false, 'indeterminate changed', true]);
+	});
+
+	it('should update checkbox indeterminate element when tracked value changes', () => {
+		component App() {
+			const value = track(false);
+
+			<div>
+				<input type="checkbox" {ref bindIndeterminate(value)} />
+				<button onClick={() => (@value = true)}>{'Set Indeterminate'}</button>
+			</div>
+		}
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(input.indeterminate).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(input.indeterminate).toBe(true);
 	});
 
 	it('should update select value on change', () => {
@@ -99,5 +261,1114 @@ describe('use value()', () => {
 
 		expect(select.value).toBe('3');
 		expect(logs).toEqual(['select changed', '2', 'select changed', '3']);
+	});
+
+	it('should update select element when tracked value changes', () => {
+		component App() {
+			const select = track('1');
+
+			<div>
+				<select {ref bindValue(select)}>
+					<option value="1">{'One'}</option>
+					<option value="2">{'Two'}</option>
+					<option value="3">{'Three'}</option>
+				</select>
+				<button onClick={() => (@select = '3')}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const selectEl = container.querySelector('select') as HTMLSelectElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(selectEl.value).toBe('1');
+
+		button.click();
+		flushSync();
+
+		expect(selectEl.value).toBe('3');
+	});
+
+	it('should bind checkbox group', () => {
+		const logs: string[] = [];
+
+		component App() {
+			const selected = track(['b']);
+
+			effect(() => {
+				logs.push('selected changed', JSON.stringify(@selected));
+			});
+
+			<div>
+				<input type="checkbox" value="a" {ref bindGroup(selected)} />
+				<input type="checkbox" value="b" {ref bindGroup(selected)} />
+				<input type="checkbox" value="c" {ref bindGroup(selected)} />
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const inputs = container.querySelectorAll('input') as NodeListOf<HTMLInputElement>;
+		expect(inputs[0].checked).toBe(false);
+		expect(inputs[1].checked).toBe(true);
+		expect(inputs[2].checked).toBe(false);
+
+		// Check first checkbox
+		inputs[0].checked = true;
+		inputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(logs).toContain('selected changed');
+		expect(logs[logs.length - 1]).toBe(JSON.stringify(['b', 'a']));
+
+		// Uncheck second checkbox
+		inputs[1].checked = false;
+		inputs[1].dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe(JSON.stringify(['a']));
+
+		// Check third checkbox
+		inputs[2].checked = true;
+		inputs[2].dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe(JSON.stringify(['a', 'c']));
+	});
+
+	it('should bind radio group', () => {
+		const logs: string[] = [];
+
+		component App() {
+			const selected = track('b');
+
+			effect(() => {
+				logs.push('selected changed', @selected);
+			});
+
+			<div>
+				<input type="radio" name="test" value="a" {ref bindGroup(selected)} />
+				<input type="radio" name="test" value="b" {ref bindGroup(selected)} />
+				<input type="radio" name="test" value="c" {ref bindGroup(selected)} />
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const inputs = container.querySelectorAll('input') as NodeListOf<HTMLInputElement>;
+		expect(inputs[0].checked).toBe(false);
+		expect(inputs[1].checked).toBe(true);
+		expect(inputs[2].checked).toBe(false);
+
+		// Select first radio
+		inputs[0].checked = true;
+		inputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(logs).toContain('selected changed');
+		expect(logs[logs.length - 1]).toBe('a');
+		expect(inputs[0].checked).toBe(true);
+		expect(inputs[1].checked).toBe(false);
+		expect(inputs[2].checked).toBe(false);
+
+		// Select third radio
+		inputs[2].checked = true;
+		inputs[2].dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe('c');
+		expect(inputs[0].checked).toBe(false);
+		expect(inputs[1].checked).toBe(false);
+		expect(inputs[2].checked).toBe(true);
+	});
+
+	it('should update checkbox group from tracked value change', () => {
+		component App() {
+			const selected = track(['a']);
+
+			<div>
+				<input type="checkbox" value="a" {ref bindGroup(selected)} />
+				<input type="checkbox" value="b" {ref bindGroup(selected)} />
+				<input type="checkbox" value="c" {ref bindGroup(selected)} />
+				<button onClick={() => (@selected = ['b', 'c'])}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const inputs = container.querySelectorAll('input') as NodeListOf<HTMLInputElement>;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(inputs[0].checked).toBe(true);
+		expect(inputs[1].checked).toBe(false);
+		expect(inputs[2].checked).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(inputs[0].checked).toBe(false);
+		expect(inputs[1].checked).toBe(true);
+		expect(inputs[2].checked).toBe(true);
+	});
+
+	it('should update radio group from tracked value change', () => {
+		component App() {
+			const selected = track('a');
+
+			<div>
+				<input type="radio" name="test" value="a" {ref bindGroup(selected)} />
+				<input type="radio" name="test" value="b" {ref bindGroup(selected)} />
+				<input type="radio" name="test" value="c" {ref bindGroup(selected)} />
+				<button onClick={() => (@selected = 'c')}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const inputs = container.querySelectorAll('input') as NodeListOf<HTMLInputElement>;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(inputs[0].checked).toBe(true);
+		expect(inputs[1].checked).toBe(false);
+		expect(inputs[2].checked).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(inputs[0].checked).toBe(false);
+		expect(inputs[1].checked).toBe(false);
+		expect(inputs[2].checked).toBe(true);
+	});
+
+	it('should handle checkbox group with initial empty array', () => {
+		component App() {
+			const selected = track([]);
+
+			<div>
+				<input type="checkbox" value="a" {ref bindGroup(selected)} />
+				<input type="checkbox" value="b" {ref bindGroup(selected)} />
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const inputs = container.querySelectorAll('input') as NodeListOf<HTMLInputElement>;
+
+		expect(inputs[0].checked).toBe(false);
+		expect(inputs[1].checked).toBe(false);
+
+		inputs[0].checked = true;
+		inputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(inputs[0].checked).toBe(true);
+		expect(inputs[1].checked).toBe(false);
+	});
+
+	it('should handle number input type', () => {
+		component App() {
+			const value = track(42);
+
+			<input type="number" {ref bindValue(value)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		expect(input.value).toBe('42');
+
+		input.value = '100';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(input.value).toBe('100');
+	});
+
+	it('should update number input element when tracked value changes', () => {
+		component App() {
+			const value = track(10);
+
+			<div>
+				<input type="number" {ref bindValue(value)} />
+				<button onClick={() => (@value = 99)}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(input.value).toBe('10');
+
+		button.click();
+		flushSync();
+
+		expect(input.value).toBe('99');
+	});
+
+	it('should handle range input type', () => {
+		component App() {
+			const value = track(50);
+
+			<input type="range" min="0" max="100" {ref bindValue(value)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		expect(input.value).toBe('50');
+
+		input.value = '75';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(input.value).toBe('75');
+	});
+
+	it('should update range input element when tracked value changes', () => {
+		component App() {
+			const value = track(25);
+
+			<div>
+				<input type="range" min="0" max="100" {ref bindValue(value)} />
+				<button onClick={() => (@value = 80)}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(input.value).toBe('25');
+
+		button.click();
+		flushSync();
+
+		expect(input.value).toBe('80');
+	});
+
+	it('should handle empty number input as null', () => {
+		component App() {
+			const value = track(null);
+
+			<input type="number" {ref bindValue(value)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		expect(input.value).toBe('');
+
+		input.value = '';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(input.value).toBe('');
+	});
+
+	it('should handle date input type', () => {
+		component App() {
+			const value = track('2025-11-14');
+
+			<input type="date" {ref bindValue(value)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		expect(input.value).toBe('2025-11-14');
+
+		input.value = '2025-12-25';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(input.value).toBe('2025-12-25');
+	});
+
+	it('should update date input element when tracked value changes', () => {
+		component App() {
+			const value = track('2025-01-01');
+
+			<div>
+				<input type="date" {ref bindValue(value)} />
+				<button onClick={() => (@value = '2025-12-31')}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(input.value).toBe('2025-01-01');
+
+		button.click();
+		flushSync();
+
+		expect(input.value).toBe('2025-12-31');
+	});
+
+	it('should handle select with multiple attribute', () => {
+		component App() {
+			const selected = track(['2', '3']);
+
+			<select multiple {ref bindValue(selected)}>
+				<option value="1">{'One'}</option>
+				<option value="2">{'Two'}</option>
+				<option value="3">{'Three'}</option>
+				<option value="4">{'Four'}</option>
+			</select>
+		}
+
+		render(App);
+		flushSync();
+
+		const select = container.querySelector('select') as HTMLSelectElement;
+		const options = select.options;
+
+		expect(options[0].selected).toBe(false);
+		expect(options[1].selected).toBe(true);
+		expect(options[2].selected).toBe(true);
+		expect(options[3].selected).toBe(false);
+
+		// Change selection
+		options[0].selected = true;
+		options[1].selected = false;
+		select.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(options[0].selected).toBe(true);
+		expect(options[1].selected).toBe(false);
+		expect(options[2].selected).toBe(true);
+	});
+
+	it('should update multiple select element when tracked value changes', () => {
+		component App() {
+			const selected = track(['1']);
+
+			<div>
+				<select multiple {ref bindValue(selected)}>
+					<option value="1">{'One'}</option>
+					<option value="2">{'Two'}</option>
+					<option value="3">{'Three'}</option>
+					<option value="4">{'Four'}</option>
+				</select>
+				<button onClick={() => (@selected = ['2', '4'])}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const select = container.querySelector('select') as HTMLSelectElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+		const options = select.options;
+
+		expect(options[0].selected).toBe(true);
+		expect(options[1].selected).toBe(false);
+		expect(options[2].selected).toBe(false);
+		expect(options[3].selected).toBe(false);
+
+		button.click();
+		flushSync();
+
+		expect(options[0].selected).toBe(false);
+		expect(options[1].selected).toBe(true);
+		expect(options[2].selected).toBe(false);
+		expect(options[3].selected).toBe(true);
+	});
+
+	it('should handle select without initial value and fall back to first option', () => {
+		component App() {
+			const selected = track(undefined);
+
+			<select {ref bindValue(selected)}>
+				<option value="1">{'One'}</option>
+				<option value="2">{'Two'}</option>
+			</select>
+		}
+
+		render(App);
+		flushSync();
+
+		const select = container.querySelector('select') as HTMLSelectElement;
+		// Should pick up first option when undefined
+		expect(select.selectedIndex).toBeGreaterThanOrEqual(0);
+	});
+
+	it('should handle select with disabled options', () => {
+		component App() {
+			const selected = track(undefined);
+
+			<select {ref bindValue(selected)}>
+				<option value="1" disabled>{'One'}</option>
+				<option value="2">{'Two'}</option>
+			</select>
+		}
+
+		render(App);
+		flushSync();
+
+		const select = container.querySelector('select') as HTMLSelectElement;
+		// Should fall back to first non-disabled option
+		expect(select.options[1].selected).toBe(true);
+	});
+});
+
+describe('bindClientWidth and bindClientHeight', () => {
+	it('should bind element clientWidth', () => {
+		const logs: number[] = [];
+
+		component App() {
+			const width = track(0);
+
+			effect(() => {
+				logs.push(@width);
+			});
+
+			<div {ref bindClientWidth(width)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+
+		Object.defineProperty(div, 'clientWidth', {
+			configurable: true,
+			get: () => 200,
+		});
+
+		triggerResize(div, {
+			contentRect: new DOMRectReadOnly(0, 0, 200, 100),
+		});
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe(200);
+	});
+
+	it('should bind element clientHeight', () => {
+		const logs: number[] = [];
+
+		component App() {
+			const height = track(0);
+
+			effect(() => {
+				logs.push(@height);
+			});
+
+			<div {ref bindClientHeight(height)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+
+		Object.defineProperty(div, 'clientHeight', {
+			configurable: true,
+			get: () => 150,
+		});
+
+		triggerResize(div, {
+			contentRect: new DOMRectReadOnly(0, 0, 100, 150),
+		});
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe(150);
+	});
+});
+
+describe('bindOffsetWidth and bindOffsetHeight', () => {
+	it('should bind element offsetWidth', () => {
+		const logs: number[] = [];
+
+		component App() {
+			const width = track(0);
+
+			effect(() => {
+				logs.push(@width);
+			});
+
+			<div {ref bindOffsetWidth(width)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+
+		Object.defineProperty(div, 'offsetWidth', {
+			configurable: true,
+			get: () => 250,
+		});
+
+		triggerResize(div, {
+			contentRect: new DOMRectReadOnly(0, 0, 250, 100),
+		});
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe(250);
+	});
+
+	it('should bind element offsetHeight', () => {
+		const logs: number[] = [];
+
+		component App() {
+			const height = track(0);
+
+			effect(() => {
+				logs.push(@height);
+			});
+
+			<div {ref bindOffsetHeight(height)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+
+		Object.defineProperty(div, 'offsetHeight', {
+			configurable: true,
+			get: () => 175,
+		});
+
+		triggerResize(div, {
+			contentRect: new DOMRectReadOnly(0, 0, 100, 175),
+		});
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe(175);
+	});
+});
+
+describe('bindContentRect', () => {
+	it('should bind element contentRect', () => {
+		const logs: DOMRectReadOnly[] = [];
+
+		component App() {
+			const rect = track(null);
+
+			effect(() => {
+				if (@rect) logs.push(@rect);
+			});
+
+			<div {ref bindContentRect(rect)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+
+		const mockRect = new DOMRectReadOnly(10, 20, 300, 200);
+		triggerResize(div, {
+			contentRect: mockRect,
+		});
+		flushSync();
+
+		expect(logs.length).toBeGreaterThan(0);
+		const lastRect = logs[logs.length - 1];
+		expect(lastRect.width).toBe(300);
+		expect(lastRect.height).toBe(200);
+	});
+});
+
+describe('bindContentBoxSize', () => {
+	it('should bind element contentBoxSize', () => {
+		const logs: any[] = [];
+
+		component App() {
+			const boxSize = track(null);
+
+			effect(() => {
+				if (@boxSize) logs.push(@boxSize);
+			});
+
+			<div {ref bindContentBoxSize(boxSize)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+
+		const mockBoxSize = [
+			{ blockSize: 200, inlineSize: 300 },
+		];
+		triggerResize(div, {
+			contentBoxSize: mockBoxSize as any,
+		});
+		flushSync();
+
+		expect(logs.length).toBeGreaterThan(0);
+		expect(logs[logs.length - 1]).toBe(mockBoxSize);
+	});
+});
+
+describe('bindBorderBoxSize', () => {
+	it('should bind element borderBoxSize', () => {
+		const logs: any[] = [];
+
+		component App() {
+			const boxSize = track(null);
+
+			effect(() => {
+				if (@boxSize) logs.push(@boxSize);
+			});
+
+			<div {ref bindBorderBoxSize(boxSize)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+
+		const mockBoxSize = [
+			{ blockSize: 220, inlineSize: 320 },
+		];
+		triggerResize(div, {
+			borderBoxSize: mockBoxSize as any,
+		});
+		flushSync();
+
+		expect(logs.length).toBeGreaterThan(0);
+		expect(logs[logs.length - 1]).toBe(mockBoxSize);
+	});
+});
+
+describe('bindDevicePixelContentBoxSize', () => {
+	it('should bind element devicePixelContentBoxSize', () => {
+		const logs: any[] = [];
+
+		component App() {
+			const boxSize = track(null);
+
+			effect(() => {
+				if (@boxSize) logs.push(@boxSize);
+			});
+
+			<div {ref bindDevicePixelContentBoxSize(boxSize)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+
+		const mockBoxSize = [
+			{ blockSize: 400, inlineSize: 600 },
+		];
+		triggerResize(div, {
+			devicePixelContentBoxSize: mockBoxSize as any,
+		});
+		flushSync();
+
+		expect(logs.length).toBeGreaterThan(0);
+		expect(logs[logs.length - 1]).toBe(mockBoxSize);
+	});
+});
+
+describe('bindInnerHTML', () => {
+	it('should bind element innerHTML', () => {
+		const logs: string[] = [];
+
+		component App() {
+			const html = track('<strong>Hello</strong>');
+
+			effect(() => {
+				logs.push(@html);
+			});
+
+			<div contenteditable="true" {ref bindInnerHTML(html)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+		expect(div.innerHTML).toBe('<strong>Hello</strong>');
+
+		div.innerHTML = '<em>World</em>';
+		div.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe('<em>World</em>');
+	});
+
+	it('should update innerHTML when tracked value changes', () => {
+		component App() {
+			const html = track('<p>Initial</p>');
+
+			<div>
+				<div contenteditable="true" {ref bindInnerHTML(html)} />
+				<button onClick={() => (@html = '<p>Updated</p>')}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div[contenteditable]') as HTMLDivElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(div.innerHTML).toBe('<p>Initial</p>');
+
+		button.click();
+		flushSync();
+
+		expect(div.innerHTML).toBe('<p>Updated</p>');
+	});
+
+	it('should handle null innerHTML value', () => {
+		component App() {
+			const html = track(null);
+
+			<div contenteditable="true" {ref bindInnerHTML(html)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+		// Should set to current innerHTML when null
+		expect(div.innerHTML).toBeDefined();
+	});
+});
+
+describe('bindInnerText', () => {
+	it('should bind element innerText', () => {
+		const logs: string[] = [];
+
+		component App() {
+			const text = track('Hello World');
+
+			effect(() => {
+				logs.push(@text);
+			});
+
+			<div contenteditable="true" {ref bindInnerText(text)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+		expect(div.innerText).toBe('Hello World');
+
+		div.innerText = 'Goodbye World';
+		div.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe('Goodbye World');
+	});
+
+	it('should update innerText when tracked value changes', () => {
+		component App() {
+			const text = track('Before');
+
+			<div>
+				<div contenteditable="true" {ref bindInnerText(text)} />
+				<button onClick={() => (@text = 'After')}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div[contenteditable]') as HTMLDivElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(div.innerText).toBe('Before');
+
+		button.click();
+		flushSync();
+
+		expect(div.innerText).toBe('After');
+	});
+});
+
+describe('bindTextContent', () => {
+	it('should bind element textContent', () => {
+		const logs: string[] = [];
+
+		component App() {
+			const text = track('Sample text');
+
+			effect(() => {
+				logs.push(@text);
+			});
+
+			<div contenteditable="true" {ref bindTextContent(text)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+		expect(div.textContent).toBe('Sample text');
+
+		div.textContent = 'Modified text';
+		div.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(logs[logs.length - 1]).toBe('Modified text');
+	});
+
+	it('should update textContent when tracked value changes', () => {
+		component App() {
+			const text = track('Start');
+
+			<div>
+				<div contenteditable="true" {ref bindTextContent(text)} />
+				<button onClick={() => (@text = 'End')}>{'Update'}</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div[contenteditable]') as HTMLDivElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(div.textContent).toBe('Start');
+
+		button.click();
+		flushSync();
+
+		expect(div.textContent).toBe('End');
+	});
+
+	it('should handle null textContent value', () => {
+		component App() {
+			const text = track(null);
+
+			<div contenteditable="true" {ref bindTextContent(text)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+		// Should set to current textContent when null
+		expect(div.textContent).toBeDefined();
+	});
+});
+
+describe('bindNode', () => {
+	it('should update tracked value with element reference', () => {
+		let capturedNode: HTMLElement | null = null;
+
+		component App() {
+			const nodeRef = track(null);
+
+			effect(() => {
+				capturedNode = @nodeRef;
+			});
+
+			<div {ref bindNode(nodeRef)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const div = container.querySelector('div') as HTMLDivElement;
+		expect(capturedNode).toBe(div);
+	});
+
+	it('should allow access to bound element', () => {
+		component App() {
+			const inputRef = track(null);
+
+			<div>
+				<input type="text" {ref bindNode(inputRef)} />
+				<button
+					onClick={() => {
+						if (@inputRef) {
+							@inputRef.value = 'Set by ref';
+						}
+					}}
+				>
+					{'Set Value'}
+				</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		expect(input.value).toBe('');
+
+		button.click();
+		flushSync();
+
+		expect(input.value).toBe('Set by ref');
+	});
+});
+
+describe('error handling', () => {
+	it('should throw error when bindValue receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<input type="text" {ref bindValue({ value: 'not tracked' })} />
+			}
+			render(App);
+		}).toThrow('bindValue() argument is not a tracked object');
+	});
+
+	it('should throw error when bindChecked receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<input type="checkbox" {ref bindChecked({ value: false })} />
+			}
+			render(App);
+		}).toThrow('bindChecked() argument is not a tracked object');
+	});
+
+	it('should throw error when bindIndeterminate receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<input type="checkbox" {ref bindIndeterminate({ value: false })} />
+			}
+			render(App);
+		}).toThrow('bindIndeterminate() argument is not a tracked object');
+	});
+
+	it('should throw error when bindGroup receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<input type="checkbox" value="a" {ref bindGroup({ value: [] })} />
+			}
+			render(App);
+		}).toThrow('bindGroup() argument is not a tracked object');
+	});
+
+	it('should throw error when bindClientWidth receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindClientWidth({ value: 0 })} />
+			}
+			render(App);
+		}).toThrow('bindClientWidth() argument is not a tracked object');
+	});
+
+	it('should throw error when bindClientHeight receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindClientHeight({ value: 0 })} />
+			}
+			render(App);
+		}).toThrow('bindClientHeight() argument is not a tracked object');
+	});
+
+	it('should throw error when bindOffsetWidth receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindOffsetWidth({ value: 0 })} />
+			}
+			render(App);
+		}).toThrow('bindOffsetWidth() argument is not a tracked object');
+	});
+
+	it('should throw error when bindOffsetHeight receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindOffsetHeight({ value: 0 })} />
+			}
+			render(App);
+		}).toThrow('bindOffsetHeight() argument is not a tracked object');
+	});
+
+	it('should throw error when bindContentRect receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindContentRect({ value: null })} />
+			}
+			render(App);
+		}).toThrow('bindContentRect() argument is not a tracked object');
+	});
+
+	it('should throw error when bindContentBoxSize receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindContentBoxSize({ value: null })} />
+			}
+			render(App);
+		}).toThrow('bindContentBoxSize() argument is not a tracked object');
+	});
+
+	it('should throw error when bindBorderBoxSize receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindBorderBoxSize({ value: null })} />
+			}
+			render(App);
+		}).toThrow('bindBorderBoxSize() argument is not a tracked object');
+	});
+
+	it('should throw error when bindDevicePixelContentBoxSize receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindDevicePixelContentBoxSize({ value: null })} />
+			}
+			render(App);
+		}).toThrow('bindDevicePixelContentBoxSize() argument is not a tracked object');
+	});
+
+	it('should throw error when bindInnerHTML receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindInnerHTML({ value: '' })} />
+			}
+			render(App);
+		}).toThrow('bindInnerHTML() argument is not a tracked object');
+	});
+
+	it('should throw error when bindInnerText receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindInnerText({ value: '' })} />
+			}
+			render(App);
+		}).toThrow('bindInnerText() argument is not a tracked object');
+	});
+
+	it('should throw error when bindTextContent receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindTextContent({ value: '' })} />
+			}
+			render(App);
+		}).toThrow('bindTextContent() argument is not a tracked object');
+	});
+
+	it('should throw error when bindNode receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<div {ref bindNode({ value: null })} />
+			}
+			render(App);
+		}).toThrow('bindNode() argument is not a tracked object');
 	});
 });

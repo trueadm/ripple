@@ -134,7 +134,7 @@ function visit_head_element(node, context) {
 }
 
 function apply_updates(init, update, state) {
-	if (update.length === 1) {
+	if (update.length === 1 && !update[0].needsPrevTracking) {
 		init.push(
 			b.stmt(
 				b.call(
@@ -185,18 +185,27 @@ function apply_updates(init, update, state) {
 					b.var('__' + key, u.expression),
 					b.if(
 						b.binary('!==', b.member(b.id('__prev'), b.id(key)), b.id('__' + key)),
-						b.block([
-							u.operation(b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key))),
-						]),
+						b.block(
+							u.needsPrevTracking
+								? [
+										u.operation(b.id('__' + key), b.member(b.id('__prev'), b.id(key))),
+										b.stmt(
+											b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key)),
+										),
+									]
+								: [
+										u.operation(
+											b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key)),
+										),
+									],
+						),
 					),
 				);
 				index++;
 			} else {
 				const key = index_to_key(index);
 				/** @type {Array<Statement>} */
-				const if_body = [
-					b.stmt(b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key))),
-				];
+				const if_body = [];
 				initial.push(b.prop('init', b.id(key), updates[0].initial));
 				render_statements.push(
 					b.var('__' + key, updates[0].expression),
@@ -207,14 +216,22 @@ function apply_updates(init, update, state) {
 				);
 				for (const u of updates) {
 					index_map.set(u.operation, key);
-					if_body.push(u.operation(b.id('__' + key)));
+					if_body.push(
+						u.needsPrevTracking
+							? u.operation(b.id('__' + key), b.member(b.id('__prev'), b.id(key)))
+							: u.operation(b.id('__' + key)),
+					);
 					index++;
 				}
+				// Update prev after all operations
+				if_body.push(
+					b.stmt(b.assignment('=', b.member(b.id('__prev'), b.id(key)), b.id('__' + key))),
+				);
 			}
 		}
 
 		for (const u of update) {
-			if (!u.initial) {
+			if (!u.initial && !u.needsPrevTracking) {
 				render_statements.push(u.operation);
 			}
 		}
@@ -879,7 +896,6 @@ const visitors = {
 		if (is_dom_element) {
 			let class_attribute = null;
 			let style_attribute = null;
-			/** @type {Array<Statement>} */
 			const local_updates = [];
 			const is_void = is_void_element(node.id.name);
 
@@ -1093,14 +1109,27 @@ const visitors = {
 					const expression = visit(style_attribute.value, { ...state, metadata });
 
 					if (metadata.tracking) {
-						local_updates.push({
-							operation: (key) => b.stmt(b.call('_$_.set_style', id, key)),
-							identity: style_attribute.value,
-							expression,
-							initial: b.void0,
-						});
+						if (
+							style_attribute.value.type === 'Literal' ||
+							style_attribute.value.type === 'TemplateLiteral'
+						) {
+							// Doesn't need prev tracking
+							local_updates.push({
+								operation: b.stmt(b.call('_$_.set_style', id, expression, b.void0)),
+							});
+						} else {
+							// Object or unknown - needs prev tracking
+							local_updates.push({
+								operation: (new_value, prev_value) =>
+									b.stmt(b.call('_$_.set_style', id, new_value, prev_value)),
+								identity: style_attribute.value,
+								expression,
+								initial: b.void0,
+								needsPrevTracking: true,
+							});
+						}
 					} else {
-						state.init.push(b.stmt(b.call('_$_.set_style', id, expression)));
+						state.init.push(b.stmt(b.call('_$_.set_style', id, expression, b.void0)));
 					}
 				}
 			}

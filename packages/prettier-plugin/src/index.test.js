@@ -663,6 +663,33 @@ import { Something, type Props, track } from 'ripple';`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should format long import statements correctly', async () => {
+			const input = `import { flushSync, track, effect, bindValue, bindChecked, bindGroup, bindClientWidth, bindClientHeight, bindOffsetWidth, bindOffsetHeight, bindContentRect, bindContentBoxSize, bindBorderBoxSize, bindDevicePixelContentBoxSize, bindInnerHTML, bindInnerText, bindTextContent, bindNode } from 'ripple';`;
+			const expected = `import {
+  flushSync,
+  track,
+  effect,
+  bindValue,
+  bindChecked,
+  bindGroup,
+  bindClientWidth,
+  bindClientHeight,
+  bindOffsetWidth,
+  bindOffsetHeight,
+  bindContentRect,
+  bindContentBoxSize,
+  bindBorderBoxSize,
+  bindDevicePixelContentBoxSize,
+  bindInnerHTML,
+  bindInnerText,
+  bindTextContent,
+  bindNode,
+} from 'ripple';`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 80 });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should preserve @ symbol in JSX attributes and shorthand syntax', async () => {
 			const input = `component App() {
 	const count = track(0);

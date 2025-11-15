@@ -2044,7 +2044,6 @@ function printRippleNode(node, path, options, print, args) {
 }
 
 function printImportDeclaration(node, path, options, print) {
-	// Use Prettier's doc builders for proper cursor tracking
 	const parts = ['import'];
 
 	// Handle type imports
@@ -2073,25 +2072,47 @@ function printImportDeclaration(node, path, options, print) {
 			}
 		});
 
-		// Build import clause properly
-		const importParts = [];
+		// Build import clause with proper grouping and line breaking
+		const importClauseParts = [];
+
 		if (defaultImports.length > 0) {
-			importParts.push(defaultImports.join(', '));
+			importClauseParts.push(defaultImports.join(', '));
 		}
 		if (namespaceImports.length > 0) {
-			importParts.push(namespaceImports.join(', '));
+			importClauseParts.push(namespaceImports.join(', '));
 		}
 		if (namedImports.length > 0) {
-			importParts.push('{ ' + namedImports.join(', ') + ' }');
+			// Use Prettier's group and conditionalGroup for named imports to handle line breaking
+			const namedImportsDocs = namedImports.map((name) => name);
+			const namedImportsGroup = group(
+				concat([
+					'{',
+					indent(
+						concat([
+							options.bracketSpacing ? line : softline,
+							join(concat([',', line]), namedImportsDocs),
+						]),
+					),
+					ifBreak(shouldPrintComma(options) ? ',' : ''),
+					options.bracketSpacing ? line : softline,
+					'}',
+				]),
+			);
+			importClauseParts.push(namedImportsGroup);
 		}
 
-		parts.push(' ' + importParts.join(', ') + ' from');
+		parts.push(' ');
+		if (importClauseParts.length === 1 && typeof importClauseParts[0] === 'object') {
+			parts.push(importClauseParts[0]);
+		} else {
+			parts.push(join(', ', importClauseParts));
+		}
+		parts.push(' from');
 	}
 
-	parts.push(' ' + formatStringLiteral(node.source.value, options) + semi(options));
+	parts.push(' ', formatStringLiteral(node.source.value, options), semi(options));
 
-	// Return as single string for proper cursor tracking
-	return parts;
+	return concat(parts);
 }
 
 function printExportNamedDeclaration(node, path, options, print) {

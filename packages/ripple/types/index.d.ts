@@ -299,3 +299,11 @@ export declare function bindInnerText<V>(tracked: Tracked<V>): (node: HTMLElemen
 export declare function bindTextContent<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
 export declare function bindNode<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+
+export declare function bindGroup<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;
+
+export declare function bindOffsetHeight<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+
+export declare function bindOffsetWidth<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+
+export declare function bindIndeterminate<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;

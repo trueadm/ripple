@@ -163,7 +163,13 @@ export function handle_event_propagation(event) {
 				var delegated = current_target['__' + event_name];
 
 				if (delegated !== undefined && !(/** @type {any} */ (current_target).disabled)) {
-					delegated.call(current_target, event);
+					if (is_array(delegated)) {
+						for (var i = 0; i < delegated.length; i++) {
+							delegated[i].call(current_target, event);
+						}
+					} else {
+						delegated.call(current_target, event);
+					}
 				}
 			} catch (error) {
 				if (throw_error) {
@@ -235,10 +241,31 @@ function create_event(event_name, dom, handler, options) {
 
 	if (is_delegated) {
 		var prop = '__' + event_name;
-		/** @type {DelegatedEventTarget} */ (dom)[prop] = handler;
+		var target = /** @type {DelegatedEventTarget} */ (dom);
+		var current = target[prop];
+
+		if (current === undefined) {
+			target[prop] = handler;
+		} else if (is_array(current)) {
+			if (!current.includes(handler)) {
+				current.push(handler);
+			}
+		} else {
+			if (current !== handler) {
+				target[prop] = [current, handler];
+			}
+		}
+
 		delegate([event_name]);
 		return () => {
-			/** @type {DelegatedEventTarget} */ (dom)[prop] = undefined;
+			var handlers = target[prop];
+			if (is_array(handlers)) {
+				var filtered = handlers.filter((h) => h !== handler);
+				target[prop] =
+					filtered.length === 0 ? undefined : filtered.length === 1 ? filtered[0] : filtered;
+			} else {
+				target[prop] = undefined;
+			}
 		};
 	}
 

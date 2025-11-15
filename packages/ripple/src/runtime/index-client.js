@@ -81,14 +81,18 @@ export { on } from './internal/client/events.js';
 export {
 	bindValue,
 	bindChecked,
+	bindGroup,
 	bindClientWidth,
 	bindClientHeight,
 	bindContentRect,
 	bindContentBoxSize,
 	bindBorderBoxSize,
 	bindDevicePixelContentBoxSize,
+	bindIndeterminate,
 	bindInnerHTML,
 	bindInnerText,
 	bindTextContent,
 	bindNode,
+	bindOffsetWidth,
+	bindOffsetHeight,
 } from './internal/client/bindings.js';
