@@ -148,6 +148,7 @@ function docs_sidebar() {
 				{ text: 'State Management', link: 'guide/state-management' },
 				{ text: 'Head Management', link: 'guide/head-management' },
 				{ text: 'Styling', link: 'guide/styling' },
+				{ text: 'Bindings', link: 'guide/bindings' },
 			],
 		},
 		{

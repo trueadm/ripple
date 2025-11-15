@@ -263,6 +263,95 @@ export function bindChecked(maybe_tracked) {
 			set(tracked, input.checked);
 		});
 
+		effect(() => {
+			var value = get(tracked);
+			input.checked = Boolean(value);
+		});
+
+		return clear_event;
+	};
+}
+
+/**
+ * @param {unknown} maybe_tracked
+ * @returns {(node: HTMLInputElement) => void}
+ */
+export function bindIndeterminate(maybe_tracked) {
+	if (!is_tracked_object(maybe_tracked)) {
+		throw not_tracked_type_error('bindIndeterminate()');
+	}
+
+	const tracked = /** @type {Tracked} */ (maybe_tracked);
+
+	return (input) => {
+		const clear_event = on(input, 'change', () => {
+			set(tracked, input.indeterminate);
+		});
+
+		effect(() => {
+			var value = get(tracked);
+			input.indeterminate = Boolean(value);
+		});
+
+		return clear_event;
+	};
+}
+
+/**
+ * @param {unknown} maybe_tracked
+ * @returns {(node: HTMLInputElement) => void}
+ */
+export function bindGroup(maybe_tracked) {
+	if (!is_tracked_object(maybe_tracked)) {
+		throw not_tracked_type_error('bindGroup()');
+	}
+
+	var tracked = /** @type {Tracked} */ (maybe_tracked);
+
+	return (input) => {
+		var is_checkbox = input.getAttribute('type') === 'checkbox';
+
+		// Store the input's value
+		// @ts-ignore
+		input.__value = input.value;
+
+		var clear_event = on(input, 'change', () => {
+			// @ts-ignore
+			var value = input.__value;
+
+			if (is_checkbox) {
+				/** @type {Array<any>} */
+				var current_value = get(tracked) || [];
+
+				if (input.checked) {
+					// Add if not already present
+					if (!current_value.includes(value)) {
+						value = [...current_value, value];
+					} else {
+						value = current_value;
+					}
+				} else {
+					// Remove the value
+					value = current_value.filter((v) => v !== value);
+				}
+			}
+
+			set(tracked, value);
+		});
+
+		effect(() => {
+			var value = get(tracked);
+
+			if (is_checkbox) {
+				value = value || [];
+				// @ts-ignore
+				input.checked = value.includes(input.__value);
+			} else {
+				// @ts-ignore
+				input.checked = value === input.__value;
+			}
+		});
+
 		return clear_event;
 	};
 }

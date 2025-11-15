@@ -1,6 +1,6 @@
 /** @import { Block } from '#client' */
 
-import { branch, destroy_block, ref } from './blocks.js';
+import { destroy_block, ref } from './blocks.js';
 import { REF_PROP } from './constants.js';
 import {
 	get_descriptors,
@@ -66,13 +66,14 @@ function get_setters(element) {
 /**
  * @param {Element} element
  * @param {any} value
+ * @param {Record<string, string> | undefined} prev
  * @returns {void}
  */
-export function set_style(element, value) {
+export function set_style(element, value, prev = {}) {
 	if (value == null) {
 		element.removeAttribute('style');
 	} else if (typeof value !== 'string') {
-		apply_styles(/** @type {HTMLElement} */ (element), value);
+		apply_styles(/** @type {HTMLElement} */ (element), value, prev);
 	} else {
 		// @ts-ignore
 		element.style.cssText = value;
@@ -97,27 +98,27 @@ export function set_attribute(element, attribute, value) {
 
 /**
  * @param {HTMLElement} element
- * @param {HTMLElement['style']} new_styles
+ * @param {Record<string, string | number>} new_styles
+ * @param {Record<string, string>} prev
  */
-export function apply_styles(element, new_styles) {
+function apply_styles(element, new_styles, prev) {
 	const style = element.style;
-	const new_properties = new Set();
 
-	for (const [property, value] of Object.entries(new_styles)) {
-		const normalized_property = normalize_css_property_name(property);
-		const normalized_value = String(value);
+	// Apply new styles
+	for (const key in new_styles) {
+		const css_prop = normalize_css_property_name(key);
+		const value = String(new_styles[key]);
 
-		if (style.getPropertyValue(normalized_property) !== normalized_value) {
-			style.setProperty(normalized_property, normalized_value);
+		if (!(key in prev) || prev[key] !== value) {
+			style.setProperty(css_prop, value);
 		}
-
-		new_properties.add(normalized_property);
 	}
 
-	for (let i = style.length - 1; i >= 0; i--) {
-		const property = style[i];
-		if (!new_properties.has(property)) {
-			style.removeProperty(property);
+	// Remove properties that were in prev but not in new_styles
+	for (const key in prev) {
+		if (!(key in new_styles)) {
+			const css_prop = normalize_css_property_name(key);
+			style.removeProperty(css_prop);
 		}
 	}
 }
@@ -128,13 +129,14 @@ export function apply_styles(element, new_styles) {
  * @param {string} key
  * @param {any} value
  * @param {Record<string, (() => void) | undefined>} remove_listeners
+ * @param {Record<string, any>} prev
  */
-function set_attribute_helper(element, key, value, remove_listeners) {
+function set_attribute_helper(element, key, value, remove_listeners, prev) {
 	if (key === 'class') {
 		const is_html = element.namespaceURI === 'http://www.w3.org/1999/xhtml';
 		set_class(/** @type {HTMLElement} */ (element), value, undefined, is_html);
 	} else if (key === 'style') {
-		set_style(/** @type {HTMLElement} */ (element), value);
+		set_style(element, value, prev.style);
 	} else if (key === '#class') {
 		// Special case for static class when spreading props
 		element.classList.add(value);
@@ -167,7 +169,7 @@ export function set_class(dom, value, hash, is_html = true) {
 				: clsx([value, hash]);
 
 	// Removing the attribute when the value is only an empty string causes
-	// peformance issues vs simply making the className an empty string. So
+	// performance issues vs simply making the className an empty string. So
 	// we should only remove the class if the the value is nullish.
 	if (value == null && hash === undefined) {
 		dom.removeAttribute('class');
@@ -290,7 +292,7 @@ export function apply_element_spread(element, fn) {
 				if (key === '#class') {
 					continue;
 				}
-				set_attribute_helper(element, key, null, remove_listeners);
+				set_attribute_helper(element, key, null, remove_listeners, prev);
 			}
 		}
 
@@ -309,7 +311,7 @@ export function apply_element_spread(element, fn) {
 				continue;
 			}
 
-			set_attribute_helper(element, key, value, remove_listeners);
+			set_attribute_helper(element, key, value, remove_listeners, prev);
 		}
 		prev = current;
 	};
