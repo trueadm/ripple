@@ -40,8 +40,8 @@ export default defineConfig({
 
 	themeConfig: {
 		logo: {
-			light: '/ripple-logo-horizontal.png',
-			dark: '/ripple-logo-horizontal.png',
+			light: '/ripple-logo-horizontal.webp',
+			dark: '/ripple-logo-horizontal.webp',
 			alt: 'Ripple Logo',
 		},
 
