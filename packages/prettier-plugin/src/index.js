@@ -1400,7 +1400,15 @@ function printRippleNode(node, path, options, print, args) {
 
 		case 'SpreadElement': {
 			const argumentDoc = path.call(print, 'argument');
-			nodeContent = concat(['...', argumentDoc]);
+			// Wrap argument in parens if it's a low-precedence logical expression (e.g., nullish coalescing)
+			// that needs them for correct parsing
+			const needsParens =
+				node.argument.type === 'LogicalExpression' && node.argument.operator === '??';
+			if (needsParens) {
+				nodeContent = concat(['...(', argumentDoc, ')']);
+			} else {
+				nodeContent = concat(['...', argumentDoc]);
+			}
 			break;
 		}
 		case 'RestElement': {
@@ -3003,17 +3011,6 @@ function printObjectExpression(node, path, options, print, args) {
 				// 1-property objects: force inline with spaces
 				return concat([open_brace, ' ', properties[0], ' ', '}']);
 			}
-			// 2-property objects: let normal formatting handle it (will be multiline)
-			// Fall through to default multiline formatting below
-		} else {
-			// For attributes, force inline without spaces
-			const parts = [open_brace];
-			for (let i = 0; i < properties.length; i++) {
-				if (i > 0) parts.push(', ');
-				parts.push(properties[i]);
-			}
-			parts.push('}');
-			return concat(parts);
 		}
 	}
 

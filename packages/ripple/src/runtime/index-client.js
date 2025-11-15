@@ -88,6 +88,7 @@ export {
 	bindContentBoxSize,
 	bindBorderBoxSize,
 	bindDevicePixelContentBoxSize,
+	bindFiles,
 	bindIndeterminate,
 	bindInnerHTML,
 	bindInnerText,

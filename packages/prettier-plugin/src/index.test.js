@@ -878,6 +878,22 @@ export component Test({ a, b }: Props) {}`;
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should format object in attribute with spaces at each side', async () => {
+			const input = `component App() {
+  <button
+  class="test another"
+  onClick={{handleEvent: handler}}>{'Click Me'}</button>
+}`;
+			const expected = `component App() {
+  <button class="test another" onClick={{ handleEvent: handler }}>
+    {'Click Me'}
+  </button>
+}`;
+
+			const result = await format(input, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('should not format function parameter spread', async () => {
 			const expected = `component Two({ arg1, ...rest }) {}`;
 
@@ -1689,6 +1705,16 @@ const program =
 			const expected = `let offset = track(() => (@page - 1) * @limit);`;
 
 			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should have parents around low-precedence logical expression', async () => {
+			const input = `files = [...files ?? [], ...dt.files];
+files = [...(files ?? []), ...dt.files];`;
+			const expected = `files = [...(files ?? []), ...dt.files];
+files = [...(files ?? []), ...dt.files];`;
+
+			const result = await format(input, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
 	});
@@ -2787,9 +2813,9 @@ component RowList({ rows, Row }) {
 
 			const expected = `export component App() {
   <div>
-    <RowList rows={#[{id: 'a'}, {id: 'b'}, {id: 'c'}]}>
+    <RowList rows={#[{ id: 'a' }, { id: 'b' }, { id: 'c' }]}>
       component Row({ id, index, isHighlighted = (index) => index % 2 === 0 }) {
-        <div class={{highlighted: isHighlighted(index)}}>
+        <div class={{ highlighted: isHighlighted(index) }}>
           {index}
           {' - '}
           {id}

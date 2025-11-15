@@ -525,6 +525,24 @@ export function bindTextContent(maybe_tracked) {
 }
 
 /**
+ * @param {unknown} maybe_tracked
+ * @returns {(node: HTMLInputElement) => void}
+ */
+export function bindFiles(maybe_tracked) {
+	if (!is_tracked_object(maybe_tracked)) {
+		throw not_tracked_type_error('bindFiles()');
+	}
+
+	const tracked = /** @type {Tracked} */ (maybe_tracked);
+
+	return (input) => {
+		return on(input, 'change', () => {
+			set(tracked, input.files);
+		});
+	};
+}
+
+/**
  * Syntactic sugar for binding a HTMLElement with {ref fn}
  * @param {unknown} maybe_tracked
  * @returns {(node: HTMLElement) => void}

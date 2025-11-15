@@ -18,6 +18,7 @@ import {
 	bindInnerText,
 	bindTextContent,
 	bindNode,
+	bindFiles,
 } from 'ripple';
 
 // Mock ResizeObserver for testing
@@ -57,9 +58,37 @@ function triggerResize(element: Element, entry: Partial<ResizeObserverEntry>) {
 	}
 }
 
+// Mock DataTransfer for testing file inputs
+class MockDataTransfer {
+	items: MockDataTransferItemList;
+	files: FileList;
+
+	constructor() {
+		this.items = new MockDataTransferItemList();
+		this.files = this.items.files;
+	}
+}
+
+class MockDataTransferItemList {
+	_files: File[] = [];
+
+	get files(): FileList {
+		return this._files as any as FileList;
+	}
+
+	add(file: File): void {
+		this._files.push(file);
+	}
+
+	get length(): number {
+		return this._files.length;
+	}
+}
+
 // Setup ResizeObserver mock
 beforeAll(() => {
 	(global as any).ResizeObserver = createMockResizeObserver;
+	(global as any).DataTransfer = MockDataTransfer;
 });
 
 afterAll(() => {
@@ -1227,6 +1256,265 @@ describe('bindNode', () => {
 	});
 });
 
+describe('bindFiles', () => {
+	it('should bind files from file input', () => {
+		const logs: FileList[] = [];
+
+		component App() {
+			const files = track(null);
+
+			effect(() => {
+				@files;
+				if (@files) logs.push(@files);
+			});
+
+			<input type="file" multiple {ref bindFiles(files)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+
+		// Create mock FileList using DataTransfer
+		const dt = new DataTransfer();
+		const file1 = new File(['content1'], 'file1.txt', { type: 'text/plain' });
+		const file2 = new File(['content2'], 'file2.txt', { type: 'text/plain' });
+		dt.items.add(file1);
+		dt.items.add(file2);
+
+		// Simulate file selection
+		Object.defineProperty(input, 'files', {
+			value: dt.files,
+			writable: true,
+		});
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(logs.length).toBeGreaterThan(0);
+		const lastFiles = logs[logs.length - 1];
+		expect(lastFiles.length).toBe(2);
+		expect(lastFiles[0].name).toBe('file1.txt');
+		expect(lastFiles[1].name).toBe('file2.txt');
+	});
+
+	it('should update tracked value when files are selected', () => {
+		let capturedFiles: FileList | null = null;
+
+		component App() {
+			const files = track(null);
+
+			effect(() => {
+				capturedFiles = @files;
+			});
+
+			<input type="file" {ref bindFiles(files)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+
+		// Create mock file
+		const dt = new DataTransfer();
+		const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
+		dt.items.add(file);
+
+		Object.defineProperty(input, 'files', {
+			value: dt.files,
+			writable: true,
+		});
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(capturedFiles).not.toBeNull();
+		expect(capturedFiles?.length).toBe(1);
+		expect(capturedFiles?.[0].name).toBe('test.txt');
+	});
+
+	it('should allow clearing files via input.files', () => {
+		let capturedFiles: FileList | null = null;
+
+		component App() {
+			const files = track(null);
+			const input = track(null);
+
+			effect(() => {
+				capturedFiles = @files;
+			});
+
+			<div>
+				<input type="file" {ref bindFiles(files)} {ref bindNode(input)} />
+				<button
+					onClick={() => {
+						if (@input) {
+							@input.files = new DataTransfer().files;
+							@input.dispatchEvent(new Event('change', { bubbles: true }));
+						}
+					}}
+				>
+					{'Clear'}
+				</button>
+			</div>
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+		const button = container.querySelector('button') as HTMLButtonElement;
+
+		// Add a file first
+		const dt = new DataTransfer();
+		const file = new File(['content'], 'file.txt', { type: 'text/plain' });
+		dt.items.add(file);
+
+		Object.defineProperty(input, 'files', {
+			value: dt.files,
+			writable: true,
+		});
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(capturedFiles?.length).toBe(1);
+
+		// Clear via button
+		button.click();
+		flushSync();
+
+		expect(capturedFiles?.length).toBe(0);
+	});
+
+	it('should handle multiple file selections', () => {
+		const fileCounts: number[] = [];
+
+		component App() {
+			const files = track(null);
+
+			effect(() => {
+				@files;
+				if (@files) {
+					fileCounts.push(@files.length);
+				}
+			});
+
+			<input type="file" multiple {ref bindFiles(files)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+
+		// First selection: 2 files
+		const dt1 = new DataTransfer();
+		dt1.items.add(new File(['a'], 'a.txt'));
+		dt1.items.add(new File(['b'], 'b.txt'));
+
+		Object.defineProperty(input, 'files', {
+			value: dt1.files,
+			writable: true,
+		});
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		// Second selection: 3 files
+		const dt2 = new DataTransfer();
+		dt2.items.add(new File(['x'], 'x.txt'));
+		dt2.items.add(new File(['y'], 'y.txt'));
+		dt2.items.add(new File(['z'], 'z.txt'));
+
+		Object.defineProperty(input, 'files', {
+			value: dt2.files,
+			writable: true,
+		});
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(fileCounts).toEqual([2, 3]);
+	});
+
+	it('should handle file input without multiple attribute', () => {
+		let capturedFile: File | null = null;
+
+		component App() {
+			const files = track(null);
+
+			effect(() => {
+				@files;
+				if (@files && @files.length > 0) {
+					capturedFile = @files[0];
+				}
+			});
+
+			<input type="file" {ref bindFiles(files)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+
+		const dt = new DataTransfer();
+		const file = new File(['single file content'], 'single.pdf', { type: 'application/pdf' });
+		dt.items.add(file);
+
+		Object.defineProperty(input, 'files', {
+			value: dt.files,
+			writable: true,
+		});
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(capturedFile).not.toBeNull();
+		expect(capturedFile?.name).toBe('single.pdf');
+		expect(capturedFile?.type).toBe('application/pdf');
+	});
+
+	it('should handle empty file selection', () => {
+		const logs: (FileList | null)[] = [];
+
+		component App() {
+			const files = track(null);
+
+			effect(() => {
+				logs.push(@files);
+			});
+
+			<input type="file" {ref bindFiles(files)} />
+		}
+
+		render(App);
+		flushSync();
+
+		const input = container.querySelector('input') as HTMLInputElement;
+
+		// Select a file
+		const dt = new DataTransfer();
+		dt.items.add(new File(['test'], 'test.txt'));
+
+		Object.defineProperty(input, 'files', {
+			value: dt.files,
+			writable: true,
+		});
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		// Clear selection
+		Object.defineProperty(input, 'files', {
+			value: new DataTransfer().files,
+			writable: true,
+		});
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(logs.length).toBeGreaterThan(1);
+		const lastFiles = logs[logs.length - 1];
+		expect(lastFiles?.length).toBe(0);
+	});
+});
+
 describe('error handling', () => {
 	it('should throw error when bindValue receives non-tracked object', () => {
 		expect(() => {
@@ -1370,5 +1658,14 @@ describe('error handling', () => {
 			}
 			render(App);
 		}).toThrow('bindNode() argument is not a tracked object');
+	});
+
+	it('should throw error when bindFiles receives non-tracked object', () => {
+		expect(() => {
+			component App() {
+				<input type="file" {ref bindFiles({ value: null })} />
+			}
+			render(App);
+		}).toThrow('bindFiles() argument is not a tracked object');
 	});
 });

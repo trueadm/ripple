@@ -136,12 +136,11 @@ export component App() {
 </Code>
 
 ::: info Note
-
 - `bindChecked` only supports individual checkbox boolean binding. For checkbox
   groups or radio buttons, use `bindGroup` instead.
 
 - For `radio` inputs, use `bindGroup` instead of `bindChecked`.
-  :::
+:::
 
 ### bindIndeterminate
 
@@ -184,11 +183,10 @@ export component App() {
 </Code>
 
 ::: info Note
-
 - The indeterminate state is purely visual and doesn't affect the checkbox's checked value.
 - You can combine `bindIndeterminate` with `bindChecked` on the same checkbox.
 - Common use case: "Select All" checkboxes when some (but not all) items are selected.
-  :::
+:::
 
 ### bindGroup
 
@@ -265,7 +263,6 @@ export component App() {
 </Code>
 
 ::: info Note
-
 - **Checkboxes**: The tracked value should be an array. Checked boxes add
   their values to the array.
 - **Radio buttons**: The tracked value should be a single value matching one
@@ -276,7 +273,82 @@ export component App() {
   and the checkbox states.
 - **Per-binding instances**: Ripple's `bindGroup` doesn't require inputs to be in the
   same component since it uses per-binding instance groups.
-  :::
+:::
+
+### bindFiles
+
+The `bindFiles` binding creates a two-way connection between a tracked variable
+and a file input's selected files. This allows you to read selected files and
+programmatically update the file input.
+
+<Code>
+
+```ripple
+import { track, bindFiles, bindNode } from 'ripple';
+
+export component App() {
+	let files = track();
+	let version = track(0);
+	let input = track();
+
+	const clearFiles = () => {
+		@files = new DataTransfer().files; // null or undefined does not work
+		@input.value = null; // reset the input selected message
+	};
+
+	const createSampleFile = () => {
+		@version++;
+		const dt = new DataTransfer();
+		const file = new File([`Hello, World version: ${@version}!`], `sample_${@version}.txt`, {
+			type: 'text/plain',
+		});
+		dt.items.add(file);
+		@files = [...(@files ?? []), ...dt.files];
+	};
+
+	<div>
+		<input type="file" {ref bindFiles(files)} {ref bindNode(input)} multiple />
+
+		<div>
+			if (@files && @files.length > 0) {
+				<p>{'Selected files:'}</p>
+				<ul>
+					for (const file of Array.from(@files)) {
+						<li>
+							{file.name}
+							{' ('}
+							{file.size}
+							{' bytes)'}
+						</li>
+					}
+				</ul>
+			} else {
+				<p>{'No files selected'}</p>
+			}
+		</div>
+
+		<button onClick={clearFiles}>{'Clear files'}</button>
+		<button onClick={createSampleFile}>{'Add sample file'}</button>
+	</div>
+}
+```
+
+</Code>
+
+::: info Note
+- `FileList` objects are read-only and cannot be modified directly.
+- To programmatically set files, create a new `DataTransfer` object and use
+  its `files` property:
+  ```js
+  const dt = new DataTransfer();
+  dt.items.add(new File(['content'], 'filename.txt'));
+  @files = dt.files;
+  ```
+- To clear files, set the value to `new DataTransfer().files` (setting to
+  `null` or `undefined` will not work for clearing).
+- `DataTransfer` may not be available in server-side JS runtimes. Leave the
+  tracked value uninitialized to prevent errors during SSR.
+:::
 
 ## Dimension Bindings
 
