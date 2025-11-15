@@ -1,4 +1,3 @@
-````markdown
 ---
 title: Bindings in Ripple
 ---
@@ -670,4 +669,3 @@ export component App() {
 
 5. **Multiple refs**: You can apply multiple `{ref}` attributes to the same
    element for different bindings.
-````
