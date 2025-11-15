@@ -311,32 +311,28 @@ export function bindGroup(maybe_tracked) {
 	return (input) => {
 		var is_checkbox = input.getAttribute('type') === 'checkbox';
 
-		// Store the input's value
-		// @ts-ignore
-		input.__value = input.value;
-
 		var clear_event = on(input, 'change', () => {
-			// @ts-ignore
-			var value = input.__value;
+			var value = input.value;
+			var result;
 
 			if (is_checkbox) {
 				/** @type {Array<any>} */
-				var current_value = get(tracked) || [];
+				var list = get(tracked) || [];
 
 				if (input.checked) {
-					// Add if not already present
-					if (!current_value.includes(value)) {
-						value = [...current_value, value];
+					if (!list.includes(value)) {
+						result = [...list, value];
 					} else {
-						value = current_value;
+						result = list;
 					}
 				} else {
-					// Remove the value
-					value = current_value.filter((v) => v !== value);
+					result = list.filter((v) => v !== value);
 				}
+			} else {
+				result = input.value;
 			}
 
-			set(tracked, value);
+			set(tracked, result);
 		});
 
 		effect(() => {
@@ -344,11 +340,9 @@ export function bindGroup(maybe_tracked) {
 
 			if (is_checkbox) {
 				value = value || [];
-				// @ts-ignore
-				input.checked = value.includes(input.__value);
+				input.checked = value.includes(input.value);
 			} else {
-				// @ts-ignore
-				input.checked = value === input.__value;
+				input.checked = value === input.value;
 			}
 		});
 

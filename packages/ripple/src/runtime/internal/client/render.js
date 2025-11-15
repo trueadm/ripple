@@ -129,7 +129,7 @@ function apply_styles(element, new_styles, prev) {
  * @param {string} key
  * @param {any} value
  * @param {Record<string, (() => void) | undefined>} remove_listeners
- * @param {Record<string, any>} prev
+ * @param {Record<string | symbol, any>} prev
  */
 function set_attribute_helper(element, key, value, remove_listeners, prev) {
 	if (key === 'class') {

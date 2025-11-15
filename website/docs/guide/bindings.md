@@ -270,7 +270,11 @@ export component App() {
   their values to the array.
 - **Radio buttons**: The tracked value should be a single value matching one
   of the radio button values.
-- Ripple's `bindGroup` doesn't require inputs to be in the
+- **Static values only**: The `value` attribute of inputs should be static.
+  Dynamic/reactive value attributes are not supported. If you need to change
+  input values dynamically, you must manually update both the tracked value
+  and the checkbox states.
+- **Per-binding instances**: Ripple's `bindGroup` doesn't require inputs to be in the
   same component since it uses per-binding instance groups.
   :::
 
