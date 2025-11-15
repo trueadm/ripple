@@ -19,7 +19,7 @@ Ripple is a TypeScript UI framework that combines the best parts of React, Solid
 
 ## Features
 
-- ⚡ **Fine-grained Reactivity**: `track` and `@` syntax with signals-based reactivity
+- ⚡ **Fine-grained Reactivity**: `track` and `@` syntax with a unique reactivity system
 - 🔥 **Performance**: Industry-leading rendering speed, bundle size, and memory usage
 - 📦 **Reactive Collections**: `#[]` arrays and `#{}` objects with full reactivity
 - 🎯 **TypeScript First**: Complete type safety with `.ripple` file extension
