@@ -284,4 +284,29 @@ describe('basic client > components & composition', () => {
 			render(App);
 		}).not.toThrow();
 	});
+
+	it('handles component without any output', () => {
+		component Noop() {
+			// No output
+		}
+
+		component Op() {
+			<div>{'Some HTML content'}</div>
+		}
+
+		component App() {
+			let Content = track(() => Noop);
+			<@Content />
+
+			<button onClick={() => @Content = Op}>{'Show Op'}</button>
+		}
+
+		render(App);
+
+		const button = container.querySelector('button');
+
+		expect(() => {
+			button.click();
+		}).not.toThrow();
+	});
 });
