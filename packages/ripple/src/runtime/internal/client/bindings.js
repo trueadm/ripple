@@ -256,10 +256,10 @@ export function bindChecked(maybe_tracked) {
 		throw not_tracked_type_error('bindChecked()');
 	}
 
-	const tracked = /** @type {Tracked} */ (maybe_tracked);
+	var tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	return (input) => {
-		const clear_event = on(input, 'change', () => {
+		var clear_event = on(input, 'change', () => {
 			set(tracked, input.checked);
 		});
 
@@ -281,10 +281,10 @@ export function bindIndeterminate(maybe_tracked) {
 		throw not_tracked_type_error('bindIndeterminate()');
 	}
 
-	const tracked = /** @type {Tracked} */ (maybe_tracked);
+	var tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	return (input) => {
-		const clear_event = on(input, 'change', () => {
+		var clear_event = on(input, 'change', () => {
 			set(tracked, input.indeterminate);
 		});
 
@@ -367,7 +367,7 @@ function bind_element_size(maybe_tracked, type) {
 		);
 
 		effect(() => {
-			untrack(() => set(tracked, element[type]));
+			set(tracked, element[type]);
 			return unsubscribe;
 		});
 	};
@@ -474,10 +474,10 @@ export function bind_content_editable(maybe_tracked, property) {
 		throw not_tracked_type_error(`bind${property.charAt(0).toUpperCase() + property.slice(1)}()`);
 	}
 
-	const tracked = /** @type {Tracked} */ (maybe_tracked);
+	var tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	return (element) => {
-		const clear_event = on(element, 'input', () => {
+		var clear_event = on(element, 'input', () => {
 			set(tracked, element[property]);
 		});
 
@@ -533,12 +533,22 @@ export function bindFiles(maybe_tracked) {
 		throw not_tracked_type_error('bindFiles()');
 	}
 
-	const tracked = /** @type {Tracked} */ (maybe_tracked);
+	var tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	return (input) => {
-		return on(input, 'change', () => {
+		var clear_event = on(input, 'change', () => {
 			set(tracked, input.files);
 		});
+
+		effect(() => {
+			var value = get(tracked);
+
+			if (value !== input.files && value instanceof FileList) {
+				input.files = value;
+			}
+		});
+
+		return clear_event;
 	};
 }
 
@@ -552,7 +562,7 @@ export function bindNode(maybe_tracked) {
 		throw not_tracked_type_error('bindNode()');
 	}
 
-	const tracked = /** @type {Tracked} */ (maybe_tracked);
+	var tracked = /** @type {Tracked} */ (maybe_tracked);
 
 	/** @param {HTMLElement} node */
 	return (node) => {

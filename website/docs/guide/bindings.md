@@ -303,7 +303,10 @@ export component App() {
 			type: 'text/plain',
 		});
 		dt.items.add(file);
-		@files = [...(@files ?? []), ...dt.files];
+		for (const file of @files ?? []) {
+			dt.items.add(file);
+		}
+		@files = dt.files;
 	};
 
 	<div>
