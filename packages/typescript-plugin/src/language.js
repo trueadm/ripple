@@ -213,6 +213,8 @@ class RippleVirtualCode {
 	originalCode = '';
 	/** @type {unknown[]} */
 	diagnostics = [];
+	/** @type {Map<string, any> | null} */
+	_mappingIndex = null;
 
 	/**
 	 * @param {string} file_name
@@ -243,6 +245,7 @@ class RippleVirtualCode {
 	update(snapshot) {
 		log('Updating virtual code for:', this.fileName);
 
+		this._mappingIndex = null; // Invalidate cache when mappings change
 		this.snapshot = snapshot;
 		this.errors = [];
 		/** @type {RippleCompileResult | undefined} */
@@ -297,6 +300,30 @@ class RippleVirtualCode {
 				getChangeRange: () => undefined,
 			});
 		}
+	}
+
+	/**
+	 * Find mapping by generated range
+	 * @param {number} start - The start offset of the range
+	 * @param {number} end - The end offset of the range
+	 * @returns {CodeMapping | null} The mapping for this range, or null if not found
+	 */
+	findMappingByGeneratedRange(start, end) {
+		if (!this._mappingIndex) {
+			this._mappingIndex = new Map();
+
+			for (const mapping of this.mappings) {
+				const genStart = mapping.generatedOffsets[0];
+				// Use generatedLengths from customData if available, otherwise fall back to lengths
+				const genLength = mapping.data.customData.generatedLengths[0];
+				const genEnd = genStart + genLength;
+				const key = `${genStart}-${genEnd}`;
+				this._mappingIndex.set(key, mapping);
+			}
+		}
+
+		const key = `${start}-${end}`;
+		return this._mappingIndex.get(key) ?? null;
 	}
 }
 

@@ -19,6 +19,7 @@ catalogs:
     '@volar/language-core': ~2.4.23
     '@volar/language-server': ~2.4.23
     '@volar/typescript': ~2.4.23
+    '@volar/source-map': ~2.4.23
     '@volar/vscode': ~2.4.23
     '@vscode/vsce': ^3.6.2
     acorn: ^8.15.0

@@ -31,7 +31,7 @@ function logError(...args) {
 /**
  * @returns {LanguageServicePlugin}
  */
-function createRippleDiagnosticPlugin() {
+function createDiagnosticPlugin() {
 	log('Creating Ripple diagnostic plugin...');
 
 	return {
@@ -236,5 +236,5 @@ function getEmbeddedInfo(context, document) {
 }
 
 module.exports = {
-	createRippleDiagnosticPlugin,
+	createDiagnosticPlugin,
 };

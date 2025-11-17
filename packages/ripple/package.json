@@ -78,7 +78,8 @@
   "devDependencies": {
     "@types/estree": "catalog:default",
     "@types/node": "catalog:default",
-    "typescript": "catalog:default"
+    "typescript": "catalog:default",
+    "@volar/source-map": "catalog:default"
   },
   "peerDependencies": {
     "ripple": "workspace:*"

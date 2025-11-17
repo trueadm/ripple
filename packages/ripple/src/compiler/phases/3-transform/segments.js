@@ -28,10 +28,10 @@ export const mapping_data = {
  * @param {object} esrap_source_map - Esrap source map for accurate position lookup
  * @param {PostProcessingChanges } post_processing_changes - Optional post-processing changes
  * @param {number[]} line_offsets - Pre-computed line offsets array for generated code
- * @returns {{ code: string, mappings: Array<{sourceOffsets: number[], generatedOffsets: number[], lengths: number[], data: any}> }}
+ * @returns {{ code: string, mappings: import('@volar/source-map').Mapping<any>[] }}
  */
 export function convert_source_map_to_mappings(ast, source, generated_code, esrap_source_map, post_processing_changes, line_offsets) {
-	/** @type {Array<{sourceOffsets: number[], generatedOffsets: number[], lengths: number[], data: any}>} */
+	/** @type {import('@volar/source-map').Mapping<any>[]} */
 	const mappings = [];
 
 	// Build line offset maps for source and generated code
@@ -1127,6 +1127,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 	// All tokens now have .loc property - no need for fallback logic
 	for (const token of tokens) {
 		const source_text = token.source;
+		const gen_text = token.generated;
 
 		// Handle import statement full-statement mapping
 		if (token.is_import_statement) {
@@ -1152,7 +1153,11 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 					lengths: [Math.min(source_length, gen_length)],
 					data: {
 						// only verification (diagnostics) to avoid duplicate hover/completion
-						verification: true
+						verification: true,
+
+						customData: {
+							generatedLengths: [gen_text.length],
+						},
 					},
 				});
 			}
@@ -1174,11 +1179,18 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 		}
 
 		if (source_pos !== null && gen_pos !== null) {
+			// !IMPORTANT: don't set generatedLengths, otherwise Volar will use that vs our source
+			// We're adding it to our custom metadata instead as we need it for patching positions
 			mappings.push({
 				sourceOffsets: [source_pos],
 				generatedOffsets: [gen_pos],
 				lengths: [source_text.length],
-				data: mapping_data,
+				data: {
+					...mapping_data,
+					customData: {
+						generatedLengths: [gen_text.length],
+					},
+				},
 			});
 		}
 	}
@@ -1197,6 +1209,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 				...mapping_data,
 				codeActions: true, // auto-import
 				rename: false, // avoid rename for a “dummy” mapping
+
+				customData: {
+					generatedLengths: [1],
+				},
 			}
 		});
 	}
