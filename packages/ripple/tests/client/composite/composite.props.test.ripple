@@ -81,7 +81,7 @@ describe('composite > props', () => {
 				logs.push(@count);
 			});
 
-			<button onClick={() => @count = @count + 1}>{'+'}</button>
+			<button onClick={() => (@count = @count + 1)}>{'+'}</button>
 		}
 
 		component App() {
@@ -122,7 +122,7 @@ describe('composite > props', () => {
 
 		component Toggle(props) {
 			const [pressed, rest] = trackSplit(props, ['pressed']);
-			const onClick = () => @pressed = !@pressed;
+			const onClick = () => (@pressed = !@pressed);
 			<Button {...@rest} class={@pressed ? 'on' : 'off'} {onClick}>{'button 1'}</Button>
 			<Button class={@pressed ? 'on' : 'off'} {onClick}>{'button 2'}</Button>
 		}

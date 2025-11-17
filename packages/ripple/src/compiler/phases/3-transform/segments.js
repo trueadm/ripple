@@ -1,19 +1,31 @@
+/** @typedef {import('@volar/language-core').CodeMapping} VolarCodeMapping */
+
+/**
+ * @typedef {Object} CustomMappingData
+ * @property {[number]} generatedLengths
+ */
+
+/**
+ * @typedef {VolarCodeMapping & {
+ *   data: VolarCodeMapping['data'] & {
+ *     customData: CustomMappingData
+ *   }
+ * }} CodeMapping
+ */
+
+/** @typedef {{code: string, mappings: CodeMapping[]}} MappingsResult */
+
 import { walk } from 'zimmerframe';
 import { build_source_to_generated_map, get_generated_position } from '../../source-map-utils.js';
 
+/** @type {VolarCodeMapping['data']} */
 export const mapping_data = {
 	verification: true,
 	completion: true,
 	semantic: true,
 	navigation: true,
-	rename: true,
-	codeActions: false, // set to false to disable auto import when importing yourself
-	formatting: false, // not doing formatting through Volar, using Prettier.
-	// these 3 below will be true by default
-	// leaving for reference
-	// hover: true,
-	// definition: true,
-	// references: true,
+	structure: true,
+	format: false,
 };
 
 /**
@@ -28,14 +40,24 @@ export const mapping_data = {
  * @param {object} esrap_source_map - Esrap source map for accurate position lookup
  * @param {PostProcessingChanges } post_processing_changes - Optional post-processing changes
  * @param {number[]} line_offsets - Pre-computed line offsets array for generated code
- * @returns {{ code: string, mappings: import('@volar/source-map').Mapping<any>[] }}
+ * @returns {MappingsResult}
  */
-export function convert_source_map_to_mappings(ast, source, generated_code, esrap_source_map, post_processing_changes, line_offsets) {
-	/** @type {import('@volar/source-map').Mapping<any>[]} */
+export function convert_source_map_to_mappings(
+	ast,
+	source,
+	generated_code,
+	esrap_source_map,
+	post_processing_changes,
+	line_offsets,
+) {
+	/** @type {CodeMapping[]} */
 	const mappings = [];
 
-	// Build line offset maps for source and generated code
-	// This allows us to convert line/column positions to byte offsets
+	/**
+	 * Converts line/column positions to byte offsets
+	 * @param {string} text
+	 * @returns {number[]}
+	 */
 	const build_line_offsets = (text) => {
 		const offsets = [0]; // Line 1 starts at offset 0
 		for (let i = 0; i < text.length; i++) {
@@ -73,7 +95,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 	const adjusted_source_map = build_source_to_generated_map(
 		esrap_source_map,
 		post_processing_changes,
-		line_offsets
+		line_offsets,
 	);
 
 	// Collect text tokens from AST nodes
@@ -96,11 +118,19 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 				if (node.name && node.loc) {
 					// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
 					if (node.metadata?.tracked_shorthand) {
-						tokens.push({ source: node.metadata.tracked_shorthand, generated: node.name, loc: node.loc });
+						tokens.push({
+							source: node.metadata.tracked_shorthand,
+							generated: node.name,
+							loc: node.loc,
+						});
 					} else if (node.metadata?.is_capitalized) {
 						// This identifier was capitalized during transformation
 						// Map the original lowercase name to the capitalized generated name
-						tokens.push({ source: node.metadata.original_name, generated: node.name, loc: node.loc });
+						tokens.push({
+							source: node.metadata.original_name,
+							generated: node.name,
+							loc: node.loc,
+						});
 					} else {
 						// No transformation - source and generated names are the same
 						tokens.push({ source: node.name, generated: node.name, loc: node.loc });
@@ -111,7 +141,11 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 				// JSXIdentifiers can also be capitalized (for dynamic components)
 				if (node.loc && node.name) {
 					if (node.metadata?.is_capitalized) {
-						tokens.push({ source: node.metadata.original_name, generated: node.name, loc: node.loc });
+						tokens.push({
+							source: node.metadata.original_name,
+							generated: node.name,
+							loc: node.loc,
+						});
 					} else {
 						tokens.push({ source: node.name, generated: node.name, loc: node.loc });
 					}
@@ -130,7 +164,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 						source: '',
 						generated: '',
 						loc: node.loc,
-						is_import_statement: true
+						is_import_statement: true,
 					});
 				}
 
@@ -152,7 +186,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 					visit(node.local);
 				}
 				return;
-			} else if (node.type === 'ImportDefaultSpecifier' || node.type === 'ImportNamespaceSpecifier') {
+			} else if (
+				node.type === 'ImportDefaultSpecifier' ||
+				node.type === 'ImportNamespaceSpecifier'
+			) {
 				// Just visit local
 				if (node.local) {
 					visit(node.local);
@@ -246,17 +283,32 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 				}
 
 				// 3. Push closing tag name (not visited by AST walker)
-				if (!node.openingElement?.selfClosing && node.closingElement?.name?.type === 'JSXIdentifier') {
+				if (
+					!node.openingElement?.selfClosing &&
+					node.closingElement?.name?.type === 'JSXIdentifier'
+				) {
 					const closingNameNode = node.closingElement.name;
 					if (closingNameNode.metadata?.is_capitalized) {
-						tokens.push({ source: closingNameNode.metadata.original_name, generated: closingNameNode.name, loc: closingNameNode.loc });
+						tokens.push({
+							source: closingNameNode.metadata.original_name,
+							generated: closingNameNode.name,
+							loc: closingNameNode.loc,
+						});
 					} else {
-						tokens.push({ source: closingNameNode.name, generated: closingNameNode.name, loc: closingNameNode.loc });
+						tokens.push({
+							source: closingNameNode.name,
+							generated: closingNameNode.name,
+							loc: closingNameNode.loc,
+						});
 					}
 				}
 
 				return;
-			} else if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+			} else if (
+				node.type === 'FunctionDeclaration' ||
+				node.type === 'FunctionExpression' ||
+				node.type === 'ArrowFunctionExpression'
+			) {
 				// Add function/component keyword token
 				if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
 					const source_keyword = node.metadata?.was_component ? 'component' : 'function';
@@ -266,8 +318,11 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 						generated: 'function',
 						loc: {
 							start: { line: node.loc.start.line, column: node.loc.start.column },
-							end: { line: node.loc.start.line, column: node.loc.start.column + source_keyword.length }
-						}
+							end: {
+								line: node.loc.start.line,
+								column: node.loc.start.column + source_keyword.length,
+							},
+						},
 					});
 				}
 
@@ -654,7 +709,11 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 					}
 				}
 				return;
-			} else if (node.type === 'JSXClosingElement' || node.type === 'JSXClosingFragment' || node.type === 'JSXOpeningFragment') {
+			} else if (
+				node.type === 'JSXClosingElement' ||
+				node.type === 'JSXClosingFragment' ||
+				node.type === 'JSXOpeningFragment'
+			) {
 				// These are handled by their parent nodes
 				return;
 			} else if (node.type === 'JSXMemberExpression') {
@@ -736,7 +795,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 				}
 				// Skip typeAnnotation
 				return;
-			} else if (node.type === 'TSTypeParameterInstantiation' || node.type === 'TSTypeParameterDeclaration') {
+			} else if (
+				node.type === 'TSTypeParameterInstantiation' ||
+				node.type === 'TSTypeParameterDeclaration'
+			) {
 				// Generic type parameters - visit to collect type variable names
 				if (node.params) {
 					for (const param of node.params) {
@@ -881,7 +943,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 					visit(node.typeAnnotation);
 				}
 				return;
-			} else if (node.type === 'TSCallSignatureDeclaration' || node.type === 'TSConstructSignatureDeclaration') {
+			} else if (
+				node.type === 'TSCallSignatureDeclaration' ||
+				node.type === 'TSConstructSignatureDeclaration'
+			) {
 				// Call or construct signature
 				if (node.typeParameters) {
 					visit(node.typeParameters);
@@ -1078,7 +1143,22 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 					visit(node.typeAnnotation);
 				}
 				return;
-			} else if (node.type === 'TSAnyKeyword' || node.type === 'TSUnknownKeyword' || node.type === 'TSNumberKeyword' || node.type === 'TSObjectKeyword' || node.type === 'TSBooleanKeyword' || node.type === 'TSBigIntKeyword' || node.type === 'TSStringKeyword' || node.type === 'TSSymbolKeyword' || node.type === 'TSVoidKeyword' || node.type === 'TSUndefinedKeyword' || node.type === 'TSNullKeyword' || node.type === 'TSNeverKeyword' || node.type === 'TSThisType' || node.type === 'TSIntrinsicKeyword') {
+			} else if (
+				node.type === 'TSAnyKeyword' ||
+				node.type === 'TSUnknownKeyword' ||
+				node.type === 'TSNumberKeyword' ||
+				node.type === 'TSObjectKeyword' ||
+				node.type === 'TSBooleanKeyword' ||
+				node.type === 'TSBigIntKeyword' ||
+				node.type === 'TSStringKeyword' ||
+				node.type === 'TSSymbolKeyword' ||
+				node.type === 'TSVoidKeyword' ||
+				node.type === 'TSUndefinedKeyword' ||
+				node.type === 'TSNullKeyword' ||
+				node.type === 'TSNeverKeyword' ||
+				node.type === 'TSThisType' ||
+				node.type === 'TSIntrinsicKeyword'
+			) {
 				// Primitive type keywords - leaf nodes, no children
 				return;
 			} else if (node.type === 'TSDeclareFunction') {
@@ -1120,7 +1200,7 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 			}
 
 			throw new Error(`Unhandled AST node type in mapping walker: ${node.type}`);
-		}
+		},
 	});
 
 	// Process each token in order
@@ -1132,12 +1212,28 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 		// Handle import statement full-statement mapping
 		if (token.is_import_statement) {
 			// Get source position from start
-			const source_start = loc_to_offset(token.loc.start.line, token.loc.start.column, source_line_offsets);
-			const source_end = loc_to_offset(token.loc.end.line, token.loc.end.column, source_line_offsets);
+			const source_start = loc_to_offset(
+				token.loc.start.line,
+				token.loc.start.column,
+				source_line_offsets,
+			);
+			const source_end = loc_to_offset(
+				token.loc.end.line,
+				token.loc.end.column,
+				source_line_offsets,
+			);
 
 			// Get generated positions using source map
-			const gen_start_pos = get_generated_position(token.loc.start.line, token.loc.start.column, adjusted_source_map);
-			const gen_end_pos = get_generated_position(token.loc.end.line, token.loc.end.column, adjusted_source_map);
+			const gen_start_pos = get_generated_position(
+				token.loc.start.line,
+				token.loc.start.column,
+				adjusted_source_map,
+			);
+			const gen_end_pos = get_generated_position(
+				token.loc.end.line,
+				token.loc.end.column,
+				adjusted_source_map,
+			);
 
 			if (source_start !== null && source_end !== null && gen_start_pos && gen_end_pos) {
 				// Convert generated line:col to byte offsets
@@ -1165,17 +1261,27 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 		}
 
 		// Use .loc to get the exact source position
-		const source_pos = loc_to_offset(token.loc.start.line, token.loc.start.column, source_line_offsets);
+		const source_pos = loc_to_offset(
+			token.loc.start.line,
+			token.loc.start.column,
+			source_line_offsets,
+		);
 
 		// Get generated position using source map
-		const gen_line_col = get_generated_position(token.loc.start.line, token.loc.start.column, adjusted_source_map);
+		const gen_line_col = get_generated_position(
+			token.loc.start.line,
+			token.loc.start.column,
+			adjusted_source_map,
+		);
 		let gen_pos = null;
 		if (gen_line_col) {
 			// Convert generated line:col to byte offset
 			gen_pos = gen_loc_to_offset(gen_line_col.line, gen_line_col.column);
 		} else {
 			// No mapping found in source map - this shouldn't happen since all tokens should have mappings
-			console.warn(`[segments.js] No source map entry for token "${source_text}" at ${token.loc.start.line}:${token.loc.start.column}`);
+			console.warn(
+				`[segments.js] No source map entry for token "${source_text}" at ${token.loc.start.line}:${token.loc.start.column}`,
+			);
 		}
 
 		if (source_pos !== null && gen_pos !== null) {
@@ -1207,13 +1313,10 @@ export function convert_source_map_to_mappings(ast, source, generated_code, esra
 			lengths: [1],
 			data: {
 				...mapping_data,
-				codeActions: true, // auto-import
-				rename: false, // avoid rename for a “dummy” mapping
-
 				customData: {
 					generatedLengths: [1],
 				},
-			}
+			},
 		});
 	}
 

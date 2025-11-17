@@ -1,4 +1,7 @@
 /** @type {import('typescript')} */
+// @ts-expect-error - Type-only import from ESM module into CJS is fine
+/** @import { MappingsResult, CodeMapping } from '../../ripple/src/compiler/phases/3-transform/segments.js' */
+
 const ts = require('typescript');
 const { forEachEmbeddedCode } = require('@volar/language-core');
 const fs = require('fs');
@@ -6,7 +9,6 @@ const path = require('path');
 
 /** @typedef {import('typescript').CompilerOptions} CompilerOptions */
 /** @typedef {Error & { pos?: number }} RippleError */
-/** @typedef {import('@volar/language-core').CodeMapping} CodeMapping */
 /** @typedef {import('@volar/language-core').IScriptSnapshot} IScriptSnapshot */
 /** @typedef {import('@volar/language-core').VirtualCode} VirtualCode */
 /** @typedef {string | { fsPath: string }} ScriptId */
@@ -14,14 +16,8 @@ const path = require('path');
 /** @typedef {import('@volar/language-core').LanguagePlugin<ScriptId, VirtualCode>} RippleLanguagePlugin */
 
 /**
- * @typedef {object} RippleCompileResult
- * @property {string} code
- * @property {CodeMapping[]} [mappings]
- */
-
-/**
  * @typedef {object} RippleCompiler
- * @property {(code: string, fileName: string) => RippleCompileResult} compile_to_volar_mappings
+ * @property {(code: string, fileName: string) => MappingsResult} compile_to_volar_mappings
  */
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
@@ -201,7 +197,7 @@ class RippleVirtualCode {
 	generatedCode = '';
 	/** @type {VirtualCode['embeddedCodes']} */
 	embeddedCodes = [];
-	/** @type {VirtualCode['mappings']} */
+	/** @type {CodeMapping[]} */
 	mappings = [];
 	/** @type {boolean} */
 	isErrorMode = false;
@@ -248,7 +244,7 @@ class RippleVirtualCode {
 		this._mappingIndex = null; // Invalidate cache when mappings change
 		this.snapshot = snapshot;
 		this.errors = [];
-		/** @type {RippleCompileResult | undefined} */
+		/** @type {MappingsResult | undefined} */
 		let transpiled;
 
 		try {
@@ -290,6 +286,7 @@ class RippleVirtualCode {
 					lengths: [this.originalCode.length],
 					data: {
 						verification: true,
+						customData: { generatedLengths: [this.originalCode.length] },
 					},
 				},
 			];

@@ -36,9 +36,6 @@ catalogs:
     '@volar/language-server':
       specifier: ~2.4.23
       version: 2.4.23
-    '@volar/source-map':
-      specifier: ~2.4.23
-      version: 2.4.23
     '@volar/typescript':
       specifier: ~2.4.23
       version: 2.4.23
@@ -398,7 +395,7 @@ importers:
       '@types/node':
         specifier: catalog:default
         version: 24.3.0
-      '@volar/source-map':
+      '@volar/language-core':
         specifier: catalog:default
         version: 2.4.23
       typescript:

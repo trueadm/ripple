@@ -25,20 +25,22 @@ export function parse(source) {
 export function compile(source, filename, options = {}) {
 	const ast = parse_module(source);
 	const analysis = analyze(ast, filename, options);
-	const result = options.mode === 'server'
-		? transform_server(filename, source, analysis)
-		: transform_client(filename, source, analysis, false);
+	const result =
+		options.mode === 'server'
+			? transform_server(filename, source, analysis)
+			: transform_client(filename, source, analysis, false);
 
 	return result;
 }
 
 /** @import { PostProcessingChanges, LineOffsets } from './phases/3-transform/client/index.js' */
+/** @import { MappingsResult } from './phases/3-transform/segments.js' */
 
 /**
  * Compile Ripple component to Volar virtual code with TypeScript mappings
  * @param {string} source
  * @param {string} filename
- * @returns {object} Volar mappings object
+ * @returns {MappingsResult} Volar mappings object
  */
 export function compile_to_volar_mappings(source, filename) {
 	const ast = parse_module(source);
@@ -51,7 +53,7 @@ export function compile_to_volar_mappings(source, filename) {
 		source,
 		transformed.js.code,
 		transformed.js.map,
-    /** @type {PostProcessingChanges} */(transformed.js.post_processing_changes),
-    /** @type {LineOffsets} */(transformed.js.line_offsets)
+		/** @type {PostProcessingChanges} */ (transformed.js.post_processing_changes),
+		/** @type {LineOffsets} */ (transformed.js.line_offsets),
 	);
 }
