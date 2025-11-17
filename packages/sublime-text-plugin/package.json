@@ -1,23 +1,23 @@
 {
-	"name": "@ripple-ts/sublime-text-plugin",
-	"version": "0.0.46",
-	"description": "",
-	"scripts": {
-		"update-lock": "cd src/language-server && npm install --package-lock-only",
-		"build": "npm run update-lock && node ./scripts/build.js"
-	},
-	"author": "Dominic Gannaway",
-	"license": "MIT",
-	"type": "module",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/Ripple-TS/ripple.git",
-		"directory": "packages/sublime-text-plugin"
-	},
-	"devDependencies": {
-		"@types/adm-zip": "^0.5.7",
-		"@types/js-yaml": "^4.0.9",
-		"adm-zip": "^0.5.16",
-		"js-yaml": "^4.1.0"
-	}
+  "name": "@ripple-ts/sublime-text-plugin",
+  "version": "0.0.47",
+  "description": "",
+  "scripts": {
+    "update-lock": "cd src/language-server && npm install --package-lock-only",
+    "build": "npm run update-lock && node ./scripts/build.js"
+  },
+  "author": "Dominic Gannaway",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ripple-TS/ripple.git",
+    "directory": "packages/sublime-text-plugin"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/js-yaml": "^4.0.9",
+    "adm-zip": "^0.5.16",
+    "js-yaml": "^4.1.0"
+  }
 }
