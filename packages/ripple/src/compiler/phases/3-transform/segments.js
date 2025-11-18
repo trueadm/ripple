@@ -1,19 +1,16 @@
-/** @typedef {import('@volar/language-core').CodeMapping} VolarCodeMapping */
-
 /**
  * @typedef {Object} CustomMappingData
- * @property {[number]} generatedLengths
+ * @property {number[]} generatedLengths
  */
 
 /**
- * @typedef {VolarCodeMapping & {
- *   data: VolarCodeMapping['data'] & {
- *     customData: CustomMappingData
- *   }
- * }} CodeMapping
+ * @typedef {import('estree').Position} Position
+ * @typedef {{start: Position, end: Position}} Location
+ * @typedef {import('@volar/language-core').CodeMapping} VolarCodeMapping
+ * @typedef {VolarCodeMapping['data'] & {customData: CustomMappingData}} MappingData
+ * @typedef {VolarCodeMapping & {data: MappingData}} CodeMapping
+ * @typedef {{code: string, mappings: CodeMapping[]}} MappingsResult
  */
-
-/** @typedef {{code: string, mappings: CodeMapping[]}} MappingsResult */
 
 import { walk } from 'zimmerframe';
 import { build_source_to_generated_map, get_generated_position } from '../../source-map-utils.js';
@@ -52,6 +49,7 @@ export function convert_source_map_to_mappings(
 ) {
 	/** @type {CodeMapping[]} */
 	const mappings = [];
+	let isImportDeclarationPresent = false;
 
 	/**
 	 * Converts line/column positions to byte offsets
@@ -74,10 +72,14 @@ export function convert_source_map_to_mappings(
 	 * @param {number} line
 	 * @param {number} column
 	 * @param {number[]} line_offsets
-	 * @returns {number | null}
+	 * @returns {number}
 	 */
 	const loc_to_offset = (line, column, line_offsets) => {
-		if (line < 1 || line > line_offsets.length) return null;
+		if (line < 1 || line > line_offsets.length) {
+			throw new Error(
+				`Location line or line offsets length is out of bounds, line: ${line}, line offsets length: ${line_offsets.length}`,
+			);
+		}
 		return line_offsets[line - 1] + column;
 	};
 
@@ -100,12 +102,15 @@ export function convert_source_map_to_mappings(
 
 	// Collect text tokens from AST nodes
 	// All tokens must have source/generated text and loc property for accurate positioning
-	/** @type {Array<{
-		source: string,
-		generated: string,
-		is_import_statement?: boolean,
-		loc: {start: {line: number, column: number}, end: {line: number, column: number}}
-	}>} */
+	/**
+	 * @type {Array<{
+	 *		source: string,
+	 *		generated: string,
+	 *		is_full_import_statement?: boolean,
+	 *		loc: Location,
+	 *		end_loc?: Location,
+	 * }>}
+	 */
 	const tokens = [];
 
 	// We have to visit everything in generated order to maintain correct indices
@@ -157,14 +162,17 @@ export function convert_source_map_to_mappings(
 				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
+				isImportDeclarationPresent = true;
+
 				// Add import declaration as a special token for full-statement mapping
 				// TypeScript reports unused imports with diagnostics covering the entire statement
-				if (node.loc) {
+				if (node.loc && node.source?.loc) {
 					tokens.push({
 						source: '',
 						generated: '',
 						loc: node.loc,
-						is_import_statement: true,
+						is_full_import_statement: true,
+						end_loc: node.source.loc,
 					});
 				}
 
@@ -1203,102 +1211,74 @@ export function convert_source_map_to_mappings(
 		},
 	});
 
-	// Process each token in order
-	// All tokens now have .loc property - no need for fallback logic
 	for (const token of tokens) {
 		const source_text = token.source;
 		const gen_text = token.generated;
 
-		// Handle import statement full-statement mapping
-		if (token.is_import_statement) {
-			// Get source position from start
-			const source_start = loc_to_offset(
-				token.loc.start.line,
-				token.loc.start.column,
-				source_line_offsets,
-			);
-			const source_end = loc_to_offset(
-				token.loc.end.line,
-				token.loc.end.column,
-				source_line_offsets,
-			);
-
-			// Get generated positions using source map
-			const gen_start_pos = get_generated_position(
-				token.loc.start.line,
-				token.loc.start.column,
-				adjusted_source_map,
-			);
-			const gen_end_pos = get_generated_position(
-				token.loc.end.line,
-				token.loc.end.column,
-				adjusted_source_map,
-			);
-
-			if (source_start !== null && source_end !== null && gen_start_pos && gen_end_pos) {
-				// Convert generated line:col to byte offsets
-				const gen_start = gen_loc_to_offset(gen_start_pos.line, gen_start_pos.column);
-				const gen_end = gen_loc_to_offset(gen_end_pos.line, gen_end_pos.column);
-
-				const source_length = source_end - source_start;
-				const gen_length = gen_end - gen_start;
-
-				mappings.push({
-					sourceOffsets: [source_start],
-					generatedOffsets: [gen_start],
-					lengths: [Math.min(source_length, gen_length)],
-					data: {
-						// only verification (diagnostics) to avoid duplicate hover/completion
-						verification: true,
-
-						customData: {
-							generatedLengths: [gen_text.length],
-						},
-					},
-				});
-			}
-			continue;
-		}
-
-		// Use .loc to get the exact source position
-		const source_pos = loc_to_offset(
+		const source_start = loc_to_offset(
 			token.loc.start.line,
 			token.loc.start.column,
 			source_line_offsets,
 		);
 
-		// Get generated position using source map
-		const gen_line_col = get_generated_position(
-			token.loc.start.line,
-			token.loc.start.column,
-			adjusted_source_map,
-		);
-		let gen_pos = null;
-		if (gen_line_col) {
-			// Convert generated line:col to byte offset
-			gen_pos = gen_loc_to_offset(gen_line_col.line, gen_line_col.column);
-		} else {
-			// No mapping found in source map - this shouldn't happen since all tokens should have mappings
-			console.warn(
-				`[segments.js] No source map entry for token "${source_text}" at ${token.loc.start.line}:${token.loc.start.column}`,
+		let source_length = source_text.length;
+		let gen_length = gen_text.length;
+		/** @type {MappingData} */
+		let data;
+		/** @type {number} */
+		let gen_start;
+
+		if (token.is_full_import_statement) {
+			const end_loc = /** @type {Location} */ (token.end_loc).end;
+			const source_end = loc_to_offset(end_loc.line, end_loc.column, source_line_offsets);
+
+			// Look up where import keyword and source literal map to in generated code
+			const gen_start_pos = get_generated_position(
+				token.loc.start.line,
+				token.loc.start.column,
+				adjusted_source_map,
 			);
+			const gen_end_pos = get_generated_position(end_loc.line, end_loc.column, adjusted_source_map);
+
+			gen_start = gen_loc_to_offset(gen_start_pos.line, gen_start_pos.column);
+			const gen_end = gen_loc_to_offset(gen_end_pos.line, gen_end_pos.column);
+
+			source_length = source_end - source_start;
+			gen_length = gen_end - gen_start;
+
+			data = {
+				// we only want verification here, like unused imports
+				// since this is synthetic and otherwise we'll get duplicated actions like intellisense
+				// each imported specifier has its own mapping
+				verification: true,
+				customData: {
+					generatedLengths: [gen_length],
+				},
+			};
+		} else {
+			const gen_line_col = get_generated_position(
+				token.loc.start.line,
+				token.loc.start.column,
+				adjusted_source_map,
+			);
+			gen_start = gen_loc_to_offset(gen_line_col.line, gen_line_col.column);
+
+			data = {
+				...mapping_data,
+				customData: {
+					generatedLengths: [gen_length],
+				},
+			};
 		}
 
-		if (source_pos !== null && gen_pos !== null) {
-			// !IMPORTANT: don't set generatedLengths, otherwise Volar will use that vs our source
-			// We're adding it to our custom metadata instead as we need it for patching positions
-			mappings.push({
-				sourceOffsets: [source_pos],
-				generatedOffsets: [gen_pos],
-				lengths: [source_text.length],
-				data: {
-					...mapping_data,
-					customData: {
-						generatedLengths: [gen_text.length],
-					},
-				},
-			});
-		}
+		// !IMPORTANT: don't set generatedLengths, otherwise Volar will use that vs our source
+		// We're adding it to our custom metadata instead as we need it for patching positions
+		mappings.push({
+			sourceOffsets: [source_start],
+			generatedOffsets: [gen_start],
+			lengths: [source_length],
+			data,
+		});
 	}
 
 	// Sort mappings by source offset	// Sort mappings by source offset
@@ -1306,7 +1286,7 @@ export function convert_source_map_to_mappings(
 
 	// Add a mapping for the very beginning of the file to handle import additions
 	// This ensures that code actions adding imports at the top work correctly
-	if (mappings.length > 0 && mappings[0].sourceOffsets[0] > 0) {
+	if (!isImportDeclarationPresent && mappings.length > 0 && mappings[0].sourceOffsets[0] > 0) {
 		mappings.unshift({
 			sourceOffsets: [0],
 			generatedOffsets: [0],

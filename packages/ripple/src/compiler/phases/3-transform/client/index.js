@@ -2527,6 +2527,62 @@ function create_tsx_with_typescript_support() {
 		FunctionExpression(node, context) {
 			handle_function(node, context);
 		},
+		// Custom handler for ImportDeclaration to ensure 'import' keyword has source mapping
+		// This creates a source map entry at the start of the import statement
+		// Esrap's default handler writes 'import' without passing the node, so no source map entry
+		ImportDeclaration(node, context) {
+			// Write 'import' keyword with node location for source mapping
+			context.write('import', node);
+			context.write(' ');
+
+			// Write specifiers - handle default, namespace, and named imports
+			if (node.specifiers && node.specifiers.length > 0) {
+				let default_specifier = null;
+				let namespace_specifier = null;
+				const named_specifiers = [];
+
+				for (const spec of node.specifiers) {
+					if (spec.type === 'ImportDefaultSpecifier') {
+						default_specifier = spec;
+					} else if (spec.type === 'ImportNamespaceSpecifier') {
+						namespace_specifier = spec;
+					} else if (spec.type === 'ImportSpecifier') {
+						named_specifiers.push(spec);
+					}
+				}
+
+				// Write default import
+				if (default_specifier) {
+					context.visit(default_specifier);
+					if (namespace_specifier || named_specifiers.length > 0) {
+						context.write(', ');
+					}
+				}
+
+				// Write namespace import
+				if (namespace_specifier) {
+					context.visit(namespace_specifier);
+					if (named_specifiers.length > 0) {
+						context.write(', ');
+					}
+				}
+
+				// Write named imports
+				if (named_specifiers.length > 0) {
+					context.write('{ ');
+					for (let i = 0; i < named_specifiers.length; i++) {
+						if (i > 0) context.write(', ');
+						context.visit(named_specifiers[i]);
+					}
+					context.write(' }');
+				}
+
+				context.write(' from ');
+			}
+
+			// Write source
+			context.visit(node.source);
+		},
 		// Custom handler for TSParenthesizedType: (Type)
 		TSParenthesizedType(node, context) {
 			context.write('(');

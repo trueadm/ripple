@@ -44,7 +44,10 @@ export function build_source_to_generated_map(source_map, post_processing_change
 
 		while (left <= right) {
 			const mid = Math.floor((left + right) / 2);
-			if (offset >= line_offsets[mid] && (mid === line_offsets.length - 1 || offset < line_offsets[mid + 1])) {
+			if (
+				offset >= line_offsets[mid] &&
+				(mid === line_offsets.length - 1 || offset < line_offsets[mid + 1])
+			) {
 				line = mid + 1;
 				break;
 			} else if (offset < line_offsets[mid]) {
@@ -114,14 +117,15 @@ export function build_source_to_generated_map(source_map, post_processing_change
  * @param {number} source_line - 1-based line number in source
  * @param {number} source_column - 0-based column number in source
  * @param {SourceToGeneratedMap} source_to_gen_map - Lookup map
- * @returns {{line: number, column: number} | null} Generated position or null if not found
+ * @returns {{line: number, column: number}} Generated position
  */
 export function get_generated_position(source_line, source_column, source_to_gen_map) {
 	const key = `${source_line}:${source_column}`;
 	const positions = source_to_gen_map.get(key);
 
 	if (!positions || positions.length === 0) {
-		return null;
+		// No mapping found in source map - this shouldn't happen since all tokens should have mappings
+		throw new Error(`No source map entry for position "${source_line}:${source_column}"`);
 	}
 
 	// If multiple generated positions map to same source, return the first
