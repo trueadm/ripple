@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/cli",
-  "version": "0.2.174",
+  "version": "0.2.175",
   "description": "Interactive CLI tool for creating Ripple applications",
   "type": "module",
   "license": "MIT",
