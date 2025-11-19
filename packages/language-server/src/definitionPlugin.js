@@ -26,14 +26,8 @@ function createDefinitionPlugin() {
 		capabilities: {
 			definitionProvider: true,
 		},
-		create(/** @type {LanguageServiceContext} */ context) {
+		create(context) {
 			return {
-				/**
-				 * Provide definition with component keyword support
-				 * @param {import('vscode-languageserver-textdocument').TextDocument} document
-				 * @param {import('@volar/language-server').Position} position
-				 * @param {import('@volar/language-server').CancellationToken} token
-				 */
 				async provideDefinition(document, position, token) {
 					const uri = URI.parse(document.uri);
 					const decoded = context.decodeEmbeddedDocumentUri(uri);

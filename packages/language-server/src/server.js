@@ -9,7 +9,7 @@ const {
 	getRippleLanguagePlugin,
 	resolveConfig,
 } = require('@ripple-ts/typescript-plugin/src/language.js');
-const { create: createTypeScriptServices } = require('volar-service-typescript');
+const { createTypeScriptServices } = require('./typescriptService.js');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
