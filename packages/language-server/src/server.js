@@ -5,6 +5,7 @@
 } = require('@volar/language-server/node');
 const { createDiagnosticPlugin } = require('./diagnosticPlugin.js');
 const { createDefinitionPlugin } = require('./definitionPlugin.js');
+const { createCompletionPlugin } = require('./completionPlugin.js');
 const {
 	getRippleLanguagePlugin,
 	resolveConfig,
@@ -103,7 +104,12 @@ function createRippleLanguageServer() {
 						},
 					};
 				}),
-				[createDiagnosticPlugin(), createDefinitionPlugin(), ...createTypeScriptServices(ts)],
+				[
+					createCompletionPlugin(),
+					createDiagnosticPlugin(),
+					createDefinitionPlugin(),
+					...createTypeScriptServices(ts),
+				],
 			);
 
 			log('Server initialization complete');

@@ -98,6 +98,20 @@ function getRippleLanguagePlugin() {
 			return undefined;
 		},
 
+		/**
+		 * @param {ScriptId} fileNameOrUri
+		 * @param {VirtualCode} virtualCode
+		 * @param {IScriptSnapshot} snapshot
+		 */
+		updateVirtualCode(fileNameOrUri, virtualCode, snapshot) {
+			if (virtualCode instanceof RippleVirtualCode) {
+				log('Updating existing virtual code for:', virtualCode.fileName);
+				virtualCode.update(snapshot);
+				return virtualCode;
+			}
+			return undefined;
+		},
+
 		typescript: {
 			extraFileExtensions: [{ extension: 'ripple', isMixedContent: false, scriptKind: 7 }],
 			/**
@@ -205,6 +219,8 @@ class RippleVirtualCode {
 	errors = [];
 	/** @type {IScriptSnapshot} */
 	snapshot;
+	/** @type {IScriptSnapshot} */
+	sourceSnapshot;
 	/** @type {string} */
 	originalCode = '';
 	/** @type {unknown[]} */
@@ -223,6 +239,7 @@ class RippleVirtualCode {
 		this.fileName = file_name;
 		this.ripple = ripple;
 		this.snapshot = snapshot;
+		this.sourceSnapshot = snapshot;
 		this.originalCode = snapshot.getText(0, snapshot.getLength());
 
 		// Validate ripple compiler
@@ -241,26 +258,108 @@ class RippleVirtualCode {
 	update(snapshot) {
 		log('Updating virtual code for:', this.fileName);
 
-		this._mappingIndex = null; // Invalidate cache when mappings change
-		this.snapshot = snapshot;
-		this.errors = [];
+		const newCode = snapshot.getText(0, snapshot.getLength());
+		const changeRange = snapshot.getChangeRange(this.sourceSnapshot);
+		this.sourceSnapshot = snapshot;
+
+		// Only clear mapping index - don't update snapshot/originalCode yet
+		this._mappingIndex = null;
+
 		/** @type {MappingsResult | undefined} */
 		let transpiled;
 
+		// Check if a single "." was typed using changeRange
+		let isDotTyped = false;
+		let dotPosition = -1;
+
+		log('changeRange:', JSON.stringify(changeRange));
+
+		if (changeRange) {
+			const changeStart = changeRange.span.start;
+			const changeEnd = changeStart + changeRange.span.length;
+			const newEnd = changeStart + changeRange.newLength;
+
+			// Get the old text (what was replaced) from originalCode
+			const oldText = this.originalCode.substring(changeStart, changeEnd);
+			// Get the new text (what replaced it) from newCode
+			const newText = newCode.substring(changeStart, newEnd);
+
+			log('Change details:');
+			log('  Position:', changeStart, '-', changeEnd, '(length:', changeRange.span.length, ')');
+			log('  Old text:', JSON.stringify(oldText));
+			log('  New text:', JSON.stringify(newText), '(length:', changeRange.newLength, ')');
+
+			// Check if a dot was added at the end of the new text
+			if (newText.endsWith('.')) {
+				// The dot is at position newEnd - 1
+				// We need to check the character BEFORE the dot (inside the new text)
+				const charBeforeDot = newEnd > 1 ? newCode[newEnd - 2] : '';
+				log('  Char before dot:', JSON.stringify(charBeforeDot));
+
+				if (/[a-zA-Z0-9_\)\]\}]/.test(charBeforeDot)) {
+					isDotTyped = true;
+					dotPosition = newEnd - 1; // Position of the dot
+					log('ChangeRange detected dot typed at position', dotPosition);
+				}
+			}
+		}
+
 		try {
-			log('Compiling Ripple code...');
-			transpiled = this.ripple.compile_to_volar_mappings(this.originalCode, this.fileName);
-			log('Compilation successful, generated code length:', transpiled?.code?.length || 0);
+			// If user typed a ".", use placeholder technique to get completions
+			if (isDotTyped && dotPosition >= 0) {
+				const charBeforeDot = newCode[dotPosition - 1];
+				const codeWithPlaceholder =
+					newCode.substring(0, dotPosition) + charBeforeDot + newCode.substring(dotPosition + 1);
+
+				log('Using placeholder technique for dot at position', dotPosition);
+				transpiled = this.ripple.compile_to_volar_mappings(codeWithPlaceholder, this.fileName);
+				log('Compilation with placeholder successful');
+
+				// Find where the placeholder ended up in generated code and replace with "."
+				if (transpiled && transpiled.code && transpiled.mappings.length > 0) {
+					let placeholderMapping = null;
+					for (const mapping of transpiled.mappings) {
+						const sourceStart = mapping.sourceOffsets[0];
+						const sourceEnd = sourceStart + mapping.lengths[0];
+
+						if (dotPosition >= sourceStart && dotPosition < sourceEnd) {
+							placeholderMapping = mapping;
+							break;
+						}
+					}
+
+					if (placeholderMapping) {
+						const offsetInMapping = dotPosition - placeholderMapping.sourceOffsets[0];
+						const placeholderPosInGenerated =
+							placeholderMapping.generatedOffsets[0] + offsetInMapping;
+
+						transpiled.code =
+							transpiled.code.substring(0, placeholderPosInGenerated) +
+							'.' +
+							transpiled.code.substring(placeholderPosInGenerated + 1);
+
+						log('Replaced placeholder at position', placeholderPosInGenerated, 'with dot');
+					}
+				}
+				this.errors = [];
+			} else {
+				// Normal compilation
+				log('Compiling Ripple code...');
+				transpiled = this.ripple.compile_to_volar_mappings(newCode, this.fileName);
+				log('Compilation successful, generated code length:', transpiled?.code?.length || 0);
+				this.errors = [];
+			}
 		} catch (error) {
 			logError('Ripple compilation failed for', this.fileName, ':', error);
 			this.errors.push(/** @type {Error & { pos?: number }} */ (error));
 		}
 
 		if (transpiled && transpiled.code) {
-			// Segment-based approach - mappings are already in Volar format
+			// Successful compilation - update everything
+			this.originalCode = newCode;
 			this.generatedCode = transpiled.code;
 			this.mappings = transpiled.mappings ?? [];
-			this.isErrorMode = false; // Normal TypeScript mode
+			this.isErrorMode = false;
 
 			log('Using transpiled code, mapping count:', this.mappings.length);
 
@@ -274,19 +373,19 @@ class RippleVirtualCode {
 			// TypeScript diagnostics until the compilation error is fixed
 			log('Compilation failed, only display where the compilation error occurred.');
 
-			// Produce minimal valid TypeScript code to avoid cascading errors.
+			this.originalCode = newCode;
 			this.generatedCode = 'export {};\n';
-			this.isErrorMode = true; // Flag to indicate we're in diagnostic-only mode
+			this.isErrorMode = true;
 
 			// Create 1:1 mappings for the entire content
 			this.mappings = [
 				{
 					sourceOffsets: [this.errors[0]?.pos ?? 0],
 					generatedOffsets: [0],
-					lengths: [this.originalCode.length],
+					lengths: [newCode.length],
 					data: {
 						verification: true,
-						customData: { generatedLengths: [this.originalCode.length] },
+						customData: { generatedLengths: [newCode.length] },
 					},
 				},
 			];

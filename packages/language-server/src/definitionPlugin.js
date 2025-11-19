@@ -1,10 +1,9 @@
-const { RippleVirtualCode } = require('@ripple-ts/typescript-plugin/src/language.js');
-const { URI } = require('vscode-uri');
-
 /**
  * @typedef {import('@volar/language-server').LanguageServicePlugin} LanguageServicePlugin
- * @typedef {import('@volar/language-server').LanguageServiceContext} LanguageServiceContext
  */
+
+const { RippleVirtualCode } = require('@ripple-ts/typescript-plugin/src/language.js');
+const { URI } = require('vscode-uri');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
