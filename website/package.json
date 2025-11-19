@@ -10,7 +10,7 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
-	"packageManager": "pnpm@10.14.0",
+	"packageManager": "pnpm@10.18.2",
 	"dependencies": {
 		"livecodes": "catalog:default"
 	},
