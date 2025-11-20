@@ -59,6 +59,26 @@
     "adm-zip": "catalog:default"
   },
   "contributes": {
+    "configuration": {
+      "title": "Ripple",
+      "properties": {
+        "ripple.autoClosingTags": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically insert closing tags when typing '>' after a tag name. Note: For Ripple files, you may also need to set 'javascript.autoClosingTags' and 'typescript.autoClosingTags' to false to fully disable this feature."
+        },
+        "ripple.preferences.preferTypeOnlyAutoImports": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer adding 'type' modifier to auto imports when possible"
+        },
+        "ripple.format.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable default Ripple formatter"
+        }
+      }
+    },
     "commands": [
       {
         "command": "ripple.goToSourceDefinition",
@@ -83,16 +103,6 @@
         "configuration": "./language-configuration.json"
       }
     ],
-    "configuration": {
-      "title": "Ripple",
-      "properties": {
-        "ripple.format.enable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable/disable default Ripple formatter"
-        }
-      }
-    },
     "grammars": [
       {
         "language": "ripple",
