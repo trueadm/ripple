@@ -7,6 +7,7 @@
       "request": "launch",
       "autoAttachChildProcesses": true,
       "args": [
+				"--disable-extension=ripple-ts.ripple-ts-vscode-plugin",
         "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-plugin/",
         "${workspaceFolder}/playground"
       ],
@@ -31,12 +32,10 @@
       "name": "Debug All Tests - Vitest",
       "type": "node",
       "request": "launch",
-      "console": "integratedTerminal",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "test", "--", "--inspect-brk", "--no-file-parallelism"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "port": 9229,
       "skipFiles": ["<node_internals>/**"]
     },
     {
@@ -44,12 +43,10 @@
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/playground",
-      "console": "integratedTerminal",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "debug-volar"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "port": 9229,
       "skipFiles": ["<node_internals>/**"]
     }
   ]
