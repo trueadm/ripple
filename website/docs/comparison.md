@@ -13,7 +13,6 @@ title: Comparison to other frameworks
 ## vs Svelte
 - TypeScript-first approach
 - JSX-like syntax instead of HTML templates
-- `.ripple` extension instead of `.svelte`
 - Similar reactivity concepts but different syntax
 
 ## vs Solid
