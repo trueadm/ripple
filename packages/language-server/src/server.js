@@ -5,6 +5,7 @@
 } = require('@volar/language-server/node');
 const { createDiagnosticPlugin } = require('./diagnosticPlugin.js');
 const { createDefinitionPlugin } = require('./definitionPlugin.js');
+const { createHoverPlugin } = require('./hoverPlugin.js');
 const { createCompletionPlugin } = require('./completionPlugin.js');
 const { createAutoInsertPlugin } = require('./autoInsertPlugin.js');
 const {
@@ -111,6 +112,9 @@ function createRippleLanguageServer() {
 					createDiagnosticPlugin(),
 					createDefinitionPlugin(),
 					...createTypeScriptServices(ts),
+					// !IMPORTANT createHoverPlugin has to be loaded after Volar's ts plugins
+					// to overwrite `typescript-semantic` plugin's `provideHover`
+					createHoverPlugin(),
 				],
 			);
 
