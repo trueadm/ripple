@@ -45,34 +45,33 @@ function createAutoInsertPlugin() {
 		capabilities: {
 			autoInsertionProvider: {
 				triggerCharacters: ['>'],
-				// Must match length of triggerCharacters - empty string means no config needed
-				configurationSections: [''],
 			},
 		},
+		// leaving context for future use
 		create(context) {
 			return {
 				/**
 				 * @param {import('vscode-languageserver-textdocument').TextDocument} document
-				 * @param {import('@volar/language-server').Position} position
-				 * @param {{ rangeOffset: number; rangeLength: number; text: string }} lastChange
+				 * @param {import('@volar/language-server').Position} selection
+				 * @param {{ rangeOffset: number; rangeLength: number; text: string }} change
 				 * @param {import('@volar/language-server').CancellationToken} _token
 				 * @returns {Promise<string | null>}
 				 */
-				async provideAutoInsertSnippet(document, position, lastChange, _token) {
+				async provideAutoInsertSnippet(document, selection, change, _token) {
 					if (!document.uri.endsWith('.ripple')) {
 						return null;
 					}
 
 					// Get the line up to the cursor position
 					const line = document.getText({
-						start: { line: position.line, character: 0 },
-						end: position,
+						start: { line: selection.line, character: 0 },
+						end: selection,
 					});
 
 					log('Auto-insert triggered at:', {
-						position: `${position.line}:${position.character}`,
+						selection: `${selection.line}:${selection.character}`,
 						line,
-						lastChange,
+						change,
 					});
 
 					// Check if we just typed '>' after a tag name
@@ -101,8 +100,8 @@ function createAutoInsertPlugin() {
 
 					// Check if there's already a closing tag ahead
 					const restOfLine = document.getText({
-						start: position,
-						end: { line: position.line, character: position.character + 100 },
+						start: selection,
+						end: { line: selection.line, character: selection.character + 100 },
 					});
 					if (restOfLine.startsWith(`</${tagName}>`)) {
 						log('Closing tag already exists, skipping');

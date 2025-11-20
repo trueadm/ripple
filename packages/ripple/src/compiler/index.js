@@ -1,4 +1,5 @@
 /** @import { Program } from 'estree' */
+/** @import { ParseOptions } from 'ripple/compiler' */
 
 import { parse as parse_module } from './phases/1-parse/index.js';
 import { analyze } from './phases/2-analyze/index.js';
@@ -12,7 +13,7 @@ import { convert_source_map_to_mappings } from './phases/3-transform/segments.js
  * @returns {Program}
  */
 export function parse(source) {
-	return parse_module(source);
+	return parse_module(source, undefined);
 }
 
 /**
@@ -23,7 +24,7 @@ export function parse(source) {
  * @returns {object}
  */
 export function compile(source, filename, options = {}) {
-	const ast = parse_module(source);
+	const ast = parse_module(source, undefined);
 	const analysis = analyze(ast, filename, options);
 	const result =
 		options.mode === 'server'
@@ -40,10 +41,11 @@ export function compile(source, filename, options = {}) {
  * Compile Ripple component to Volar virtual code with TypeScript mappings
  * @param {string} source
  * @param {string} filename
+ * @param {ParseOptions} [options] - Compiler options
  * @returns {MappingsResult} Volar mappings object
  */
-export function compile_to_volar_mappings(source, filename) {
-	const ast = parse_module(source);
+export function compile_to_volar_mappings(source, filename, options) {
+	const ast = parse_module(source, options);
 	const analysis = analyze(ast, filename, { to_ts: true });
 	const transformed = transform_client(filename, source, analysis, true);
 

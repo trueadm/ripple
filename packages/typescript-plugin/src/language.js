@@ -1,6 +1,6 @@
 /** @type {import('typescript')} */
-// @ts-expect-error - Type-only import from ESM module into CJS is fine
-/** @import { MappingsResult, CodeMapping } from '../../ripple/src/compiler/phases/3-transform/segments.js' */
+// @ts-expect-error type-only import from ESM module into CJS is fine
+/** @import { CodeMapping } from '../../ripple/src/compiler/phases/3-transform/segments.js' */
 
 const ts = require('typescript');
 const { forEachEmbeddedCode } = require('@volar/language-core');
@@ -14,11 +14,8 @@ const path = require('path');
 /** @typedef {string | { fsPath: string }} ScriptId */
 /** @typedef {import('@volar/typescript')} */
 /** @typedef {import('@volar/language-core').LanguagePlugin<ScriptId, VirtualCode>} RippleLanguagePlugin */
-
-/**
- * @typedef {object} RippleCompiler
- * @property {(code: string, fileName: string) => MappingsResult} compile_to_volar_mappings
- */
+// @ts-expect-error type-only import from ESM module into CJS is fine
+/** @typedef {import('ripple/compiler')} RippleCompiler */
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
@@ -265,7 +262,7 @@ class RippleVirtualCode {
 		// Only clear mapping index - don't update snapshot/originalCode yet
 		this._mappingIndex = null;
 
-		/** @type {MappingsResult | undefined} */
+		/** @type {ReturnType<RippleCompiler['compile_to_volar_mappings']> | undefined} */
 		let transpiled;
 
 		// Check if a single "." was typed using changeRange
@@ -345,7 +342,9 @@ class RippleVirtualCode {
 			} else {
 				// Normal compilation
 				log('Compiling Ripple code...');
-				transpiled = this.ripple.compile_to_volar_mappings(newCode, this.fileName);
+				transpiled = this.ripple.compile_to_volar_mappings(newCode, this.fileName, {
+					loose: true,
+				});
 				log('Compilation successful, generated code length:', transpiled?.code?.length || 0);
 				this.errors = [];
 			}
@@ -361,7 +360,21 @@ class RippleVirtualCode {
 			this.mappings = transpiled.mappings ?? [];
 			this.isErrorMode = false;
 
-			log('Using transpiled code, mapping count:', this.mappings.length);
+			if (DEBUG) {
+				log('Using transpiled code, mapping count:', this.mappings.length);
+				log('Original code length:', newCode.length);
+				log('Generated code length:', this.generatedCode.length);
+				log('Last 100 chars of original:', JSON.stringify(newCode.slice(-100)));
+				log('Last 200 chars of generated:', JSON.stringify(this.generatedCode.slice(-200)));
+				log('Last few mappings:');
+				const startIdx = Math.max(0, this.mappings.length - 5);
+				for (let i = startIdx; i < this.mappings.length; i++) {
+					const m = this.mappings[i];
+					log(
+						`  Mapping ${i}: source[${m.sourceOffsets[0]}:${m.sourceOffsets[0] + m.lengths[0]}] -> gen[${m.generatedOffsets[0]}:${m.generatedOffsets[0] + m.lengths[0]}], len=${m.lengths[0]}, completion=${m.data?.completion}`,
+					);
+				}
+			}
 
 			this.snapshot = /** @type {IScriptSnapshot} */ ({
 				getText: (start, end) => this.generatedCode.substring(start, end),

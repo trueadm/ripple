@@ -1,9 +1,12 @@
 // @ts-nocheck
 /** @import { Program } from 'estree' */
-/** @import {
+/**
+ * @import {
  *   CommentWithLocation,
  *   RipplePluginConfig
  * } from '#compiler' */
+
+/** @import { ParseOptions } from 'ripple/compiler' */
 
 import * as acorn from 'acorn';
 import { tsPlugin } from '@sveltejs/acorn-typescript';
@@ -74,7 +77,7 @@ function isWhitespaceTextNode(node) {
  * @returns {function(any): any} Parser extension function
  */
 function RipplePlugin(config) {
-	return (/** @type {any} */ Parser) => {
+	return (/** @type {typeof acorn.Parser} */ Parser) => {
 		const original = acorn.Parser.prototype;
 		const tt = Parser.tokTypes || acorn.tokTypes;
 		const tc = Parser.tokContexts || acorn.tokContexts;
@@ -85,6 +88,12 @@ function RipplePlugin(config) {
 			/** @type {any[]} */
 			#path = [];
 			#commentContextId = 0;
+			#loose = false;
+
+			constructor(options, input) {
+				super(options, input);
+				this.#loose = options?.rippleOptions.loose === true;
+			}
 
 			#createCommentMetadata() {
 				if (this.#path.length === 0) {
@@ -1593,12 +1602,22 @@ function RipplePlugin(config) {
 							// If we reach here and this element is still in the path, it means it was never closed
 							const tagName = this.getElementName(element.id);
 
-							this.raise(
-								this.start,
-								`Unclosed tag '<${tagName}>'. Expected '</${tagName}>' before end of component.`,
-							);
+							// In loose mode (IDE), don't throw error for unclosed tags
+							// This allows language servers to provide completions and other features while typing
+							if (!this.#loose) {
+								this.raise(
+									this.start,
+									`Unclosed tag '<${tagName}>'. Expected '</${tagName}>' before end of component.`,
+								);
+							} else {
+								// Mark the element as unclosed so the transform phase can handle it
+								element.allowUnclosed = true;
+								// Pop the element from the path since we're handling it
+								this.#path.pop();
+							}
 						}
 					}
+
 					// Ensure we escape JSX <tag></tag> context
 					const curContext = this.curContext();
 
@@ -2256,9 +2275,10 @@ function get_comment_handlers(source, comments, index = 0) {
 /**
  * Parse Ripple source code into an AST
  * @param {string} source
+ * @param {ParseOptions} [options]
  * @returns {Program}
  */
-export function parse(source) {
+export function parse(source, options) {
 	/** @type {CommentWithLocation[]} */
 	const comments = [];
 
@@ -2315,6 +2335,9 @@ export function parse(source) {
 			ecmaVersion: 13,
 			locations: true,
 			onComment: /** @type {any} */ (onComment),
+			rippleOptions: {
+				loose: options?.loose || false,
+			},
 		});
 	} catch (e) {
 		throw e;

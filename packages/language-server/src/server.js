@@ -6,6 +6,7 @@
 const { createDiagnosticPlugin } = require('./diagnosticPlugin.js');
 const { createDefinitionPlugin } = require('./definitionPlugin.js');
 const { createCompletionPlugin } = require('./completionPlugin.js');
+const { createAutoInsertPlugin } = require('./autoInsertPlugin.js');
 const {
 	getRippleLanguagePlugin,
 	resolveConfig,
@@ -105,6 +106,7 @@ function createRippleLanguageServer() {
 					};
 				}),
 				[
+					createAutoInsertPlugin(),
 					createCompletionPlugin(),
 					createDiagnosticPlugin(),
 					createDefinitionPlugin(),

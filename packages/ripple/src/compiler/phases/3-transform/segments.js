@@ -280,7 +280,34 @@ export function convert_source_map_to_mappings(
 
 				// 1. Visit opening element (name and attributes)
 				if (node.openingElement) {
+					// Add tokens for '<' and '>' brackets to ensure auto-close feature works
+					const openingElem = node.openingElement;
+
+					// Add '<' bracket
+					if (openingElem.loc) {
+						tokens.push({
+							source: '<',
+							generated: '<',
+							loc: {
+								start: { line: openingElem.loc.start.line, column: openingElem.loc.start.column },
+								end: { line: openingElem.loc.start.line, column: openingElem.loc.start.column + 1 },
+							},
+						});
+					}
+
 					visit(node.openingElement);
+
+					// Add '>' bracket (or '/>' for self-closing)
+					if (openingElem.loc && !openingElem.selfClosing) {
+						tokens.push({
+							source: '>',
+							generated: '>',
+							loc: {
+								start: { line: openingElem.loc.end.line, column: openingElem.loc.end.column - 1 },
+								end: { line: openingElem.loc.end.line, column: openingElem.loc.end.column },
+							},
+						});
+					}
 				}
 
 				// 2. Visit children in order

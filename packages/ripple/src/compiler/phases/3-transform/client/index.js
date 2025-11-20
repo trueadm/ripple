@@ -2046,13 +2046,32 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		const jsxElement = b.jsx_element(
-			opening_type,
-			attributes,
-			children,
-			node.selfClosing,
-			closing_type,
-		);
+		let jsxElement;
+		if (node.allowUnclosed) {
+			// For unclosed elements, manually construct JSX with no closing tag
+			const opening_element = {
+				type: 'JSXOpeningElement',
+				name: opening_type,
+				attributes,
+				selfClosing: false,
+				loc: node.loc, // Preserve source location for mappings
+			};
+			jsxElement = {
+				type: 'JSXElement',
+				openingElement: opening_element,
+				closingElement: null,
+				children,
+				loc: node.loc, // Preserve source location for mappings
+			};
+		} else {
+			jsxElement = b.jsx_element(
+				opening_type,
+				attributes,
+				children,
+				node.selfClosing,
+				closing_type,
+			);
+		}
 		// Preserve metadata from Element node for mapping purposes
 		if (node.metadata && (node.metadata.ts_name || node.metadata.original_name)) {
 			jsxElement.metadata = {
@@ -2060,7 +2079,13 @@ function transform_ts_child(node, context) {
 				original_name: node.metadata.original_name,
 			};
 		}
-		state.init.push(b.stmt(jsxElement));
+		// For unclosed elements, push the JSXElement directly without wrapping in ExpressionStatement
+		// This keeps it in the AST for mappings but avoids adding a semicolon
+		if (node.allowUnclosed) {
+			state.init.push(jsxElement);
+		} else {
+			state.init.push(b.stmt(jsxElement));
+		}
 	} else if (node.type === 'IfStatement') {
 		const consequent_scope = context.state.scopes.get(node.consequent);
 		const consequent = b.block(
@@ -2582,6 +2607,40 @@ function create_tsx_with_typescript_support() {
 
 			// Write source
 			context.visit(node.source);
+		},
+		// Custom handler for JSXOpeningElement to ensure '<' and '>' have source mappings
+		// Esrap's default handler only maps the tag name, not the brackets
+		// This creates mappings for the brackets so auto-close can find the cursor position
+		JSXOpeningElement(node, context) {
+			if (node.loc) {
+				// Manually set location for '<'
+				context.location(node.loc.start.line, node.loc.start.column);
+				context.write('<');
+				context.location(node.loc.start.line, node.loc.start.column + 1);
+			} else {
+				context.write('<');
+			}
+
+			context.visit(node.name);
+
+			// Write attributes
+			for (const attr of node.attributes || []) {
+				context.write(' ');
+				context.visit(attr);
+			}
+
+			if (node.selfClosing) {
+				context.write(' />');
+			} else {
+				if (node.loc) {
+					// Manually set location for '>'
+					context.location(node.loc.end.line, node.loc.end.column - 1);
+					context.write('>');
+					context.location(node.loc.end.line, node.loc.end.column);
+				} else {
+					context.write('>');
+				}
+			}
 		},
 		// Custom handler for TSParenthesizedType: (Type)
 		TSParenthesizedType(node, context) {
