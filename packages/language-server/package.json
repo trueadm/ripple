@@ -14,8 +14,9 @@
     "directory": "packages/language-server"
   },
   "dependencies": {
-    "@volar/language-server": "catalog:default",
     "@ripple-ts/typescript-plugin": "workspace:*",
+    "@volar/language-server": "catalog:default",
+    "volar-service-css": "catalog:default",
     "volar-service-typescript": "catalog:default",
     "vscode-languageserver-textdocument": "catalog:default",
     "vscode-uri": "catalog:default"

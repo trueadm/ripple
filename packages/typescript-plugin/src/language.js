@@ -297,6 +297,10 @@ class RippleVirtualCode {
 				getChangeRange: () => undefined,
 			});
 		}
+
+		log('Updating embedded codes');
+		this.embeddedCodes = [...getRippleEmbeddedStyleCode(snapshot)];
+		log('Updated embedded codes, count:', this.embeddedCodes.length);
 	}
 
 	/**
@@ -321,6 +325,59 @@ class RippleVirtualCode {
 
 		const key = `${start}-${end}`;
 		return this._mappingIndex.get(key) ?? null;
+	}
+}
+
+/**
+ * Extract embedded CSS code from style tags in Ripple files
+ * @param {IScriptSnapshot} snapshot
+ * @yields {VirtualCode}
+ */
+function* getRippleEmbeddedStyleCode(snapshot) {
+	const sourceText = snapshot.getText(0, snapshot.getLength());
+	const styleTagRegex = /<style\b[^>]*>/gi;
+	let i = 0;
+	let match;
+
+	while ((match = styleTagRegex.exec(sourceText)) !== null) {
+		const startTagEnd = match.index + match[0].length;
+		const closingTagIndex = sourceText.indexOf('</style>', startTagEnd);
+
+		if (closingTagIndex === -1) {
+			continue;
+		}
+
+		const endTagStart = closingTagIndex;
+		const styleText = snapshot.getText(startTagEnd, endTagStart);
+
+		yield {
+			id: 'style_' + i,
+			languageId: 'css',
+			snapshot: {
+				getText: (/** @type {number} */ start, /** @type {number} */ end) =>
+					styleText.substring(start, end),
+				getLength: () => styleText.length,
+				getChangeRange: () => undefined,
+			},
+			mappings: [
+				{
+					sourceOffsets: [startTagEnd],
+					generatedOffsets: [0],
+					lengths: [styleText.length],
+					data: {
+						completion: true,
+						format: true,
+						navigation: true,
+						semantic: true,
+						structure: true,
+						verification: true,
+					},
+				},
+			],
+			embeddedCodes: [],
+		};
+
+		i++;
 	}
 }
 
