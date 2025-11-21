@@ -3,6 +3,7 @@
 	createServer,
 	createTypeScriptProject,
 } = require('@volar/language-server/node');
+const { create: createCSSServices } = require('volar-service-css');
 const { createDiagnosticPlugin } = require('./diagnosticPlugin.js');
 const { createDefinitionPlugin } = require('./definitionPlugin.js');
 const {
@@ -103,7 +104,7 @@ function createRippleLanguageServer() {
 						},
 					};
 				}),
-				[createDiagnosticPlugin(), createDefinitionPlugin(), ...createTypeScriptServices(ts)],
+				[createDiagnosticPlugin(), createDefinitionPlugin(), createCSSServices(), ...createTypeScriptServices(ts)],
 			);
 
 			log('Server initialization complete');
