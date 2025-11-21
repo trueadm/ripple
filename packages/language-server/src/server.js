@@ -13,6 +13,7 @@ const {
 	resolveConfig,
 } = require('@ripple-ts/typescript-plugin/src/language.js');
 const { createTypeScriptServices } = require('./typescriptService.js');
+const { create: createCssService } = require('volar-service-css');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
@@ -111,6 +112,7 @@ function createRippleLanguageServer() {
 					createCompletionPlugin(),
 					createDiagnosticPlugin(),
 					createDefinitionPlugin(),
+					createCssService(),
 					...createTypeScriptServices(ts),
 					// !IMPORTANT createHoverPlugin has to be loaded after Volar's ts plugins
 					// to overwrite `typescript-semantic` plugin's `provideHover`

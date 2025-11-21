@@ -7,9 +7,14 @@
  * @typedef {import('estree').Position} Position
  * @typedef {{start: Position, end: Position}} Location
  * @typedef {import('@volar/language-core').CodeMapping} VolarCodeMapping
- * @typedef {VolarCodeMapping['data'] & {customData: CustomMappingData}} MappingData
- * @typedef {VolarCodeMapping & {data: MappingData}} CodeMapping
- * @typedef {{code: string, mappings: CodeMapping[]}} MappingsResult
+ * @typedef {import('ripple/compiler').MappingData} MappingData
+ * @typedef {import('ripple/compiler').CodeMapping} CodeMapping
+ * @typedef {import('ripple/compiler').VolarMappingsResult} VolarMappingsResult
+ * @typedef {{
+ *	start: number,
+ *	end: number,
+ *	content: string
+ * }} CssSourceRegion
  */
 
 import { walk } from 'zimmerframe';
@@ -26,21 +31,59 @@ export const mapping_data = {
 };
 
 /**
+ * Extract CSS source regions from style elements in the AST
+ * @param {any} ast - The parsed AST
+ * @param {string} source - Original source code
+ * @returns {CssSourceRegion[]}
+ */
+function extractCssSourceRegions(ast, source) {
+	/** @type {CssSourceRegion[]} */
+	const regions = [];
+
+	walk(ast, null, {
+		Element(node) {
+			// Check if this is a style element with CSS content
+			if (node.id?.name === 'style' && node.css) {
+				// Find where CSS starts: after the opening <style> tag
+				// We need to find the position after <style...>
+				const styleTagStart = source.indexOf('<style', node.start);
+				if (styleTagStart === -1) return;
+
+				const openTagEnd = source.indexOf('>', styleTagStart);
+				if (openTagEnd === -1) return;
+
+				const cssStart = openTagEnd + 1;
+
+				regions.push({
+					start: cssStart,
+					end: cssStart + node.css.length,
+					content: node.css,
+				});
+			}
+		},
+	});
+
+	return regions;
+}
+
+/**
  * @import { PostProcessingChanges } from './client/index.js';
  */
 
 /**
  * Create Volar mappings by walking the transformed AST
  * @param {any} ast - The transformed AST
+ * @param {any} ast_from_source - The original AST from source
  * @param {string} source - Original source code
  * @param {string} generated_code - Generated code (returned in output, not used for searching)
  * @param {object} esrap_source_map - Esrap source map for accurate position lookup
  * @param {PostProcessingChanges } post_processing_changes - Optional post-processing changes
  * @param {number[]} line_offsets - Pre-computed line offsets array for generated code
- * @returns {MappingsResult}
+ * @returns {VolarMappingsResult}
  */
 export function convert_source_map_to_mappings(
 	ast,
+	ast_from_source,
 	source,
 	generated_code,
 	esrap_source_map,
@@ -1327,8 +1370,27 @@ export function convert_source_map_to_mappings(
 		});
 	}
 
+	/** @type {{ cssMappings: CodeMapping[], cssSources: string[] }} */
+	const cssResult = { cssMappings: [], cssSources: [] };
+	for (const region of extractCssSourceRegions(ast_from_source, source)) {
+		cssResult.cssMappings.push({
+			sourceOffsets: [region.start],
+			generatedOffsets: [0],
+			lengths: [region.content.length],
+			data: {
+				...mapping_data,
+				customData: {
+					generatedLengths: [region.content.length],
+				},
+			},
+		});
+
+		cssResult.cssSources.push(region.content);
+	}
+
 	return {
 		code: generated_code,
 		mappings,
+		...cssResult,
 	};
 }

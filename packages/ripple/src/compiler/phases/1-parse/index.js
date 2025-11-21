@@ -1524,7 +1524,7 @@ function RipplePlugin(config) {
 						const content = input.slice(0, end);
 
 						const component = this.#path.findLast((n) => n.type === 'Component');
-						const parsed_css = parse_style(content);
+						const parsed_css = parse_style(content, { loose: this.#loose });
 
 						if (!inside_head) {
 							if (component.css !== null) {

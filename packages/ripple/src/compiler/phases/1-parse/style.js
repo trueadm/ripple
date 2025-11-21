@@ -88,8 +88,8 @@ class Parser {
 	}
 }
 
-export function parse_style(content) {
-	const parser = new Parser(content, false);
+export function parse_style(content, options) {
+	const parser = new Parser(content, options.loose || false);
 
 	return {
 		source: content,
@@ -232,8 +232,8 @@ function read_declaration(parser) {
 
 	const value = read_value(parser);
 
-	if (!value && !property.startsWith('--')) {
-		e.css_empty_declaration({ start, end: index });
+	if (!value && !property.startsWith('--') && !parser.loose) {
+		throw new Error('CSS Declaration cannot be empty');
 	}
 
 	const end = parser.index;

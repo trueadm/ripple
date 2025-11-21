@@ -1,4 +1,8 @@
 import type { Program } from 'estree';
+import type {
+	CodeInformation as VolarCodeInformation,
+	Mapping as VolarMapping,
+} from '@volar/language-core';
 
 // ============================================================================
 // Compiler API Exports
@@ -18,12 +22,26 @@ export interface CompileResult {
 	css: string;
 }
 
+export interface CustomMappingData {
+	generatedLengths: number[];
+}
+
+export interface MappingData extends VolarCodeInformation {
+	customData: CustomMappingData;
+}
+
+export interface CodeMapping extends VolarMapping<MappingData> {
+	data: MappingData;
+}
+
 /**
  * Result of Volar mappings compilation
  */
 export interface VolarMappingsResult {
-	/** Array of code mappings for Volar integration */
-	[key: string]: any;
+	code: string;
+	mappings: CodeMapping[];
+	cssMappings: CodeMapping[];
+	cssSources: string[];
 }
 
 /**

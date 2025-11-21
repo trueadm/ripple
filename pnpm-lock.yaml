@@ -129,6 +129,9 @@ catalogs:
     vitest:
       specifier: ^3.2.4
       version: 3.2.4
+    volar-service-css:
+      specifier: 0.0.67
+      version: 0.0.67
     volar-service-typescript:
       specifier: 0.0.65
       version: 0.0.65
@@ -329,6 +332,9 @@ importers:
       typescript:
         specifier: catalog:peer
         version: 5.9.2
+      volar-service-css:
+        specifier: catalog:default
+        version: 0.0.67(@volar/language-service@2.4.23)
       volar-service-typescript:
         specifier: catalog:default
         version: 0.0.65(@volar/language-service@2.4.23)
@@ -1540,6 +1546,9 @@ packages:
 
   '@volar/vscode@2.4.23':
     resolution: {integrity: sha512-rLghFmq5+pEpEkuMZtnFUVZFagYxas9q9U4U8ErcJ5Qv4bZ7AZ2oj5Wz4gx0O79ZgdOblDZIgttokw2Pc+VtnQ==}
+
+  '@vscode/l10n@0.0.18':
+    resolution: {integrity: sha512-KYSIHVmslkaCDyw013pphY+d7x1qV8IZupYfeIfzNA+nsaWHbn5uPuQRvdRFsa9zFzGeudPuoGoZ1Op4jrJXIQ==}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.6':
     resolution: {integrity: sha512-wKkJBsvKF+f0GfsUuGT0tSW0kZL87QggEiqNqK6/8hvqsXvpx8OsTEc3mnE1kejkh5r+qUyQ7PtF8jZYN0mo8Q==}
@@ -3785,6 +3794,14 @@ packages:
       jsdom:
         optional: true
 
+  volar-service-css@0.0.67:
+    resolution: {integrity: sha512-zV7C6enn9T9tuvQ6iSUyYEs34iPXR69Pf9YYWpbFYPWzVs22w96BtE8p04XYXbmjU6unt5oFt+iLL77bMB5fhA==}
+    peerDependencies:
+      '@volar/language-service': ~2.4.0
+    peerDependenciesMeta:
+      '@volar/language-service':
+        optional: true
+
   volar-service-typescript@0.0.65:
     resolution: {integrity: sha512-zPJuLIMs7lkQCvL+Rza8+3/EIoXEIkX8+DL7bNNfPgnbalbvRDhqWLVMJ6Zk3pINjLJafDqyhSbw8srfkUv97w==}
     peerDependencies:
@@ -3792,6 +3809,9 @@ packages:
     peerDependenciesMeta:
       '@volar/language-service':
         optional: true
+
+  vscode-css-languageservice@6.3.8:
+    resolution: {integrity: sha512-dBk/9ullEjIMbfSYAohGpDOisOVU1x2MQHOeU12ohGJQI7+r0PCimBwaa/pWpxl/vH4f7ibrBfxIZY3anGmHKQ==}
 
   vscode-jsonrpc@8.2.0:
     resolution: {integrity: sha512-C+r0eKJUIfiDIfwJhria30+TYWPtuHJXHtI7J0YlOmKAo7ogxP20T0zxB7HZQIFhIyvoBPwWskjxrvAtfjyZfA==}
@@ -4870,6 +4890,8 @@ snapshots:
       path-browserify: 1.0.1
       vscode-languageclient: 9.0.1
       vscode-nls: 5.2.0
+
+  '@vscode/l10n@0.0.18': {}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.6':
     optional: true
@@ -7241,6 +7263,14 @@ snapshots:
       - tsx
       - yaml
 
+  volar-service-css@0.0.67(@volar/language-service@2.4.23):
+    dependencies:
+      vscode-css-languageservice: 6.3.8
+      vscode-languageserver-textdocument: 1.0.12
+      vscode-uri: 3.1.0
+    optionalDependencies:
+      '@volar/language-service': 2.4.23
+
   volar-service-typescript@0.0.65(@volar/language-service@2.4.23):
     dependencies:
       path-browserify: 1.0.1
@@ -7251,6 +7281,13 @@ snapshots:
       vscode-uri: 3.1.0
     optionalDependencies:
       '@volar/language-service': 2.4.23
+
+  vscode-css-languageservice@6.3.8:
+    dependencies:
+      '@vscode/l10n': 0.0.18
+      vscode-languageserver-textdocument: 1.0.12
+      vscode-languageserver-types: 3.17.5
+      vscode-uri: 3.1.0
 
   vscode-jsonrpc@8.2.0: {}
 

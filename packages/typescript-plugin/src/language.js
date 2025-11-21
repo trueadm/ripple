@@ -360,7 +360,36 @@ class RippleVirtualCode {
 			this.mappings = transpiled.mappings ?? [];
 			this.isErrorMode = false;
 
+			const { cssMappings, cssSources } = transpiled;
+			if (cssMappings.length > 0) {
+				log('Creating', cssMappings.length, 'CSS embedded codes');
+
+				this.embeddedCodes = cssMappings.map((mapping, index) => {
+					const cssContent = cssSources[index];
+					log(
+						`CSS region ${index}: \
+						offset ${mapping.sourceOffsets[0]}-${mapping.sourceOffsets[0] + mapping.lengths[0]}, \
+						length ${mapping.lengths[0]}`,
+					);
+
+					return {
+						id: `style_${index}`,
+						languageId: 'css',
+						snapshot: {
+							getText: (start, end) => cssContent.substring(start, end),
+							getLength: () => mapping.lengths[0],
+							getChangeRange: () => undefined,
+						},
+						mappings: [mapping],
+						embeddedCodes: [],
+					};
+				});
+			} else {
+				this.embeddedCodes = [];
+			}
+
 			if (DEBUG) {
+				log('CSS embedded codes:', this.embeddedCodes.length);
 				log('Using transpiled code, mapping count:', this.mappings.length);
 				log('Original code length:', newCode.length);
 				log('Generated code length:', this.generatedCode.length);

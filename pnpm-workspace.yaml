@@ -50,6 +50,7 @@ catalogs:
     vitepress-plugin-npm-commands: ^0.8.1
     vitepress-plugin-tabs: ^0.7.1
     vitest: ^3.2.4
+    volar-service-css: 0.0.65
     volar-service-typescript: 0.0.65
     vscode-languageclient: ^9.0.1
     vscode-languageserver-textdocument: ^1.0.12
