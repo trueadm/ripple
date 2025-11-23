@@ -1,9 +1,7 @@
-/**
- * @typedef {import('@volar/language-server').LanguageServicePlugin} LanguageServicePlugin
- * @typedef {import('@volar/language-server').LanguageServicePluginInstance} LanguageServicePluginInstance
- */
+/** @import { LanguageServicePlugin } from '@volar/language-server' */
+/** @import { RippleVirtualCode } from '@ripple-ts/typescript-plugin/src/language.js') */
+/** @typedef {import('@volar/language-server').LanguageServicePluginInstance} LanguageServicePluginInstance */
 
-const { RippleVirtualCode } = require('@ripple-ts/typescript-plugin/src/language.js');
 const { URI } = require('vscode-uri');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
@@ -78,11 +76,9 @@ function createHoverPlugin() {
 
 					const [sourceUri, virtualCodeId] = decoded;
 					const sourceScript = context.language.scripts.get(sourceUri);
-					const virtualCode = sourceScript?.generated?.embeddedCodes.get(virtualCodeId);
-
-					if (!(virtualCode instanceof RippleVirtualCode) || !virtualCode.mappings) {
-						return tsHover;
-					}
+					const virtualCode = /** @type {RippleVirtualCode } */ (
+						sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
+					);
 
 					// If there's no range to adjust, return as-is
 					if (!tsHover.range) {
@@ -93,7 +89,6 @@ function createHoverPlugin() {
 					const rangeStart = document.offsetAt(range.start);
 					const rangeEnd = document.offsetAt(range.end);
 
-					// Find the mapping using the exact token range for O(1) lookup
 					const mapping = virtualCode.findMappingByGeneratedRange(rangeStart, rangeEnd);
 
 					if (!mapping) {

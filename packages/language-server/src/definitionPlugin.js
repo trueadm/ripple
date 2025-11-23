@@ -1,6 +1,5 @@
-/**
- * @typedef {import('@volar/language-server').LanguageServicePlugin} LanguageServicePlugin
- */
+/** @import { LanguageServicePlugin } from '@volar/language-server' */
+/** @import { RippleVirtualCode } from '@ripple-ts/typescript-plugin/src/language.js') */
 
 const { URI } = require('vscode-uri');
 
@@ -55,11 +54,9 @@ function createDefinitionPlugin() {
 
 					const [sourceUri, virtualCodeId] = decoded;
 					const sourceScript = context.language.scripts.get(sourceUri);
-					const virtualCode = sourceScript?.generated?.embeddedCodes.get(virtualCodeId);
-
-					if (!virtualCode?.mappings) {
-						return tsDefinitions;
-					}
+					const virtualCode = /** @type {RippleVirtualCode } */ (
+						sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
+					);
 
 					// Get the range from TypeScript's definition to find the exact token
 					// This gives us the precise start and end of the token (e.g., "function")

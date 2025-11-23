@@ -87,10 +87,6 @@ function createAutoInsertPlugin() {
 						sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
 					);
 
-					if (!virtualCode?.mappings) {
-						return null;
-					}
-
 					// Map position back to source
 					const offset = document.offsetAt(position);
 					const mapping = virtualCode.findMappingByGeneratedRange(lastChange.rangeOffset, offset);
