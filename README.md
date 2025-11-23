@@ -46,6 +46,69 @@ cd my-app
 npm install && npm run dev
 ```
 
+<details>
+<summary><strong>Using yarn</strong></summary>
+
+#### Using CLI (Recommended)
+
+```bash
+yarn create-ripple
+cd my-app
+yarn install && yarn dev
+```
+
+#### Using Template
+
+```bash
+yarn dlx degit Ripple-TS/ripple/templates/basic my-app
+cd my-app
+yarn install && yarn dev
+```
+
+</details>
+
+<details>
+<summary><strong>Using pnpm</strong></summary>
+
+#### Using CLI (Recommended)
+
+```bash
+pnpm create-ripple
+cd my-app
+pnpm install && pnpm run dev
+```
+
+#### Using Template
+
+```bash
+pnpm dlx degit Ripple-TS/ripple/templates/basic my-app
+cd my-app
+pnpm install && pnpm run dev
+```
+
+</details>
+
+<details>
+<summary><strong>Using bun</strong></summary>
+
+#### Using CLI (Recommended)
+
+```bash
+bun create-ripple
+cd my-app
+bun install && bun run dev
+```
+
+#### Using Template
+
+```bash
+bun x degit Ripple-TS/ripple/templates/basic my-app
+cd my-app
+bun install && bun run dev
+```
+
+</details>
+
 ### Add to Existing Project
 
 ```bash
