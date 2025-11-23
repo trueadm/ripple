@@ -173,7 +173,7 @@ like plain HTML, but instead of quotes, we use {braces}, within which, we can
 write a JS expression that evaluates to our desired value.
 
 ```ripple
-<span data-my-attr={attr_val}>Hi there!</span>
+<span data-my-attr={attr_val}>{'Hi there!'}</span>
 ```
 
 ::: info
