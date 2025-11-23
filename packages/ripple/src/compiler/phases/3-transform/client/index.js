@@ -1901,7 +1901,6 @@ function transform_ts_child(node, context) {
 		const children = [];
 		let has_children_props = false;
 
-		const ref_attributes = [];
 		const attributes = node.attributes.map((attr) => {
 			if (attr.type === 'Attribute') {
 				const metadata = { await: false };
@@ -1943,7 +1942,7 @@ function transform_ts_child(node, context) {
 			}
 		});
 
-		if (!node.selfClosing && !has_children_props && node.children.length > 0) {
+		if (!node.selfClosing && !node.unclosed && !has_children_props && node.children.length > 0) {
 			const is_dom_element = is_element_dom_element(node);
 
 			const component_scope = context.state.scopes.get(node);
@@ -1963,20 +1962,20 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		let opening_type, closing_type;
+		let opening_name_element, closing_name_element;
 
 		if (type_is_expression) {
 			// For dynamic/expression-based components (e.g., props.children),
 			// use JSX expression instead of identifier
-			opening_type = type_expression;
-			closing_type = node.selfClosing ? undefined : type_expression;
+			opening_name_element = type_expression;
+			closing_name_element = node.selfClosing || node.unclosed ? undefined : type_expression;
 		} else {
-			opening_type = b.jsx_id(type_expression);
+			opening_name_element = b.jsx_id(type_expression);
 			// For tracked identifiers (dynamic components), adjust the loc to skip the '@' prefix
 			// and add metadata for mapping
 			if (node.id.tracked && node.id.loc) {
 				// The original identifier loc includes the '@', so we need to skip it
-				opening_type.loc = {
+				opening_name_element.loc = {
 					start: {
 						line: node.id.loc.start.line,
 						column: node.id.loc.start.column + 1, // Skip '@'
@@ -1985,14 +1984,14 @@ function transform_ts_child(node, context) {
 				};
 				// Add metadata if this was capitalized
 				if (node.metadata?.ts_name && node.metadata?.original_name) {
-					opening_type.metadata = {
+					opening_name_element.metadata = {
 						original_name: node.metadata.original_name,
 						is_capitalized: true,
 					};
 				}
 			} else {
 				// Use node.id.loc if available, otherwise create a loc based on the element's position
-				opening_type.loc = node.id.loc || {
+				opening_name_element.loc = node.id.loc || {
 					start: {
 						line: node.loc.start.line,
 						column: node.loc.start.column + 2, // After "<@"
@@ -2004,14 +2003,14 @@ function transform_ts_child(node, context) {
 				};
 			}
 
-			if (!node.selfClosing) {
-				closing_type = b.jsx_id(type_expression);
+			if (!node.selfClosing && !node.unclosed) {
+				closing_name_element = b.jsx_id(type_expression);
 				// For tracked identifiers, also adjust closing tag location
 				if (node.id.tracked && node.id.loc) {
 					// Calculate position relative to closing tag
 					// Format: </@identifier>
 					const closing_tag_start = node.loc.end.column - type_expression.length - 3; // </@
-					closing_type.loc = {
+					closing_name_element.loc = {
 						start: {
 							line: node.loc.end.line,
 							column: closing_tag_start + 3, // Skip '</@'
@@ -2026,13 +2025,13 @@ function transform_ts_child(node, context) {
 					};
 					// Add metadata if this was capitalized
 					if (node.metadata?.ts_name && node.metadata?.original_name) {
-						closing_type.metadata = {
+						closing_name_element.metadata = {
 							original_name: node.metadata.original_name,
 							is_capitalized: true,
 						};
 					}
 				} else {
-					closing_type.loc = {
+					closing_name_element.loc = {
 						start: {
 							line: node.loc.end.line,
 							column: node.loc.end.column - type_expression.length - 1,
@@ -2046,32 +2045,38 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		let jsxElement;
-		if (node.allowUnclosed) {
-			// For unclosed elements, manually construct JSX with no closing tag
-			const opening_element = {
-				type: 'JSXOpeningElement',
-				name: opening_type,
-				attributes,
-				selfClosing: false,
-				loc: node.loc, // Preserve source location for mappings
+		let jsxElement = b.jsx_element(
+			opening_name_element,
+			node.loc,
+			attributes,
+			children,
+			node.selfClosing,
+			node.unclosed,
+			closing_name_element,
+		);
+
+		// Calculate the location for the entire JSXClosingElement (including </ and >)
+		if (jsxElement.closingElement && !node.selfClosing && !node.unclosed) {
+			// The closing element starts with '</' and ends with '>'
+			// For a tag like </div>, if node.loc.end is right after '>', then:
+			// - '<' is at node.loc.end.column - type_expression.length - 3
+			// - '>' is at node.loc.end.column - 1
+			const tag_name_length = node.id.tracked
+				? (node.metadata?.original_name?.length || type_expression.length) + 1 // +1 for '@'
+				: type_expression.length;
+
+			jsxElement.closingElement.loc = {
+				start: {
+					line: node.loc.end.line,
+					column: node.loc.end.column - tag_name_length - 2, // at '</'
+				},
+				end: {
+					line: node.loc.end.line,
+					column: node.loc.end.column, // at '>'
+				},
 			};
-			jsxElement = {
-				type: 'JSXElement',
-				openingElement: opening_element,
-				closingElement: null,
-				children,
-				loc: node.loc, // Preserve source location for mappings
-			};
-		} else {
-			jsxElement = b.jsx_element(
-				opening_type,
-				attributes,
-				children,
-				node.selfClosing,
-				closing_type,
-			);
 		}
+
 		// Preserve metadata from Element node for mapping purposes
 		if (node.metadata && (node.metadata.ts_name || node.metadata.original_name)) {
 			jsxElement.metadata = {
@@ -2081,7 +2086,7 @@ function transform_ts_child(node, context) {
 		}
 		// For unclosed elements, push the JSXElement directly without wrapping in ExpressionStatement
 		// This keeps it in the AST for mappings but avoids adding a semicolon
-		if (node.allowUnclosed) {
+		if (node.unclosed) {
 			state.init.push(jsxElement);
 		} else {
 			state.init.push(b.stmt(jsxElement));
@@ -2526,6 +2531,37 @@ function create_tsx_with_typescript_support() {
 				base_tsx.Property(node, context);
 			}
 		},
+		// Custom handler for JSXClosingElement to ensure closing tag brackets have source mappings
+		JSXClosingElement(node, context) {
+			console.log('[JSXClosingElement]', node.name.name, 'loc:', JSON.stringify(node.loc));
+			// Set location for '<' then write '</'
+			if (node.loc) {
+				console.log(
+					'[JSXClosingElement] Calling context.location for <:',
+					node.loc.start.line,
+					node.loc.start.column,
+				);
+				context.location(node.loc.start.line, node.loc.start.column);
+				context.write('</');
+			} else {
+				context.write('</');
+			}
+
+			context.visit(node.name);
+
+			// Set location for '>' then write it
+			if (node.loc) {
+				console.log(
+					'[JSXClosingElement] Calling context.location for >:',
+					node.loc.end.line,
+					node.loc.end.column - 1,
+				);
+				context.location(node.loc.end.line, node.loc.end.column - 1);
+				context.write('>');
+			} else {
+				context.write('>');
+			}
+		},
 		// Custom handler for ArrayPattern to ensure typeAnnotation is visited
 		// esrap's TypeScript handler doesn't visit typeAnnotation for ArrayPattern (only for ObjectPattern)
 		ArrayPattern(node, context) {
@@ -2612,14 +2648,11 @@ function create_tsx_with_typescript_support() {
 		// Esrap's default handler only maps the tag name, not the brackets
 		// This creates mappings for the brackets so auto-close can find the cursor position
 		JSXOpeningElement(node, context) {
+			// Set location for '<'
 			if (node.loc) {
-				// Manually set location for '<'
 				context.location(node.loc.start.line, node.loc.start.column);
-				context.write('<');
-				context.location(node.loc.start.line, node.loc.start.column + 1);
-			} else {
-				context.write('<');
 			}
+			context.write('<');
 
 			context.visit(node.name);
 
@@ -2632,14 +2665,13 @@ function create_tsx_with_typescript_support() {
 			if (node.selfClosing) {
 				context.write(' />');
 			} else {
+				// Set the source location for the '>'
+				// node.loc.end points AFTER the '>', so subtract 1 to get the position OF the '>'
 				if (node.loc) {
-					// Manually set location for '>'
+					// TODO: why do we need to subtract 1 from column here?
 					context.location(node.loc.end.line, node.loc.end.column - 1);
-					context.write('>');
-					context.location(node.loc.end.line, node.loc.end.column);
-				} else {
-					context.write('>');
 				}
+				context.write('>');
 			}
 		},
 		// Custom handler for TSParenthesizedType: (Type)

@@ -2,7 +2,6 @@
  * @typedef {import('@volar/language-server').LanguageServicePlugin} LanguageServicePlugin
  */
 
-const { RippleVirtualCode } = require('@ripple-ts/typescript-plugin/src/language.js');
 const { URI } = require('vscode-uri');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
@@ -58,7 +57,7 @@ function createDefinitionPlugin() {
 					const sourceScript = context.language.scripts.get(sourceUri);
 					const virtualCode = sourceScript?.generated?.embeddedCodes.get(virtualCodeId);
 
-					if (!(virtualCode instanceof RippleVirtualCode) || !virtualCode.mappings) {
+					if (!virtualCode?.mappings) {
 						return tsDefinitions;
 					}
 

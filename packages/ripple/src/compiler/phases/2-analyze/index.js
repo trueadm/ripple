@@ -878,6 +878,7 @@ export function analyze(ast, filename, options = {}) {
 			inside_head: false,
 			inside_server_block: options.mode === 'server',
 			to_ts: options.to_ts ?? false,
+			loose: options.loose ?? false,
 		},
 		visitors,
 	);

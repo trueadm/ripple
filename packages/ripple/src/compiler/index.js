@@ -35,18 +35,18 @@ export function compile(source, filename, options = {}) {
 }
 
 /** @import { PostProcessingChanges, LineOffsets } from './phases/3-transform/client/index.js' */
-/** @import { MappingsResult } from './phases/3-transform/segments.js' */
+/** @import { VolarMappingsResult } from 'ripple/compiler' */
 
 /**
  * Compile Ripple component to Volar virtual code with TypeScript mappings
  * @param {string} source
  * @param {string} filename
  * @param {ParseOptions} [options] - Compiler options
- * @returns {MappingsResult} Volar mappings object
+ * @returns {VolarMappingsResult} Volar mappings object
  */
 export function compile_to_volar_mappings(source, filename, options) {
 	const ast = parse_module(source, options);
-	const analysis = analyze(ast, filename, { to_ts: true });
+	const analysis = analyze(ast, filename, { to_ts: true, loose: !!options?.loose });
 	const transformed = transform_client(filename, source, analysis, true);
 
 	// Create volar mappings with esrap source map for accurate positioning

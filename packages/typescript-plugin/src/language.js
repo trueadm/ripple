@@ -1,6 +1,7 @@
 /** @type {import('typescript')} */
 // @ts-expect-error type-only import from ESM module into CJS is fine
-/** @import { CodeMapping } from '../../ripple/src/compiler/phases/3-transform/segments.js' */
+/** @import { CodeMapping } from 'ripple/compiler' */
+/** @typedef {Map<string, CodeMapping>} CachedMappings */
 
 const ts = require('typescript');
 const { forEachEmbeddedCode } = require('@volar/language-core');
@@ -222,8 +223,10 @@ class RippleVirtualCode {
 	originalCode = '';
 	/** @type {unknown[]} */
 	diagnostics = [];
-	/** @type {Map<string, any> | null} */
-	_mappingIndex = null;
+	/** @type {CachedMappings | null} */
+	#mappingGenToSource = null;
+	/** @type {CachedMappings | null} */
+	#mappingSourceToGen = null;
 
 	/**
 	 * @param {string} file_name
@@ -260,7 +263,8 @@ class RippleVirtualCode {
 		this.sourceSnapshot = snapshot;
 
 		// Only clear mapping index - don't update snapshot/originalCode yet
-		this._mappingIndex = null;
+		this.#mappingGenToSource = null;
+		this.#mappingSourceToGen = null;
 
 		/** @type {ReturnType<RippleCompiler['compile_to_volar_mappings']> | undefined} */
 		let transpiled;
@@ -440,6 +444,33 @@ class RippleVirtualCode {
 		}
 	}
 
+	#buildMappingCache() {
+		if (this.#mappingGenToSource || this.#mappingSourceToGen) {
+			return;
+		}
+
+		this.#mappingGenToSource = new Map();
+		this.#mappingSourceToGen = new Map();
+
+		var mapping, genStart, genLength, genEnd, genKey;
+		var sourceStart, sourceLength, sourceEnd, sourceKey;
+		for (var i = 0; i < this.mappings.length; i++) {
+			mapping = this.mappings[i];
+
+			genStart = mapping.generatedOffsets[0];
+			genLength = mapping.data.customData.generatedLengths[0];
+			genEnd = genStart + genLength;
+			genKey = `${genStart}-${genEnd}`;
+			this.#mappingGenToSource.set(genKey, mapping);
+
+			sourceStart = mapping.sourceOffsets[0];
+			sourceLength = mapping.lengths[0];
+			sourceEnd = sourceStart + sourceLength;
+			sourceKey = `${sourceStart}-${sourceEnd}`;
+			this.#mappingSourceToGen.set(sourceKey, mapping);
+		}
+	}
+
 	/**
 	 * Find mapping by generated range
 	 * @param {number} start - The start offset of the range
@@ -447,21 +478,19 @@ class RippleVirtualCode {
 	 * @returns {CodeMapping | null} The mapping for this range, or null if not found
 	 */
 	findMappingByGeneratedRange(start, end) {
-		if (!this._mappingIndex) {
-			this._mappingIndex = new Map();
+		this.#buildMappingCache();
+		return /** @type {CachedMappings} */ (this.#mappingGenToSource).get(`${start}-${end}`) ?? null;
+	}
 
-			for (const mapping of this.mappings) {
-				const genStart = mapping.generatedOffsets[0];
-				// Use generatedLengths from customData if available, otherwise fall back to lengths
-				const genLength = mapping.data.customData.generatedLengths[0];
-				const genEnd = genStart + genLength;
-				const key = `${genStart}-${genEnd}`;
-				this._mappingIndex.set(key, mapping);
-			}
-		}
-
-		const key = `${start}-${end}`;
-		return this._mappingIndex.get(key) ?? null;
+	/**
+	 * Find mapping by source range
+	 * @param {number} start - The start offset of the range
+	 * @param {number} end - The end offset of the range
+	 * @returns {CodeMapping | null} The mapping for this range, or null if not found
+	 */
+	findMappingBySourceRange(start, end) {
+		this.#buildMappingCache();
+		return /** @type {CachedMappings} */ (this.#mappingSourceToGen).get(`${start}-${end}`) ?? null;
 	}
 }
 

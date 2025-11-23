@@ -1428,6 +1428,9 @@ function RipplePlugin(config) {
 
 					// Position after the '>'
 					this.pos = tagEndPos + 1;
+
+					// Add opening and closing for easier location tracking
+					// TODO: we should also parse attributes inside the opening tag
 				} else {
 					open = this.jsx_parseOpeningElementAt();
 				}
@@ -1477,6 +1480,41 @@ function RipplePlugin(config) {
 				element.attributes = open.attributes;
 				element.metadata ??= {};
 				element.metadata.commentContainerId = ++this.#commentContextId;
+				// Store opening tag's end position for use in loose mode when element is unclosed
+				element.metadata.openingTagEnd = open.end;
+				element.metadata.openingTagEndLoc = open.loc.end;
+
+				function addOpeningAndClosing() {
+					//TODO: once parse attributes of style and script
+					// we should the open element loc properly
+					const name = open.name.name;
+					open.loc = {
+						start: {
+							line: element.loc.start.line,
+							column: element.loc.start.column,
+						},
+						end: {
+							line: element.loc.start.line,
+							column: element.loc.start.column + `${name}>`.length,
+						},
+					};
+
+					element.openingElement = open;
+					element.closingElement = {
+						type: 'JSXClosingElement',
+						name: open.name,
+						loc: {
+							start: {
+								line: element.loc.end.line,
+								column: element.loc.end.column - `</${name}>`.length,
+							},
+							end: {
+								line: element.loc.end.line,
+								column: element.loc.end.column,
+							},
+						},
+					};
+				}
 
 				if (element.selfClosing) {
 					this.#path.pop();
@@ -1515,6 +1553,7 @@ function RipplePlugin(config) {
 
 						element.content = content;
 						this.finishNode(element, 'Element');
+						addOpeningAndClosing(element, open);
 					} else if (open.name.name === 'style') {
 						// jsx_parseOpeningElementAt treats ID selectors (ie. #myid) or type selectors (ie. div) as identifier and read it
 						// So backtrack to the end of the <style> tag to make sure everything is included
@@ -1562,6 +1601,7 @@ function RipplePlugin(config) {
 
 						element.css = content;
 						this.finishNode(element, 'Element');
+						addOpeningAndClosing(element, open);
 						return element;
 					} else {
 						this.enterScope(0);
@@ -1599,20 +1639,19 @@ function RipplePlugin(config) {
 							this.next();
 						} else if (this.#path[this.#path.length - 1] === element) {
 							// Check if this element was properly closed
-							// If we reach here and this element is still in the path, it means it was never closed
-							const tagName = this.getElementName(element.id);
-
-							// In loose mode (IDE), don't throw error for unclosed tags
-							// This allows language servers to provide completions and other features while typing
 							if (!this.#loose) {
+								const tagName = this.getElementName(element.id);
 								this.raise(
 									this.start,
 									`Unclosed tag '<${tagName}>'. Expected '</${tagName}>' before end of component.`,
 								);
 							} else {
-								// Mark the element as unclosed so the transform phase can handle it
-								element.allowUnclosed = true;
-								// Pop the element from the path since we're handling it
+								element.unclosed = true;
+								const position = this.curPosition();
+								position.line = element.metadata.openingTagEndLoc.line;
+								position.column = element.metadata.openingTagEndLoc.column;
+								element.loc.end = position;
+								element.end = element.metadata.openingTagEnd;
 								this.#path.pop();
 							}
 						}
@@ -1739,10 +1778,40 @@ function RipplePlugin(config) {
 						}
 
 						if (openingTagName !== closingTagName) {
-							this.raise(
-								this.start,
-								`Expected closing tag to match opening tag. Expected '</${openingTagName}>' but found '</${closingTagName}>'`,
-							);
+							if (!this.#loose) {
+								this.raise(
+									this.start,
+									`Expected closing tag to match opening tag. Expected '</${openingTagName}>' but found '</${closingTagName}>'`,
+								);
+							} else {
+								// Loop through all unclosed elements on the stack
+								while (this.#path.length > 0) {
+									const elem = this.#path[this.#path.length - 1];
+
+									// Stop at non-Element boundaries (Component, etc.)
+									if (elem.type !== 'Element' && elem.type !== 'TsxCompat') {
+										break;
+									}
+
+									const elemName =
+										elem.type === 'TsxCompat' ? 'tsx:' + elem.kind : this.getElementName(elem.id);
+
+									// Found matching opening tag
+									if (elemName === closingTagName) {
+										break;
+									}
+
+									// Mark as unclosed and adjust location
+									elem.unclosed = true;
+									const position = this.curPosition();
+									position.line = elem.metadata.openingTagEndLoc.line;
+									position.column = elem.metadata.openingTagEndLoc.column;
+									elem.loc.end = position;
+									elem.end = elem.metadata.openingTagEnd;
+
+									this.#path.pop(); // Remove from stack
+								}
+							}
 						}
 
 						this.#path.pop();

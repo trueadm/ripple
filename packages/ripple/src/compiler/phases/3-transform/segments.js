@@ -31,12 +31,44 @@ export const mapping_data = {
 };
 
 /**
+ * Converts line/column positions to byte offsets
+ * @param {string} text
+ * @returns {number[]}
+ */
+function build_line_offsets(text) {
+	const offsets = [0]; // Line 1 starts at offset 0
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '\n') {
+			offsets.push(i + 1);
+		}
+	}
+	return offsets;
+}
+
+/**
+ * Convert line/column to byte offset
+ * @param {number} line
+ * @param {number} column
+ * @param {number[]} line_offsets
+ * @returns {number}
+ */
+function loc_to_offset(line, column, line_offsets) {
+	if (line < 1 || line > line_offsets.length) {
+		throw new Error(
+			`Location line or line offsets length is out of bounds, line: ${line}, line offsets length: ${line_offsets.length}`,
+		);
+	}
+	return line_offsets[line - 1] + column;
+}
+
+/**
  * Extract CSS source regions from style elements in the AST
  * @param {any} ast - The parsed AST
  * @param {string} source - Original source code
+ * @param {number[]} source_line_offsets
  * @returns {CssSourceRegion[]}
  */
-function extractCssSourceRegions(ast, source) {
+function extractCssSourceRegions(ast, source, source_line_offsets) {
 	/** @type {CssSourceRegion[]} */
 	const regions = [];
 
@@ -44,19 +76,17 @@ function extractCssSourceRegions(ast, source) {
 		Element(node) {
 			// Check if this is a style element with CSS content
 			if (node.id?.name === 'style' && node.css) {
-				// Find where CSS starts: after the opening <style> tag
-				// We need to find the position after <style...>
-				const styleTagStart = source.indexOf('<style', node.start);
-				if (styleTagStart === -1) return;
+				const openLoc = node.openingElement.loc;
+				const cssStart =
+					loc_to_offset(openLoc.end.line, openLoc.end.column, source_line_offsets) + 1;
 
-				const openTagEnd = source.indexOf('>', styleTagStart);
-				if (openTagEnd === -1) return;
-
-				const cssStart = openTagEnd + 1;
+				const closeLoc = node.closingElement.loc;
+				const cssEnd =
+					loc_to_offset(closeLoc.start.line, closeLoc.start.column, source_line_offsets) - 1;
 
 				regions.push({
 					start: cssStart,
-					end: cssStart + node.css.length,
+					end: cssEnd,
 					content: node.css,
 				});
 			}
@@ -94,37 +124,7 @@ export function convert_source_map_to_mappings(
 	const mappings = [];
 	let isImportDeclarationPresent = false;
 
-	/**
-	 * Converts line/column positions to byte offsets
-	 * @param {string} text
-	 * @returns {number[]}
-	 */
-	const build_line_offsets = (text) => {
-		const offsets = [0]; // Line 1 starts at offset 0
-		for (let i = 0; i < text.length; i++) {
-			if (text[i] === '\n') {
-				offsets.push(i + 1);
-			}
-		}
-		return offsets;
-	};
 	const source_line_offsets = build_line_offsets(source);
-
-	/**
-	 * Convert line/column to byte offset
-	 * @param {number} line
-	 * @param {number} column
-	 * @param {number[]} line_offsets
-	 * @returns {number}
-	 */
-	const loc_to_offset = (line, column, line_offsets) => {
-		if (line < 1 || line > line_offsets.length) {
-			throw new Error(
-				`Location line or line offsets length is out of bounds, line: ${line}, line offsets length: ${line_offsets.length}`,
-			);
-		}
-		return line_offsets[line - 1] + column;
-	};
 
 	/**
 	 * Convert generated line/column to byte offset using pre-computed line_offsets
@@ -1372,7 +1372,7 @@ export function convert_source_map_to_mappings(
 
 	/** @type {{ cssMappings: CodeMapping[], cssSources: string[] }} */
 	const cssResult = { cssMappings: [], cssSources: [] };
-	for (const region of extractCssSourceRegions(ast_from_source, source)) {
+	for (const region of extractCssSourceRegions(ast_from_source, source, source_line_offsets)) {
 		cssResult.cssMappings.push({
 			sourceOffsets: [region.start],
 			generatedOffsets: [0],

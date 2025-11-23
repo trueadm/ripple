@@ -21,6 +21,9 @@ catalogs:
     '@types/estree':
       specifier: ^1.0.8
       version: 1.0.8
+    '@types/estree-jsx':
+      specifier: ^1.0.5
+      version: 1.0.5
     '@types/node':
       specifier: ^24.3.0
       version: 24.3.0
@@ -130,8 +133,8 @@ catalogs:
       specifier: ^3.2.4
       version: 3.2.4
     volar-service-css:
-      specifier: 0.0.67
-      version: 0.0.67
+      specifier: 0.0.65
+      version: 0.0.65
     volar-service-typescript:
       specifier: 0.0.65
       version: 0.0.65
@@ -334,7 +337,7 @@ importers:
         version: 5.9.2
       volar-service-css:
         specifier: catalog:default
-        version: 0.0.67(@volar/language-service@2.4.23)
+        version: 0.0.65(@volar/language-service@2.4.23)
       volar-service-typescript:
         specifier: catalog:default
         version: 0.0.65(@volar/language-service@2.4.23)
@@ -398,6 +401,9 @@ importers:
       '@types/estree':
         specifier: catalog:default
         version: 1.0.8
+      '@types/estree-jsx':
+        specifier: catalog:default
+        version: 1.0.5
       '@types/node':
         specifier: catalog:default
         version: 24.3.0
@@ -1398,6 +1404,9 @@ packages:
 
   '@types/eslint@9.6.1':
     resolution: {integrity: sha512-FXx2pKgId/WyYo2jXw63kk7/+TY7u7AziEJxJAnSFzHlqTAS3Ync6SvgYAN/k4/PQpnnVuzoMuVnByKK2qp0ag==}
+
+  '@types/estree-jsx@1.0.5':
+    resolution: {integrity: sha512-52CcUVNFyfb1A2ALocQw/Dd1BQFNmSdkuC3BkZ6iqhdMfQz7JWOFRuJFloOzjk+6WijU56m9oKXFAXc7o3Towg==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -3794,8 +3803,8 @@ packages:
       jsdom:
         optional: true
 
-  volar-service-css@0.0.67:
-    resolution: {integrity: sha512-zV7C6enn9T9tuvQ6iSUyYEs34iPXR69Pf9YYWpbFYPWzVs22w96BtE8p04XYXbmjU6unt5oFt+iLL77bMB5fhA==}
+  volar-service-css@0.0.65:
+    resolution: {integrity: sha512-oaImNguZF/8NfQh5jJZ2lJYBtF3aFS5H2w+6GmH7ykESAgBJ1UC7DrhmH5smBGGF7OOzzc9AzrrnriafoFJBdA==}
     peerDependencies:
       '@volar/language-service': ~2.4.0
     peerDependenciesMeta:
@@ -4694,6 +4703,10 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.8
       '@types/json-schema': 7.0.15
+
+  '@types/estree-jsx@1.0.5':
+    dependencies:
+      '@types/estree': 1.0.8
 
   '@types/estree@1.0.8': {}
 
@@ -7263,7 +7276,7 @@ snapshots:
       - tsx
       - yaml
 
-  volar-service-css@0.0.67(@volar/language-service@2.4.23):
+  volar-service-css@0.0.65(@volar/language-service@2.4.23):
     dependencies:
       vscode-css-languageservice: 6.3.8
       vscode-languageserver-textdocument: 1.0.12

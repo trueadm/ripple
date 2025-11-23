@@ -1,6 +1,7 @@
-/**
- * @typedef {import('@volar/language-server').LanguageServicePlugin} LanguageServicePlugin
- */
+/** @import { LanguageServicePlugin } from '@volar/language-server' */
+/** @import { RippleVirtualCode } from '@ripple-ts/typescript-plugin/src/language.js') */
+
+const { URI } = require('vscode-uri');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
@@ -22,10 +23,12 @@ const VOID_ELEMENTS = new Set([
 	'base',
 	'br',
 	'col',
+	'command',
 	'embed',
 	'hr',
 	'img',
 	'input',
+	'keygen',
 	'link',
 	'meta',
 	'param',
@@ -47,37 +50,102 @@ function createAutoInsertPlugin() {
 				triggerCharacters: ['>'],
 				configurationSections: ['ripple.autoClosingTags'],
 			},
+			documentOnTypeFormattingProvider: {
+				triggerCharacters: ['>'],
+			},
 		},
 		// leaving context for future use
 		create(context) {
 			return {
 				/**
 				 * @param {import('vscode-languageserver-textdocument').TextDocument} document
-				 * @param {import('@volar/language-server').Position} selection
-				 * @param {{ rangeOffset: number; rangeLength: number; text: string }} change
+				 * @param {import('@volar/language-server').Position} position
+				 * @param {{ rangeOffset: number; rangeLength: number; text: string }} lastChange
 				 * @param {import('@volar/language-server').CancellationToken} _token
 				 * @returns {Promise<string | null>}
 				 */
-				async provideAutoInsertSnippet(document, selection, change, _token) {
+				async provideAutoInsertSnippet(document, position, lastChange, _token) {
 					if (!document.uri.endsWith('.ripple')) {
 						return null;
 					}
 
-					// Get the line up to the cursor position
-					const line = document.getText({
-						start: { line: selection.line, character: 0 },
-						end: selection,
-					});
+					// Only checking for '>' insertions
+					if (!lastChange.text.endsWith('>')) {
+						return null;
+					}
+
+					const uri = URI.parse(document.uri);
+					const decoded = context.decodeEmbeddedDocumentUri(uri);
+
+					if (!decoded) {
+						return null;
+					}
+
+					const [sourceUri, virtualCodeId] = decoded;
+					const sourceScript = context.language.scripts.get(sourceUri);
+					const virtualCode = /** @type {RippleVirtualCode } */ (
+						sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
+					);
+
+					if (!virtualCode?.mappings) {
+						return null;
+					}
+
+					// Map position back to source
+					const offset = document.offsetAt(position);
+					const mapping = virtualCode.findMappingByGeneratedRange(lastChange.rangeOffset, offset);
+
+					if (!mapping) {
+						return null;
+					}
+
+					const sourceOffset = mapping.sourceOffsets[0];
+
+					// search backwards from sourceOffset to find the line tag
+					const sourceCode = virtualCode.originalCode;
+					if (sourceCode[sourceOffset - 1] === '/') {
+						// self-closing tag '/>'
+						return null;
+					}
+
+					let attempts = 0;
+					let found = false;
+					let i = sourceOffset - 1;
+					for (; i >= 0; i--) {
+						const char = sourceCode[i];
+						if (char === '<') {
+							attempts++;
+							// Confirm that it's definitely the start of the tag
+							// We have `<` and `>` in source maps
+							if (virtualCode.findMappingBySourceRange(i, i + 1)) {
+								found = true;
+								break;
+							}
+						}
+
+						if (attempts === 3) {
+							break;
+						}
+					}
+
+					if (!found) {
+						// This shouldn't happen in reality
+						log(`No opening tag position found from source position ${sourceOffset}`);
+						return null;
+					}
+
+					const line = sourceCode.slice(i, sourceOffset + 1);
 
 					log('Auto-insert triggered at:', {
-						selection: `${selection.line}:${selection.character}`,
+						selection: `${position.line}:${position.character}`,
 						line,
-						change,
+						change: lastChange,
+						sourceOffset,
 					});
 
 					// Check if we just typed '>' after a tag name
 					// Match patterns like: <div> or <Component> but not <div /> or <Component/>
-					const tagMatch = line.match(/<([@\w][\w.-]*)>$/);
+					const tagMatch = line.match(/<([@$\w][\w.-]*)[^>]*?(?<!\/)>$/);
 					if (!tagMatch) {
 						log('No tag match found');
 						return null;
@@ -92,17 +160,10 @@ function createAutoInsertPlugin() {
 						return null;
 					}
 
-					// Don't auto-close if it's a dynamic component/element (@Component or @tag)
-					// These might be self-closing in some contexts
-					if (tagName.startsWith('@')) {
-						log('Dynamic component/element, skipping auto-close:', tagName);
-						return null;
-					}
-
 					// Check if there's already a closing tag ahead
 					const restOfLine = document.getText({
-						start: selection,
-						end: { line: selection.line, character: selection.character + 100 },
+						start: position,
+						end: { line: position.line, character: position.character + 100 },
 					});
 					if (restOfLine.startsWith(`</${tagName}>`)) {
 						log('Closing tag already exists, skipping');
