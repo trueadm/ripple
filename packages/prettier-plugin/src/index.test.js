@@ -1717,6 +1717,13 @@ files = [...(files ?? []), ...dt.files];`;
 			const result = await format(input, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should recognize and preserve class assignments to variables', async () => {
+			const expected = `let test = class MediaQueryList {};`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {

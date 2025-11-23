@@ -696,6 +696,7 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 
 		case 'ClassDeclaration':
+		case 'ClassExpression':
 			nodeContent = printClassDeclaration(node, path, options, print);
 			break;
 
@@ -3073,8 +3074,13 @@ function printObjectExpression(node, path, options, print, args) {
 
 function printClassDeclaration(node, path, options, print) {
 	const parts = [];
-	parts.push('class ');
-	parts.push(node.id.name);
+	parts.push('class');
+
+	// Class name (optional for ClassExpression)
+	if (node.id) {
+		parts.push(' ');
+		parts.push(node.id.name);
+	}
 
 	// Add TypeScript generics if present
 	if (node.typeParameters) {
