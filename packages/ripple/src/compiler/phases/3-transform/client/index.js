@@ -2526,6 +2526,37 @@ function create_tsx_with_typescript_support() {
 				}
 				context.write(': ');
 				context.visit(node.value);
+			} else if (!node.shorthand) {
+				// If property is already longhand in source, keep it longhand
+				// to prevent source map issues when parts of the syntax disappear in shorthand conversion
+				// This applies to:
+				// - { media: media } -> would become { media } (value identifier disappears)
+				// - { fn: function() {} } -> would become { fn() {} } ('function' keyword disappears)
+				const value = node.value.type === 'AssignmentPattern' ? node.value.left : node.value;
+
+				// Check if esrap would convert this to shorthand property or method
+				const wouldBeShorthand =
+					!node.computed &&
+					node.kind === 'init' &&
+					node.key.type === 'Identifier' &&
+					value.type === 'Identifier' &&
+					node.key.name === value.name;
+
+				const wouldBeMethodShorthand =
+					!node.computed &&
+					node.value.type === 'FunctionExpression' &&
+					node.kind !== 'get' &&
+					node.kind !== 'set';
+
+				if (wouldBeShorthand || wouldBeMethodShorthand) {
+					// Force longhand: write key: value explicitly to preserve source positions
+					if (node.computed) context.write('[');
+					context.visit(node.key);
+					context.write(node.computed ? ']: ' : ': ');
+					context.visit(node.value);
+				} else {
+					base_tsx.Property(node, context);
+				}
 			} else {
 				// Use default handler for non-component properties
 				base_tsx.Property(node, context);
@@ -2533,14 +2564,8 @@ function create_tsx_with_typescript_support() {
 		},
 		// Custom handler for JSXClosingElement to ensure closing tag brackets have source mappings
 		JSXClosingElement(node, context) {
-			console.log('[JSXClosingElement]', node.name.name, 'loc:', JSON.stringify(node.loc));
 			// Set location for '<' then write '</'
 			if (node.loc) {
-				console.log(
-					'[JSXClosingElement] Calling context.location for <:',
-					node.loc.start.line,
-					node.loc.start.column,
-				);
 				context.location(node.loc.start.line, node.loc.start.column);
 				context.write('</');
 			} else {
@@ -2551,11 +2576,6 @@ function create_tsx_with_typescript_support() {
 
 			// Set location for '>' then write it
 			if (node.loc) {
-				console.log(
-					'[JSXClosingElement] Calling context.location for >:',
-					node.loc.end.line,
-					node.loc.end.column - 1,
-				);
 				context.location(node.loc.end.line, node.loc.end.column - 1);
 				context.write('>');
 			} else {
