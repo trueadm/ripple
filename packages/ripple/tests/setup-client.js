@@ -15,6 +15,8 @@ beforeEach(() => {
 	document.body.appendChild(globalThis.container);
 
 	globalThis.error = undefined;
+	// @ts-ignore
+	globalThis.MediaQueryList = class MediaQueryList {};
 });
 
 afterEach(() => {
@@ -25,4 +27,6 @@ afterEach(() => {
 	globalThis.container = /** @type {HTMLDivElement} */ (/** @type {unknown} */ (undefined));
 
 	globalThis.error = undefined;
+	// @ts-ignore
+	globalThis.MediaQueryList = undefined;
 });

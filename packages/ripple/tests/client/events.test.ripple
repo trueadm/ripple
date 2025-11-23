@@ -1,4 +1,4 @@
-import { track, flushSync, on } from 'ripple';
+import { track, flushSync, on, effect } from 'ripple';
 
 describe('on() event handler', () => {
 	it('should attach multiple handlers via onClick attribute (delegated)', () => {
@@ -558,5 +558,113 @@ describe('on() event handler', () => {
 		flushSync();
 		expect(onceDiv.textContent).toBe('1'); // Still 1
 		expect(permanentDiv.textContent).toBe('3');
+	});
+
+	it('should handle click events on window', () => {
+		component Basic() {
+			let windowClickCount = track(0);
+
+			effect(() => {
+				const removeWindowListener = on(window, 'click', () => {
+					@windowClickCount++;
+				});
+				return removeWindowListener;
+			});
+
+			<div>
+				<button class="test-btn">{'Click me'}</button>
+				<div class="window-count">{@windowClickCount}</div>
+			</div>
+		}
+
+		render(Basic);
+		flushSync();
+
+		const button = container.querySelector('.test-btn');
+		const windowCountDiv = container.querySelector('.window-count');
+
+		expect(windowCountDiv.textContent).toBe('0');
+
+		// Click on button should bubble to window
+		button.click();
+		flushSync();
+		expect(windowCountDiv.textContent).toBe('1');
+
+		// Click directly on window
+		window.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		flushSync();
+		expect(windowCountDiv.textContent).toBe('2');
+	});
+
+	it('should handle click events on document', () => {
+		component Basic() {
+			let documentClickCount = track(0);
+
+			effect(() => {
+				const removeDocumentListener = on(document, 'click', () => {
+					@documentClickCount++;
+				});
+				return removeDocumentListener;
+			});
+
+			<div>
+				<button class="test-btn">{'Click me'}</button>
+				<div class="document-count">{@documentClickCount}</div>
+			</div>
+		}
+
+		render(Basic);
+		flushSync();
+
+		const button = container.querySelector('.test-btn');
+		const documentCountDiv = container.querySelector('.document-count');
+
+		expect(documentCountDiv.textContent).toBe('0');
+
+		// Click on button should bubble to document
+		button.click();
+		flushSync();
+		expect(documentCountDiv.textContent).toBe('1');
+
+		// Click directly on document
+		document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		flushSync();
+		expect(documentCountDiv.textContent).toBe('2');
+	});
+
+	it('should handle click events on body', () => {
+		component Basic() {
+			let bodyClickCount = track(0);
+
+			effect(() => {
+				const removeBodyListener = on(document.body, 'click', () => {
+					@bodyClickCount++;
+				});
+				return removeBodyListener;
+			});
+
+			<div>
+				<button class="test-btn">{'Click me'}</button>
+				<div class="body-count">{@bodyClickCount}</div>
+			</div>
+		}
+
+		render(Basic);
+		flushSync();
+
+		const button = container.querySelector('.test-btn');
+		const bodyCountDiv = container.querySelector('.body-count');
+
+		expect(bodyCountDiv.textContent).toBe('0');
+
+		// Click on button should bubble to body
+		button.click();
+		flushSync();
+		expect(bodyCountDiv.textContent).toBe('1');
+
+		// Click directly on body
+		document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		flushSync();
+		expect(bodyCountDiv.textContent).toBe('2');
 	});
 });
