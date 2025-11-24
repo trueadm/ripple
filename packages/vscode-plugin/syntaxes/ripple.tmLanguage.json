@@ -7062,9 +7062,72 @@
               "include": "#jsx-string-single-quoted"
             },
             {
-              "include": "#jsx-evaluated-code"
+              "include": "#jsx-tsx-evaluated-code"
             }
           ]
+        }
+      ]
+    },
+    "jsx-tsx-evaluated-code": {
+      "contentName": "meta.embedded.expression.js source.js.embedded.ripple",
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.begin.js"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.end.js"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#jsx-tsx-attribute-expression"
+        }
+      ]
+    },
+    "jsx-tsx-attribute-expression": {
+      "patterns": [
+        {
+          "name": "meta.identifier.tracked.js",
+          "match": "(@)([_$[:alpha:]][_$[:alnum:]]*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.section.embedded.begin.js"
+            },
+            "2": {
+              "name": "variable.other.js"
+            }
+          }
+        },
+        {
+          "include": "#server-member-expression"
+        },
+        {
+          "include": "#jsx-ref-modifier"
+        },
+        {
+          "include": "#jsx-tsx-tag-in-expression"
+        },
+        {
+          "include": "#expressionWithoutIdentifiers"
+        },
+        {
+          "include": "#identifiers"
+        },
+        {
+          "include": "#expressionPunctuations"
+        }
+      ]
+    },
+    "jsx-tsx-tag-in-expression": {
+      "begin": "(?<!\\+\\+|--)(?<=[(={,?:*]|&&|\\|\\||\\?|\\*\\/|^await|[^\\._$[:alnum:]]await|^return|[^\\._$[:alnum:]]return|^default|[^\\._$[:alnum:]]default|^yield|[^\\._$[:alnum:]]yield|^)\\s*(?!(<)\\s*[_$[:alpha:]][_$[:alnum:]]*(\\s+extends\\s+[^=>])|,)(?=(<)\\s*(?:([_$[:alpha:]][-_$[:alnum:].]*)(?<!\\.|-)(:))?((?![sS][tT][yY][lL][eE]\\b)(?:(?!children)[a-z][a-z0-9]*|(?:children|(@?[_$[:alpha:]][-_$[:alnum:]]*(?:\\.@?[_$[:alpha:]][-_$[:alnum:]]*)*)))(?<!-))(?=((<\\s*)|(\\s+))(?!\\?)|/?>))",
+      "end": "(?!(<)\\s*(?:([_$[:alpha:]][-_$[:alnum:].]*)(?<!\\.|-)(:))?((?![sS][tT][yY][lL][eE]\\b)(?:(?!children)[a-z][a-z0-9]*|(?:children|(@?[_$[:alpha:]][-_$[:alnum:]]*(?:\\.@?[_$[:alpha:]][-_$[:alnum:]]*)*)))(?<!-))(?=((<\\s*)|(\\s+))(?!\\?)|/?>))",
+      "patterns": [
+        {
+          "include": "#jsx-tsx-tag"
         }
       ]
     }
