@@ -85,7 +85,8 @@ export async function createProject({
 					!relativePath.includes('node_modules') &&
 					!relativePath.includes('package-lock.json') &&
 					!relativePath.includes('yarn.lock') &&
-					!relativePath.includes('pnpm-lock.yaml')
+					!relativePath.includes('pnpm-lock.yaml') &&
+					!relativePath.includes('bun.lock')
 				);
 			},
 		});
