@@ -49,7 +49,7 @@ npm install && npm run dev
 ### Add to Existing Project
 
 ```bash
-npm install ripple vite-plugin-ripple
+npm install ripple @ripple-ts/vite-plugin
 ```
 
 **[→ Full Installation Guide](https://www.ripplejs.com/docs/quick-start)**

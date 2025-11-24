@@ -13,20 +13,20 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@tailwindcss/vite": "catalog:default",
-    "@typescript-eslint/parser": "catalog:default",
-    "eslint": "catalog:default",
     "@ripple-ts/eslint-plugin": "workspace:*",
+    "@ripple-ts/typescript-plugin": "workspace:*",
+    "@ripple-ts/vite-plugin": "workspace:*",
+    "@typescript-eslint/parser": "catalog:default",
+    "@tailwindcss/vite": "catalog:default",
+    "eslint": "catalog:default",
     "polka": "catalog:default",
     "ripple": "workspace:*",
     "typescript": "catalog:default",
     "vite": "catalog:default",
-    "@ripple-ts/vite-plugin": "workspace:*",
-    "vitest": "catalog:default",
-    "@ripple-ts/typescript-plugin": "workspace:*"
+    "vitest": "catalog:default"
   },
   "dependencies": {
-    "tailwindcss": "catalog:peer",
-    "@ripple-ts/compat-react": "workspace:*"
+    "@ripple-ts/compat-react": "workspace:*",
+    "tailwindcss": "catalog:peer"
   }
 }

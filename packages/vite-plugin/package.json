@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "ripple": "workspace:*",
+    "type-fest": "catalog:default",
     "vite": "catalog:default"
   }
 }
