@@ -2743,6 +2743,14 @@ try {
 			expect(result).toBeWithNewline(expected);
 		});
 
+		it('should preserve inline comments inside jsx expressions', async () => {
+			const expected = `<div>{/* 'This is visible text' */}</div>
+<div>{/* <div>{'Card Component'}</div> */}</div>`;
+
+			const result = await format(expected, { singleQuote: true });
+			expect(result).toBeWithNewline(expected);
+		});
+
 		it('correctly formats array of objects and keys as either literals or identifiers', async () => {
 			const input = `const tt = [
   {

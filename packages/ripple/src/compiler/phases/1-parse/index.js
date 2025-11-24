@@ -1736,8 +1736,12 @@ function RipplePlugin(config) {
 				}
 				if (this.type === tt.braceL) {
 					const node = this.jsx_parseExpressionContainer();
-					node.type = node.html ? 'Html' : 'Text';
-					delete node.html;
+					// Keep JSXEmptyExpression as-is (for prettier to handle comments)
+					// but convert other expressions to Text/Html nodes
+					if (node.expression.type !== 'JSXEmptyExpression') {
+						node.type = node.html ? 'Html' : 'Text';
+						delete node.html;
+					}
 					body.push(node);
 				} else if (this.type === tt.braceR) {
 					return;
@@ -1847,7 +1851,10 @@ function RipplePlugin(config) {
 				) {
 					this.next();
 					const node = this.jsx_parseExpressionContainer();
-					node.type = 'Text';
+					// Keep JSXEmptyExpression as-is (don't convert to Text)
+					if (node.expression.type !== 'JSXEmptyExpression') {
+						node.type = 'Text';
+					}
 					this.next();
 					this.context.pop();
 					this.context.pop();

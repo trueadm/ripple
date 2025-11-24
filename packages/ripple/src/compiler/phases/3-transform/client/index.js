@@ -736,6 +736,17 @@ const visitors = {
 		return context.visit(node.expression);
 	},
 
+	JSXEmptyExpression(node, context) {
+		// JSX comments like {/* ... */} are represented as JSXEmptyExpression
+		// In TypeScript mode, preserve them as-is for prettier
+		// In JavaScript mode, they're removed (which is correct since they're comments)
+		if (context.state.to_ts) {
+			return context.next();
+		}
+		// In JS mode, return empty - comments are stripped
+		return b.empty;
+	},
+
 	JSXFragment(node, context) {
 		if (context.state.to_ts) {
 			return context.next();
@@ -2194,6 +2205,10 @@ function transform_ts_child(node, context) {
 			.filter((child) => child.type !== 'JSXText' || child.value.trim() !== '');
 
 		state.init.push(b.stmt(b.jsx_fragment(children)));
+	} else if (node.type === 'JSXExpressionContainer') {
+		// JSX comments {/* ... */} are JSXExpressionContainer with JSXEmptyExpression
+		// These should be preserved in the output as-is for prettier to handle
+		state.init.push(b.stmt(b.jsx_expression_container(visit(node.expression, state))));
 	} else {
 		throw new Error('TODO');
 	}
