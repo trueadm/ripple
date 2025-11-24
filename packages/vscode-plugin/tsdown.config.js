@@ -2,7 +2,7 @@ import { defineConfig } from 'tsdown';
 import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getAllExternalPackages } from './scripts/collect-external-deps.js';
+import { getAllExternalPackages } from '../../scripts/collect-external-deps.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -39,7 +39,7 @@ export default defineConfig({
 	noExternal: /.+/,
 	hooks: {
 		'build:done': () => {
-			const scriptPath = path.join(__dirname, 'scripts/copy-external-deps.js');
+			const scriptPath = path.join(__dirname, '../../scripts/copy-external-deps.js');
 			const distPath = path.join(__dirname, OUT_DIR);
 
 			execSync(`node "${scriptPath}" "${distPath}" ${ROOT_EXTERNAL_PACKAGES.join(' ')}`, {

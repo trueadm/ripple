@@ -52,6 +52,8 @@ npm install && npm run dev
 npm install ripple @ripple-ts/vite-plugin
 ```
 
+> **Note:** You can use `npm`, `pnpm`, `yarn`, or `bun` package managers.
+
 **[→ Full Installation Guide](https://www.ripplejs.com/docs/quick-start)**
 
 ### Mounting Your App
