@@ -3,6 +3,7 @@
  */
 
 const { CompletionItemKind, InsertTextFormat } = require('@volar/language-server');
+const { URI } = require('vscode-uri');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
@@ -214,6 +215,24 @@ function createCompletionPlugin() {
 				async provideCompletionItems(document, position, completionContext, _token) {
 					if (!document.uri.endsWith('.ripple')) {
 						return { items: [], isIncomplete: false };
+					}
+
+					// Check if we're inside an embedded code (like CSS in <style> blocks)
+					// If so, don't provide Ripple snippets - let CSS completions take priority
+					const uri = URI.parse(document.uri);
+					const decoded = context.decodeEmbeddedDocumentUri(uri);
+					if (decoded) {
+						const [documentUri, embeddedCodeId] = decoded;
+						const sourceScript = context.language.scripts.get(documentUri);
+
+						if (sourceScript?.generated) {
+							const virtualCode = sourceScript.generated.embeddedCodes.get(embeddedCodeId);
+							// If we're in a CSS embedded code (from <style> blocks), skip Ripple completions
+							if (virtualCode && virtualCode.languageId === 'css') {
+								log('Skipping Ripple completions in CSS context');
+								return { items: [], isIncomplete: false };
+							}
+						}
 					}
 
 					const line = document.getText({
