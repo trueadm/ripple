@@ -1,7 +1,7 @@
 /** @import { Block } from '#client' */
 
 import { branch, destroy_block, render, render_spread } from './blocks.js';
-import { COMPOSITE_BLOCK, NAMESPACE_URI, DEFAULT_NAMESPACE } from './constants.js';
+import { COMPOSITE_BLOCK, DEFAULT_NAMESPACE, NAMESPACE_URI } from './constants.js';
 import { active_block, active_namespace, with_ns } from './runtime.js';
 import { top_element_to_ns } from './utils.js';
 
@@ -32,8 +32,8 @@ export function composite(get_component, node, props) {
 					var block = active_block;
 					/** @type {ComponentFunction} */ (component)(anchor, props, block);
 				});
-			} else {
-				// Custom element
+			} else if (component != null) {
+				// Custom element - only create if component is not null/undefined
 				var run = () => {
 					var block = /** @type {Block} */ (active_block);
 
