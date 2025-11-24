@@ -968,7 +968,12 @@ const visitors = {
 							const expression = visit(attr.value, { ...state, metadata });
 
 							if (metadata.tracking) {
-								local_updates.push({ operation: b.stmt(b.call('_$_.set_value', id, expression)) });
+								local_updates.push({
+									operation: (key) => b.stmt(b.call('_$_.set_value', id, key)),
+									expression,
+									identity: attr.value,
+									initial: b.void0,
+								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_value', id, expression)));
 							}
@@ -983,7 +988,10 @@ const visitors = {
 
 							if (metadata.tracking) {
 								local_updates.push({
-									operation: b.stmt(b.call('_$_.set_checked', id, expression)),
+									operation: (key) => b.stmt(b.call('_$_.set_checked', id, key)),
+									expression,
+									identity: attr.value,
+									initial: b.void0,
 								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_checked', id, expression)));
@@ -998,7 +1006,10 @@ const visitors = {
 
 							if (metadata.tracking) {
 								local_updates.push({
-									operation: b.stmt(b.call('_$_.set_selected', id, expression)),
+									operation: (key) => b.stmt(b.call('_$_.set_selected', id, key)),
+									expression,
+									identity: attr.value,
+									initial: b.void0,
 								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_selected', id, expression)));
@@ -1171,7 +1182,7 @@ const visitors = {
 			update.push(...local_updates);
 
 			if (update.length > 0) {
-				if (state.scope.parent.declarations.size > 0) {
+				if (state.scope.declarations.size > 0) {
 					apply_updates(init, update, state);
 				} else {
 					state.update.push(...update);
