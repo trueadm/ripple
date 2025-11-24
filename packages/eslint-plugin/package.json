@@ -40,14 +40,6 @@
     "@typescript-eslint/parser": "catalog:peer",
     "@ripple-ts/eslint-parser": "workspace:*"
   },
-  "peerDependenciesMeta": {
-    "@typescript-eslint/parser": {
-      "optional": true
-    },
-    "@ripple-ts/eslint-parser": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@types/eslint": "catalog:default",
     "@types/estree": "catalog:default",
