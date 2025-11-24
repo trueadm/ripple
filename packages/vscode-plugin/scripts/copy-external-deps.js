@@ -123,7 +123,7 @@ for (const [packageName, srcPath] of packagesToCopy) {
 		copyDir(srcPath, destPath);
 		console.log(`  ✓ ${packageName}`);
 	} catch (error) {
-		console.error(`  ✗ Error copying ${packageName}:`, error.message);
+		console.error(`  ✗ Error copying ${packageName}:`, /** @type {Error} */ (error).message);
 		process.exit(1);
 	}
 }
