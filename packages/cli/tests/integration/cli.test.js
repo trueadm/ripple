@@ -205,6 +205,22 @@ describe('CLI Integration Tests', () => {
 		expect(result.stdout).toContain('yarn dev');
 	});
 
+	it('should handle bun package manager', async () => {
+		const projectName = 'test-bun-project';
+		const result = await runCLI([
+			projectName,
+			'--template',
+			'basic',
+			'--package-manager',
+			'bun',
+			'--yes',
+		]);
+
+		expect(result.code).toBe(0);
+		expect(result.stdout).toContain('bun install');
+		expect(result.stdout).toContain('bun dev');
+	});
+
 	it('Should abort if the target directory is containing any conflicting files', async () => {
 		const projectName = 'non-empty-project';
 		const projectPath = join(testDir, projectName);

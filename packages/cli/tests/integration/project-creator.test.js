@@ -238,6 +238,7 @@ describe('createProject integration tests', () => {
 		writeFileSync(join(templatePath, 'package-lock.json'), '{}');
 		writeFileSync(join(templatePath, 'yarn.lock'), 'yarn lock content');
 		writeFileSync(join(templatePath, 'pnpm-lock.yaml'), 'pnpm lock content');
+		writeFileSync(join(templatePath, 'bun.lock'), 'bun lock content');
 
 		await createProject({
 			projectName: 'test-filter-project',
@@ -252,6 +253,7 @@ describe('createProject integration tests', () => {
 		expect(existsSync(join(projectPath, 'package-lock.json'))).toBe(false);
 		expect(existsSync(join(projectPath, 'yarn.lock'))).toBe(false);
 		expect(existsSync(join(projectPath, 'pnpm-lock.yaml'))).toBe(false);
+		expect(existsSync(join(projectPath, 'bun.lock'))).toBe(false);
 
 		// Verify other files were copied
 		expect(existsSync(join(projectPath, 'package.json'))).toBe(true);

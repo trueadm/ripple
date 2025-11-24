@@ -160,6 +160,7 @@ function getInstallCommand(packageManager) {
 		npm: 'npm install',
 		yarn: 'yarn install',
 		pnpm: 'pnpm install',
+		bun: 'bun install',
 	};
 	return commands[packageManager] || 'npm install';
 }
@@ -174,6 +175,7 @@ function getDevCommand(packageManager) {
 		npm: 'npm run dev',
 		yarn: 'yarn dev',
 		pnpm: 'pnpm dev',
+		bun: 'bun dev',
 	};
 	return commands[packageManager] || 'npm run dev';
 }

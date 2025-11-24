@@ -14,6 +14,9 @@ export function getCurrentPackageManager() {
 		if (userAgent.startsWith('yarn/')) {
 			return 'yarn';
 		}
+		if(userAgent.startsWith('bun/')){
+			return 'bun';
+		}
 		if (userAgent.startsWith('npm/')) {
 			return 'npm';
 		}
@@ -30,6 +33,9 @@ export function getCurrentPackageManager() {
 		}
 		if (normalizedPath.includes('yarn')) {
 			return 'yarn';
+		}
+		if(normalizedPath.includes('bun')){
+			return 'bun';
 		}
 	}
 
