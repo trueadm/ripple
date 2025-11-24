@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/tree-sitter",
-  "version": "0.2.176",
+  "version": "0.2.177",
   "description": "Ripple grammar for tree-sitter",
   "main": "bindings/node",
   "types": "bindings/node",
