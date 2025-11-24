@@ -22,6 +22,9 @@ function findWorkspaceRoot() {
 
 /**
  * Resolve package path by searching node_modules directories
+ * @param {string} packageName
+ * @param {string} workspaceRoot
+ * @returns {string|null}
  */
 function resolvePackagePath(packageName, workspaceRoot) {
 	// Try direct path first (handles both regular packages and workspace symlinks)
@@ -67,6 +70,10 @@ function resolvePackagePath(packageName, workspaceRoot) {
 
 /**
  * Recursively collect all dependencies of a package
+ * @param {string} packageName
+ * @param {string} workspaceRoot
+ * @param {Map<string, string>} collected
+ * @returns {Map<string, string>}
  */
 function collectDependencies(packageName, workspaceRoot, collected = new Map()) {
 	// Skip if already processed
@@ -113,6 +120,8 @@ function collectDependencies(packageName, workspaceRoot, collected = new Map()) 
 
 /**
  * Get all external packages that need to be copied
+ * @param {string[]} rootPackages
+ * @returns {string[]}
  */
 export function getAllExternalPackages(rootPackages) {
 	const workspaceRoot = findWorkspaceRoot();
@@ -127,6 +136,8 @@ export function getAllExternalPackages(rootPackages) {
 
 /**
  * Get package paths for copying
+ * @param {string[]} rootPackages
+ * @returns {Map<string, string>}
  */
 export function getPackagePaths(rootPackages) {
 	const workspaceRoot = findWorkspaceRoot();
