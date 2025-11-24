@@ -87,6 +87,10 @@ jobs:
         working-directory: ./packages/cli
         run: pnpm build
 
+      - name: Build mcp-server
+        working-directory: ./packages/mcp-server
+        run: pnpm build
+
       - name: Publish
         run: |
           pnpm dlx pkg-pr-new publish \
@@ -96,6 +100,7 @@ jobs:
             './packages/rollup-plugin' \
             './packages/vite-plugin' \
             './packages/cli' \
+            './packages/mcp-server' \
             --compact \
             --comment=update \
             --packageManager=pnpm \

@@ -1,0 +1,29 @@
+{
+  "name": "@ripple-ts/mcp-server",
+  "version": "0.0.1",
+  "description": "MCP Server for Ripple",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "tsdown",
+    "dev": "tsdown --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "ripple": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:default",
+    "tsdown": "catalog:default",
+    "typescript": "catalog:default",
+    "vitest": "catalog:default"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
