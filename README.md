@@ -25,6 +25,7 @@ Ripple is a TypeScript UI framework that combines the best parts of React, Solid
 - 🎯 **TypeScript First**: Complete type safety with `.ripple` file extension
 - 🛠️ **Developer Tools**: VSCode extension, Prettier, and ESLint support
 - 🎨 **Scoped Styling**: Component-level CSS with automatic scoping
+- 🤖 **MCP Server**: AI assistant integration via Model Context Protocol
 
 > **Note:** SSR support is coming soon! Currently SPA-only.
 
@@ -387,6 +388,42 @@ export component App() {
 ```
 
 **[→ Portal & Component Guide](https://www.ripplejs.com/docs/guide/components#portal-component)**
+
+## MCP Server
+
+Ripple includes an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that enables AI assistants like Claude to understand and work with Ripple code.
+
+### Installation
+
+```bash
+npm install @ripple-ts/mcp-server
+```
+
+### Connecting to Claude Desktop
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "ripple": {
+      "command": "npx",
+      "args": ["-y", "@ripple-ts/mcp-server"]
+    }
+  }
+}
+```
+
+### Available Tools
+
+The MCP server provides these tools for AI assistants:
+
+- **`ripple_compile`** - Compile Ripple code to JavaScript and CSS
+- **`ripple_parse`** - Parse Ripple code and return the AST
+- **`ripple_create_component`** - Create new Ripple component files
+- **`ripple_analyze_reactivity`** - Analyze reactive variables and detect issues
+
+**[→ Full MCP Server Documentation](packages/mcp-server/README.md)**
 
 ## Resources
 
