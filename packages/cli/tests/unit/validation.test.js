@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { validateProjectName, sanitizeDirectoryName, validateDirectoryPath } from '../../src/lib/validation.js';
+import {
+	validateProjectName,
+	sanitizeDirectoryName,
+	validateDirectoryPath,
+} from '../../src/lib/validation.js';
 
 describe('validateProjectName', () => {
 	it('should validate correct project names', () => {
@@ -16,10 +20,10 @@ describe('validateProjectName', () => {
 			'my/app',
 			// './my-app',
 			// '../my-app',
-			'path/to/my-app'
+			'path/to/my-app',
 		];
 
-		validNames.forEach(name => {
+		validNames.forEach((name) => {
 			const result = validateProjectName(name);
 			expect(result.valid).toBe(true);
 			expect(result.message).toBe('');
@@ -27,13 +31,14 @@ describe('validateProjectName', () => {
 	});
 
 	it('should reject invalid project names', () => {
+		/** @type {Array<{name: string | null | undefined | number, expectedMessage: string}>} */
 		const invalidCases = [
 			{ name: '', expectedMessage: 'Project name cannot be empty' },
 			{ name: '   ', expectedMessage: 'Project name cannot be empty' },
 			{ name: null, expectedMessage: 'Project name is required' },
 			{ name: undefined, expectedMessage: 'Project name is required' },
 			{ name: 123, expectedMessage: 'Project name is required' },
-			{ name: 'a'.repeat(215), expectedMessage: 'Project name must be less than 214 characters' }
+			{ name: 'a'.repeat(215), expectedMessage: 'Project name must be less than 214 characters' },
 		];
 
 		invalidCases.forEach(({ name, expectedMessage }) => {
@@ -53,14 +58,14 @@ describe('validateProjectName', () => {
 			'my?app', // question mark
 			'my"app', // quote
 			'my<app', // less than
-			'my>app' // greater than
+			'my>app', // greater than
 		];
 
-		invalidNames.forEach(name => {
+		invalidNames.forEach((name) => {
 			const result = validateProjectName(name);
 			expect(result.valid).toBe(false);
 			expect(result.message).toBe(
-				'Project name can only contain lowercase letters, numbers, hyphens, dots, and underscores'
+				'Project name can only contain lowercase letters, numbers, hyphens, dots, and underscores',
 			);
 		});
 	});
@@ -68,7 +73,7 @@ describe('validateProjectName', () => {
 	it('should reject names starting with dot or underscore', () => {
 		const invalidNames = ['.my-app', '_my-app'];
 
-		invalidNames.forEach(name => {
+		invalidNames.forEach((name) => {
 			const result = validateProjectName(name);
 			expect(result.valid).toBe(false);
 			expect(result.message).toBe('Project name cannot start with a dot or underscore');
@@ -98,10 +103,10 @@ describe('validateProjectName', () => {
 			'com1',
 			'com2',
 			'lpt1',
-			'lpt9'
+			'lpt9',
 		];
 
-		reservedNames.forEach(name => {
+		reservedNames.forEach((name) => {
 			const result = validateProjectName(name);
 			expect(result.valid).toBe(false);
 			expect(result.message).toBe(`"${name}" is a reserved name and cannot be used`);
@@ -125,7 +130,7 @@ describe('sanitizeDirectoryName', () => {
 			{ input: 'MY-APP', expected: 'my-app' },
 			{ input: 'app123!@#', expected: 'app123' },
 			{ input: '   spaces   ', expected: 'spaces' },
-			{ input: 'special$%^chars', expected: 'special-chars' }
+			{ input: 'special$%^chars', expected: 'special-chars' },
 		];
 
 		testCases.forEach(({ input, expected }) => {
@@ -149,10 +154,10 @@ describe('validateDirectoryPath', () => {
 			'./my-app',
 			'../my-app',
 			'path/to/my-app',
-			'/home/user/projects/my-app'
+			'/home/user/projects/my-app',
 		];
 
-		validPaths.forEach(path => {
+		validPaths.forEach((path) => {
 			const result = validateDirectoryPath(path);
 			expect(result.valid).toBe(true);
 			expect(result.message).toBe('');
@@ -160,12 +165,13 @@ describe('validateDirectoryPath', () => {
 	});
 
 	it('should reject invalid directory paths', () => {
+		/** @type {Array<{path: string | null | undefined | number, expectedMessage: string}>} */
 		const invalidCases = [
 			{ path: '', expectedMessage: 'Directory path is required' },
 			{ path: null, expectedMessage: 'Directory path is required' },
 			{ path: undefined, expectedMessage: 'Directory path is required' },
 			{ path: 123, expectedMessage: 'Directory path is required' },
-			{ path: '/', expectedMessage: 'Cannot create project in root directory' }
+			{ path: '/', expectedMessage: 'Cannot create project in root directory' },
 		];
 
 		invalidCases.forEach(({ path, expectedMessage }) => {
@@ -176,17 +182,9 @@ describe('validateDirectoryPath', () => {
 	});
 
 	it('should reject paths with invalid characters', () => {
-		const invalidPaths = [
-			'my<app',
-			'my>app',
-			'my:app',
-			'my"app',
-			'my|app',
-			'my?app',
-			'my*app'
-		];
+		const invalidPaths = ['my<app', 'my>app', 'my:app', 'my"app', 'my|app', 'my?app', 'my*app'];
 
-		invalidPaths.forEach(path => {
+		invalidPaths.forEach((path) => {
 			const result = validateDirectoryPath(path);
 			expect(result.valid).toBe(false);
 			expect(result.message).toBe('Directory path contains invalid characters');

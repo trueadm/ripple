@@ -7,7 +7,7 @@ import {
 	validateTemplate,
 	getLocalTemplatePath,
 	isLocalDevelopment,
-	downloadTemplate
+	downloadTemplate,
 } from '../../src/lib/templates.js';
 
 // Mock the constants
@@ -16,15 +16,15 @@ vi.mock('../../src/constants.js', () => ({
 		{
 			name: 'basic',
 			display: 'Basic Ripple App',
-			description: 'A minimal Ripple application with Vite and TypeScript'
+			description: 'A minimal Ripple application with Vite and TypeScript',
 		},
 		{
 			name: 'advanced',
 			display: 'Advanced Ripple App',
-			description: 'A full-featured Ripple application'
-		}
+			description: 'A full-featured Ripple application',
+		},
 	],
-	TEMPLATES_DIR: '/mock/templates'
+	TEMPLATES_DIR: '/mock/templates',
 }));
 
 // Mock fs.existsSync - ensure consistent behavior across environments
@@ -32,9 +32,9 @@ vi.mock('node:fs', () => {
 	const mockFn = vi.fn();
 	return {
 		default: {
-			existsSync: mockFn
+			existsSync: mockFn,
 		},
-		existsSync: mockFn
+		existsSync: mockFn,
 	};
 });
 
@@ -44,7 +44,7 @@ describe('getTemplate', () => {
 		expect(template).toEqual({
 			name: 'basic',
 			display: 'Basic Ripple App',
-			description: 'A minimal Ripple application with Vite and TypeScript'
+			description: 'A minimal Ripple application with Vite and TypeScript',
 		});
 	});
 
@@ -54,7 +54,7 @@ describe('getTemplate', () => {
 	});
 
 	it('should return null for undefined template name', () => {
-		const template = getTemplate();
+		const template = getTemplate(undefined);
 		expect(template).toBeNull();
 	});
 });
@@ -78,13 +78,13 @@ describe('getTemplateChoices', () => {
 			{
 				title: 'Basic Ripple App',
 				description: 'A minimal Ripple application with Vite and TypeScript',
-				value: 'basic'
+				value: 'basic',
 			},
 			{
 				title: 'Advanced Ripple App',
 				description: 'A full-featured Ripple application',
-				value: 'advanced'
-			}
+				value: 'advanced',
+			},
 		]);
 	});
 
@@ -107,7 +107,7 @@ describe('validateTemplate', () => {
 	});
 
 	it('should return false for undefined template name', () => {
-		const isValid = validateTemplate();
+		const isValid = validateTemplate(undefined);
 		expect(isValid).toBe(false);
 	});
 
@@ -124,6 +124,7 @@ describe('validateTemplate', () => {
 
 describe('getLocalTemplatePath', () => {
 	// Windows uses backslashes in paths
+	/** @param {string} path */
 	function normalizePath(path) {
 		return path.replaceAll('\\', '/');
 	}

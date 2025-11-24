@@ -14,7 +14,7 @@ export function getCurrentPackageManager() {
 		if (userAgent.startsWith('yarn/')) {
 			return 'yarn';
 		}
-		if(userAgent.startsWith('bun/')){
+		if (userAgent.startsWith('bun/')) {
 			return 'bun';
 		}
 		if (userAgent.startsWith('npm/')) {
@@ -34,7 +34,7 @@ export function getCurrentPackageManager() {
 		if (normalizedPath.includes('yarn')) {
 			return 'yarn';
 		}
-		if(normalizedPath.includes('bun')){
+		if (normalizedPath.includes('bun')) {
 			return 'bun';
 		}
 	}
@@ -47,6 +47,11 @@ export function getCurrentPackageManager() {
 	// Additional fallback: check for yarn-specific environment variables
 	if (process.env.YARN_WRAP_OUTPUT || process.env.npm_config_yarn) {
 		return 'yarn';
+	}
+
+	// Additional fallback: check for bun-specific environment variables
+	if (process.env.BUN_INSTALL) {
+		return 'bun';
 	}
 
 	// Default to npm if detection fails

@@ -1,6 +1,6 @@
 /**
  * @typedef {import('type-fest').PackageJson & {scripts?: Record<string, string>;}} Package
- * @typedef PackageManager @type {'npm' | 'yarn' | 'pnpm'}
+ * @typedef PackageManager @type {'npm' | 'yarn' | 'pnpm' | 'bun'}
  */
 
 import { join, basename } from 'node:path';
@@ -305,7 +305,7 @@ function updateScripts(packageJson) {
 
 /**
  * Get package manager version string
- * @param {Extract<PackageManager, 'yarn' | 'pnpm'>} packageManager - Package manager name
+ * @param {Extract<PackageManager, 'yarn' | 'pnpm' | 'bun'>} packageManager - Package manager name
  * @returns {string} - Package manager with version
  */
 function getPackageManagerVersion(packageManager) {

@@ -11,7 +11,7 @@ const __dirname = dirname(__filename);
 
 /**
  * Get template by name
- * @param {string} templateName - The template name
+ * @param {string | null | undefined} templateName - The template name
  * @returns {typeof TEMPLATES[number] | null} - Template object or null if not found
  */
 export function getTemplate(templateName) {
@@ -40,7 +40,7 @@ export function getTemplateChoices() {
 
 /**
  * Validate if template exists in our template list
- * @param {string} templateName - The template name to validate
+ * @param {string | null | undefined} templateName - The template name to validate
  * @returns {boolean} - True if template exists in TEMPLATES list
  */
 export function validateTemplate(templateName) {
