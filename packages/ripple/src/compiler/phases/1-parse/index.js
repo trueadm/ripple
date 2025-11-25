@@ -2115,9 +2115,12 @@ function get_comment_handlers(source, comments, index = 0) {
 						}
 						// Handle empty Element nodes the same way as empty BlockStatements
 						if (node.type === 'Element' && (!node.children || node.children.length === 0)) {
-							if (comments[0].start < node.end && comments[0].end < node.end) {
+							// Collect all comments that fall within this empty element
+							while (comments[0] && comments[0].start < node.end && comments[0].end < node.end) {
 								comment = /** @type {CommentWithLocation} */ (comments.shift());
 								(node.innerComments ||= []).push(comment);
+							}
+							if (node.innerComments && node.innerComments.length > 0) {
 								return;
 							}
 						}

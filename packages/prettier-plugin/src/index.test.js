@@ -1875,6 +1875,18 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 		expect(result).toBeWithNewline(expected);
 	});
 
+	it('should not move commented composite elements to the outside of parent element', async () => {
+		const expected = `component Child({ children, NonExistent, ...props }) {
+  <div {...props}>
+    // <children />
+    // <NonExistent />
+  </div>
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
 	it('should keep comments inside function with one statement at the top', async () => {
 		const expected = `component App() {
   const something = 5;
