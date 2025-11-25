@@ -59,7 +59,6 @@ describe('composite > render', () => {
 			let name = 'Click Me';
 
 			<Child class="my-button">{name}</Child>
-
 		}
 
 		component Child({ children, ...rest }: { children: string; class: string }) {
@@ -81,5 +80,26 @@ describe('composite > render', () => {
 		}
 
 		render(ArrayTest);
+	});
+
+	it('should not render <undefined> tag when a passed in component is undefined', () => {
+		component Child({ children, NonExistent, ...props }) {
+			<div {...props}>
+				<children />
+				<NonExistent />
+			</div>
+		}
+
+		component App() {
+			<Child />
+		}
+
+		render(App);
+
+		const div = container.querySelector('div');
+		const undefinedTag = container.querySelector('undefined');
+
+		expect(undefinedTag).toBeNull();
+		expect(div.innerHTML).not.toContain('<undefined');
 	});
 });
