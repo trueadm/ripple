@@ -32,17 +32,17 @@ function emptyDirSafe(dir) {
 	}
 }
 
-const dirName = 'vscode-plugin';
+const DIR_NAME = 'vscode-plugin';
 
 const vsixArg = process.argv[2];
-const vsixPath = path.resolve(process.cwd(), vsixArg || dirName + '.vsix');
+const vsixPath = path.resolve(process.cwd(), vsixArg || DIR_NAME + '.vsix');
 
 if (!fs.existsSync(vsixPath)) {
 	fail(`VSIX not found at ${vsixPath}`);
 }
 
 const vsixDir = path.dirname(vsixPath);
-const extractDir = path.join(vsixDir, dirName);
+const extractDir = path.join(vsixDir, DIR_NAME);
 
 emptyDirSafe(extractDir);
 fs.mkdirSync(extractDir, { recursive: true });
@@ -59,7 +59,7 @@ const targetNodeModules = path.join(extensionDir, 'node_modules');
 const sourceNodeModules = path.join(extensionDir, 'dist', 'node_modules');
 
 // Just in case, remove any nested folders from manually unpacked VSIX
-emptyDirSafe(path.join(extensionDir, dirName));
+emptyDirSafe(path.join(extensionDir, DIR_NAME));
 
 if (fs.existsSync(sourceNodeModules) && fs.statSync(sourceNodeModules).isDirectory()) {
 	fs.renameSync(sourceNodeModules, targetNodeModules);

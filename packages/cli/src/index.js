@@ -24,7 +24,7 @@ program
 program
 	.argument('[project-name]', 'Name of the project to create')
 	.option('-t, --template <template>', 'Template to use (default: basic)')
-	.option('-p, --package-manager <pm>', 'Package manager to use (npm, yarn, pnpm)')
+	.option('-p, --package-manager <pm>', 'Package manager to use (npm, yarn, pnpm, bun)')
 	.option('--no-git', 'Skip Git repository initialization')
 	.option('-y, --yes', 'Skip all prompts and use defaults')
 	.action(

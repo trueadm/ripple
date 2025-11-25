@@ -1,6 +1,6 @@
 /** @import {PackageJson} from 'type-fest' */
 /** @import {Plugin, ResolvedConfig} from 'vite' */
-/** @typedef {{excludeRippleExternalModules?: boolean}} RipplePluginOptions */
+/** @import {RipplePluginOptions} from '@ripple-ts/vite-plugin' */
 
 import { compile } from 'ripple/compiler';
 import fs from 'node:fs';
@@ -262,9 +262,6 @@ export function ripple(inlineOptions = {}) {
 
 			async config(userConfig) {
 				if (excludeRippleExternalModules) {
-					console.log(
-						'[@ripple-ts/vite-plugin] Skipping node_modules scan (excludeRippleExternalModules is set to true)',
-					);
 					return {
 						optimizeDeps: {
 							exclude: userConfig.optimizeDeps?.exclude || [],

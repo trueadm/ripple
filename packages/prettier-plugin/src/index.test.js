@@ -4019,6 +4019,27 @@ component Polygon() {
 				expect(result).toBeWithNewline(expected);
 			});
 
+			it('should format JSX attributes with JSX elements correctly', async () => {
+				const input = `export component App() {
+	<tsx:react>
+		<Suspense fallback={<div>Loading...</div>}>
+			<Child />
+		</Suspense>
+	</tsx:react>
+}`;
+
+				const expected = `export component App() {
+  <tsx:react>
+    <Suspense fallback={<div>Loading...</div>}>
+      <Child />
+    </Suspense>
+  </tsx:react>
+}`;
+
+				const result = await format(input);
+				expect(result).toBeWithNewline(expected);
+			});
+
 			it('should format JSXFragment with text and elements mixed', async () => {
 				const input = `component App() {
 	<tsx:react>
