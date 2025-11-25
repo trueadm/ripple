@@ -1,6 +1,6 @@
 /** @import { LanguageServicePlugin } from '@volar/language-server' */
 /** @import { RippleVirtualCode } from '@ripple-ts/typescript-plugin/src/language.js') */
-/** @typedef {import('@volar/language-server').LanguageServicePluginInstance} LanguageServicePluginInstance */
+/** @import { LanguageServicePluginInstance } from '@volar/language-server' */
 
 const { URI } = require('vscode-uri');
 
@@ -93,6 +93,26 @@ function createHoverPlugin() {
 
 					if (!mapping) {
 						return tsHover;
+					}
+
+					const customHover = mapping?.data?.customData?.hover;
+					if (customHover) {
+						log('Found custom hover data in mapping');
+						return {
+							contents: {
+								kind: 'markdown',
+								value: customHover.contents,
+							},
+							range: {
+								start: position,
+								end: position,
+							},
+						};
+					} else if (customHover === false) {
+						log(
+							`Hover explicitly suppressed in mapping at range start: ${rangeStart}, end: ${rangeEnd}`,
+						);
+						return null;
 					}
 
 					log('Found mapping for hover at range', 'start: ', rangeStart, 'end: ', rangeEnd);

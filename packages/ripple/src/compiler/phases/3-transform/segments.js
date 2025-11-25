@@ -1,7 +1,4 @@
-/**
- * @typedef {Object} CustomMappingData
- * @property {number[]} generatedLengths
- */
+/** @import { CustomMappingData, PluginActionOverrides } from 'ripple/compiler'; */
 
 /**
  * @typedef {import('estree').Position} Position
@@ -152,6 +149,7 @@ export function convert_source_map_to_mappings(
 	 *		is_full_import_statement?: boolean,
 	 *		loc: Location,
 	 *		end_loc?: Location,
+	 *		metadata?: PluginActionOverrides
 	 * }>}
 	 */
 	const tokens = [];
@@ -503,9 +501,49 @@ export function convert_source_map_to_mappings(
 				}
 				return;
 			} else if (node.type === 'TryStatement') {
-				// Visit in source order: block, handler, finalizer
+				// Visit in source order: block, pending, handler, finalizer
 				if (node.block) {
 					visit(node.block);
+				}
+				if (node.pending) {
+					// Add a special token for the 'pending' keyword with customData
+					// to suppress TypeScript diagnostics and provide custom hover/definition
+					const pendingKeywordLoc = {
+						start: {
+							line: node.pending.loc.start.line,
+							column: node.pending.loc.start.column - 'pending '.length,
+						},
+						end: {
+							line: node.pending.loc.start.line,
+							column: node.pending.loc.start.column - 1,
+						},
+					};
+					tokens.push({
+						source: 'pending',
+						generated: 'pending',
+						loc: pendingKeywordLoc,
+						metadata: {
+							suppressedDiagnostics: [
+								1472, // 'catch' or 'finally' expected
+								2304, // Cannot find name 'pending'
+							],
+							// suppress all hovers
+							hover: false,
+
+							// Example of a custom hover contents (uses markdown)
+							// hover: {
+							// 	contents:
+							// 		'```ripple\npending\n```\n\nRipple-specific keyword for try/pending blocks.\n\nThe `pending` block executes while async operations inside the `try` block are awaiting. This provides a built-in loading state for async components.',
+							// },
+
+							// TODO: Definition is not implemented yet, leaving for future use
+							// definition: {
+							// 	description:
+							// 		'Ripple pending block - executes during async operations in the try block',
+							// },
+						},
+					});
+					visit(node.pending);
 				}
 				if (node.handler) {
 					visit(node.handler);
@@ -1333,11 +1371,27 @@ export function convert_source_map_to_mappings(
 			);
 			gen_start = gen_loc_to_offset(gen_line_col.line, gen_line_col.column);
 
+			/** @type {CustomMappingData} */
+			const customData = {
+				generatedLengths: [gen_length],
+			};
+
+			// Add optional metadata from token if present
+			if (token.metadata) {
+				if ('suppressedDiagnostics' in token.metadata) {
+					customData.suppressedDiagnostics = token.metadata.suppressedDiagnostics;
+				}
+				if ('hover' in token.metadata) {
+					customData.hover = token.metadata.hover;
+				}
+				if ('definition' in token.metadata) {
+					customData.definition = token.metadata.definition;
+				}
+			}
+
 			data = {
 				...mapping_data,
-				customData: {
-					generatedLengths: [gen_length],
-				},
+				customData,
 			};
 		}
 

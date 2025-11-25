@@ -3,11 +3,12 @@
 	createServer,
 	createTypeScriptProject,
 } = require('@volar/language-server/node');
-const { createDiagnosticPlugin } = require('./diagnosticPlugin.js');
+const { createCompileErrorDiagnosticPlugin } = require('./compileErrorDiagnosticPlugin.js');
 const { createDefinitionPlugin } = require('./definitionPlugin.js');
 const { createHoverPlugin } = require('./hoverPlugin.js');
 const { createCompletionPlugin } = require('./completionPlugin.js');
 const { createAutoInsertPlugin } = require('./autoInsertPlugin.js');
+const { createTypeScriptDiagnosticFilterPlugin } = require('./typescriptDiagnosticPlugin.js');
 const {
 	getRippleLanguagePlugin,
 	resolveConfig,
@@ -110,12 +111,14 @@ function createRippleLanguageServer() {
 				[
 					createAutoInsertPlugin(),
 					createCompletionPlugin(),
-					createDiagnosticPlugin(),
+					createCompileErrorDiagnosticPlugin(),
 					createDefinitionPlugin(),
 					createCssService(),
 					...createTypeScriptServices(ts),
-					// !IMPORTANT createHoverPlugin has to be loaded after Volar's ts plugins
-					// to overwrite `typescript-semantic` plugin's `provideHover`
+					// !IMPORTANT 'createTypeScriptDiagnosticFilterPlugin' and 'createHoverPlugin'
+					// must come after TypeScript services
+					// to intercept volar's and vscode default providers
+					createTypeScriptDiagnosticFilterPlugin(),
 					createHoverPlugin(),
 				],
 			);

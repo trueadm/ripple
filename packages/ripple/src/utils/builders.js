@@ -107,6 +107,15 @@ export function block(body) {
 }
 
 /**
+ * @param {ESTree.Statement[]} body
+ * @param {ESTree.SourceLocation} loc
+ * @returns {ESTree.BlockStatement}
+ */
+export function try_item_block(body, loc) {
+	return { type: 'BlockStatement', body, loc };
+}
+
+/**
  * @param {string} name
  * @param {ESTree.Statement} body
  * @returns {ESTree.LabeledStatement}
@@ -681,21 +690,23 @@ export function throw_error(str) {
  * @param {ESTree.BlockStatement} block
  * @param {ESTree.CatchClause | null} handler
  * @param {ESTree.BlockStatement | null} finalizer
+ * @param {ESTree.BlockStatement | null} pending
  * @returns {ESTree.TryStatement}
  */
-export function try_builder(block, handler = null, finalizer = null) {
+export function try_builder(block, handler = null, finalizer = null, pending = null) {
 	return {
 		type: 'TryStatement',
 		block,
 		handler,
 		finalizer,
+		pending,
 	};
 }
 
 /**
  * @param {ESTree.Pattern | null} param
  * @param {ESTree.BlockStatement} body
- * @returns {ESTree.CatchClause}
+ * @return {ESTree.CatchClause}
  */
 export function catch_clause_builder(param, body) {
 	return {

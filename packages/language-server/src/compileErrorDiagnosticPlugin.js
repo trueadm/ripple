@@ -31,7 +31,7 @@ function logError(...args) {
 /**
  * @returns {LanguageServicePlugin}
  */
-function createDiagnosticPlugin() {
+function createCompileErrorDiagnosticPlugin() {
 	log('Creating Ripple diagnostic plugin...');
 
 	return {
@@ -55,37 +55,37 @@ function createDiagnosticPlugin() {
 
 						const info = getEmbeddedInfo(context, document);
 
-						if (info && info.virtualCode.errors && info.virtualCode.errors.length > 0) {
-							const virtualCode = info.virtualCode;
-							const diagnostics = [];
-
-							log('Processing', virtualCode.errors.length, 'errors');
-
-							// Convert each stored error to a diagnostic
-							for (const error of virtualCode.errors) {
-								try {
-									// Use the actual snapshot text that Volar is working with
-									const snapshotText = virtualCode.snapshot.getText(
-										0,
-										virtualCode.snapshot.getLength(),
-									);
-									const diagnostic = parseCompilationErrorWithDocument(
-										error,
-										virtualCode.fileName,
-										snapshotText,
-										document,
-									);
-									diagnostics.push(diagnostic);
-								} catch (parseError) {
-									logError('Failed to parse compilation error:', parseError);
-								}
-							}
-
-							log('Generated', diagnostics.length, 'diagnostics');
-							return diagnostics;
+						if (!info || !info.virtualCode.errors || info.virtualCode.errors.length === 0) {
+							return [];
 						}
 
-						return [];
+						const virtualCode = info.virtualCode;
+						const diagnostics = [];
+
+						log('Processing', virtualCode.errors.length, 'errors');
+
+						// Convert each stored error to a diagnostic
+						for (const error of virtualCode.errors) {
+							try {
+								// Use the actual snapshot text that Volar is working with
+								const snapshotText = virtualCode.snapshot.getText(
+									0,
+									virtualCode.snapshot.getLength(),
+								);
+								const diagnostic = parseCompilationErrorWithDocument(
+									error,
+									virtualCode.fileName,
+									snapshotText,
+									document,
+								);
+								diagnostics.push(diagnostic);
+							} catch (parseError) {
+								logError('Failed to parse compilation error:', parseError);
+							}
+						}
+
+						log('Generated', diagnostics.length, 'diagnostics');
+						return diagnostics;
 					} catch (err) {
 						logError('Failed to provide diagnostics:', err);
 						return [];
@@ -236,5 +236,5 @@ function getEmbeddedInfo(context, document) {
 }
 
 module.exports = {
-	createDiagnosticPlugin,
+	createCompileErrorDiagnosticPlugin,
 };

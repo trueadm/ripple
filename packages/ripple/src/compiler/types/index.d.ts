@@ -20,6 +20,10 @@ declare module 'estree' {
 		params: Pattern[];
 		body: BlockStatement;
 	}
+
+	interface TryStatement {
+		pending?: BlockStatement | null;
+	}
 }
 
 declare module 'estree-jsx' {

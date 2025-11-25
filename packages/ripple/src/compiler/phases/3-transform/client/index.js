@@ -2192,6 +2192,18 @@ function transform_ts_child(node, context) {
 			catch_handler = b.catch_clause(node.handler.param || null, catch_body);
 		}
 
+		let pending_block = null;
+		if (node.pending) {
+			const pending_scope = context.state.scopes.get(node.pending);
+			pending_block = b.try_item_block(
+				transform_body(node.pending.body, {
+					...context,
+					state: { ...context.state, scope: pending_scope },
+				}),
+				node.pending.loc,
+			);
+		}
+
 		let finally_block = null;
 		if (node.finalizer) {
 			const finally_scope = context.state.scopes.get(node.finalizer);
@@ -2203,7 +2215,7 @@ function transform_ts_child(node, context) {
 			);
 		}
 
-		state.init.push(b.try(try_body, catch_handler, finally_block));
+		state.init.push(b.try(try_body, catch_handler, finally_block, pending_block));
 	} else if (node.type === 'Component') {
 		const component = visit(node, state);
 
@@ -2807,6 +2819,38 @@ function create_tsx_with_typescript_support() {
 				context.write(')');
 			} else {
 				context.visit(node.body);
+			}
+		},
+		// Custom handler for TryStatement to support Ripple's pending block
+		TryStatement(node, context) {
+			context.write('try ');
+			context.visit(node.block);
+
+			if (node.pending) {
+				// Output the pending block with source mapping for the 'pending' keyword
+				context.write(' ');
+				context.location(
+					node.pending.loc.start.line,
+					node.pending.loc.start.column - 'pending '.length,
+				);
+				context.write('pending ');
+				context.visit(node.pending);
+			}
+
+			if (node.handler) {
+				context.write(' catch');
+				if (node.handler.param) {
+					context.write(' (');
+					context.visit(node.handler.param);
+					context.write(')');
+				}
+				context.write(' ');
+				context.visit(node.handler.body);
+			}
+
+			if (node.finalizer) {
+				context.write(' finally ');
+				context.visit(node.finalizer);
 			}
 		},
 	};

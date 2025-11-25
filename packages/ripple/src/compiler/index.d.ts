@@ -22,7 +22,24 @@ export interface CompileResult {
 	css: string;
 }
 
-export interface CustomMappingData {
+export interface PluginActionOverrides {
+	/** TypeScript diagnostic codes to suppress for this mapping */
+	suppressedDiagnostics?: number[];
+	/** Custom hover documentation for this mapping, false to disable */
+	hover?:
+		| {
+				contents: string;
+		  }
+		| false;
+	/** Custom definition info for this mapping, false to disable */
+	definition?:
+		| {
+				description: string;
+		  }
+		| false;
+}
+
+export interface CustomMappingData extends PluginActionOverrides {
 	generatedLengths: number[];
 }
 
