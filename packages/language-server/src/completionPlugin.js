@@ -143,6 +143,15 @@ const RIPPLE_SNIPPETS = [
 		insertTextFormat: InsertTextFormat.Snippet,
 		sortText: '0-untrack',
 	},
+	{
+		label: 'try-pending',
+		kind: CompletionItemKind.Snippet,
+		detail: 'try...pending block',
+		documentation: 'Handle async content with loading fallback',
+		insertText: 'try {\n\t$1\n} pending {\n\t$2\n}',
+		insertTextFormat: InsertTextFormat.Snippet,
+		sortText: '0-try-pending',
+	},
 ];
 
 /**
