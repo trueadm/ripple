@@ -5,21 +5,23 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
+    "prepack": "pnpm run build",
+    "dev": "pnpm run build --watch",
     "build": "tsdown",
-    "prepack": "tsdown",
-    "dev": "tsdown --watch",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.1",
+    "cheerio": "^1.1.2",
     "ripple": "workspace:*",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "catalog:default",
     "tsdown": "catalog:default",
+    "tsx": "^4.20.6",
     "typescript": "catalog:default",
     "vitest": "catalog:default"
   },

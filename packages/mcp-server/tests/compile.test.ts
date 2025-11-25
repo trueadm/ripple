@@ -4,7 +4,7 @@ import { ripple_compile } from '../src/tools/compile.js';
 describe('ripple_compile tool', () => {
 	it('should compile valid Ripple code', async () => {
 		const result = await ripple_compile.handler({
-			code: 'component App() { <div>Hello</div> }',
+			code: 'component App() { <div>{"Hello"}</div> }',
 			filename: 'App.ripple',
 			mode: 'client',
 		});

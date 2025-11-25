@@ -61,6 +61,13 @@ export default defineConfig({
 				plugins: [ripple()],
 			},
 			{
+				name: 'mcp-server',
+				test: {
+					include: ['packages/mcp-server/tests/**/*.test.ts'],
+					environment: 'node',
+				},
+			},
+			{
 				name: 'utils',
 				test: {
 					include: ['packages/ripple/tests/utils/**/*.test.js'],

@@ -51,17 +51,24 @@ describe('ripple_create_component tool', () => {
 		await fs.unlink(filePath).catch(() => {});
 	});
 
-	it('should handle errors gracefully', async () => {
+	it('should create nested directories recursively', async () => {
+		const nestedPath = path.join(testDir, 'deeply', 'nested', 'path');
 		const result = await ripple_create_component.handler({
-			name: 'Test/Invalid',
-			content: 'test',
-			path: '/invalid/path/that/does/not/exist',
+			name: 'NestedComponent',
+			content: 'component NestedComponent() {}',
+			path: nestedPath,
 		});
 
-		// Should still succeed because we create directories recursively
+		// Should succeed because we create directories recursively
 		expect(result.isError).toBeFalsy();
+		expect(result.content[0].text).toContain('NestedComponent created');
 
-		// Clean up
-		await fs.rm('/invalid', { recursive: true, force: true }).catch(() => {});
+		// Verify the file was created
+		const filePath = path.join(nestedPath, 'NestedComponent.ripple');
+		const fileExists = await fs
+			.access(filePath)
+			.then(() => true)
+			.catch(() => false);
+		expect(fileExists).toBe(true);
 	});
 });
