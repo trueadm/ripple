@@ -1,0 +1,33 @@
+import { track } from 'ripple';
+
+describe('bug reproduction #497', () => {
+	it('should not render <undefined> tag when children is not passed', () => {
+		component Span({ children, id: key = 2, ...props }) {
+			const renderredHtml = track('');
+			const refNode = (node) => {
+				console.log(node.outerHTML);
+				@renderredHtml = node.outerHTML;
+			};
+			<span {ref refNode} {...props}>
+				<@children />
+			</span>
+			{@renderredHtml}
+		}
+
+		component App() {
+			<Span class="red" />
+		}
+
+		render(App);
+
+		const span = container.querySelector('span');
+		const undefinedTag = container.querySelector('undefined');
+
+		expect(span).toBeTruthy();
+		expect(span.className).toBe('red');
+		// The bug: undefined tag should not exist
+		expect(undefinedTag).toBeNull();
+		// The span should not contain <undefined></undefined> in its HTML
+		expect(span.innerHTML).not.toContain('<undefined');
+	});
+});
