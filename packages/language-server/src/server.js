@@ -5,11 +5,15 @@
 } = require('@volar/language-server/node');
 const { createDiagnosticPlugin } = require('./diagnosticPlugin.js');
 const { createDefinitionPlugin } = require('./definitionPlugin.js');
+const { createHoverPlugin } = require('./hoverPlugin.js');
+const { createCompletionPlugin } = require('./completionPlugin.js');
+const { createAutoInsertPlugin } = require('./autoInsertPlugin.js');
 const {
 	getRippleLanguagePlugin,
 	resolveConfig,
 } = require('@ripple-ts/typescript-plugin/src/language.js');
 const { createTypeScriptServices } = require('./typescriptService.js');
+const { create: createCssService } = require('volar-service-css');
 
 const DEBUG = process.env.RIPPLE_DEBUG === 'true';
 
@@ -103,7 +107,17 @@ function createRippleLanguageServer() {
 						},
 					};
 				}),
-				[createDiagnosticPlugin(), createDefinitionPlugin(), ...createTypeScriptServices(ts)],
+				[
+					createAutoInsertPlugin(),
+					createCompletionPlugin(),
+					createDiagnosticPlugin(),
+					createDefinitionPlugin(),
+					createCssService(),
+					...createTypeScriptServices(ts),
+					// !IMPORTANT createHoverPlugin has to be loaded after Volar's ts plugins
+					// to overwrite `typescript-semantic` plugin's `provideHover`
+					createHoverPlugin(),
+				],
 			);
 
 			log('Server initialization complete');

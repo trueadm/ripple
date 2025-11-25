@@ -1,9 +1,12 @@
 // @ts-nocheck
 /** @import { Program } from 'estree' */
-/** @import {
+/**
+ * @import {
  *   CommentWithLocation,
  *   RipplePluginConfig
  * } from '#compiler' */
+
+/** @import { ParseOptions } from 'ripple/compiler' */
 
 import * as acorn from 'acorn';
 import { tsPlugin } from '@sveltejs/acorn-typescript';
@@ -74,7 +77,7 @@ function isWhitespaceTextNode(node) {
  * @returns {function(any): any} Parser extension function
  */
 function RipplePlugin(config) {
-	return (/** @type {any} */ Parser) => {
+	return (/** @type {typeof acorn.Parser} */ Parser) => {
 		const original = acorn.Parser.prototype;
 		const tt = Parser.tokTypes || acorn.tokTypes;
 		const tc = Parser.tokContexts || acorn.tokContexts;
@@ -85,6 +88,12 @@ function RipplePlugin(config) {
 			/** @type {any[]} */
 			#path = [];
 			#commentContextId = 0;
+			#loose = false;
+
+			constructor(options, input) {
+				super(options, input);
+				this.#loose = options?.rippleOptions.loose === true;
+			}
 
 			#createCommentMetadata() {
 				if (this.#path.length === 0) {
@@ -1419,6 +1428,9 @@ function RipplePlugin(config) {
 
 					// Position after the '>'
 					this.pos = tagEndPos + 1;
+
+					// Add opening and closing for easier location tracking
+					// TODO: we should also parse attributes inside the opening tag
 				} else {
 					open = this.jsx_parseOpeningElementAt();
 				}
@@ -1468,6 +1480,41 @@ function RipplePlugin(config) {
 				element.attributes = open.attributes;
 				element.metadata ??= {};
 				element.metadata.commentContainerId = ++this.#commentContextId;
+				// Store opening tag's end position for use in loose mode when element is unclosed
+				element.metadata.openingTagEnd = open.end;
+				element.metadata.openingTagEndLoc = open.loc.end;
+
+				function addOpeningAndClosing() {
+					//TODO: once parse attributes of style and script
+					// we should the open element loc properly
+					const name = open.name.name;
+					open.loc = {
+						start: {
+							line: element.loc.start.line,
+							column: element.loc.start.column,
+						},
+						end: {
+							line: element.loc.start.line,
+							column: element.loc.start.column + `${name}>`.length,
+						},
+					};
+
+					element.openingElement = open;
+					element.closingElement = {
+						type: 'JSXClosingElement',
+						name: open.name,
+						loc: {
+							start: {
+								line: element.loc.end.line,
+								column: element.loc.end.column - `</${name}>`.length,
+							},
+							end: {
+								line: element.loc.end.line,
+								column: element.loc.end.column,
+							},
+						},
+					};
+				}
 
 				if (element.selfClosing) {
 					this.#path.pop();
@@ -1506,6 +1553,7 @@ function RipplePlugin(config) {
 
 						element.content = content;
 						this.finishNode(element, 'Element');
+						addOpeningAndClosing(element, open);
 					} else if (open.name.name === 'style') {
 						// jsx_parseOpeningElementAt treats ID selectors (ie. #myid) or type selectors (ie. div) as identifier and read it
 						// So backtrack to the end of the <style> tag to make sure everything is included
@@ -1515,7 +1563,7 @@ function RipplePlugin(config) {
 						const content = input.slice(0, end);
 
 						const component = this.#path.findLast((n) => n.type === 'Component');
-						const parsed_css = parse_style(content);
+						const parsed_css = parse_style(content, { loose: this.#loose });
 
 						if (!inside_head) {
 							if (component.css !== null) {
@@ -1553,6 +1601,7 @@ function RipplePlugin(config) {
 
 						element.css = content;
 						this.finishNode(element, 'Element');
+						addOpeningAndClosing(element, open);
 						return element;
 					} else {
 						this.enterScope(0);
@@ -1590,15 +1639,24 @@ function RipplePlugin(config) {
 							this.next();
 						} else if (this.#path[this.#path.length - 1] === element) {
 							// Check if this element was properly closed
-							// If we reach here and this element is still in the path, it means it was never closed
-							const tagName = this.getElementName(element.id);
-
-							this.raise(
-								this.start,
-								`Unclosed tag '<${tagName}>'. Expected '</${tagName}>' before end of component.`,
-							);
+							if (!this.#loose) {
+								const tagName = this.getElementName(element.id);
+								this.raise(
+									this.start,
+									`Unclosed tag '<${tagName}>'. Expected '</${tagName}>' before end of component.`,
+								);
+							} else {
+								element.unclosed = true;
+								const position = this.curPosition();
+								position.line = element.metadata.openingTagEndLoc.line;
+								position.column = element.metadata.openingTagEndLoc.column;
+								element.loc.end = position;
+								element.end = element.metadata.openingTagEnd;
+								this.#path.pop();
+							}
 						}
 					}
+
 					// Ensure we escape JSX <tag></tag> context
 					const curContext = this.curContext();
 
@@ -1678,8 +1736,12 @@ function RipplePlugin(config) {
 				}
 				if (this.type === tt.braceL) {
 					const node = this.jsx_parseExpressionContainer();
-					node.type = node.html ? 'Html' : 'Text';
-					delete node.html;
+					// Keep JSXEmptyExpression as-is (for prettier to handle comments)
+					// but convert other expressions to Text/Html nodes
+					if (node.expression.type !== 'JSXEmptyExpression') {
+						node.type = node.html ? 'Html' : 'Text';
+						delete node.html;
+					}
 					body.push(node);
 				} else if (this.type === tt.braceR) {
 					return;
@@ -1720,10 +1782,40 @@ function RipplePlugin(config) {
 						}
 
 						if (openingTagName !== closingTagName) {
-							this.raise(
-								this.start,
-								`Expected closing tag to match opening tag. Expected '</${openingTagName}>' but found '</${closingTagName}>'`,
-							);
+							if (!this.#loose) {
+								this.raise(
+									this.start,
+									`Expected closing tag to match opening tag. Expected '</${openingTagName}>' but found '</${closingTagName}>'`,
+								);
+							} else {
+								// Loop through all unclosed elements on the stack
+								while (this.#path.length > 0) {
+									const elem = this.#path[this.#path.length - 1];
+
+									// Stop at non-Element boundaries (Component, etc.)
+									if (elem.type !== 'Element' && elem.type !== 'TsxCompat') {
+										break;
+									}
+
+									const elemName =
+										elem.type === 'TsxCompat' ? 'tsx:' + elem.kind : this.getElementName(elem.id);
+
+									// Found matching opening tag
+									if (elemName === closingTagName) {
+										break;
+									}
+
+									// Mark as unclosed and adjust location
+									elem.unclosed = true;
+									const position = this.curPosition();
+									position.line = elem.metadata.openingTagEndLoc.line;
+									position.column = elem.metadata.openingTagEndLoc.column;
+									elem.loc.end = position;
+									elem.end = elem.metadata.openingTagEnd;
+
+									this.#path.pop(); // Remove from stack
+								}
+							}
 						}
 
 						this.#path.pop();
@@ -1759,7 +1851,10 @@ function RipplePlugin(config) {
 				) {
 					this.next();
 					const node = this.jsx_parseExpressionContainer();
-					node.type = 'Text';
+					// Keep JSXEmptyExpression as-is (don't convert to Text)
+					if (node.expression.type !== 'JSXEmptyExpression') {
+						node.type = 'Text';
+					}
 					this.next();
 					this.context.pop();
 					this.context.pop();
@@ -2256,9 +2351,10 @@ function get_comment_handlers(source, comments, index = 0) {
 /**
  * Parse Ripple source code into an AST
  * @param {string} source
+ * @param {ParseOptions} [options]
  * @returns {Program}
  */
-export function parse(source) {
+export function parse(source, options) {
 	/** @type {CommentWithLocation[]} */
 	const comments = [];
 
@@ -2315,6 +2411,9 @@ export function parse(source) {
 			ecmaVersion: 13,
 			locations: true,
 			onComment: /** @type {any} */ (onComment),
+			rippleOptions: {
+				loose: options?.loose || false,
+			},
 		});
 	} catch (e) {
 		throw e;

@@ -30,7 +30,7 @@ npm run dev // [!=npm auto]
 
 ### VS Code
 
-Ripple maintains a Volar-based [VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripple-ts.vscode-plugin).
+Ripple maintains a Volar-based [VSCode extension](https://marketplace.visualstudio.com/items?itemName=Ripple-TS.ripple-ts-vscode-plugin).
 
 It provides syntax highlighting for `.ripple` files, real-time diagnostics for
 compilation errors, typescript integration for type checking and autocompletion.

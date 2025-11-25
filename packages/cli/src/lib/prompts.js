@@ -73,8 +73,9 @@ export async function promptPackageManager(defaultPackageManager) {
 				{ title: 'npm', value: 'npm', description: 'Use npm for dependency management' },
 				{ title: 'yarn', value: 'yarn', description: 'Use Yarn for dependency management' },
 				{ title: 'pnpm', value: 'pnpm', description: 'Use pnpm for dependency management' },
+				{ title: 'bun', value: 'bun', description: 'Use bun for dependency management' },
 			],
-			initial: ['npm', 'yarn', 'pnpm'].indexOf(defaultPackageManager),
+			initial: ['npm', 'yarn', 'pnpm', 'bun'].indexOf(defaultPackageManager),
 		})
 	);
 

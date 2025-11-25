@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/eslint-plugin",
-  "version": "0.2.175",
+  "version": "0.2.177",
   "description": "ESLint plugin for Ripple",
   "type": "module",
   "main": "src/index.ts",
@@ -39,14 +39,6 @@
     "eslint": "catalog:peer",
     "@typescript-eslint/parser": "catalog:peer",
     "@ripple-ts/eslint-parser": "workspace:*"
-  },
-  "peerDependenciesMeta": {
-    "@typescript-eslint/parser": {
-      "optional": true
-    },
-    "@ripple-ts/eslint-parser": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@types/eslint": "catalog:default",

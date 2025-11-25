@@ -1,4 +1,5 @@
 /** @import { Program } from 'estree' */
+/** @import { ParseOptions } from 'ripple/compiler' */
 
 import { parse as parse_module } from './phases/1-parse/index.js';
 import { analyze } from './phases/2-analyze/index.js';
@@ -12,7 +13,7 @@ import { convert_source_map_to_mappings } from './phases/3-transform/segments.js
  * @returns {Program}
  */
 export function parse(source) {
-	return parse_module(source);
+	return parse_module(source, undefined);
 }
 
 /**
@@ -23,7 +24,7 @@ export function parse(source) {
  * @returns {object}
  */
 export function compile(source, filename, options = {}) {
-	const ast = parse_module(source);
+	const ast = parse_module(source, undefined);
 	const analysis = analyze(ast, filename, options);
 	const result =
 		options.mode === 'server'
@@ -34,22 +35,24 @@ export function compile(source, filename, options = {}) {
 }
 
 /** @import { PostProcessingChanges, LineOffsets } from './phases/3-transform/client/index.js' */
-/** @import { MappingsResult } from './phases/3-transform/segments.js' */
+/** @import { VolarMappingsResult } from 'ripple/compiler' */
 
 /**
  * Compile Ripple component to Volar virtual code with TypeScript mappings
  * @param {string} source
  * @param {string} filename
- * @returns {MappingsResult} Volar mappings object
+ * @param {ParseOptions} [options] - Compiler options
+ * @returns {VolarMappingsResult} Volar mappings object
  */
-export function compile_to_volar_mappings(source, filename) {
-	const ast = parse_module(source);
-	const analysis = analyze(ast, filename, { to_ts: true });
+export function compile_to_volar_mappings(source, filename, options) {
+	const ast = parse_module(source, options);
+	const analysis = analyze(ast, filename, { to_ts: true, loose: !!options?.loose });
 	const transformed = transform_client(filename, source, analysis, true);
 
 	// Create volar mappings with esrap source map for accurate positioning
 	return convert_source_map_to_mappings(
 		transformed.ast,
+		ast,
 		source,
 		transformed.js.code,
 		transformed.js.map,

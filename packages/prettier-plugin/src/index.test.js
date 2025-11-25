@@ -1717,6 +1717,13 @@ files = [...(files ?? []), ...dt.files];`;
 			const result = await format(input, { singleQuote: true, printWidth: 100 });
 			expect(result).toBeWithNewline(expected);
 		});
+
+		it('should recognize and preserve class assignments to variables', async () => {
+			const expected = `let test = class MediaQueryList {};`;
+
+			const result = await format(expected, { singleQuote: true, printWidth: 100 });
+			expect(result).toBeWithNewline(expected);
+		});
 	});
 
 	describe('edge cases', () => {
@@ -2733,6 +2740,14 @@ try {
 }`;
 
 			const result = await format(input, { singleQuote: true, arrowParens: 'always' });
+			expect(result).toBeWithNewline(expected);
+		});
+
+		it('should preserve inline comments inside jsx expressions', async () => {
+			const expected = `<div>{/* 'This is visible text' */}</div>
+<div>{/* <div>{'Card Component'}</div> */}</div>`;
+
+			const result = await format(expected, { singleQuote: true });
 			expect(result).toBeWithNewline(expected);
 		});
 
@@ -4001,6 +4016,27 @@ component Polygon() {
 }`;
 
 				const result = await format(input, { singleQuote: true });
+				expect(result).toBeWithNewline(expected);
+			});
+
+			it('should format JSX attributes with JSX elements correctly', async () => {
+				const input = `export component App() {
+	<tsx:react>
+		<Suspense fallback={<div>Loading...</div>}>
+			<Child />
+		</Suspense>
+	</tsx:react>
+}`;
+
+				const expected = `export component App() {
+  <tsx:react>
+    <Suspense fallback={<div>Loading...</div>}>
+      <Child />
+    </Suspense>
+  </tsx:react>
+}`;
+
+				const result = await format(input);
 				expect(result).toBeWithNewline(expected);
 			});
 

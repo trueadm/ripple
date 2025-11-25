@@ -7,9 +7,14 @@
  * @typedef {import('estree').Position} Position
  * @typedef {{start: Position, end: Position}} Location
  * @typedef {import('@volar/language-core').CodeMapping} VolarCodeMapping
- * @typedef {VolarCodeMapping['data'] & {customData: CustomMappingData}} MappingData
- * @typedef {VolarCodeMapping & {data: MappingData}} CodeMapping
- * @typedef {{code: string, mappings: CodeMapping[]}} MappingsResult
+ * @typedef {import('ripple/compiler').MappingData} MappingData
+ * @typedef {import('ripple/compiler').CodeMapping} CodeMapping
+ * @typedef {import('ripple/compiler').VolarMappingsResult} VolarMappingsResult
+ * @typedef {{
+ *	start: number,
+ *	end: number,
+ *	content: string
+ * }} CssSourceRegion
  */
 
 import { walk } from 'zimmerframe';
@@ -26,21 +31,89 @@ export const mapping_data = {
 };
 
 /**
+ * Converts line/column positions to byte offsets
+ * @param {string} text
+ * @returns {number[]}
+ */
+function build_line_offsets(text) {
+	const offsets = [0]; // Line 1 starts at offset 0
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '\n') {
+			offsets.push(i + 1);
+		}
+	}
+	return offsets;
+}
+
+/**
+ * Convert line/column to byte offset
+ * @param {number} line
+ * @param {number} column
+ * @param {number[]} line_offsets
+ * @returns {number}
+ */
+function loc_to_offset(line, column, line_offsets) {
+	if (line < 1 || line > line_offsets.length) {
+		throw new Error(
+			`Location line or line offsets length is out of bounds, line: ${line}, line offsets length: ${line_offsets.length}`,
+		);
+	}
+	return line_offsets[line - 1] + column;
+}
+
+/**
+ * Extract CSS source regions from style elements in the AST
+ * @param {any} ast - The parsed AST
+ * @param {string} source - Original source code
+ * @param {number[]} source_line_offsets
+ * @returns {CssSourceRegion[]}
+ */
+function extractCssSourceRegions(ast, source, source_line_offsets) {
+	/** @type {CssSourceRegion[]} */
+	const regions = [];
+
+	walk(ast, null, {
+		Element(node) {
+			// Check if this is a style element with CSS content
+			if (node.id?.name === 'style' && node.css) {
+				const openLoc = node.openingElement.loc;
+				const cssStart =
+					loc_to_offset(openLoc.end.line, openLoc.end.column, source_line_offsets) + 1;
+
+				const closeLoc = node.closingElement.loc;
+				const cssEnd =
+					loc_to_offset(closeLoc.start.line, closeLoc.start.column, source_line_offsets) - 1;
+
+				regions.push({
+					start: cssStart,
+					end: cssEnd,
+					content: node.css,
+				});
+			}
+		},
+	});
+
+	return regions;
+}
+
+/**
  * @import { PostProcessingChanges } from './client/index.js';
  */
 
 /**
  * Create Volar mappings by walking the transformed AST
  * @param {any} ast - The transformed AST
+ * @param {any} ast_from_source - The original AST from source
  * @param {string} source - Original source code
  * @param {string} generated_code - Generated code (returned in output, not used for searching)
  * @param {object} esrap_source_map - Esrap source map for accurate position lookup
  * @param {PostProcessingChanges } post_processing_changes - Optional post-processing changes
  * @param {number[]} line_offsets - Pre-computed line offsets array for generated code
- * @returns {MappingsResult}
+ * @returns {VolarMappingsResult}
  */
 export function convert_source_map_to_mappings(
 	ast,
+	ast_from_source,
 	source,
 	generated_code,
 	esrap_source_map,
@@ -51,37 +124,7 @@ export function convert_source_map_to_mappings(
 	const mappings = [];
 	let isImportDeclarationPresent = false;
 
-	/**
-	 * Converts line/column positions to byte offsets
-	 * @param {string} text
-	 * @returns {number[]}
-	 */
-	const build_line_offsets = (text) => {
-		const offsets = [0]; // Line 1 starts at offset 0
-		for (let i = 0; i < text.length; i++) {
-			if (text[i] === '\n') {
-				offsets.push(i + 1);
-			}
-		}
-		return offsets;
-	};
 	const source_line_offsets = build_line_offsets(source);
-
-	/**
-	 * Convert line/column to byte offset
-	 * @param {number} line
-	 * @param {number} column
-	 * @param {number[]} line_offsets
-	 * @returns {number}
-	 */
-	const loc_to_offset = (line, column, line_offsets) => {
-		if (line < 1 || line > line_offsets.length) {
-			throw new Error(
-				`Location line or line offsets length is out of bounds, line: ${line}, line offsets length: ${line_offsets.length}`,
-			);
-		}
-		return line_offsets[line - 1] + column;
-	};
 
 	/**
 	 * Convert generated line/column to byte offset using pre-computed line_offsets
@@ -280,7 +323,34 @@ export function convert_source_map_to_mappings(
 
 				// 1. Visit opening element (name and attributes)
 				if (node.openingElement) {
+					// Add tokens for '<' and '>' brackets to ensure auto-close feature works
+					const openingElem = node.openingElement;
+
+					// Add '<' bracket
+					if (openingElem.loc) {
+						tokens.push({
+							source: '<',
+							generated: '<',
+							loc: {
+								start: { line: openingElem.loc.start.line, column: openingElem.loc.start.column },
+								end: { line: openingElem.loc.start.line, column: openingElem.loc.start.column + 1 },
+							},
+						});
+					}
+
 					visit(node.openingElement);
+
+					// Add '>' bracket (or '/>' for self-closing)
+					if (openingElem.loc && !openingElem.selfClosing) {
+						tokens.push({
+							source: '>',
+							generated: '>',
+							loc: {
+								start: { line: openingElem.loc.end.line, column: openingElem.loc.end.column - 1 },
+								end: { line: openingElem.loc.end.line, column: openingElem.loc.end.column },
+							},
+						});
+					}
 				}
 
 				// 2. Visit children in order
@@ -1300,8 +1370,27 @@ export function convert_source_map_to_mappings(
 		});
 	}
 
+	/** @type {{ cssMappings: CodeMapping[], cssSources: string[] }} */
+	const cssResult = { cssMappings: [], cssSources: [] };
+	for (const region of extractCssSourceRegions(ast_from_source, source, source_line_offsets)) {
+		cssResult.cssMappings.push({
+			sourceOffsets: [region.start],
+			generatedOffsets: [0],
+			lengths: [region.content.length],
+			data: {
+				...mapping_data,
+				customData: {
+					generatedLengths: [region.content.length],
+				},
+			},
+		});
+
+		cssResult.cssSources.push(region.content);
+	}
+
 	return {
 		code: generated_code,
 		mappings,
+		...cssResult,
 	};
 }

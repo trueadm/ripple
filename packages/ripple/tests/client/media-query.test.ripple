@@ -7,7 +7,9 @@ function setupMatchMedia() {
 
 	// A mock implementation of matchMedia
 	const mockMatchMedia = vi.fn().mockImplementation((query) => {
-		return {
+		// Create a mock that extends MediaQueryList so instanceof works
+		const mock = Object.create(MediaQueryList.prototype);
+		Object.assign(mock, {
 			media: query,
 			matches: false, // default value
 			addEventListener: (type: string, cb: Callback) => {
@@ -26,7 +28,8 @@ function setupMatchMedia() {
 				listeners.forEach((cb) => cb(event));
 			},
 			listenersCount: () => listeners.size,
-		};
+		});
+		return mock;
 	});
 
 	Object.defineProperty(window, 'matchMedia', {

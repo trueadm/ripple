@@ -20,8 +20,10 @@
 		"eslint": "^9.0.0",
 		"@ripple-ts/eslint-plugin": "workspace:*",
 		"prettier": "^3.6.2",
-		"@ripple-ts/prettier-plugin": "workspace:*",
+		"@ripple-ts/prettier-plugin": "latest",
+		"@ripple-ts/eslint-parser": "latest",
 		"typescript": "^5.9.2",
+		"@typescript-eslint/parser": "^8.20.0",
 		"vite": "^7.1.4",
 		"@ripple-ts/vite-plugin": "workspace:*",
 		"@ripple-ts/typescript-plugin": "workspace:*"

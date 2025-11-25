@@ -1,7 +1,11 @@
 import type { Plugin } from 'vite';
 
-export interface RipplePluginOptions {
-	// Add options here as needed
+declare module '@ripple-ts/vite-plugin' {
+	export function ripple(options?: RipplePluginOptions): Plugin[];
+
+	export interface RipplePluginOptions {
+		excludeRippleExternalModules?: boolean;
+	}
 }
 
 export function ripple(options?: RipplePluginOptions): Plugin[];

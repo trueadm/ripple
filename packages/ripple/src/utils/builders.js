@@ -1,4 +1,5 @@
 /** @import * as ESTree from 'estree' */
+/** @import * as ESTreeJSX from 'estree-jsx' */
 
 import { regex_is_valid_identifier } from './patterns.js';
 import { sanitize_template_string } from './sanitize_template_string.js';
@@ -45,6 +46,12 @@ export function arrow(params, body, async = false) {
 	};
 }
 
+/**
+ * @param {ESTree.Identifier} id
+ * @param {ESTree.Pattern[]} params
+ * @param {ESTree.BlockStatement} body
+ * @returns {ESTree.Component}
+ */
 export function component(id, params, body) {
 	return {
 		type: 'Component',
@@ -620,25 +627,29 @@ function if_builder(test, consequent, alternate) {
 /**
  * @param {string} as
  * @param {string} source
+ * @param {Array<ESTree.ImportAttribute>} attributes
  * @returns {ESTree.ImportDeclaration}
  */
-export function import_all(as, source) {
+export function import_all(as, source, attributes = []) {
 	return {
 		type: 'ImportDeclaration',
 		source: literal(source),
 		specifiers: [import_namespace(as)],
+		attributes,
 	};
 }
 
 /**
  * @param {Array<[string, string]>} parts
  * @param {string} source
+ * @param {Array<ESTree.ImportAttribute>} attributes
  * @returns {ESTree.ImportDeclaration}
  */
-export function imports(parts, source) {
+export function imports(parts, source, attributes = []) {
 	return {
 		type: 'ImportDeclaration',
 		source: literal(source),
+		attributes,
 		specifiers: parts.map((p) => ({
 			type: 'ImportSpecifier',
 			imported: id(p[0]),
@@ -705,9 +716,9 @@ export function key(name) {
 }
 
 /**
- * @param {ESTree.JSXIdentifier | ESTree.JSXNamespacedName} name
- * @param {ESTree.Literal | ESTree.JSXExpressionContainer | null} value
- * @returns {ESTree.JSXAttribute}
+ * @param {ESTreeJSX.JSXIdentifier | ESTreeJSX.JSXNamespacedName} name
+ * @param {ESTree.Literal | ESTreeJSX.JSXExpressionContainer | null} value
+ * @returns {ESTreeJSX.JSXAttribute}
  */
 export function jsx_attribute(name, value = null) {
 	return {
@@ -719,44 +730,54 @@ export function jsx_attribute(name, value = null) {
 }
 
 /**
- * @param {ESTree.JSXIdentifier | ESTree.JSXMemberExpression | ESTree.JSXNamespacedName} name
- * @param {Array<ESTree.JSXAttribute | ESTree.JSXSpreadAttribute>} attributes
- * @param {Array<ESTree.JSXText | ESTree.JSXExpressionContainer | ESTree.JSXSpreadChild | ESTree.JSXElement | ESTree.JSXFragment>} children
+ * @param {ESTreeJSX.JSXOpeningElement['name']} name
+ * @param {ESTree.SourceLocation} loc
+ * @param {ESTreeJSX.JSXOpeningElement['attributes']} attributes
+ * @param {ESTreeJSX.JSXElement['children']} children
  * @param {boolean} self_closing
- * @returns {{ element: ESTree.JSXElement, opening_element: ESTree.JSXOpeningElement }}
+ * @param {boolean} unclosed
+ * @param {ESTreeJSX.JSXClosingElement['name']} closing_name
+ * @returns {ESTreeJSX.JSXElement}
  */
 export function jsx_element(
 	name,
+	loc,
 	attributes = [],
 	children = [],
 	self_closing = false,
+	unclosed = false,
 	closing_name = name,
 ) {
+	/** @type {ESTreeJSX.JSXOpeningElement} */
 	const opening_element = {
 		type: 'JSXOpeningElement',
 		name,
 		attributes,
 		selfClosing: self_closing,
+		loc: loc,
 	};
 
+	/** @type {ESTreeJSX.JSXElement} */
 	const element = {
 		type: 'JSXElement',
 		openingElement: opening_element,
-		closingElement: self_closing
-			? null
-			: {
-					type: 'JSXClosingElement',
-					name: closing_name,
-				},
 		children,
+		closingElement:
+			self_closing || unclosed
+				? null
+				: {
+						type: 'JSXClosingElement',
+						name: closing_name,
+						loc,
+					},
 	};
 
 	return element;
 }
 
 /**
- * @param {Array<ESTree.JSXText | ESTree.JSXExpressionContainer | ESTree.JSXSpreadChild | ESTree.JSXElement | ESTree.JSXFragment>} children
- * @returns {ESTree.JSXFragment}
+ * @param {Array<ESTreeJSX.JSXText | ESTreeJSX.JSXExpressionContainer | ESTreeJSX.JSXSpreadChild | ESTreeJSX.JSXElement | ESTreeJSX.JSXFragment>} children
+ * @returns {ESTreeJSX.JSXFragment}
  */
 export function jsx_fragment(children = []) {
 	return {
@@ -772,8 +793,8 @@ export function jsx_fragment(children = []) {
 }
 
 /**
- * @param {ESTree.Expression | ESTree.JSXEmptyExpression} expression
- * @returns {ESTree.JSXExpressionContainer}
+ * @param {ESTree.Expression | ESTreeJSX.JSXEmptyExpression} expression
+ * @returns {ESTreeJSX.JSXExpressionContainer}
  */
 export function jsx_expression_container(expression) {
 	return {
@@ -784,7 +805,7 @@ export function jsx_expression_container(expression) {
 
 /**
  * @param {string} name
- * @returns {ESTree.JSXIdentifier}
+ * @returns {ESTreeJSX.JSXIdentifier}
  */
 export function jsx_id(name) {
 	return {
@@ -794,9 +815,9 @@ export function jsx_id(name) {
 }
 
 /**
- * @param {ESTree.JSXIdentifier | ESTree.JSXMemberExpression} object
- * @param {ESTree.JSXIdentifier} property
- * @returns {ESTree.JSXMemberExpression}
+ * @param {ESTreeJSX.JSXIdentifier | ESTreeJSX.JSXMemberExpression} object
+ * @param {ESTreeJSX.JSXIdentifier} property
+ * @returns {ESTreeJSX.JSXMemberExpression}
  */
 export function jsx_member(object, property) {
 	return {
@@ -808,7 +829,7 @@ export function jsx_member(object, property) {
 
 /**
  * @param {ESTree.Expression} argument
- * @returns {ESTree.JSXSpreadAttribute}
+ * @returns {ESTreeJSX.JSXSpreadAttribute}
  */
 export function jsx_spread_attribute(argument) {
 	return {
@@ -818,6 +839,8 @@ export function jsx_spread_attribute(argument) {
 }
 
 /**
+ * @param {ESTree.Expression} discriminant
+ * @param {ESTree.SwitchCase[]} cases
  * @returns {ESTree.SwitchStatement}
  */
 export function switch_builder(discriminant, cases) {
@@ -829,6 +852,8 @@ export function switch_builder(discriminant, cases) {
 }
 
 /**
+ * @param {ESTree.Expression | null} test
+ * @param {ESTree.Statement[]} consequent
  * @returns {ESTree.SwitchCase}
  */
 export function switch_case(test = null, consequent = []) {

@@ -736,6 +736,17 @@ const visitors = {
 		return context.visit(node.expression);
 	},
 
+	JSXEmptyExpression(node, context) {
+		// JSX comments like {/* ... */} are represented as JSXEmptyExpression
+		// In TypeScript mode, preserve them as-is for prettier
+		// In JavaScript mode, they're removed (which is correct since they're comments)
+		if (context.state.to_ts) {
+			return context.next();
+		}
+		// In JS mode, return empty - comments are stripped
+		return b.empty;
+	},
+
 	JSXFragment(node, context) {
 		if (context.state.to_ts) {
 			return context.next();
@@ -957,7 +968,12 @@ const visitors = {
 							const expression = visit(attr.value, { ...state, metadata });
 
 							if (metadata.tracking) {
-								local_updates.push({ operation: b.stmt(b.call('_$_.set_value', id, expression)) });
+								local_updates.push({
+									operation: (key) => b.stmt(b.call('_$_.set_value', id, key)),
+									expression,
+									identity: attr.value,
+									initial: b.void0,
+								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_value', id, expression)));
 							}
@@ -972,7 +988,10 @@ const visitors = {
 
 							if (metadata.tracking) {
 								local_updates.push({
-									operation: b.stmt(b.call('_$_.set_checked', id, expression)),
+									operation: (key) => b.stmt(b.call('_$_.set_checked', id, key)),
+									expression,
+									identity: attr.value,
+									initial: b.void0,
 								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_checked', id, expression)));
@@ -987,7 +1006,10 @@ const visitors = {
 
 							if (metadata.tracking) {
 								local_updates.push({
-									operation: b.stmt(b.call('_$_.set_selected', id, expression)),
+									operation: (key) => b.stmt(b.call('_$_.set_selected', id, key)),
+									expression,
+									identity: attr.value,
+									initial: b.void0,
 								});
 							} else {
 								state.init.push(b.stmt(b.call('_$_.set_selected', id, expression)));
@@ -1160,7 +1182,7 @@ const visitors = {
 			update.push(...local_updates);
 
 			if (update.length > 0) {
-				if (state.scope.parent.declarations.size > 0) {
+				if (state.scope.declarations.size > 0) {
 					apply_updates(init, update, state);
 				} else {
 					state.update.push(...update);
@@ -1901,7 +1923,6 @@ function transform_ts_child(node, context) {
 		const children = [];
 		let has_children_props = false;
 
-		const ref_attributes = [];
 		const attributes = node.attributes.map((attr) => {
 			if (attr.type === 'Attribute') {
 				const metadata = { await: false };
@@ -1943,7 +1964,7 @@ function transform_ts_child(node, context) {
 			}
 		});
 
-		if (!node.selfClosing && !has_children_props && node.children.length > 0) {
+		if (!node.selfClosing && !node.unclosed && !has_children_props && node.children.length > 0) {
 			const is_dom_element = is_element_dom_element(node);
 
 			const component_scope = context.state.scopes.get(node);
@@ -1963,20 +1984,20 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		let opening_type, closing_type;
+		let opening_name_element, closing_name_element;
 
 		if (type_is_expression) {
 			// For dynamic/expression-based components (e.g., props.children),
 			// use JSX expression instead of identifier
-			opening_type = type_expression;
-			closing_type = node.selfClosing ? undefined : type_expression;
+			opening_name_element = type_expression;
+			closing_name_element = node.selfClosing || node.unclosed ? undefined : type_expression;
 		} else {
-			opening_type = b.jsx_id(type_expression);
+			opening_name_element = b.jsx_id(type_expression);
 			// For tracked identifiers (dynamic components), adjust the loc to skip the '@' prefix
 			// and add metadata for mapping
 			if (node.id.tracked && node.id.loc) {
 				// The original identifier loc includes the '@', so we need to skip it
-				opening_type.loc = {
+				opening_name_element.loc = {
 					start: {
 						line: node.id.loc.start.line,
 						column: node.id.loc.start.column + 1, // Skip '@'
@@ -1985,14 +2006,14 @@ function transform_ts_child(node, context) {
 				};
 				// Add metadata if this was capitalized
 				if (node.metadata?.ts_name && node.metadata?.original_name) {
-					opening_type.metadata = {
+					opening_name_element.metadata = {
 						original_name: node.metadata.original_name,
 						is_capitalized: true,
 					};
 				}
 			} else {
 				// Use node.id.loc if available, otherwise create a loc based on the element's position
-				opening_type.loc = node.id.loc || {
+				opening_name_element.loc = node.id.loc || {
 					start: {
 						line: node.loc.start.line,
 						column: node.loc.start.column + 2, // After "<@"
@@ -2004,14 +2025,14 @@ function transform_ts_child(node, context) {
 				};
 			}
 
-			if (!node.selfClosing) {
-				closing_type = b.jsx_id(type_expression);
+			if (!node.selfClosing && !node.unclosed) {
+				closing_name_element = b.jsx_id(type_expression);
 				// For tracked identifiers, also adjust closing tag location
 				if (node.id.tracked && node.id.loc) {
 					// Calculate position relative to closing tag
 					// Format: </@identifier>
 					const closing_tag_start = node.loc.end.column - type_expression.length - 3; // </@
-					closing_type.loc = {
+					closing_name_element.loc = {
 						start: {
 							line: node.loc.end.line,
 							column: closing_tag_start + 3, // Skip '</@'
@@ -2026,13 +2047,13 @@ function transform_ts_child(node, context) {
 					};
 					// Add metadata if this was capitalized
 					if (node.metadata?.ts_name && node.metadata?.original_name) {
-						closing_type.metadata = {
+						closing_name_element.metadata = {
 							original_name: node.metadata.original_name,
 							is_capitalized: true,
 						};
 					}
 				} else {
-					closing_type.loc = {
+					closing_name_element.loc = {
 						start: {
 							line: node.loc.end.line,
 							column: node.loc.end.column - type_expression.length - 1,
@@ -2046,13 +2067,38 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		const jsxElement = b.jsx_element(
-			opening_type,
+		let jsxElement = b.jsx_element(
+			opening_name_element,
+			node.loc,
 			attributes,
 			children,
 			node.selfClosing,
-			closing_type,
+			node.unclosed,
+			closing_name_element,
 		);
+
+		// Calculate the location for the entire JSXClosingElement (including </ and >)
+		if (jsxElement.closingElement && !node.selfClosing && !node.unclosed) {
+			// The closing element starts with '</' and ends with '>'
+			// For a tag like </div>, if node.loc.end is right after '>', then:
+			// - '<' is at node.loc.end.column - type_expression.length - 3
+			// - '>' is at node.loc.end.column - 1
+			const tag_name_length = node.id.tracked
+				? (node.metadata?.original_name?.length || type_expression.length) + 1 // +1 for '@'
+				: type_expression.length;
+
+			jsxElement.closingElement.loc = {
+				start: {
+					line: node.loc.end.line,
+					column: node.loc.end.column - tag_name_length - 2, // at '</'
+				},
+				end: {
+					line: node.loc.end.line,
+					column: node.loc.end.column, // at '>'
+				},
+			};
+		}
+
 		// Preserve metadata from Element node for mapping purposes
 		if (node.metadata && (node.metadata.ts_name || node.metadata.original_name)) {
 			jsxElement.metadata = {
@@ -2060,7 +2106,13 @@ function transform_ts_child(node, context) {
 				original_name: node.metadata.original_name,
 			};
 		}
-		state.init.push(b.stmt(jsxElement));
+		// For unclosed elements, push the JSXElement directly without wrapping in ExpressionStatement
+		// This keeps it in the AST for mappings but avoids adding a semicolon
+		if (node.unclosed) {
+			state.init.push(jsxElement);
+		} else {
+			state.init.push(b.stmt(jsxElement));
+		}
 	} else if (node.type === 'IfStatement') {
 		const consequent_scope = context.state.scopes.get(node.consequent);
 		const consequent = b.block(
@@ -2164,6 +2216,10 @@ function transform_ts_child(node, context) {
 			.filter((child) => child.type !== 'JSXText' || child.value.trim() !== '');
 
 		state.init.push(b.stmt(b.jsx_fragment(children)));
+	} else if (node.type === 'JSXExpressionContainer') {
+		// JSX comments {/* ... */} are JSXExpressionContainer with JSXEmptyExpression
+		// These should be preserved in the output as-is for prettier to handle
+		state.init.push(b.stmt(b.jsx_expression_container(visit(node.expression, state))));
 	} else {
 		throw new Error('TODO');
 	}
@@ -2496,9 +2552,60 @@ function create_tsx_with_typescript_support() {
 				}
 				context.write(': ');
 				context.visit(node.value);
+			} else if (!node.shorthand) {
+				// If property is already longhand in source, keep it longhand
+				// to prevent source map issues when parts of the syntax disappear in shorthand conversion
+				// This applies to:
+				// - { media: media } -> would become { media } (value identifier disappears)
+				// - { fn: function() {} } -> would become { fn() {} } ('function' keyword disappears)
+				const value = node.value.type === 'AssignmentPattern' ? node.value.left : node.value;
+
+				// Check if esrap would convert this to shorthand property or method
+				const wouldBeShorthand =
+					!node.computed &&
+					node.kind === 'init' &&
+					node.key.type === 'Identifier' &&
+					value.type === 'Identifier' &&
+					node.key.name === value.name;
+
+				const wouldBeMethodShorthand =
+					!node.computed &&
+					node.value.type === 'FunctionExpression' &&
+					node.kind !== 'get' &&
+					node.kind !== 'set';
+
+				if (wouldBeShorthand || wouldBeMethodShorthand) {
+					// Force longhand: write key: value explicitly to preserve source positions
+					if (node.computed) context.write('[');
+					context.visit(node.key);
+					context.write(node.computed ? ']: ' : ': ');
+					context.visit(node.value);
+				} else {
+					base_tsx.Property(node, context);
+				}
 			} else {
 				// Use default handler for non-component properties
 				base_tsx.Property(node, context);
+			}
+		},
+		// Custom handler for JSXClosingElement to ensure closing tag brackets have source mappings
+		JSXClosingElement(node, context) {
+			// Set location for '<' then write '</'
+			if (node.loc) {
+				context.location(node.loc.start.line, node.loc.start.column);
+				context.write('</');
+			} else {
+				context.write('</');
+			}
+
+			context.visit(node.name);
+
+			// Set location for '>' then write it
+			if (node.loc) {
+				context.location(node.loc.end.line, node.loc.end.column - 1);
+				context.write('>');
+			} else {
+				context.write('>');
 			}
 		},
 		// Custom handler for ArrayPattern to ensure typeAnnotation is visited
@@ -2582,6 +2689,36 @@ function create_tsx_with_typescript_support() {
 
 			// Write source
 			context.visit(node.source);
+		},
+		// Custom handler for JSXOpeningElement to ensure '<' and '>' have source mappings
+		// Esrap's default handler only maps the tag name, not the brackets
+		// This creates mappings for the brackets so auto-close can find the cursor position
+		JSXOpeningElement(node, context) {
+			// Set location for '<'
+			if (node.loc) {
+				context.location(node.loc.start.line, node.loc.start.column);
+			}
+			context.write('<');
+
+			context.visit(node.name);
+
+			// Write attributes
+			for (const attr of node.attributes || []) {
+				context.write(' ');
+				context.visit(attr);
+			}
+
+			if (node.selfClosing) {
+				context.write(' />');
+			} else {
+				// Set the source location for the '>'
+				// node.loc.end points AFTER the '>', so subtract 1 to get the position OF the '>'
+				if (node.loc) {
+					// TODO: why do we need to subtract 1 from column here?
+					context.location(node.loc.end.line, node.loc.end.column - 1);
+				}
+				context.write('>');
+			}
 		},
 		// Custom handler for TSParenthesizedType: (Type)
 		TSParenthesizedType(node, context) {

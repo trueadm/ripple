@@ -53,7 +53,7 @@ const fs = require('fs');
 const protocol = require('@volar/language-server/protocol');
 /** @type {typeof import('vscode-languageclient/node')} */
 const lsp = require('vscode-languageclient/node');
-const { createLabsInfo } = require('@volar/vscode');
+const { activateAutoInsertion, createLabsInfo } = require('@volar/vscode');
 
 /** @type {import('vscode-languageclient/node').LanguageClient | undefined} */
 let client;
@@ -176,6 +176,9 @@ async function activate(context) {
 
 		const volar_labs = createLabsInfo(protocol);
 		volar_labs.addLanguageClient(client);
+
+		context.subscriptions.push(activateAutoInsertion([{ language: 'ripple' }], client));
+		console.log('[Ripple] Auto-insertion activated');
 
 		// Configure Prettier to handle .ripple files
 		await configurePrettier();

@@ -1,3 +1,5 @@
+import type { SourceLocation } from 'estree';
+
 // Ripple augmentation for ESTree function nodes
 declare module 'estree' {
 	interface FunctionDeclaration {
@@ -12,7 +14,28 @@ declare module 'estree' {
 	interface Identifier {
 		tracked?: boolean;
 	}
+	interface Component {
+		type: 'Component';
+		id: Identifier;
+		params: Pattern[];
+		body: BlockStatement;
+	}
 }
+
+declare module 'estree-jsx' {
+	interface JSXAttribute {
+		shorthand: boolean;
+	}
+
+	interface JSXOpeningElement {
+		loc: SourceLocation;
+	}
+
+	interface JSXClosingElement {
+		loc: SourceLocation;
+	}
+}
+
 import type { Comment, Position } from 'acorn';
 import type {
 	Program,

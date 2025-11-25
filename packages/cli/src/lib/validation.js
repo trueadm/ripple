@@ -6,7 +6,7 @@ import { basename, resolve } from 'node:path';
 
 /**
  * Validates a project name according to npm package naming rules
- * @param {string} inputName - The project name to validate
+ * @param {string | null | undefined | number} inputName - The project name to validate
  * @returns {{valid: boolean, message: string}} - Object with valid boolean and message string
  */
 export function validateProjectName(inputName) {
@@ -123,8 +123,8 @@ export function sanitizeDirectoryName(name) {
 
 /**
  * Validates directory path and checks if it's writable
- * @param {string} path - The directory path to validate
- * @returns {object} - Object with valid boolean and message string
+ * @param {string | null | undefined | number} path - The directory path to validate
+ * @returns {{valid: boolean, message: string}} - Object with valid boolean and message string
  */
 export function validateDirectoryPath(path) {
 	if (!path || typeof path !== 'string') {

@@ -7,7 +7,7 @@
       "request": "launch",
       "autoAttachChildProcesses": true,
       "args": [
-				"--disable-extension=ripple-ts.ripple-ts-vscode-plugin",
+        "--disable-extension=ripple-ts.ripple-ts-vscode-plugin",
         "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode-plugin/",
         "${workspaceFolder}/playground"
       ],

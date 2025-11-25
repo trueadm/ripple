@@ -3,7 +3,7 @@
   "displayName": "Ripple TS for VS Code",
   "publisher": "ripple-ts",
   "description": "Ripple JavaScript/TypeScript language support",
-  "version": "0.0.48",
+  "version": "0.0.51",
   "author": "Dominic Gannaway",
   "license": "MIT",
   "engines": {
@@ -21,18 +21,12 @@
     "directory": "vscode-plugin"
   },
   "scripts": {
-    "copy-ripple": "mkdir -p dist/node_modules && rsync -aL --del --exclude=node_modules/ripple --exclude=node_modules/typescript --exclude=.ignored* node_modules/ripple/ dist/node_modules/ripple/",
-    "copy-ts": "mkdir -p dist/node_modules && rsync -aL --del node_modules/typescript/ dist/node_modules/typescript/",
-    "copy-ts-plugin": "mkdir -p dist/node_modules/@ripple-ts && rsync -aL --del --exclude=node_modules --exclude=src node_modules/@ripple-ts/typescript-plugin/ dist/node_modules/@ripple-ts/typescript-plugin/",
     "build": "tsdown",
-    "build-ts-plugin": "pnpm --filter typescript-plugin build",
-    "dist-ts-plugin": "pnpm --filter typescript-plugin dist",
-    "src-ts-plugin": "pnpm --filter typescript-plugin src",
-    "dist": "perl -pi -e 's/\"main\": \"src\\/extension.js\"/\"main\": \"dist\\/extension.js\"/; s/\"name\": \"\\@ripple-ts\\/vscode-plugin\"/\"name\": \"ripple-ts-vscode-plugin\"/' package.json",
-    "src": "perl -pi -e 's/\"main\": \"dist\\/extension.js\"/\"main\": \"src\\/extension.js\"/; s/\"name\": \"ripple-ts-vscode-plugin\"/\"name\": \"\\@ripple-ts\\/vscode-plugin\"/' package.json",
+    "dist": "node ../../scripts/transform-package.js packages/vscode-plugin/package.json main dist/extension.js && node ../../scripts/transform-package.js packages/vscode-plugin/package.json name ripple-ts-vscode-plugin",
+    "src": "node ../../scripts/transform-package.js packages/vscode-plugin/package.json main src/extension.js && node ../../scripts/transform-package.js packages/vscode-plugin/package.json name @ripple-ts/vscode-plugin",
     "repack-vsix": "node scripts/repack-vsix.js",
-    "delete-unpacked": "rm -rf vscode-plugin",
-    "package": "pnpm delete-unpacked && pnpm dist-ts-plugin && pnpm build-ts-plugin && pnpm dist && pnpm copy-ts && pnpm copy-ripple && pnpm copy-ts-plugin && vsce package --no-dependencies --out=vscode-plugin.vsix && pnpm src-ts-plugin && pnpm src && pnpm repack-vsix || pnpm src-ts-plugin && pnpm src",
+    "delete-unpacked": "node ../../scripts/remove.js packages/vscode-plugin/vscode-plugin",
+    "package": "pnpm delete-unpacked && pnpm dist && vsce package --no-dependencies --out=vscode-plugin.vsix && pnpm src && pnpm repack-vsix || pnpm src",
     "install-package": "code --install-extension vscode-plugin.vsix",
     "build-and-package": "pnpm build && pnpm package",
     "build-package-and-install": "pnpm build && pnpm package && pnpm install-package",
@@ -59,6 +53,26 @@
     "adm-zip": "catalog:default"
   },
   "contributes": {
+    "configuration": {
+      "title": "Ripple",
+      "properties": {
+        "ripple.autoClosingTags": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically insert closing tags when typing '>' after a tag name. Note: For Ripple files, you may also need to set 'javascript.autoClosingTags' and 'typescript.autoClosingTags' to false to fully disable this feature."
+        },
+        "ripple.preferences.preferTypeOnlyAutoImports": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer adding 'type' modifier to auto imports when possible"
+        },
+        "ripple.format.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable default Ripple formatter"
+        }
+      }
+    },
     "commands": [
       {
         "command": "ripple.goToSourceDefinition",
@@ -83,22 +97,13 @@
         "configuration": "./language-configuration.json"
       }
     ],
-    "configuration": {
-      "title": "Ripple",
-      "properties": {
-        "ripple.format.enable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable/disable default Ripple formatter"
-        }
-      }
-    },
     "grammars": [
       {
         "language": "ripple",
         "scopeName": "source.ripple",
         "path": "./syntaxes/ripple.tmLanguage.json",
         "embeddedLanguages": {
+          "meta.jsx.children.js": "javascriptreact",
           "meta.tag.js": "jsx-tags",
           "meta.tag.without-attributes.js": "jsx-tags",
           "meta.tag.attributes.js.jsx": "javascriptreact",

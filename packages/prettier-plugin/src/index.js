@@ -696,6 +696,7 @@ function printRippleNode(node, path, options, print, args) {
 			break;
 
 		case 'ClassDeclaration':
+		case 'ClassExpression':
 			nodeContent = printClassDeclaration(node, path, options, print);
 			break;
 
@@ -3073,8 +3074,13 @@ function printObjectExpression(node, path, options, print, args) {
 
 function printClassDeclaration(node, path, options, print) {
 	const parts = [];
-	parts.push('class ');
-	parts.push(node.id.name);
+	parts.push('class');
+
+	// Class name (optional for ClassExpression)
+	if (node.id) {
+		parts.push(' ');
+		parts.push(node.id.name);
+	}
 
 	// Add TypeScript generics if present
 	if (node.typeParameters) {
@@ -4486,7 +4492,12 @@ function printJSXElement(node, path, options, print) {
 	if (hasAttributes) {
 		const attrs = openingElement.attributes.map((attr, i) => {
 			if (attr.type === 'JSXAttribute') {
-				return printJSXAttribute(attr, path, options, print, i);
+				return path.call(
+					(attrPath) => printJSXAttribute(attrPath.getValue(), attrPath, options, print),
+					'openingElement',
+					'attributes',
+					i,
+				);
 			} else if (attr.type === 'JSXSpreadAttribute') {
 				return concat([
 					'{...',
@@ -4619,7 +4630,7 @@ function printJSXFragment(node, path, options, print) {
 	return group(['<>', indent(concat([hardline, ...formattedChildren])), hardline, '</>']);
 }
 
-function printJSXAttribute(attr, path, options, print, index) {
+function printJSXAttribute(attr, path, options, print) {
 	const name = attr.name.name;
 
 	if (!attr.value) {
@@ -4632,23 +4643,8 @@ function printJSXAttribute(attr, path, options, print, index) {
 	}
 
 	if (attr.value.type === 'JSXExpressionContainer') {
-		// For JSXExpressionContainer, we need to access the expression inside
-		// Use a simple approach since we don't have direct path access here
-		const exprValue = attr.value.expression;
-		let exprStr;
-
-		if (exprValue.type === 'Literal' || exprValue.type === 'StringLiteral') {
-			exprStr = JSON.stringify(exprValue.value);
-		} else if (exprValue.type === 'Identifier') {
-			exprStr = (exprValue.tracked ? '@' : '') + exprValue.name;
-		} else if (exprValue.type === 'MemberExpression') {
-			exprStr = printMemberExpressionSimple(exprValue, options);
-		} else {
-			// For complex expressions, try to stringify
-			exprStr = '...';
-		}
-
-		return concat([name, '={', exprStr, '}']);
+		const exprDoc = path.call(print, 'value', 'expression');
+		return concat([name, '={', exprDoc, '}']);
 	}
 
 	return name;

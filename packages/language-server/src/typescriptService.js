@@ -23,9 +23,9 @@ getUserPreferencesModule.getUserPreferences = async function (context, document)
 
 	return {
 		preferTypeOnlyAutoImports: true,
+		...origPreferences,
 		...tsConfig?.preferences,
 		...rippleConfig?.preferences,
-		...origPreferences,
 	};
 };
 

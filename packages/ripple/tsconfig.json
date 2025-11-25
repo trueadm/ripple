@@ -18,6 +18,8 @@
 		"checkJs": true,
 		"paths": {
 			"ripple": ["./types/index.d.ts"],
+      "rollup": ["./shims/rollup-estree-types.d.ts"],
+      "rollup/*": ["./shims/rollup-estree-types.d.ts"]
 		}
 	},
 	"include": [

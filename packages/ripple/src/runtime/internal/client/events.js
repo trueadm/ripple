@@ -25,6 +25,9 @@ var all_registered_events = new Set();
 /** @type {Set<(events: Array<string>) => void>} */
 var root_event_handles = new Set();
 
+/** @type {Element | null} */
+var root_target = null;
+
 /**
  * @param {AddEventOptions} options
  * @returns {AddEventListenerOptions}
@@ -55,7 +58,19 @@ function get_event_options(options) {
  * @param {ExtendedEventOptions} [options]
  */
 export function on(element, type, handler, options = {}) {
-	var remove_listener = create_event(type, element, handler, options);
+	var opts = { ...options };
+	if (
+		element === window ||
+		element === document ||
+		element === document.body ||
+		element === root_target ||
+		element instanceof MediaQueryList ||
+		/** @type {Element} */ (element).contains(root_target)
+	) {
+		opts.delegated = false;
+	}
+
+	var remove_listener = create_event(type, element, handler, opts);
 
 	return () => {
 		remove_listener();
@@ -374,6 +389,7 @@ export function delegate(events) {
 /** @param {Element} target */
 export function handle_root_events(target) {
 	var registered_events = new Set();
+	root_target = target;
 
 	/**
 	 * @typedef {Object} EventHandleOptions
@@ -412,5 +428,6 @@ export function handle_root_events(target) {
 			target.removeEventListener(event_name, handle_event_propagation);
 		}
 		root_event_handles.delete(event_handle);
+		root_target = null;
 	};
 }

@@ -3,7 +3,7 @@
   "description": "Vite plugin for Ripple",
   "license": "MIT",
   "author": "Dominic Gannaway",
-  "version": "0.2.175",
+  "version": "0.2.177",
   "type": "module",
   "module": "src/index.js",
   "main": "src/index.js",
@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "ripple": "workspace:*",
+    "type-fest": "catalog:default",
     "vite": "catalog:default"
   }
 }
