@@ -12,15 +12,11 @@ This MCP server provides the following capabilities:
 
 ### Tools
 
-- **`ripple_compile`** - Compiles Ripple source code to JavaScript and CSS
-- **`ripple_parse`** - Parses Ripple code and returns the AST
+- **`ripple_compile`** - Compiles Ripple source code to JavaScript and CSS, and returns the AST
 - **`ripple_create_component`** - Creates a new Ripple component file
 - **`ripple_analyze_reactivity`** - Analyzes Ripple code for reactive variables and potential issues
-- **`ripple_check_documentation`** - Searches the Ripple documentation for answers to implementation questions
-- **`ripple_generate_playground_link`** - Generates shareable Ripple playground links with code
-- **`ripple_create_task`** - Creates tasks for orchestrating complex projects
-- **`ripple_update_task`** - Updates task step status and progress
-- **`ripple_get_task`** - Retrieves current task state and next steps
+- **`ripple_list_sections`** - Lists available Ripple documentation sections
+- **`ripple_get_documentation`** - Fetches documentation content for specific sections
 
 ### Resources
 
@@ -98,7 +94,7 @@ await client.connect(transport);
 
 ### ripple_compile
 
-Compiles Ripple source code to JavaScript and CSS.
+Compiles Ripple source code to JavaScript and CSS. Also returns the AST for analysis.
 
 **Parameters:**
 
@@ -126,30 +122,9 @@ const result = await client.callTool('ripple_compile', {
 {
   "js": "compiled JavaScript code",
   "css": "compiled CSS code",
-  "map": "source map"
+  "map": "source map",
+  "ast": { /* Abstract Syntax Tree */ }
 }
-```
-
-### ripple_parse
-
-Parses Ripple code and returns the Abstract Syntax Tree (AST).
-
-**Parameters:**
-
-- `code` (string, required) - The Ripple source code to parse
-- `filename` (string, required) - The filename for error messages
-
-**Example:**
-
-```typescript
-const result = await client.callTool('ripple_parse', {
-  code: `
-    export component App() {
-      <div>Hello World</div>
-    }
-  `,
-  filename: 'App.ripple',
-});
 ```
 
 ### ripple_create_component
@@ -215,21 +190,19 @@ Analysis results including:
 - Variables with `@` prefix
 - Warnings for unescaped strings in HTML templates
 
-### ripple_check_documentation
+### ripple_list_sections
 
-Searches the Ripple documentation for answers to implementation questions. This tool uses a pre-generated index of all official Ripple documentation pages to quickly find relevant information.
+Lists all available Ripple documentation sections by fetching from ripplejs.com.
 
 **Parameters:**
 
-- `query` (string, required) - The question or topic to search for in the documentation
-- `maxResults` (number, optional) - Maximum number of results to return (default: 3)
+- `category` (string, optional) - Filter by category: "Getting Started", "Guide", or "Further Reading"
 
 **Example:**
 
 ```typescript
-const result = await client.callTool('ripple_check_documentation', {
-  query: 'How do I create tracked variables?',
-  maxResults: 3,
+const result = await client.callTool('ripple_list_sections', {
+  category: 'Guide',
 });
 ```
 
@@ -237,174 +210,53 @@ const result = await client.callTool('ripple_check_documentation', {
 
 ```json
 {
-  "query": "How do I create tracked variables?",
-  "results": [
+  "sections": [
     {
-      "page": "Reactivity",
+      "id": "guide-reactivity",
+      "title": "Reactivity",
+      "category": "Guide",
+      "description": "Master Ripple reactivity system...",
+      "path": "/docs/guide/reactivity"
+    }
+  ],
+  "categories": ["Getting Started", "Guide", "Further Reading"],
+  "totalSections": 15
+}
+```
+
+### ripple_get_documentation
+
+Fetches full documentation content for specific sections.
+
+**Parameters:**
+
+- `sections` (array of strings, required) - Array of section IDs to retrieve (e.g., `["guide-reactivity", "guide-components"]`)
+
+**Example:**
+
+```typescript
+const result = await client.callTool('ripple_get_documentation', {
+  sections: ['guide-reactivity', 'introduction'],
+});
+```
+
+**Returns:**
+
+```json
+{
+  "documentation": [
+    {
+      "id": "guide-reactivity",
+      "title": "Reactivity",
+      "category": "Guide",
       "url": "https://www.ripplejs.com/docs/guide/reactivity",
-      "section": "Reactive Variables",
-      "content": "You use track to create a single tracked value...",
-      "relevance": 68.4
+      "description": "Master Ripple reactivity system...",
+      "content": "## Reactive Variables\n\n...",
+      "subsections": [...]
     }
   ],
-  "totalResults": 3,
-  "indexLastUpdated": "2025-11-25T13:24:00.000Z"
-}
-```
-
-The tool searches through all documentation pages and returns the most relevant sections based on keyword matching and relevance scoring. Results include direct links to the official documentation.
-
-**Updating the Documentation Index:**
-
-The documentation index is pre-generated and stored in the package. To update it with the latest documentation:
-
-```bash
-npm run generate-docs-index
-```
-
-This will crawl all documentation pages from https://www.ripplejs.com/docs/ and regenerate the search index.
-
-### ripple_generate_playground_link
-
-Generates a shareable Ripple playground link with the provided code.
-
-**Parameters:**
-
-- `code` (string, required) - The Ripple source code to encode in the playground link
-- `title` (string, optional) - Optional title for the playground (e.g., "Counter App")
-- `version` (string, optional) - Optional Ripple version (e.g., "0.2.175")
-
-**Example:**
-
-```typescript
-const result = await client.callTool('ripple_generate_playground_link', {
-  code: 'component Counter() { let count = track(0); <button onClick={() => @count++}>{@count}</button> }',
-  title: 'Counter Example',
-  version: '0.2.175',
-});
-```
-
-**Returns:**
-
-```json
-{
-  "url": "https://www.ripplejs.com/playground?v=0.2.175&title=Counter+Example#config=code%2F...",
-  "shortUrl": "ripplejs.com/playground?v=0.2.175&title=Counter+Example#config=code/...",
-  "title": "Counter Example",
-  "version": "0.2.175",
-  "codeLength": 95
-}
-```
-
-### ripple_create_task
-
-Creates a new task for orchestrating complex Ripple projects. Tasks help break down work into manageable steps with dependencies.
-
-**Parameters:**
-
-- `name` (string, required) - Name of the task
-- `description` (string, required) - Description of what the task accomplishes
-- `template` (string, optional) - Task template: `new_app`, `add_feature`, `refactor`, or `custom`
-- `steps` (array, optional) - Custom steps (required if template is `custom`)
-
-**Templates:**
-
-- **`new_app`** - Create a new Ripple application (setup, components, routing, features, styling, testing)
-- **`add_feature`** - Add a feature to existing app (analyze, design, implement, integrate, test, document)
-- **`refactor`** - Refactor code (identify, plan, extract, update, test, cleanup)
-- **`custom`** - Define your own steps with dependencies
-
-**Example:**
-
-```typescript
-const result = await client.callTool('ripple_create_task', {
-  name: 'Build Todo App',
-  description: 'Create a todo list application',
-  template: 'new_app',
-});
-```
-
-**Returns:**
-
-```json
-{
-  "taskId": "uuid-here",
-  "name": "Build Todo App",
-  "description": "Create a todo list application",
-  "template": "new_app",
-  "totalSteps": 6,
-  "nextSteps": [
-    {
-      "id": "setup",
-      "description": "Set up project structure and dependencies"
-    }
-  ],
-  "progress": {
-    "completed": 0,
-    "inProgress": 0,
-    "pending": 6
-  }
-}
-```
-
-### ripple_update_task
-
-Updates the status of a task step and optionally adds notes about the progress.
-
-**Parameters:**
-
-- `taskId` (string, required) - ID of the task to update
-- `stepId` (string, required) - ID of the step to update
-- `status` (string, required) - New status: `pending`, `in_progress`, or `completed`
-- `notes` (string, optional) - Optional notes about the update
-
-**Example:**
-
-```typescript
-const result = await client.callTool('ripple_update_task', {
-  taskId: 'uuid-here',
-  stepId: 'setup',
-  status: 'completed',
-  notes: 'Project structure created successfully',
-});
-```
-
-### ripple_get_task
-
-Retrieves the current state of a task, including all steps, progress, and next actions.
-
-**Parameters:**
-
-- `taskId` (string, required) - ID of the task to retrieve
-
-**Example:**
-
-```typescript
-const result = await client.callTool('ripple_get_task', {
-  taskId: 'uuid-here',
-});
-```
-
-**Returns:**
-
-```json
-{
-  "task": {
-    "id": "uuid-here",
-    "name": "Build Todo App",
-    "description": "Create a todo list application",
-    "template": "new_app",
-    "createdAt": "2025-11-25T14:00:00.000Z",
-    "updatedAt": "2025-11-25T14:30:00.000Z"
-  },
-  "steps": [...],
-  "progress": {
-    "completed": 2,
-    "inProgress": 1,
-    "pending": 3
-  },
-  "nextSteps": [...],
-  "isComplete": false
+  "requested": 2,
+  "found": 2
 }
 ```
 

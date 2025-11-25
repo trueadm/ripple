@@ -17,7 +17,10 @@ describe('ripple_compile tool', () => {
 		expect(output).toHaveProperty('js');
 		expect(output).toHaveProperty('css');
 		expect(output).toHaveProperty('map');
+		expect(output).toHaveProperty('ast');
 		expect(output.js).toContain('function App');
+		expect(output.ast).toBeDefined();
+		expect(output.ast.type).toBe('Program');
 	});
 
 	it('should return error for invalid Ripple code', async () => {
