@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/compat-react",
-  "version": "0.2.178",
+  "version": "0.2.179",
   "description": "Ripple compatibility layer for React",
   "main": "src/index.js",
   "author": "Dominic Gannaway",
