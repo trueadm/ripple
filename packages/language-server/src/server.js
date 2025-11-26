@@ -1,4 +1,7 @@
-﻿const {
+﻿/** @import {CompilerOptions} from 'typescript' */
+
+const { createLogging } = require('./utils.js');
+const {
 	createConnection,
 	createServer,
 	createTypeScriptProject,
@@ -9,6 +12,7 @@ const { createHoverPlugin } = require('./hoverPlugin.js');
 const { createCompletionPlugin } = require('./completionPlugin.js');
 const { createAutoInsertPlugin } = require('./autoInsertPlugin.js');
 const { createTypeScriptDiagnosticFilterPlugin } = require('./typescriptDiagnosticPlugin.js');
+const { createDocumentHighlightPlugin } = require('./documentHighlightPlugin.js');
 const {
 	getRippleLanguagePlugin,
 	resolveConfig,
@@ -16,25 +20,7 @@ const {
 const { createTypeScriptServices } = require('./typescriptService.js');
 const { create: createCssService } = require('volar-service-css');
 
-const DEBUG = process.env.RIPPLE_DEBUG === 'true';
-
-/** @typedef {import('typescript').CompilerOptions} CompilerOptions */
-
-/**
- * @param {...unknown} args
- */
-function log(...args) {
-	if (DEBUG) {
-		console.log('[Ripple Server]', ...args);
-	}
-}
-
-/**
- * @param {...unknown} args
- */
-function logError(...args) {
-	console.error('[Ripple Server ERROR]', ...args);
-}
+const { log, logError } = createLogging('[Ripple Language Server]');
 
 function createRippleLanguageServer() {
 	const connection = createConnection();
@@ -115,11 +101,12 @@ function createRippleLanguageServer() {
 					createDefinitionPlugin(),
 					createCssService(),
 					...createTypeScriptServices(ts),
-					// !IMPORTANT 'createTypeScriptDiagnosticFilterPlugin' and 'createHoverPlugin'
-					// must come after TypeScript services
+					// !IMPORTANT 'createTypeScriptDiagnosticFilterPlugin', 'createHoverPlugin',
+					// and 'createDocumentHighlightPlugin' must come after TypeScript services
 					// to intercept volar's and vscode default providers
 					createTypeScriptDiagnosticFilterPlugin(),
 					createHoverPlugin(),
+					createDocumentHighlightPlugin(),
 				],
 			);
 

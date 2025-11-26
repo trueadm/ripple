@@ -1,25 +1,58 @@
+/** @import * as AST from 'estree' */
+/** @import { Visitors } from 'zimmerframe' */
+
+/**
+ * @typedef {{
+ *   code: MagicString;
+ *   hash: string;
+ *   minify: boolean;
+ *   selector: string;
+ *   keyframes: Record<string, {
+ *     indexes: number[];
+ *     local: boolean | undefined;
+ *   }>;
+ *   specificity: {
+ *     bumped: boolean
+ *   }
+ * }} State
+ */
+
 import MagicString from 'magic-string';
 import { walk } from 'zimmerframe';
 
 const regex_css_browser_prefix = /^-((webkit)|(moz)|(o)|(ms))-/;
 const regex_css_name_boundary = /^[\s,;}]$/;
 
+/** @param {AST.CSS.Atrule} node */
 const is_keyframes_node = (node) => remove_css_prefix(node.name) === 'keyframes';
 
+/**
+ * @param {string} name
+ * @returns {string}
+ */
 function remove_css_prefix(name) {
 	return name.replace(regex_css_browser_prefix, '');
 }
 
+/**
+ * Walk backwards until we find a non-whitespace character
+ * @param {number} end
+ * @param {State} state
+ */
 function remove_preceding_whitespace(end, state) {
 	let start = end;
 	while (/\s/.test(state.code.original[start - 1])) start--;
 	if (start < end) state.code.remove(start, end);
 }
 
+/** @param {AST.CSS.Rule} rule */
 function is_used(rule) {
 	return rule.prelude.children.some((selector) => selector.metadata.used);
 }
 
+/**
+ * @param {Array<AST.CSS.Node>} path
+ */
 function is_in_global_block(path) {
 	return path.some((node) => node.type === 'Rule' && node.metadata.is_global_block);
 }
@@ -27,7 +60,7 @@ function is_in_global_block(path) {
 /**
  * Check if we're inside a pseudo-class selector that's INSIDE a :global() wrapper
  * or adjacent to a :global modifier
- * @param {any[]} path
+ * @param {AST.CSS.Node[]} path
  */
 function is_in_global_pseudo(path) {
 	// Walk up the path to find if we're inside a :global() pseudo-class selector with args
@@ -83,6 +116,11 @@ function has_global_in_middle(rule) {
 	return false;
 }
 
+/**
+ * @param {AST.CSS.PseudoClassSelector} selector
+ * @param {AST.CSS.Combinator | null} combinator
+ * @param {State} state
+ */
 function remove_global_pseudo_class(selector, combinator, state) {
 	if (selector.args === null) {
 		let start = selector.start;
@@ -98,6 +136,10 @@ function remove_global_pseudo_class(selector, combinator, state) {
 	}
 }
 
+/**
+ * @param {AST.CSS.Rule} node
+ * @param {MagicString} code
+ */
 function escape_comment_close(node, code) {
 	let escaped = false;
 	let in_comment = false;
@@ -121,12 +163,16 @@ function escape_comment_close(node, code) {
 	}
 }
 
+/**
+ * @param {State} state
+ * @param {number} index
+ */
 function append_hash(state, index) {
 	state.code.prependRight(index, `${state.hash}-`);
 }
 
 /**
- *  @param {AST.CSS.Rule} rule
+ * @param {AST.CSS.Rule} rule
  * @param {boolean} is_in_global_block
  */
 function is_empty(rule, is_in_global_block) {
@@ -159,6 +205,7 @@ function is_empty(rule, is_in_global_block) {
 	return true;
 }
 
+/** @type {Visitors<AST.CSS.Node, State>} */
 const visitors = {
 	_: (node, context) => {
 		context.state.code.addSourcemapLocation(node.start);
@@ -189,6 +236,7 @@ const visitors = {
 		const property = node.property && remove_css_prefix(node.property.toLowerCase());
 		if (property === 'animation' || property === 'animation-name') {
 			let index = node.start + node.property.length + 1;
+			/** @type {string} */
 			let name = '';
 
 			while (index < state.code.original.length) {
@@ -368,7 +416,10 @@ const visitors = {
 				) {
 					// Now check if this pseudo-class is part of a global RelativeSelector
 					for (let j = i - 2; j >= 0; j--) {
-						if (parentPath[j].type === 'RelativeSelector' && parentPath[j].metadata?.is_global) {
+						if (
+							parentPath[j].type === 'RelativeSelector' &&
+							/** @type {AST.CSS.RelativeSelector} */ (parentPath[j]).metadata?.is_global
+						) {
 							insideScopingPseudo = true;
 							break;
 						}
@@ -462,7 +513,13 @@ const visitors = {
 	},
 };
 
-export function render_stylesheets(stylesheets) {
+/**
+ * Render stylesheets to CSS string
+ * @param {AST.CSS.StyleSheet[]} stylesheets
+ * @param {boolean} [minify]
+ * @returns {string}
+ */
+export function render_stylesheets(stylesheets, minify = false) {
 	let css = '';
 
 	for (const stylesheet of stylesheets) {
@@ -470,6 +527,7 @@ export function render_stylesheets(stylesheets) {
 		const state = {
 			code,
 			hash: stylesheet.hash,
+			minify,
 			selector: `.${stylesheet.hash}`,
 			keyframes: {},
 			specificity: {

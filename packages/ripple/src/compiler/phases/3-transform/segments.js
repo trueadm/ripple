@@ -16,6 +16,7 @@
 
 import { walk } from 'zimmerframe';
 import { build_source_to_generated_map, get_generated_position } from '../../source-map-utils.js';
+import { DocumentHighlightKind } from 'vscode-languageserver-types';
 
 /** @type {VolarCodeMapping['data']} */
 export const mapping_data = {
@@ -523,6 +524,9 @@ export function convert_source_map_to_mappings(
 						generated: 'pending',
 						loc: pendingKeywordLoc,
 						metadata: {
+							wordHighlight: {
+								kind: DocumentHighlightKind.Text,
+							},
 							suppressedDiagnostics: [
 								1472, // 'catch' or 'finally' expected
 								2304, // Cannot find name 'pending'
@@ -1378,6 +1382,10 @@ export function convert_source_map_to_mappings(
 
 			// Add optional metadata from token if present
 			if (token.metadata) {
+				if ('wordHighlight' in token.metadata) {
+					customData.wordHighlight = token.metadata.wordHighlight;
+				}
+
 				if ('suppressedDiagnostics' in token.metadata) {
 					customData.suppressedDiagnostics = token.metadata.suppressedDiagnostics;
 				}

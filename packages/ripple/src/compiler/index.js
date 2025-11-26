@@ -1,5 +1,4 @@
 /** @import { Program } from 'estree' */
-/** @import { ParseOptions } from 'ripple/compiler' */
 
 import { parse as parse_module } from './phases/1-parse/index.js';
 import { analyze } from './phases/2-analyze/index.js';
@@ -20,7 +19,7 @@ export function parse(source) {
  * Compile Ripple source code to JS/CSS output
  * @param {string} source
  * @param {string} filename
- * @param {{ mode?: 'client' | 'server' }} [options]
+ * @param {CompileOptions} [options]
  * @returns {object}
  */
 export function compile(source, filename, options = {}) {
@@ -28,26 +27,32 @@ export function compile(source, filename, options = {}) {
 	const analysis = analyze(ast, filename, options);
 	const result =
 		options.mode === 'server'
-			? transform_server(filename, source, analysis)
-			: transform_client(filename, source, analysis, false);
+			? transform_server(filename, source, analysis, options?.minify_css ?? false)
+			: transform_client(filename, source, analysis, false, options?.minify_css ?? false);
 
 	return result;
 }
 
 /** @import { PostProcessingChanges, LineOffsets } from './phases/3-transform/client/index.js' */
-/** @import { VolarMappingsResult } from 'ripple/compiler' */
+/** @import { VolarMappingsResult, VolarCompileOptions, CompileOptions } from 'ripple/compiler' */
 
 /**
  * Compile Ripple component to Volar virtual code with TypeScript mappings
  * @param {string} source
  * @param {string} filename
- * @param {ParseOptions} [options] - Compiler options
+ * @param {VolarCompileOptions} [options] - Compiler options
  * @returns {VolarMappingsResult} Volar mappings object
  */
 export function compile_to_volar_mappings(source, filename, options) {
 	const ast = parse_module(source, options);
 	const analysis = analyze(ast, filename, { to_ts: true, loose: !!options?.loose });
-	const transformed = transform_client(filename, source, analysis, true);
+	const transformed = transform_client(
+		filename,
+		source,
+		analysis,
+		true,
+		options?.minify_css ?? false,
+	);
 
 	// Create volar mappings with esrap source map for accurate positioning
 	return convert_source_map_to_mappings(

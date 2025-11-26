@@ -1,26 +1,9 @@
 /** @import { LanguageServicePlugin } from '@volar/language-server' */
-/** @import { RippleVirtualCode } from '@ripple-ts/typescript-plugin/src/language.js') */
 /** @import { LanguageServicePluginInstance } from '@volar/language-server' */
 
-const { URI } = require('vscode-uri');
+const { getVirtualCode, createLogging } = require('./utils.js');
 
-const DEBUG = process.env.RIPPLE_DEBUG === 'true';
-
-/**
- * @param {...unknown} args
- */
-function log(...args) {
-	if (DEBUG) {
-		console.log('[Ripple Hover]', ...args);
-	}
-}
-
-/**
- * @param {...unknown} args
- */
-function logError(...args) {
-	console.error('[Ripple Hover]', ...args);
-}
+const { log, logError } = createLogging('[Ripple Hover Plugin]');
 
 /**
  * @returns {LanguageServicePlugin}
@@ -55,9 +38,6 @@ function createHoverPlugin() {
 			}
 			return {
 				async provideHover(document, position, token) {
-					const uri = URI.parse(document.uri);
-					const decoded = context.decodeEmbeddedDocumentUri(uri);
-
 					// Get TypeScript hover from typescript-semantic service
 					let tsHover = null;
 					if (originalProvideHover) {
@@ -65,23 +45,13 @@ function createHoverPlugin() {
 					}
 
 					// If no TypeScript hover, nothing to modify
-					if (!tsHover) {
+					if (!tsHover || !tsHover.range) {
 						return;
 					}
 
-					// If not in a Ripple embedded context, just return TypeScript results
-					if (!decoded) {
-						return tsHover;
-					}
+					const virtualCode = getVirtualCode(document, context);
 
-					const [sourceUri, virtualCodeId] = decoded;
-					const sourceScript = context.language.scripts.get(sourceUri);
-					const virtualCode = /** @type {RippleVirtualCode } */ (
-						sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
-					);
-
-					// If there's no range to adjust, return as-is
-					if (!tsHover.range) {
+					if (!virtualCode) {
 						return tsHover;
 					}
 

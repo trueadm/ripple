@@ -1,3 +1,5 @@
+/** @import * as AST from 'estree' */
+
 import { hash } from '../../utils.js';
 
 const REGEX_MATCHER = /^[~^$*|]?=/;
@@ -17,6 +19,10 @@ const regex_whitespace = /\s/;
 class Parser {
 	index = 0;
 
+	/**
+	 * @param {string} template
+	 * @param {boolean} loose
+	 */
 	constructor(template, loose) {
 		if (typeof template !== 'string') {
 			throw new TypeError('Template must be a string');
@@ -27,6 +33,7 @@ class Parser {
 		this.template = template.trimEnd();
 	}
 
+	/** @param {string} str */
 	match(str) {
 		const length = str.length;
 		if (length === 1) {
@@ -37,6 +44,11 @@ class Parser {
 		return this.template.slice(this.index, this.index + length) === str;
 	}
 
+	/**
+	 * @param {string} str
+	 * @param {boolean} required
+	 * @param {boolean} required_in_loose
+	 */
 	eat(str, required = false, required_in_loose = true) {
 		if (this.match(str)) {
 			this.index += str.length;
@@ -50,6 +62,10 @@ class Parser {
 		return false;
 	}
 
+	/**
+	 * Match a regex at the current index
+	 * @param {RegExp} pattern  Should have a ^ anchor at the start so the regex doesn't search past the beginning, resulting in worse performance
+	 */
 	match_regex(pattern) {
 		const match = pattern.exec(this.template.slice(this.index));
 		if (!match || match.index !== 0) return null;
@@ -57,6 +73,10 @@ class Parser {
 		return match[0];
 	}
 
+	/**
+	 * Search for a regex starting at the current index and return the result if it matches
+	 * @param {RegExp} pattern  Should have a ^ anchor at the start so the regex doesn't search past the beginning, resulting in worse performance
+	 */
 	read(pattern) {
 		const result = this.match_regex(pattern);
 		if (result) this.index += result.length;
@@ -69,6 +89,7 @@ class Parser {
 		}
 	}
 
+	/** @param {RegExp} pattern */
 	read_until(pattern) {
 		if (this.index >= this.template.length) {
 			if (this.loose) return '';
@@ -88,6 +109,11 @@ class Parser {
 	}
 }
 
+/**
+ * @param {string} content
+ * @param {{ loose?: boolean }} options
+ * @returns {Partial<AST.CSS.StyleSheet>}
+ */
 export function parse_style(content, options) {
 	const parser = new Parser(content, options.loose || false);
 
@@ -95,10 +121,11 @@ export function parse_style(content, options) {
 		source: content,
 		hash: `ripple-${hash(content)}`,
 		type: 'StyleSheet',
-		body: read_body(parser),
+		children: read_body(parser),
 	};
 }
 
+/** @param {Parser} parser */
 function allow_comment_or_whitespace(parser) {
 	parser.allow_whitespace();
 	while (parser.match('/*') || parser.match('<!--')) {
@@ -116,7 +143,12 @@ function allow_comment_or_whitespace(parser) {
 	}
 }
 
+/**
+ * @param {Parser} parser
+ * @returns {Array<AST.CSS.Rule | AST.CSS.Atrule>}
+ */
 function read_body(parser) {
+	/** @type {Array<AST.CSS.Rule | AST.CSS.Atrule>} */
 	const children = [];
 
 	while (parser.index < parser.template.length) {
@@ -132,6 +164,10 @@ function read_body(parser) {
 	return children;
 }
 
+/**
+ * @param {Parser} parser
+ * @returns {AST.CSS.Atrule}
+ */
 function read_at_rule(parser) {
 	const start = parser.index;
 	parser.eat('@', true);
@@ -161,6 +197,10 @@ function read_at_rule(parser) {
 	};
 }
 
+/**
+ * @param {Parser} parser
+ * @returns {AST.CSS.Rule}
+ */
 function read_rule(parser) {
 	const start = parser.index;
 
@@ -178,6 +218,10 @@ function read_rule(parser) {
 	};
 }
 
+/**
+ * @param {Parser} parser
+ * @returns {AST.CSS.Block}
+ */
 function read_block(parser) {
 	const start = parser.index;
 
@@ -206,6 +250,12 @@ function read_block(parser) {
 	};
 }
 
+/**
+ * Reads a declaration, rule or at-rule
+ *
+ * @param {Parser} parser
+ * @returns {AST.CSS.Declaration | AST.CSS.Rule | AST.CSS.Atrule}
+ */
 function read_block_item(parser) {
 	if (parser.match('@')) {
 		return read_at_rule(parser);
@@ -221,6 +271,10 @@ function read_block_item(parser) {
 	return char === '{' ? read_rule(parser) : read_declaration(parser);
 }
 
+/**
+ * @param {Parser} parser
+ * @returns {AST.CSS.Declaration}
+ */
 function read_declaration(parser) {
 	const start = parser.index;
 
@@ -251,6 +305,10 @@ function read_declaration(parser) {
 	};
 }
 
+/**
+ * @param {Parser} parser
+ * @returns {string}
+ */
 function read_value(parser) {
 	let value = '';
 	let escaped = false;
@@ -287,6 +345,11 @@ function read_value(parser) {
 	throw new Error('Unexpected end of input');
 }
 
+/**
+ * @param {Parser} parser
+ * @param {boolean} [inside_pseudo_class]
+ * @returns {AST.CSS.SelectorList}
+ */
 function read_selector_list(parser, inside_pseudo_class = false) {
 	/** @type {AST.CSS.ComplexSelector[]} */
 	const children = [];
@@ -318,6 +381,10 @@ function read_selector_list(parser, inside_pseudo_class = false) {
 	throw new Error('Unexpected end of input');
 }
 
+/**
+ * @param {Parser} parser
+ * @returns {AST.CSS.Combinator | null}
+ */
 function read_combinator(parser) {
 	const start = parser.index;
 	parser.allow_whitespace();
@@ -349,6 +416,11 @@ function read_combinator(parser) {
 	return null;
 }
 
+/**
+ * @param {Parser} parser
+ * @param {boolean} [inside_pseudo_class]
+ * @returns {AST.CSS.ComplexSelector}
+ */
 function read_selector(parser, inside_pseudo_class = false) {
 	const list_start = parser.index;
 
@@ -547,7 +619,7 @@ function read_selector(parser, inside_pseudo_class = false) {
 			parser.allow_whitespace();
 
 			if (parser.match(',') || (inside_pseudo_class ? parser.match(')') : parser.match('{'))) {
-				e.css_selector_invalid(parser.index);
+				throw new Error(`Invalid selector at parser.index: ${parser.index}`);
 			}
 		}
 	}
@@ -588,6 +660,10 @@ function read_attribute_value(parser) {
 	throw new Error('Unexpected end of input');
 }
 
+/**
+ * https://www.w3.org/TR/css-syntax-3/#ident-token-diagram
+ * @param {Parser} parser
+ */
 function read_identifier(parser) {
 	const start = parser.index;
 

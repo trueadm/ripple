@@ -1,6 +1,6 @@
 /**
- * @typedef {import('@volar/language-server').LanguageServiceContext} LanguageServiceContext
- * @typedef {import('vscode-languageserver-textdocument').TextDocument} TextDocument
+ * @import {LanguageServiceContext} from '@volar/language-server'
+ * @import {TextDocument} from 'vscode-languageserver-textdocument'
  */
 
 // Monkey-patch getUserPreferences before requiring the main module

@@ -1,20 +1,11 @@
 /**
- * @typedef {import('@volar/language-server').LanguageServicePlugin} LanguageServicePlugin
+ * @import {LanguageServicePlugin} from '@volar/language-server'
  */
 
 const { CompletionItemKind, InsertTextFormat } = require('@volar/language-server');
-const { URI } = require('vscode-uri');
+const { getVirtualCode, createLogging } = require('./utils.js');
 
-const DEBUG = process.env.RIPPLE_DEBUG === 'true';
-
-/**
- * @param {...unknown} args
- */
-function log(...args) {
-	if (DEBUG) {
-		console.log('[Ripple Completion]', ...args);
-	}
-}
+const { log } = createLogging('[Ripple Completion Plugin]');
 
 /**
  * Ripple-specific completion enhancements
@@ -148,7 +139,7 @@ const RIPPLE_SNIPPETS = [
 		kind: CompletionItemKind.Snippet,
 		detail: 'try...pending block',
 		documentation: 'Handle async content with loading fallback',
-		insertText: 'try {\n\t$1\n} pending {\n\t$2\n}',
+		insertText: "try {\n\t$1\n} pending {\n\t<div>{'Loading...'}</div>\n}",
 		insertTextFormat: InsertTextFormat.Snippet,
 		sortText: '0-try-pending',
 	},
@@ -226,22 +217,13 @@ function createCompletionPlugin() {
 						return { items: [], isIncomplete: false };
 					}
 
+					const virtualCode = getVirtualCode(document, context);
+
 					// Check if we're inside an embedded code (like CSS in <style> blocks)
 					// If so, don't provide Ripple snippets - let CSS completions take priority
-					const uri = URI.parse(document.uri);
-					const decoded = context.decodeEmbeddedDocumentUri(uri);
-					if (decoded) {
-						const [documentUri, embeddedCodeId] = decoded;
-						const sourceScript = context.language.scripts.get(documentUri);
-
-						if (sourceScript?.generated) {
-							const virtualCode = sourceScript.generated.embeddedCodes.get(embeddedCodeId);
-							// If we're in a CSS embedded code (from <style> blocks), skip Ripple completions
-							if (virtualCode && virtualCode.languageId === 'css') {
-								log('Skipping Ripple completions in CSS context');
-								return { items: [], isIncomplete: false };
-							}
-						}
+					if (virtualCode && virtualCode.languageId === 'css') {
+						log('Skipping Ripple completions in CSS context');
+						return { items: [], isIncomplete: false };
 					}
 
 					const line = document.getText({
@@ -303,26 +285,6 @@ function createCompletionPlugin() {
 			};
 		},
 	};
-}
-
-/**
- * Heuristic to detect if we're inside a component template
- * @param {string} text
- * @returns {boolean}
- */
-function isLikelyInTemplate(text) {
-	// Simple heuristic: inside component body after opening brace
-	const componentMatch = text.match(/component\s+\w+\([^)]*\)\s*\{/);
-	if (!componentMatch || componentMatch.index === undefined) return false;
-
-	// Count braces to see if we're inside
-	let braceCount = 0;
-	for (let i = componentMatch.index + componentMatch[0].length; i < text.length; i++) {
-		if (text[i] === '{') braceCount++;
-		if (text[i] === '}') braceCount--;
-	}
-
-	return braceCount > 0;
 }
 
 module.exports = {

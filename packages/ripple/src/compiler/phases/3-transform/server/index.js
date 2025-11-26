@@ -1,3 +1,5 @@
+/** @import * as ESTree from 'estree' */
+
 import * as b from '../../../../utils/builders.js';
 import { walk } from 'zimmerframe';
 import ts from 'esrap/languages/ts';
@@ -804,7 +806,7 @@ const visitors = {
 	},
 };
 
-export function transform_server(filename, source, analysis) {
+export function transform_server(filename, source, analysis, minify_css) {
 	// Use component metadata collected during the analyze phase
 	const component_metadata = analysis.component_metadata || [];
 
@@ -823,7 +825,7 @@ export function transform_server(filename, source, analysis) {
 		walk(analysis.ast, { ...state, namespace: 'html' }, visitors)
 	);
 
-	const css = render_stylesheets(state.stylesheets);
+	const css = render_stylesheets(state.stylesheets, minify_css);
 
 	// Add CSS registration if there are stylesheets
 	if (state.stylesheets.length > 0 && css) {

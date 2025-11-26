@@ -2,12 +2,6 @@
 // @ts-expect-error type-only import from ESM module into CJS is fine
 /** @import { CodeMapping } from 'ripple/compiler' */
 /** @typedef {Map<string, CodeMapping>} CachedMappings */
-
-const ts = require('typescript');
-const { forEachEmbeddedCode } = require('@volar/language-core');
-const fs = require('fs');
-const path = require('path');
-
 /** @typedef {import('typescript').CompilerOptions} CompilerOptions */
 /** @typedef {Error & { pos?: number }} RippleError */
 /** @typedef {import('@volar/language-core').IScriptSnapshot} IScriptSnapshot */
@@ -18,30 +12,13 @@ const path = require('path');
 // @ts-expect-error type-only import from ESM module into CJS is fine
 /** @typedef {import('ripple/compiler')} RippleCompiler */
 
-const DEBUG = process.env.RIPPLE_DEBUG === 'true';
+const ts = require('typescript');
+const { forEachEmbeddedCode } = require('@volar/language-core');
+const fs = require('fs');
+const path = require('path');
+const { createLogging, DEBUG } = require('./utils.js');
 
-/**
- * @param {...unknown} args
- */
-function log(...args) {
-	if (DEBUG) {
-		console.log('[Ripple Language]', ...args);
-	}
-}
-
-/**
- * @param {...unknown} args
- */
-function logError(...args) {
-	console.error('[Ripple Language ERROR]', ...args);
-}
-
-/**
- * @param {...unknown} args
- */
-function logWarning(...args) {
-	console.warn('[Ripple Language WARNING]', ...args);
-}
+const { log, logWarning, logError } = createLogging('[Ripple Language]');
 
 /**
  * @returns {RippleLanguagePlugin}

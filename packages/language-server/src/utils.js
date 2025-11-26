@@ -3,6 +3,7 @@
 /** @import {RippleVirtualCode} from '@ripple-ts/typescript-plugin/src/language.js' */
 
 const { URI } = require('vscode-uri');
+const { createLogging, DEBUG } = require('@ripple-ts/typescript-plugin/src/utils.js');
 
 /**
  * Get virtual code from the encoded document URI
@@ -24,6 +25,34 @@ function getVirtualCode(document, context) {
 	return virtualCode;
 }
 
+/**
+ * Get the word at a specific position in the text
+ * @param {string} text
+ * @param {number} start
+ * @returns {{word: string, start: number, end: number}}
+ */
+function getWordFromPosition(text, start) {
+	let wordStart = start;
+	let wordEnd = start;
+	while (wordStart > 0 && /\w/.test(text[wordStart - 1])) {
+		wordStart--;
+	}
+	while (wordEnd < text.length && /\w/.test(text[wordEnd])) {
+		wordEnd++;
+	}
+
+	const word = text.substring(wordStart, wordEnd);
+
+	return {
+		word,
+		start: wordStart,
+		end: wordEnd,
+	};
+}
+
 module.exports = {
 	getVirtualCode,
+	getWordFromPosition,
+	createLogging,
+	DEBUG,
 };

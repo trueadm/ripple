@@ -1,3 +1,6 @@
+/** @import {AnalyzeOptions} from 'ripple/compiler'  */
+/** @import * as AST from 'estree' */
+
 import * as b from '../../../utils/builders.js';
 import { walk } from 'zimmerframe';
 import { create_scopes, ScopeRoot } from '../../scope.js';
@@ -564,14 +567,15 @@ const visitors = {
 	 * @returns
 	 */
 	TryStatement(node, context) {
+		const { state } = context;
 		if (!is_inside_component(context)) {
 			return context.next();
 		}
 
 		if (node.pending) {
 			// Try/pending blocks indicate async operations
-			if (context.state.metadata?.await === false) {
-				context.state.metadata.await = true;
+			if (state.metadata?.await === false) {
+				state.metadata.await = true;
 			}
 
 			node.metadata = {
@@ -579,12 +583,12 @@ const visitors = {
 				has_template: false,
 			};
 
-			context.visit(node.block, context.state);
+			context.visit(node.block, state);
 
-			if (!node.metadata.has_template) {
+			if (!node.metadata.has_template && !state.loose) {
 				error(
 					'Component try statements must contain a template in their main body. Move the try statement into an effect if it does not render anything.',
-					context.state.analysis.module.filename,
+					state.analysis.module.filename,
 					node,
 				);
 			}
@@ -594,19 +598,19 @@ const visitors = {
 				has_template: false,
 			};
 
-			context.visit(node.pending, context.state);
+			context.visit(node.pending, state);
 
-			if (!node.metadata.has_template) {
+			if (!node.metadata.has_template && !state.loose) {
 				error(
 					'Component try statements must contain a template in their "pending" body. Rendering a pending fallback is required to have a template.',
-					context.state.analysis.module.filename,
+					state.analysis.module.filename,
 					node,
 				);
 			}
 		}
 
 		if (node.finalizer) {
-			context.visit(node.finalizer, context.state);
+			context.visit(node.finalizer, state);
 		}
 	},
 
@@ -856,6 +860,12 @@ const visitors = {
 	},
 };
 
+/**
+ *
+ * @param {AST.Program} ast
+ * @param {string} filename
+ * @param {AnalyzeOptions} options
+ */
 export function analyze(ast, filename, options = {}) {
 	const scope_root = new ScopeRoot();
 

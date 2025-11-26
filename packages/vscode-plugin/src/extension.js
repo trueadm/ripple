@@ -116,7 +116,6 @@ async function activate(context) {
 		execArgv: [],
 		env: {
 			...process.env,
-			RIPPLE_DEBUG: 'true',
 		},
 	};
 
@@ -124,7 +123,7 @@ async function activate(context) {
 		execArgv: ['--nolazy', '--inspect'],
 		env: {
 			...process.env,
-			RIPPLE_DEBUG: 'true',
+			RIPPLE_DEBUG: process.env.RIPPLE_DEBUG === 'false' ? 'false' : 'true',
 		},
 	};
 

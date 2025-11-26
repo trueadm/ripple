@@ -2862,9 +2862,10 @@ function create_tsx_with_typescript_support() {
  * @param {string} source - Original source code
  * @param {any} analysis - Analysis result
  * @param {boolean} to_ts - Whether to generate TypeScript output
+ * @param {boolean} minify_css - Whether to minify CSS output
  * @returns {{ ast: any, js: { code: string, map: any, post_processing_changes?: PostProcessingChanges, line_offsets?: LineOffsets }, css: any }}
  */
-export function transform_client(filename, source, analysis, to_ts) {
+export function transform_client(filename, source, analysis, to_ts, minify_css) {
 	/**
 	 * User's named imports from 'ripple' so we can reuse them in TS output
 	 * when transforming shorthand syntax. E.g., if the user has already imported
@@ -3010,7 +3011,7 @@ export function transform_client(filename, source, analysis, to_ts) {
 		js.line_offsets = line_offsets;
 	}
 
-	const css = render_stylesheets(state.stylesheets);
+	const css = render_stylesheets(state.stylesheets, minify_css);
 
 	return {
 		ast: program,

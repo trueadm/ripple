@@ -12,7 +12,10 @@
         "${workspaceFolder}/playground"
       ],
       "outFiles": ["${workspaceFolder}/packages/vscode-plugin/src/**/*.js"],
-      "sourceMaps": false
+      "sourceMaps": false,
+      "env": {
+        "RIPPLE_DEBUG": "true"
+      }
     },
     {
       "name": "Debug Ripple Compiler (Vite)",

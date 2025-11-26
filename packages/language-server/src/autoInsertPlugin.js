@@ -1,18 +1,8 @@
 /** @import { LanguageServicePlugin } from '@volar/language-server' */
-/** @import { RippleVirtualCode } from '@ripple-ts/typescript-plugin/src/language.js') */
 
-const { URI } = require('vscode-uri');
+const { getVirtualCode, createLogging } = require('./utils.js');
 
-const DEBUG = process.env.RIPPLE_DEBUG === 'true';
-
-/**
- * @param {...unknown} args
- */
-function log(...args) {
-	if (DEBUG) {
-		console.log('[Ripple Auto-Insert]', ...args);
-	}
-}
+const { log } = createLogging('[Ripple Auto-Insert Plugin]');
 
 /**
  * List of HTML void/self-closing elements that don't need closing tags
@@ -74,18 +64,7 @@ function createAutoInsertPlugin() {
 						return null;
 					}
 
-					const uri = URI.parse(document.uri);
-					const decoded = context.decodeEmbeddedDocumentUri(uri);
-
-					if (!decoded) {
-						return null;
-					}
-
-					const [sourceUri, virtualCodeId] = decoded;
-					const sourceScript = context.language.scripts.get(sourceUri);
-					const virtualCode = /** @type {RippleVirtualCode } */ (
-						sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
-					);
+					const virtualCode = getVirtualCode(document, context);
 
 					// Map position back to source
 					const offset = document.offsetAt(position);

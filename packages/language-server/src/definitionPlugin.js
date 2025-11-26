@@ -1,18 +1,8 @@
 /** @import { LanguageServicePlugin } from '@volar/language-server' */
-/** @import { RippleVirtualCode } from '@ripple-ts/typescript-plugin/src/language.js') */
 
-const { URI } = require('vscode-uri');
+const { getVirtualCode, createLogging } = require('./utils.js');
 
-const DEBUG = process.env.RIPPLE_DEBUG === 'true';
-
-/**
- * @param {...unknown} args
- */
-function log(...args) {
-	if (DEBUG) {
-		console.log('[Ripple Definition]', ...args);
-	}
-}
+const { log } = createLogging('[Ripple Definition Plugin]');
 
 /**
  * @returns {LanguageServicePlugin}
@@ -26,9 +16,6 @@ function createDefinitionPlugin() {
 		create(context) {
 			return {
 				async provideDefinition(document, position, token) {
-					const uri = URI.parse(document.uri);
-					const decoded = context.decodeEmbeddedDocumentUri(uri);
-
 					// Get TypeScript definition from typescript-semantic service
 					let tsDefinitions = [];
 					for (const [plugin, instance] of context.plugins) {
@@ -47,17 +34,6 @@ function createDefinitionPlugin() {
 						return;
 					}
 
-					// If not in a Ripple embedded context, just return TypeScript results
-					if (!decoded) {
-						return tsDefinitions;
-					}
-
-					const [sourceUri, virtualCodeId] = decoded;
-					const sourceScript = context.language.scripts.get(sourceUri);
-					const virtualCode = /** @type {RippleVirtualCode } */ (
-						sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
-					);
-
 					// Get the range from TypeScript's definition to find the exact token
 					// This gives us the precise start and end of the token (e.g., "function")
 					const firstDefinition = tsDefinitions[0];
@@ -68,6 +44,8 @@ function createDefinitionPlugin() {
 					const range = firstDefinition.originSelectionRange;
 					const rangeStart = document.offsetAt(range.start);
 					const rangeEnd = document.offsetAt(range.end);
+
+					const virtualCode = getVirtualCode(document, context);
 
 					// Find the mapping using the exact token range for O(1) lookup
 					const mapping = virtualCode.findMappingByGeneratedRange(rangeStart, rangeEnd);

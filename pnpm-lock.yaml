@@ -144,6 +144,9 @@ catalogs:
     vscode-languageserver-textdocument:
       specifier: ^1.0.12
       version: 1.0.12
+    vscode-languageserver-types:
+      specifier: ^3.17.5
+      version: 3.17.5
     vscode-uri:
       specifier: ^3.1.0
       version: 3.1.0
@@ -413,6 +416,9 @@ importers:
       typescript:
         specifier: catalog:default
         version: 5.9.2
+      vscode-languageserver-types:
+        specifier: catalog:default
+        version: 3.17.5
 
   packages/rollup-plugin:
     dependencies:

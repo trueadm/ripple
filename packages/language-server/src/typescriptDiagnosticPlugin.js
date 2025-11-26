@@ -1,31 +1,11 @@
 /** @import { LanguageServicePlugin } from '@volar/language-server' */
 /** @import { LanguageServicePluginInstance } from '@volar/language-server' */
 
-// @ts-expect-error type-only import from ESM module into CJS is fine
-/** @import { CodeMapping } from 'ripple/compiler' */
+const { getVirtualCode, createLogging } = require('./utils.js');
 
-const { getVirtualCode } = require('./utils.js');
-
-const DEBUG = process.env.RIPPLE_DEBUG === 'true';
+const { log, logError } = createLogging('[Ripple TypeScript Diagnostic Plugin]');
 
 /**
- * @param {...unknown} args
- */
-function log(...args) {
-	if (DEBUG) {
-		console.log('[Ripple Typescript Diagnostics]', ...args);
-	}
-}
-
-/**
- * @param {...unknown} args
- */
-function logError(...args) {
-	console.error('[Ripple Typescript Diagnostics]', ...args);
-}
-
-/**
- * Create a plugin to filter TypeScript diagnostics based on customData in mappings
  * @returns {LanguageServicePlugin}
  */
 function createTypeScriptDiagnosticFilterPlugin() {
@@ -45,7 +25,7 @@ function createTypeScriptDiagnosticFilterPlugin() {
 			/** @type {LanguageServicePluginInstance} */
 			let originalInstance;
 
-			// Disable typescript-semantic's provideHover so it doesn't merge with ours
+			// Disable typescript-semantic's provideDiagnostics so it doesn't merge with ours
 			for (const [plugin, instance] of context.plugins) {
 				if (plugin.name === 'typescript-semantic') {
 					originalInstance = instance;
@@ -116,54 +96,6 @@ function createTypeScriptDiagnosticFilterPlugin() {
 			};
 		},
 	};
-}
-
-/**
- * Get the mapping at a specific position in the document
- * @param {import('@volar/language-server').LanguageServiceContext} context
- * @param {import('vscode-languageserver-textdocument').TextDocument} document
- * @param {import('@volar/language-server').Position} position
- * @returns {CodeMapping | null}
- */
-function getMappingAtPosition(context, document, position) {
-	try {
-		const { URI } = require('vscode-uri');
-		const { RippleVirtualCode } = require('@ripple-ts/typescript-plugin/src/language.js');
-
-		const uri = URI.parse(document.uri);
-		const decoded = context.decodeEmbeddedDocumentUri(uri);
-		if (!decoded) {
-			return null;
-		}
-
-		const [sourceUri, virtualCodeId] = decoded;
-		const sourceScript = context.language.scripts.get(sourceUri);
-		const virtualCode = /** @type {RippleVirtualCode} */ (
-			sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
-		);
-
-		if (!virtualCode?.mappings) {
-			return null;
-		}
-
-		// Convert position to offset in the virtual document
-		const offset = document.offsetAt(position);
-
-		// Find mapping that contains this offset
-		for (const mapping of virtualCode.mappings) {
-			const genStart = mapping.generatedOffsets[0];
-			const genEnd = genStart + mapping.lengths[0];
-
-			if (offset >= genStart && offset < genEnd) {
-				return mapping;
-			}
-		}
-
-		return null;
-	} catch (err) {
-		log('Error getting mapping at position:', err);
-		return null;
-	}
 }
 
 module.exports = {

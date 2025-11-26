@@ -80,7 +80,8 @@
     "@types/estree-jsx": "catalog:default",
     "@types/node": "catalog:default",
     "typescript": "catalog:default",
-    "@volar/language-core": "catalog:default"
+    "@volar/language-core": "catalog:default",
+    "vscode-languageserver-types": "catalog:default"
   },
   "peerDependencies": {
     "ripple": "workspace:*"

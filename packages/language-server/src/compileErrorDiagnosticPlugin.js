@@ -1,32 +1,12 @@
-const { RippleVirtualCode } = require('@ripple-ts/typescript-plugin/src/language.js');
-const { URI } = require('vscode-uri');
-
 /**
- * @typedef {import('@volar/language-server').LanguageServicePlugin} LanguageServicePlugin
- * @typedef {import('@volar/language-server').LanguageServiceContext} LanguageServiceContext
- * @typedef {import('@volar/language-server').Diagnostic} Diagnostic
- * @typedef {import('@volar/language-server').DiagnosticSeverity} DiagnosticSeverity
- * @typedef {import('@volar/language-server').Position} Position
- * @typedef {import('vscode-languageserver-textdocument').TextDocument} TextDocument
+ * @import {Diagnostic, LanguageServicePlugin, LanguageServiceContext} from '@volar/language-server'
+ * @import {TextDocument} from 'vscode-languageserver-textdocument'
  */
 
-const DEBUG = process.env.RIPPLE_DEBUG === 'true';
+const { getVirtualCode, createLogging } = require('./utils.js');
 
-/**
- * @param {...unknown} args
- */
-function log(...args) {
-	if (DEBUG) {
-		console.log('[Ripple Language]', ...args);
-	}
-}
-
-/**
- * @param {...unknown} args
- */
-function logError(...args) {
-	console.error('[Ripple Language ERROR]', ...args);
-}
+const { log, logError } = createLogging('[Ripple Compile Error Diagnostic Plugin]');
+const { DiagnosticSeverity } = require('@volar/language-server');
 
 /**
  * @returns {LanguageServicePlugin}
@@ -44,22 +24,16 @@ function createCompileErrorDiagnosticPlugin() {
 		},
 		create(/** @type {LanguageServiceContext} */ context) {
 			return {
-				/**
-				 * @param {TextDocument} document
-				 * @param {import('@volar/language-server').CancellationToken} _token
-				 * @returns {import('@volar/language-server').NullableProviderResult<Diagnostic[]>}
-				 */
 				provideDiagnostics(document, _token) {
 					try {
 						log('Providing Ripple diagnostics for:', document.uri);
 
-						const info = getEmbeddedInfo(context, document);
+						const virtualCode = getVirtualCode(document, context);
 
-						if (!info || !info.virtualCode.errors || info.virtualCode.errors.length === 0) {
+						if (!virtualCode || !virtualCode.errors || virtualCode.errors.length === 0) {
 							return [];
 						}
 
-						const virtualCode = info.virtualCode;
 						const diagnostics = [];
 
 						log('Processing', virtualCode.errors.length, 'errors');
@@ -127,7 +101,7 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 			const zeroBasedEndColumn = Math.max(0, endColumn);
 
 			return {
-				severity: 1, // DiagnosticSeverity.Error
+				severity: DiagnosticSeverity.Error,
 				range: {
 					start: { line: zeroBasedStartLine, character: zeroBasedStartColumn },
 					end: { line: zeroBasedEndLine, character: zeroBasedEndColumn },
@@ -160,7 +134,7 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 			let length = Math.min(1, sourceText.split('\n')[zeroBasedLine]?.length - actualColumn || 1);
 
 			return {
-				severity: 1, // DiagnosticSeverity.Error
+				severity: DiagnosticSeverity.Error,
 				range: {
 					start: { line: zeroBasedLine, character: actualColumn },
 					end: { line: zeroBasedLine, character: actualColumn + length },
@@ -175,7 +149,7 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 			const endPosition = document.positionAt(Math.min(1, sourceText.length));
 
 			return {
-				severity: 1, // DiagnosticSeverity.Error
+				severity: DiagnosticSeverity.Error,
 				range: {
 					start: startPosition,
 					end: endPosition,
@@ -189,7 +163,7 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 		logError('Error parsing compilation error:', parseError);
 
 		return {
-			severity: 1,
+			severity: DiagnosticSeverity.Error,
 			range: {
 				start: { line: 0, character: 0 },
 				end: { line: 0, character: 1 },
@@ -198,40 +172,6 @@ function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, 
 			source: 'Ripple',
 			code: 'ripple-parse-error',
 		};
-	}
-}
-
-/**
- * @param {LanguageServiceContext} context
- * @param {TextDocument} document
- */
-function getEmbeddedInfo(context, document) {
-	try {
-		const uri = URI.parse(document.uri);
-		const decoded = context.decodeEmbeddedDocumentUri(uri);
-		if (!decoded) {
-			return;
-		}
-
-		const [documentUri, embeddedCodeId] = decoded;
-
-		const sourceScript = context.language.scripts.get(documentUri);
-		if (!sourceScript?.generated) {
-			return;
-		}
-
-		const virtualCode = sourceScript.generated.embeddedCodes.get(embeddedCodeId);
-		if (!(virtualCode instanceof RippleVirtualCode)) {
-			return;
-		}
-
-		return {
-			sourceScript: sourceScript,
-			virtualCode,
-		};
-	} catch (err) {
-		logError('Failed to get embedded info:', err);
-		return null;
 	}
 }
 
