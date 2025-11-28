@@ -10,6 +10,7 @@ import {
 	useState,
 	Component,
 	Suspense,
+	use,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
@@ -197,6 +198,7 @@ function get_block_from_dom(node) {
 export function Ripple({ component, props }) {
 	const ref = useRef(null);
 	const tracked_props_ref = useRef(/** @type {any} */ (null));
+	const suspense_ref = useRef(/** @type {any} */ (null));
 	const portals_ref = /** @type {React.MutableRefObject<Map<any, any> | null>} */ (useRef(null));
 	const [, update] = useState(0);
 
@@ -204,6 +206,10 @@ export function Ripple({ component, props }) {
 		portals_ref.current = new Map();
 	}
 	const portals = portals_ref.current;
+
+	if (suspense_ref.current !== null) {
+		use(suspense_ref.current);
+	}
 
 	useEffect(() => {
 		const span = /** @type {HTMLSpanElement | null} */ (ref.current);
@@ -226,9 +232,31 @@ export function Ripple({ component, props }) {
 		/** @type {any} */
 		const b = with_block(block, () => {
 			PortalContext.set({ portals, update });
-			return branch(() => {
-				component(anchor, proxied_props);
-			});
+			const state = {
+				a() {
+					/** @type {((value?: unknown) => void) | undefined} */
+					let resolve;
+					const promise = new Promise((_resolve) => {
+						resolve = _resolve;
+					});
+
+					suspense_ref.current = promise;
+					update((x) => x + 1);
+
+					return () => {
+						resolve?.();
+						suspense_ref.current = null;
+					};
+				},
+			};
+
+			return branch(
+				() => {
+					component(anchor, proxied_props);
+				},
+				TRY_BLOCK,
+				state,
+			);
 		});
 
 		span.append(frag);

@@ -80,9 +80,10 @@ export function render_spread(element, fn, flags = 0) {
 /**
  * @param {Function} fn
  * @param {number} [flags]
+ * @param {any} [state]
  */
-export function branch(fn, flags = 0) {
-	return block(BRANCH_BLOCK | flags, fn);
+export function branch(fn, flags = 0, state = null) {
+	return block(BRANCH_BLOCK | flags, fn, state);
 }
 
 /**
