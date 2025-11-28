@@ -3,8 +3,12 @@
 import { build_assignment_value, extract_paths } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
 import { is_capture_event, is_non_delegated, normalize_event_name } from '../utils/events.js';
+import { get_generated_position } from './source-map-utils.js';
 
 const regex_return_characters = /\r/g;
+const regex_css_comment = /(?<=\/\*)[\s\S]*?(?=\*\/)|(?<=\/\/)[\s\S]*?(?=\n)/g;
+const regex_css_fragment = /(?<={)[^{]*(?=(?<!\\);)/g;
+const regex_css_class_name = /(?=(\.[a-z_][-\w]*)[\s.,+~>:#)[{])/gi;
 
 const VOID_ELEMENT_NAMES = [
 	'area',
@@ -749,4 +753,145 @@ export function index_to_key(index) {
 	} while (index >= 0);
 
 	return key;
+}
+
+/** @typedef {{line: number, column: number}} GeneratedPosition */
+/** @typedef {Map<string, GeneratedPosition[]>} SourceToGeneratedMap */
+
+/**
+ * Extract element class names and offsets for the ripple plugin's class-jump-to-style feature.
+ * @param {Node} node
+ * @param {number[]} line_offsets
+ * @param {Map<string, GeneratedPosition[]>} source_to_gen_map
+ * @returns {import('ripple/compiler').ScopedClass[]}
+ */
+export function extract_classes_for_extension(node, line_offsets, source_to_gen_map) {
+	/** @type {import('ripple/compiler').ScopedClass[]} */
+	const classes = [];
+
+	try {
+		switch (node.type) {
+			// 1. Static class names like `class="my-class"`
+			case 'Literal': {
+				const loc = node.loc;
+				if (!loc) break;
+				// Look up where class value map to in generated code
+				const gen_start_pos = get_generated_position(
+					loc.start.line,
+					loc.start.column,
+					source_to_gen_map,
+				);
+				const gen_start = line_offsets[gen_start_pos.line - 1] + gen_start_pos.column;
+				let offset = gen_start;
+				let content = node.raw || '';
+				if (
+					(content.startsWith(`'`) && content.endsWith(`'`)) ||
+					(content.startsWith(`"`) && content.endsWith(`"`))
+				) {
+					offset++;
+					content = content.slice(1, -1);
+				}
+				classes.push({
+					className: content,
+					offset,
+				});
+				break;
+			}
+			// 2. Dynamic class names like `class={{ foo: true, baz: @includeBaz }}`
+			// see: https://www.ripplejs.com/docs/guide/styling#dynamic-classes
+			case 'ObjectExpression': {
+				for (const prop of node.properties) {
+					if (prop.type === 'Property') {
+						const key = prop.key;
+						if (key.type === 'Identifier' && typeof key.name === 'string' && key.loc) {
+							const loc = key.loc;
+							// Look up where class value map to in generated code
+							const gen_start_pos = get_generated_position(
+								loc.start.line,
+								loc.start.column,
+								source_to_gen_map,
+							);
+							const gen_start = line_offsets[gen_start_pos.line - 1] + gen_start_pos.column;
+							classes.push({
+								className: key.name,
+								offset: gen_start,
+							});
+						}
+					}
+				}
+				break;
+			}
+			// 3. Dynamic class names like `class={['foo', { baz: false }, 0 && 'bar', [true && 'bat']]}`
+			// see: https://www.ripplejs.com/docs/guide/styling#dynamic-classes
+			case 'ArrayExpression': {
+				for (const el of node.elements) {
+					if (!el) continue;
+					// Recursive call
+					classes.push(...extract_classes_for_extension(el, line_offsets, source_to_gen_map));
+				}
+				break;
+			}
+			// 4. Dynamic class names like `class={[true && 'bar']}`
+			case 'LogicalExpression': {
+				if (node.operator === '&&') {
+					// For `left && right`, only the right operand can be a class name
+					const right = node.right;
+					// Recursive call
+					classes.push(...extract_classes_for_extension(right, line_offsets, source_to_gen_map));
+				} else if (node.operator === '||') {
+					// For `left || right`, both sides can be class names
+					const { left, right } = node;
+					// Recursive call
+					classes.push(...extract_classes_for_extension(left, line_offsets, source_to_gen_map));
+					classes.push(...extract_classes_for_extension(right, line_offsets, source_to_gen_map));
+				}
+				break;
+			}
+			// 5. Dynamic class name like `class={[@count > 3 ? 'baz' : 'foo']}`
+			case 'ConditionalExpression': {
+				const { alternate, consequent } = node;
+				// Recursive call
+				classes.push(...extract_classes_for_extension(alternate, line_offsets, source_to_gen_map));
+				classes.push(...extract_classes_for_extension(consequent, line_offsets, source_to_gen_map));
+				break;
+			}
+		}
+	} catch (error) {
+		return classes;
+	}
+
+	return classes;
+}
+
+/**
+ * Extract style css class names and offsets for the ripple plugin's class-jump-to-style feature.
+ * Refer to: https://github.com/vuejs/language-tools/blob/master/packages/language-core/lib/plugins/vue-style-css.ts#L52
+ * @param {string} content
+ * @param {number} offset
+ */
+export function extract_css_classes(content, offset = 0) {
+	let css = content;
+	css = fillBlank(css, regex_css_comment, regex_css_fragment);
+	const matches = css.matchAll(regex_css_class_name);
+	const cssClasses = [];
+	for (const match of matches) {
+		const matchText = match[1];
+		if (matchText) {
+			cssClasses.push({ offset: match.index + offset, text: matchText });
+		}
+	}
+	return cssClasses;
+}
+
+/**
+ * @param {string} content
+ * @param  {RegExp[]} regs
+ * @returns {string}
+ */
+function fillBlank(content, ...regs) {
+	let css = content;
+	for (const reg of regs) {
+		css = css.replace(reg, (match) => ' '.repeat(match.length));
+	}
+	return css;
 }

@@ -11,6 +11,8 @@
 /** @typedef {import('@volar/language-core').LanguagePlugin<ScriptId, VirtualCode>} RippleLanguagePlugin */
 // @ts-expect-error type-only import from ESM module into CJS is fine
 /** @typedef {import('ripple/compiler')} RippleCompiler */
+/** @typedef {ReturnType<RippleCompiler['compile_to_volar_mappings']>['scopedClasses']} ScopedClasses */
+/** @typedef {ReturnType<RippleCompiler['compile_to_volar_mappings']>['cssClasses']} CssClasses */
 
 const ts = require('typescript');
 const { forEachEmbeddedCode } = require('@volar/language-core');
@@ -200,6 +202,10 @@ class RippleVirtualCode {
 	originalCode = '';
 	/** @type {unknown[]} */
 	diagnostics = [];
+	/** @type {ScopedClasses} */
+	scopedClasses = [];
+	/** @type {CssClasses} */
+	cssClasses = [];
 	/** @type {CachedMappings | null} */
 	#mappingGenToSource = null;
 	/** @type {CachedMappings | null} */
@@ -339,6 +345,8 @@ class RippleVirtualCode {
 			this.originalCode = newCode;
 			this.generatedCode = transpiled.code;
 			this.mappings = transpiled.mappings ?? [];
+			this.scopedClasses = transpiled.scopedClasses ?? [];
+			this.cssClasses = transpiled.cssClasses ?? [];
 			this.isErrorMode = false;
 
 			const { cssMappings, cssSources } = transpiled;

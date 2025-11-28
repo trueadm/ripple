@@ -6,17 +6,26 @@
  * @typedef {import('@volar/language-core').CodeMapping} VolarCodeMapping
  * @typedef {import('ripple/compiler').MappingData} MappingData
  * @typedef {import('ripple/compiler').CodeMapping} CodeMapping
+ * @typedef {import('ripple/compiler').ScopedClass} ScopedClass
+ * @typedef {import('ripple/compiler').CssClass} CssClass
  * @typedef {import('ripple/compiler').VolarMappingsResult} VolarMappingsResult
  * @typedef {{
  *	start: number,
  *	end: number,
  *	content: string
  * }} CssSourceRegion
+ * @typedef {{line: number, column: number}} GeneratedPosition
+ * @typedef {Map<string, GeneratedPosition[]>} SourceToGeneratedMap
  */
 
 import { walk } from 'zimmerframe';
 import { build_source_to_generated_map, get_generated_position } from '../../source-map-utils.js';
 import { DocumentHighlightKind } from 'vscode-languageserver-types';
+import {
+	extract_classes_for_extension,
+	extract_css_classes,
+	is_element_dom_element,
+} from '../../utils.js';
 
 /** @type {VolarCodeMapping['data']} */
 export const mapping_data = {
@@ -64,14 +73,60 @@ function loc_to_offset(line, column, line_offsets) {
  * @param {any} ast - The parsed AST
  * @param {string} source - Original source code
  * @param {number[]} source_line_offsets
- * @returns {CssSourceRegion[]}
+ * @param {number[]} line_offsets
+ * @param {Map<string, GeneratedPosition[]>} source_to_gen_map
+ * @returns {{cssRegions: CssSourceRegion[], scopedClasses: ScopedClass[][]}}
  */
-function extractCssSourceRegions(ast, source, source_line_offsets) {
+function extract_classes_and_css_regions(
+	ast,
+	source,
+	source_line_offsets,
+	line_offsets,
+	source_to_gen_map,
+) {
 	/** @type {CssSourceRegion[]} */
-	const regions = [];
+	const cssRegions = [];
+	/** @type {Map<string, ScopedClass[]>} */
+	const scopedClassesMap = new Map();
 
 	walk(ast, null, {
-		Element(node) {
+		Element(node, context) {
+			const is_dom_element = is_element_dom_element(node);
+			/** @type {any[]} */
+			const path = node.metadata?.path;
+			const component = path?.findLast((n) => n.type === 'Component');
+
+			// Only collect scoped class names when the component contains a style.
+			if (component?.css && component.css.hash) {
+				// Group classes into those belonging to the same component based on css.hash.
+				const cssHash = component.css.hash;
+				for (const attr of node.attributes) {
+					if (
+						is_dom_element &&
+						attr.type === 'Attribute' &&
+						attr.name.type === 'Identifier' &&
+						attr.name.name === 'class' &&
+						attr.value
+					) {
+						const classes = extract_classes_for_extension(
+							attr.value,
+							line_offsets,
+							source_to_gen_map,
+						);
+						if (!scopedClassesMap.has(cssHash)) {
+							scopedClassesMap.set(cssHash, []);
+						}
+						// @ts-ignore
+						scopedClassesMap.get(cssHash).push(...classes);
+					}
+				}
+				if (node.children) {
+					for (const child of node.children) {
+						context.visit(child);
+					}
+				}
+			}
+
 			// Check if this is a style element with CSS content
 			if (node.id?.name === 'style' && node.css) {
 				const openLoc = node.openingElement.loc;
@@ -82,7 +137,7 @@ function extractCssSourceRegions(ast, source, source_line_offsets) {
 				const cssEnd =
 					loc_to_offset(closeLoc.start.line, closeLoc.start.column, source_line_offsets) - 1;
 
-				regions.push({
+				cssRegions.push({
 					start: cssStart,
 					end: cssEnd,
 					content: node.css,
@@ -91,7 +146,7 @@ function extractCssSourceRegions(ast, source, source_line_offsets) {
 		},
 	});
 
-	return regions;
+	return { cssRegions, scopedClasses: [...scopedClassesMap.values()] };
 }
 
 /**
@@ -1432,9 +1487,16 @@ export function convert_source_map_to_mappings(
 		});
 	}
 
-	/** @type {{ cssMappings: CodeMapping[], cssSources: string[] }} */
-	const cssResult = { cssMappings: [], cssSources: [] };
-	for (const region of extractCssSourceRegions(ast_from_source, source, source_line_offsets)) {
+	/** @type {{ cssMappings: CodeMapping[], cssSources: string[], cssClasses: CssClass[][] }} */
+	const cssResult = { cssMappings: [], cssSources: [], cssClasses: [] };
+	const { cssRegions, scopedClasses } = extract_classes_and_css_regions(
+		ast_from_source,
+		source,
+		source_line_offsets,
+		line_offsets,
+		adjusted_source_map,
+	);
+	for (const region of cssRegions) {
 		cssResult.cssMappings.push({
 			sourceOffsets: [region.start],
 			generatedOffsets: [0],
@@ -1448,11 +1510,13 @@ export function convert_source_map_to_mappings(
 		});
 
 		cssResult.cssSources.push(region.content);
+		cssResult.cssClasses.push(extract_css_classes(region.content));
 	}
 
 	return {
 		code: generated_code,
 		mappings,
 		...cssResult,
+		scopedClasses,
 	};
 }

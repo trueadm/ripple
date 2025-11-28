@@ -11,6 +11,7 @@ const { createDefinitionPlugin } = require('./definitionPlugin.js');
 const { createHoverPlugin } = require('./hoverPlugin.js');
 const { createCompletionPlugin } = require('./completionPlugin.js');
 const { createAutoInsertPlugin } = require('./autoInsertPlugin.js');
+const { createDocumentLinksPlugin } = require('./documentLinksPlugin.js');
 const { createTypeScriptDiagnosticFilterPlugin } = require('./typescriptDiagnosticPlugin.js');
 const { createDocumentHighlightPlugin } = require('./documentHighlightPlugin.js');
 const {
@@ -107,6 +108,7 @@ function createRippleLanguageServer() {
 					createTypeScriptDiagnosticFilterPlugin(),
 					createHoverPlugin(),
 					createDocumentHighlightPlugin(),
+					createDocumentLinksPlugin(),
 				],
 			);
 
