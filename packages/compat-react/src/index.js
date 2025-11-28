@@ -248,6 +248,7 @@ export function Ripple({ component, props }) {
 						suspense_ref.current = null;
 					};
 				},
+				c: null,
 			};
 
 			return branch(
