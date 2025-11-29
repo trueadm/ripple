@@ -116,6 +116,7 @@ async function activate(context) {
 		execArgv: [],
 		env: {
 			...process.env,
+			RIPPLE_DEBUG: process.env.RIPPLE_DEBUG === 'false' ? 'false' : 'true',
 		},
 	};
 
