@@ -1,4 +1,5 @@
 /** @import { CustomMappingData, PluginActionOverrides } from 'ripple/compiler'; */
+/** @import { DocumentHighlightKind } from 'vscode-languageserver-types'; */
 
 /**
  * @typedef {import('estree').Position} Position
@@ -16,7 +17,6 @@
 
 import { walk } from 'zimmerframe';
 import { build_source_to_generated_map, get_generated_position } from '../../source-map-utils.js';
-import { DocumentHighlightKind } from 'vscode-languageserver-types';
 
 /** @type {VolarCodeMapping['data']} */
 export const mapping_data = {
@@ -525,7 +525,8 @@ export function convert_source_map_to_mappings(
 						loc: pendingKeywordLoc,
 						metadata: {
 							wordHighlight: {
-								kind: DocumentHighlightKind.Text,
+								/** @type {DocumentHighlightKind} */
+								kind: 1,
 							},
 							suppressedDiagnostics: [
 								1472, // 'catch' or 'finally' expected
