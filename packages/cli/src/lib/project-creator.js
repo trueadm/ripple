@@ -265,6 +265,7 @@ function updateDependencyVersions(packageJson) {
 		'@ripple-ts/vite-plugin': 'latest',
 		'@ripple-ts/prettier-plugin': 'latest',
 		'@ripple-ts/eslint-plugin': 'latest',
+		'@ripple-ts/eslint-parser': 'latest',
 		'@ripple-ts/typescript-plugin': 'latest',
 	};
 
