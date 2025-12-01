@@ -1,5 +1,6 @@
 import { track, flushSync } from 'ripple';
-import { act, createContext, useContext } from 'react';
+import { act, createContext, useContext, Suspense } from 'react';
+import { vi } from 'vitest';
 import { Ripple } from '@ripple-ts/compat-react';
 import { createRoot } from 'react-dom/client';
 import { jsx, jsxs } from 'react/jsx-runtime';
@@ -387,7 +388,7 @@ describe('compat-react', () => {
 
 			component App() {
 				<tsx:react>
-					<DemoContext.Provider value={"Hello from Context!"}>
+					<DemoContext.Provider value={'Hello from Context!'}>
 						<ReactChild />
 					</DemoContext.Provider>
 				</tsx:react>
@@ -400,6 +401,285 @@ describe('compat-react', () => {
 			const deepChild = container.querySelector('div');
 			expect(deepChild).toBeTruthy();
 			expect(deepChild.textContent).toBe('Deep child, context value is: Hello from Context!');
+		});
+
+		it('should handle React Suspense with Ripple await logic', async () => {
+			vi.useFakeTimers();
+
+			try {
+				function sleep(ms: number) {
+					return new Promise((resolve) => setTimeout(resolve, ms));
+				}
+
+				component AsyncRippleChild() {
+					await sleep(1000);
+					<div class="async-content">{'Loaded!'}</div>
+				}
+
+				function ReactChild() {
+					return jsx(Ripple, { component: AsyncRippleChild });
+				}
+
+				component App() {
+					<tsx:react>
+						<Suspense fallback={<div className="loading">Loading...</div>}>
+							<ReactChild />
+						</Suspense>
+					</tsx:react>
+				}
+
+				await act(async () => {
+					render(App);
+				});
+
+				// Initially shows loading state
+				const loading = container.querySelector('.loading');
+				expect(loading).toBeTruthy();
+				expect(loading.textContent).toBe('Loading...');
+				expect(container.querySelector('.async-content')).toBeFalsy();
+
+				// Advance timers to resolve the async operation
+				await act(async () => {
+					await vi.advanceTimersByTimeAsync(1000);
+				});
+
+				// Now shows loaded content
+				const content = container.querySelector('.async-content');
+				expect(content).toBeTruthy();
+				expect(content.textContent).toBe('Loaded!');
+				expect(container.querySelector('.loading')).toBeFalsy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('should handle Ripple reactivity updates after Suspense resolves', async () => {
+			vi.useFakeTimers();
+
+			try {
+				function sleep(ms: number) {
+					return new Promise((resolve) => setTimeout(resolve, ms));
+				}
+
+				component AsyncRippleChild() {
+					await sleep(1000);
+
+					let count = track(0);
+
+					<div>
+						<div class="async-content">{'Loaded!'}</div>
+						<div class="count">{@count}</div>
+						<button onClick={() => @count++}>{'Increment'}</button>
+					</div>
+				}
+
+				function ReactChild() {
+					return jsx(Ripple, { component: AsyncRippleChild });
+				}
+
+				component App() {
+					<tsx:react>
+						<Suspense fallback={<div className="loading">Loading...</div>}>
+							<ReactChild />
+						</Suspense>
+					</tsx:react>
+				}
+
+				await act(async () => {
+					render(App);
+				});
+
+				// Initially shows loading state
+				expect(container.querySelector('.loading')).toBeTruthy();
+				expect(container.querySelector('.async-content')).toBeFalsy();
+
+				// Advance timers to resolve the async operation
+				await act(async () => {
+					await vi.advanceTimersByTimeAsync(1000);
+				});
+
+				// Now shows loaded content with initial count
+				expect(container.querySelector('.async-content')).toBeTruthy();
+				expect(container.querySelector('.count').textContent).toBe('0');
+
+				// Click button to increment count
+				const button = container.querySelector('button');
+				button.click();
+				flushSync();
+
+				// Count should be updated reactively
+				expect(container.querySelector('.count').textContent).toBe('1');
+
+				// Click again
+				button.click();
+				flushSync();
+
+				expect(container.querySelector('.count').textContent).toBe('2');
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('should handle tracked async triggering re-suspension on state change', async () => {
+			vi.useFakeTimers();
+
+			try {
+				function sleep(ms: number) {
+					return new Promise((resolve) => setTimeout(resolve, ms));
+				}
+
+				let setPage: (page: number) => void;
+
+				component AsyncRippleChild({ page }: { page: number }) {
+					// Using await track(() => ...) to create a reactive async operation
+					// that re-suspends when the tracked dependency (page) changes
+					await track(() => {
+						page;
+						return sleep(1000);
+					});
+
+					<div class="content">{`Page ${page} loaded`}</div>
+				}
+
+				function ReactChild(props: { page: number }) {
+					return jsx(Ripple, {
+						component: AsyncRippleChild,
+						props: { page: props.page },
+					});
+				}
+
+				component App() {
+					let page = track(1);
+					setPage = (p: number) => {
+						@page = p;
+					};
+
+					<tsx:react>
+						<Suspense fallback={<div className="loading">Loading...</div>}>
+							<ReactChild page={@page} />
+						</Suspense>
+					</tsx:react>
+				}
+
+				await act(async () => {
+					render(App);
+				});
+
+				// Initially shows loading state
+				expect(container.querySelector('.loading')).toBeTruthy();
+				expect(container.querySelector('.content')).toBeFalsy();
+
+				// Advance timers to resolve the first async operation
+				await act(async () => {
+					await vi.advanceTimersByTimeAsync(1000);
+				});
+
+				// Now shows page 1 content
+				expect(container.querySelector('.content')).toBeTruthy();
+				expect(container.querySelector('.content').textContent).toBe('Page 1 loaded');
+				expect(container.querySelector('.loading')).toBeFalsy();
+
+				// Change page to trigger re-suspension via tracked dependency
+				await act(async () => {
+					setPage(2);
+					flushSync();
+				});
+
+				// Should show loading again due to reactive async re-run
+				expect(container.querySelector('.loading')).toBeTruthy();
+
+				// Advance timers to resolve the second async operation
+				await act(async () => {
+					await vi.advanceTimersByTimeAsync(1000);
+				});
+
+				// Now shows page 2 content
+				expect(container.querySelector('.content')).toBeTruthy();
+				expect(container.querySelector('.content').textContent).toBe('Page 2 loaded');
+				expect(container.querySelector('.loading')).toBeFalsy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('should handle re-suspension via React key prop forcing remount', async () => {
+			vi.useFakeTimers();
+
+			try {
+				function sleep(ms: number) {
+					return new Promise((resolve) => setTimeout(resolve, ms));
+				}
+
+				let setPage: (page: number) => void;
+
+				component AsyncRippleChild({ page }: { page: number }) {
+					// Simple static await - no tracked dependencies
+					await sleep(1000);
+
+					<div class="content">{`Page ${page} loaded`}</div>
+				}
+
+				function ReactChild(props: { page: number }) {
+					// Use key to force remount when page changes
+					return jsx(Ripple, {
+						key: props.page,
+						component: AsyncRippleChild,
+						props: { page: props.page },
+					});
+				}
+
+				component App() {
+					let page = track(1);
+					setPage = (p: number) => {
+						@page = p;
+					};
+
+					<tsx:react>
+						<Suspense fallback={<div className="loading">Loading...</div>}>
+							<ReactChild page={@page} />
+						</Suspense>
+					</tsx:react>
+				}
+
+				await act(async () => {
+					render(App);
+				});
+
+				// Initially shows loading state
+				expect(container.querySelector('.loading')).toBeTruthy();
+				expect(container.querySelector('.content')).toBeFalsy();
+
+				// Advance timers to resolve the first async operation
+				await act(async () => {
+					await vi.advanceTimersByTimeAsync(1000);
+				});
+
+				// Now shows page 1 content
+				expect(container.querySelector('.content')).toBeTruthy();
+				expect(container.querySelector('.content').textContent).toBe('Page 1 loaded');
+				expect(container.querySelector('.loading')).toBeFalsy();
+
+				// Change page to trigger re-suspension via key-based remount
+				await act(async () => {
+					setPage(2);
+					flushSync();
+				});
+
+				// Should show loading again due to component remount
+				expect(container.querySelector('.loading')).toBeTruthy();
+
+				// Advance timers to resolve the second async operation
+				await act(async () => {
+					await vi.advanceTimersByTimeAsync(1000);
+				});
+
+				// Now shows page 2 content
+				expect(container.querySelector('.content')).toBeTruthy();
+				expect(container.querySelector('.content').textContent).toBe('Page 2 loaded');
+				expect(container.querySelector('.loading')).toBeFalsy();
+			} finally {
+				vi.useRealTimers();
+			}
 		});
 	});
 

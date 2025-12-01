@@ -368,7 +368,10 @@ export function destroy_block(block, remove_dom = true) {
 	var removed = false;
 	var f = block.f;
 
-	if ((remove_dom && (f & (BRANCH_BLOCK | ROOT_BLOCK)) !== 0) || (f & HEAD_BLOCK) !== 0) {
+	if (
+		(remove_dom && (f & (BRANCH_BLOCK | ROOT_BLOCK)) !== 0 && (f & TRY_BLOCK) === 0) ||
+		(f & HEAD_BLOCK) !== 0
+	) {
 		var s = block.s;
 		if (s !== null) {
 			remove_block_dom(s.start, s.end);
