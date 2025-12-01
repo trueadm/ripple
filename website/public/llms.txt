@@ -1099,6 +1099,106 @@ component App() {
 }
 ```
 
+#### Common Mistakes with React Compatibility
+
+**❌ WRONG: Using React JSX syntax outside tsx:react blocks**
+```ripple
+component App() {
+  // Wrong: className is React syntax, use class in Ripple
+  <div className="container">{"Hello"}</div>
+}
+```
+
+**✅ CORRECT: Use Ripple syntax outside tsx:react, React syntax inside**
+```ripple
+component App() {
+  <div class="container">{"Hello"}</div>
+  <tsx:react>
+    <div className="react-div">React content</div>
+  </tsx:react>
+}
+```
+
+**❌ WRONG: Defining React components with JSX inside .ripple files**
+```ripple
+// Wrong: JSX in a .ripple file is Ripple syntax, not React syntax
+function ReactChild() {
+  return <div>Child</div>;  // This is Ripple JSX, not React JSX!
+}
+
+component App() {
+  <tsx:react>
+    <ReactChild />
+  </tsx:react>
+}
+```
+
+**✅ CORRECT: Define React components in separate .tsx files**
+```tsx
+// ReactChild.tsx - React component in its own file
+export function ReactChild() {
+  return <div>Child</div>;  // This is React JSX
+}
+```
+
+```ripple
+// App.ripple - Import and use the React component
+import { ReactChild } from './ReactChild.tsx';
+
+component App() {
+  <tsx:react>
+    <ReactChild />
+  </tsx:react>
+}
+```
+
+**✅ CORRECT: Or use jsx/jsxs directly in .ripple files**
+```ripple
+import { jsx } from 'react/jsx-runtime';
+
+// React component using jsx() instead of JSX syntax
+function ReactChild() {
+  return jsx('div', { children: 'Child' });
+}
+
+component App() {
+  <tsx:react>
+    <ReactChild />
+  </tsx:react>
+}
+```
+
+**❌ WRONG: Forgetting to wrap React app with RippleRoot**
+```tsx
+// Wrong: Ripple component won't work without RippleRoot
+root.render(<Ripple component={MyComponent} />);
+```
+
+**✅ CORRECT: Always wrap with RippleRoot when using Ripple in React**
+```tsx
+root.render(
+  <RippleRoot>
+    <Ripple component={MyComponent} />
+  </RippleRoot>
+);
+```
+
+**❌ WRONG: Forgetting createReactCompat() when using tsx:react in Ripple**
+```typescript
+// Wrong: tsx:react blocks won't render
+mount(App, { target: document.getElementById('app')! });
+```
+
+**✅ CORRECT: Always configure compat when using tsx:react**
+```typescript
+mount(App, {
+  target: document.getElementById('app')!,
+  compat: {
+    react: createReactCompat(),
+  },
+});
+```
+
 ### Portal Component
 
 The `Portal` component allows you to render (teleport) content anywhere in the DOM tree, breaking out of the normal component hierarchy. This is particularly useful for modals, tooltips, and notifications.
