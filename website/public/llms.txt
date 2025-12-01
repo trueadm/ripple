@@ -968,6 +968,137 @@ export component App() {
 
 ## Advanced Features
 
+### React Compatibility
+
+Ripple provides a compatibility layer for integrating with React applications. This allows you to:
+- Embed React components inside Ripple applications
+- Embed Ripple components inside React applications
+- Share React Context and React Suspense between React and Ripple components
+
+**Note**: React SSR is not currently supported. The compatibility layer is client-side only.
+
+#### Installation
+
+```bash
+npm install @ripple-ts/compat-react
+```
+
+#### Using React Components in Ripple (tsx:react)
+
+The `<tsx:react>` block allows you to embed React JSX directly inside Ripple components. React components inside these blocks use React's JSX semantics (e.g., `className` instead of `class`).
+
+```ripple
+import { Suspense } from 'react';
+
+component App() {
+  <div class="ripple-container">
+    <h1>{"Ripple App"}</h1>
+
+    {/* Embed React components using tsx:react */}
+    <tsx:react>
+      <div className="react-content">
+        This is React JSX!
+      </div>
+    </tsx:react>
+  </div>
+}
+```
+
+#### Setting Up React Compat with mount()
+
+To use `<tsx:react>` blocks, you must configure the React compatibility layer when mounting your Ripple app:
+
+```typescript
+// main.ts
+import { mount } from 'ripple';
+import { createReactCompat } from '@ripple-ts/compat-react';
+import { App } from './App.ripple';
+
+mount(App, {
+  target: document.getElementById('app')!,
+  compat: {
+    react: createReactCompat(),
+  },
+});
+```
+
+#### Using Ripple Components in React (RippleRoot + Ripple)
+
+To embed Ripple components inside a React application, wrap your React app with `<RippleRoot>` and use the `<Ripple>` component to render Ripple components:
+
+```tsx
+// App.tsx - React application
+import { createRoot } from 'react-dom/client';
+import { RippleRoot, Ripple } from '@ripple-ts/compat-react';
+import { MyRippleComponent } from './MyComponent.ripple';
+
+function App() {
+  return (
+    <div>
+      <h1>Hello from React!</h1>
+      <Ripple component={MyRippleComponent} props={{ message: "Hello!" }} />
+    </div>
+  );
+}
+
+const root = createRoot(document.getElementById('root')!);
+root.render(
+  <RippleRoot>
+    <App />
+  </RippleRoot>
+);
+```
+
+The `<Ripple>` component accepts:
+- `component`: The Ripple component to render
+- `props` (optional): Props to pass to the Ripple component
+
+#### React Context Integration
+
+React Context works seamlessly across the Ripple/React boundary. Context providers in React are accessible from Ripple components embedded via `<tsx:react>`, and vice versa.
+
+```ripple
+import { createContext, useContext } from 'react';
+
+// Create a React context
+const ThemeContext = createContext('light');
+
+// React component that uses context
+function ThemedButton() {
+  const theme = useContext(ThemeContext);
+  return <button className={theme}>Themed Button</button>;
+}
+
+// Ripple component that provides and consumes React context
+component App() {
+  <tsx:react>
+    <ThemeContext.Provider value="dark">
+      <ThemedButton />
+    </ThemeContext.Provider>
+  </tsx:react>
+}
+```
+
+#### Error Boundaries
+
+Ripple's `try/catch` blocks can catch errors thrown by React components inside `<tsx:react>` blocks:
+
+```ripple
+function BuggyReactComponent() {
+  throw new Error('Something went wrong!');
+}
+
+component App() {
+  try {
+    <tsx:react>
+      <BuggyReactComponent />
+    </tsx:react>
+  } catch (error) {
+    <div class="error">{"An error occurred in the React component"}</div>
+  }
+}
+```
+
 ### Portal Component
 
 The `Portal` component allows you to render (teleport) content anywhere in the DOM tree, breaking out of the normal component hierarchy. This is particularly useful for modals, tooltips, and notifications.
