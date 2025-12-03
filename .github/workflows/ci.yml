@@ -55,6 +55,10 @@ jobs:
         working-directory: ./packages/eslint-parser
         run: pnpm build
 
+      - name: Build mcp-server
+        working-directory: ./packages/mcp-server
+        run: pnpm build
+
       - name: Run tests
         run: pnpm test
 
