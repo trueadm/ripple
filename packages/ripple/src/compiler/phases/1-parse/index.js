@@ -2339,57 +2339,58 @@ function get_comment_handlers(source, comments, index = 0) {
 							}
 						}
 
-						const parent = /** @type {any} */ (path.at(-1));
+						const parent = /** @type {AST.Node & AST.NodeWithLocation} */ (path.at(-1));
 
 						if (parent === undefined || node.end !== parent.end) {
 							const slice = source.slice(node.end, comments[0].start);
 
 							// Check if this node is the last item in an array-like structure
 							let is_last_in_array = false;
-							let array_prop = null;
+							/** @type {(AST.Node | null)[] | null} */
+							let node_array = null;
+							let isParam = false;
+							let isArgument = false;
+							let isSwitchCaseSibling = false;
 
 							if (
-								parent?.type === 'BlockStatement' ||
-								parent?.type === 'Program' ||
-								parent?.type === 'Component' ||
-								parent?.type === 'ClassBody'
+								parent.type === 'BlockStatement' ||
+								parent.type === 'Program' ||
+								parent.type === 'Component' ||
+								parent.type === 'ClassBody'
 							) {
-								array_prop = 'body';
-							} else if (parent?.type === 'SwitchStatement') {
-								array_prop = 'cases';
-							} else if (parent?.type === 'SwitchCase') {
-								array_prop = 'consequent';
+								node_array = parent.body;
+							} else if (parent.type === 'SwitchStatement') {
+								node_array = parent.cases;
+								isSwitchCaseSibling = true;
+							} else if (parent.type === 'SwitchCase') {
+								node_array = parent.consequent;
 							} else if (
-								parent?.type === 'ArrayExpression' ||
-								parent?.type === 'TrackedArrayExpression'
+								parent.type === 'ArrayExpression' ||
+								parent.type === 'TrackedArrayExpression'
 							) {
-								array_prop = 'elements';
+								node_array = parent.elements;
 							} else if (
-								parent?.type === 'ObjectExpression' ||
-								parent?.type === 'TrackedObjectExpression'
+								parent.type === 'ObjectExpression' ||
+								parent.type === 'TrackedObjectExpression'
 							) {
-								array_prop = 'properties';
+								node_array = parent.properties;
 							} else if (
-								parent?.type === 'FunctionDeclaration' ||
-								parent?.type === 'FunctionExpression' ||
-								parent?.type === 'ArrowFunctionExpression'
+								parent.type === 'FunctionDeclaration' ||
+								parent.type === 'FunctionExpression' ||
+								parent.type === 'ArrowFunctionExpression'
 							) {
-								array_prop = 'params';
-							} else if (
-								parent?.type === 'CallExpression' ||
-								parent?.type === 'OptionalCallExpression' ||
-								parent?.type === 'NewExpression'
-							) {
-								array_prop = 'arguments';
+								node_array = parent.params;
+								isParam = true;
+							} else if (parent.type === 'CallExpression' || parent.type === 'NewExpression') {
+								node_array = parent.arguments;
+								isArgument = true;
 							}
-							if (array_prop && Array.isArray(parent[array_prop])) {
-								is_last_in_array =
-									parent[array_prop].indexOf(node) === parent[array_prop].length - 1;
+
+							if (node_array && Array.isArray(node_array)) {
+								is_last_in_array = node_array.indexOf(node) === node_array.length - 1;
 							}
 
 							if (is_last_in_array) {
-								const isParam = array_prop === 'params';
-								const isArgument = array_prop === 'arguments';
 								if (isParam || isArgument) {
 									while (comments.length) {
 										const potentialComment = comments[0];
@@ -2431,7 +2432,6 @@ function get_comment_handlers(source, comments, index = 0) {
 									nodeEndLine !== null &&
 									commentStartLine !== null &&
 									commentStartLine === nodeEndLine + 1;
-								const isSwitchCaseSibling = array_prop === 'cases';
 
 								if (isSwitchCaseSibling && !is_last_in_array) {
 									if (
@@ -2453,14 +2453,9 @@ function get_comment_handlers(source, comments, index = 0) {
 									// Check if this is a block comment that's inline with the next statement
 									// e.g., /** @type {SomeType} */ (a) = 5;
 									// These should be leading comments, not trailing
-									if (
-										comments[0].type === 'Block' &&
-										!is_last_in_array &&
-										array_prop &&
-										parent[array_prop]
-									) {
-										const currentIndex = parent[array_prop].indexOf(node);
-										const nextSibling = parent[array_prop][currentIndex + 1];
+									if (comments[0].type === 'Block' && !is_last_in_array && node_array) {
+										const currentIndex = node_array.indexOf(node);
+										const nextSibling = node_array[currentIndex + 1];
 
 										if (nextSibling && nextSibling.loc) {
 											const commentEndLine = comments[0].loc?.end?.line;
@@ -2476,7 +2471,6 @@ function get_comment_handlers(source, comments, index = 0) {
 
 									// For function parameters, only attach as trailing comment if it's on the same line
 									// Comments on next line after comma should be leading comments of next parameter
-									const isParam = array_prop === 'params';
 									if (isParam) {
 										// Check if comment is on same line as the node
 										const nodeEndLine = source.slice(0, node.end).split('\n').length;
@@ -2492,7 +2486,7 @@ function get_comment_handlers(source, comments, index = 0) {
 											/** @type {AST.CommentWithLocation} */ (comments.shift()),
 										];
 									}
-								} else if (hasBlankLine && onlyWhitespace && array_prop && parent[array_prop]) {
+								} else if (hasBlankLine && onlyWhitespace && node_array) {
 									// When there's a blank line between node and comment(s),
 									// check if there's also a blank line after the comment(s) before the next node
 									// If so, attach comments as trailing to preserve the grouping
@@ -2507,8 +2501,8 @@ function get_comment_handlers(source, comments, index = 0) {
 										return;
 									}
 
-									const currentIndex = parent[array_prop].indexOf(node);
-									const nextSibling = parent[array_prop][currentIndex + 1];
+									const currentIndex = node_array.indexOf(node);
+									const nextSibling = node_array[currentIndex + 1];
 
 									if (nextSibling && nextSibling.loc) {
 										// Find where the comment block ends
