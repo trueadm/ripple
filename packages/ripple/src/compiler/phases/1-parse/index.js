@@ -1146,7 +1146,7 @@ function RipplePlugin(config) {
 			}
 
 			/**
-			 * @returns {ESTreeJSX.JSXEmptyExpression}
+			 * @type {Parse.Parser['jsx_parseEmptyExpression']}
 			 */
 			jsx_parseEmptyExpression() {
 				// Override to properly handle the range for JSXEmptyExpression
@@ -1160,7 +1160,7 @@ function RipplePlugin(config) {
 			}
 
 			/**
-			 * @returns {ESTreeJSX.JSXExpressionContainer}
+			 * @type {Parse.Parser['jsx_parseTupleContainer']}
 			 */
 			jsx_parseTupleContainer() {
 				const t = /** @type {ESTreeJSX.JSXExpressionContainer} */ (this.startNode());

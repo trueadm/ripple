@@ -1480,9 +1480,10 @@ export namespace Parse {
 
 		/**
 		 * Parse JSX empty expression (for {})
-		 * @returns JSXEmptyExpression node
 		 */
-		jsx_parseEmptyExpression(): AST.Node;
+		jsx_parseEmptyExpression(): ESTreeJSX.JSXEmptyExpression;
+
+		jsx_parseTupleContainer(): ESTreeJSX.JSXExpressionContainer;
 
 		/**
 		 * Parse JSX expression container ({...})
