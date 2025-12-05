@@ -1,8 +1,10 @@
+/** @import * as AST from 'estree' */
+
 /**
  *
  * @param {string} message
  * @param {string} filename
- * @param {any} node
+ * @param {AST.Node} node
  */
 export function error(message, filename, node) {
 	let errorMessage = message;

@@ -112,7 +112,7 @@ class Parser {
 /**
  * @param {string} content
  * @param {{ loose?: boolean }} options
- * @returns {Partial<AST.CSS.StyleSheet>}
+ * @returns {AST.CSS.StyleSheet}
  */
 export function parse_style(content, options) {
 	const parser = new Parser(content, options.loose || false);
@@ -122,6 +122,8 @@ export function parse_style(content, options) {
 		hash: `ripple-${hash(content)}`,
 		type: 'StyleSheet',
 		children: read_body(parser),
+		start: 0,
+		end: content.length,
 	};
 }
 

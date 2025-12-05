@@ -6,6 +6,7 @@ import { createServer as createViteServer } from 'vite';
 import { executeServerFunction } from 'ripple/server';
 
 const PORT = process.env.PORT || '5173';
+const DEBUG_APP = process.env.DEBUG_APP === 'true' ? path.resolve('./debug/App.js') : null;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,7 +75,14 @@ polka()
 				globalThis.rpc_modules = previous_rpc;
 			}
 
-			const { App } = await vite.ssrLoadModule('/src/App.ripple');
+			let App;
+			if (DEBUG_APP) {
+				// Use pre-generated debug file
+				({ App } = await import(DEBUG_APP));
+			} else {
+				// Use Vite's ssrLoadModule for hot reloading
+				({ App } = await vite.ssrLoadModule('/src/App.ripple'));
+			}
 
 			const { head, body, css } = await render(App);
 

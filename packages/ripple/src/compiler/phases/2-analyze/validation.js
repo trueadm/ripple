@@ -1,3 +1,6 @@
+/** @import * as AST from 'estree' */
+/** @import {AnalysisContext} from '#compiler' */
+
 import { error } from '../../errors.js';
 
 const invalid_nestings = {
@@ -113,7 +116,7 @@ const invalid_nestings = {
 };
 
 /**
- * @param {any} element
+ * @param {AST.Element} element
  * @returns {string | null}
  */
 function get_element_tag(element) {
@@ -121,11 +124,10 @@ function get_element_tag(element) {
 }
 
 /**
- * @param {any} element
- * @param {any} state
- * @param {any} context
+ * @param {AST.Element} element
+ * @param {AnalysisContext} context
  */
-export function validate_nesting(element, state, context) {
+export function validate_nesting(element, context) {
 	const tag = get_element_tag(element);
 
 	if (tag === null) {
@@ -146,8 +148,8 @@ export function validate_nesting(element, state, context) {
 				if (validation_set.has(tag)) {
 					error(
 						`Invalid HTML nesting: <${tag}> cannot be a descendant of <${parent_tag}>.`,
-						state.analysis.module.filename,
-						context,
+						context.state.analysis.module.filename,
+						element,
 					);
 				}
 			}

@@ -1,4 +1,14 @@
 /** @import {AnalyzeOptions} from 'ripple/compiler'  */
+/**
+@import {
+	AnalysisResult,
+	AnalysisState,
+	AnalysisContext,
+	ScopeInterface,
+	Visitors,
+	Visitor,
+} from '#compiler';
+ */
 /** @import * as AST from 'estree' */
 
 import * as b from '../../../utils/builders.js';
@@ -23,6 +33,9 @@ import { validate_nesting } from './validation.js';
 
 const valid_in_head = new Set(['title', 'base', 'link', 'meta', 'style', 'script', 'noscript']);
 
+/**
+ * @param {AnalysisContext['path']} path
+ */
 function mark_control_flow_has_template(path) {
 	for (let i = path.length - 1; i >= 0; i -= 1) {
 		const node = path[i];
@@ -49,16 +62,19 @@ function mark_control_flow_has_template(path) {
 	}
 }
 
+/**
+ * @param {AST.Function} node
+ * @param {AnalysisContext} context
+ */
 function visit_function(node, context) {
 	node.metadata = {
-		scope: context.state.scope,
 		tracked: false,
+		path: [...context.path],
 	};
 
 	context.next({
 		...context.state,
-		function_depth: context.state.function_depth + 1,
-		expression: null,
+		function_depth: (context.state.function_depth ?? 0) + 1,
 	});
 
 	if (node.metadata.tracked) {
@@ -66,6 +82,9 @@ function visit_function(node, context) {
 	}
 }
 
+/**
+ * @param {AnalysisContext['path']} path
+ */
 function mark_as_tracked(path) {
 	for (let i = path.length - 1; i >= 0; i -= 1) {
 		const node = path[i];
@@ -84,20 +103,22 @@ function mark_as_tracked(path) {
 	}
 }
 
+/** @type {Visitors<AST.Node, AnalysisState>} */
 const visitors = {
 	_(node, { state, next, path }) {
 		// Set up metadata.path for each node (needed for CSS pruning)
 		if (!node.metadata) {
-			node.metadata = {};
+			node.metadata = { path: [...path] };
+		} else {
+			node.metadata.path = [...path];
 		}
-		node.metadata.path = [...path];
 
 		const scope = state.scopes.get(node);
 		next(scope !== undefined && scope !== state.scope ? { ...state, scope } : state);
 	},
 
 	Program(_, context) {
-		return context.next({ ...context.state, function_depth: 0, expression: null });
+		return context.next({ ...context.state, function_depth: 0 });
 	},
 
 	ServerBlock(node, context) {
@@ -113,17 +134,19 @@ const visitors = {
 		const parent = context.path.at(-1);
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {AST.Node} */ (parent)) &&
 			binding &&
 			context.state.inside_server_block &&
 			context.state.scope.server_block
 		) {
+			/** @type {ScopeInterface | null} */
 			let current_scope = binding.scope;
 
 			while (current_scope !== null) {
 				if (current_scope.server_block) {
 					break;
 				}
+				/** @type {ScopeInterface | null} */
 				const parent_scope = current_scope.parent;
 				if (parent_scope === null) {
 					error(
@@ -148,7 +171,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {AST.Node} */ (parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -159,7 +182,7 @@ const visitors = {
 		}
 
 		if (
-			is_reference(node, /** @type {Node} */ (parent)) &&
+			is_reference(node, /** @type {AST.Node} */ (parent)) &&
 			node.tracked &&
 			binding?.node !== node
 		) {
@@ -174,7 +197,7 @@ const visitors = {
 	MemberExpression(node, context) {
 		const parent = context.path.at(-1);
 
-		if (context.state.metadata?.tracking === false && parent.type !== 'AssignmentExpression') {
+		if (context.state.metadata?.tracking === false && parent?.type !== 'AssignmentExpression') {
 			context.state.metadata.tracking = true;
 		}
 
@@ -217,9 +240,12 @@ const visitors = {
 	},
 
 	CallExpression(node, context) {
-		// bug in our acorn pasrer: it uses typeParameters instead of typeArguments
+		// bug in our acorn [parser]: it uses typeParameters instead of typeArguments
+		// @ts-expect-error
 		if (node.typeParameters) {
+			// @ts-expect-error
 			node.typeArguments = node.typeParameters;
+			// @ts-expect-error
 			delete node.typeParameters;
 		}
 
@@ -289,7 +315,7 @@ const visitors = {
 				visit(declarator, state);
 			}
 
-			declarator.metadata = metadata;
+			declarator.metadata = { ...metadata, path: [...context.path] };
 		}
 	},
 
@@ -313,7 +339,7 @@ const visitors = {
 				const paths = extract_paths(props);
 
 				for (const path of paths) {
-					const name = path.node.name;
+					const name = /** @type {AST.Identifier} */ (path.node).name;
 					const binding = context.state.scope.get(name);
 
 					if (binding !== null) {
@@ -324,7 +350,11 @@ const visitors = {
 								return path.expression(b.id('__props'));
 							},
 							assign: (node, value) => {
-								return b.assignment('=', path.expression(b.id('__props')), value);
+								return b.assignment(
+									'=',
+									/** @type {AST.MemberExpression} */ (path.expression(b.id('__props'))),
+									value,
+								);
 							},
 							update: (node) =>
 								b.update(node.operator, path.expression(b.id('__props')), node.prefix),
@@ -339,6 +369,7 @@ const visitors = {
 				);
 			}
 		}
+		/** @type {AST.Element[]} */
 		const elements = [];
 
 		// Track metadata for this component
@@ -347,7 +378,7 @@ const visitors = {
 		context.next({
 			...context.state,
 			elements,
-			function_depth: context.state.function_depth + 1,
+			function_depth: (context.state.function_depth ?? 0) + 1,
 			metadata,
 		});
 
@@ -431,11 +462,11 @@ const visitors = {
 
 		if (node.index) {
 			const state = context.state;
-			const scope = state.scopes.get(node);
-			const binding = scope.get(node.index.name);
-			binding.kind = 'index';
+			const scope = /** @type {ScopeInterface} */ (state.scopes.get(node));
+			const binding = scope.get(/** @type {AST.Identifier} */ (node.index).name);
 
 			if (binding !== null) {
+				binding.kind = 'index';
 				binding.transform = {
 					read: (node) => {
 						return b.call('_$_.get', node);
@@ -446,32 +477,33 @@ const visitors = {
 
 		if (node.key) {
 			const state = context.state;
-			const pattern = node.left.declarations[0].id;
+			const pattern = /** @type {AST.VariableDeclaration} */ (node.left).declarations[0].id;
 			const paths = extract_paths(pattern);
-			const scope = state.scopes.get(node);
+			const scope = /** @type {ScopeInterface} */ (state.scopes.get(node));
+			/** @type {AST.Identifier | AST.Pattern} */
 			let pattern_id;
 			if (state.to_ts) {
 				pattern_id = pattern;
 			} else {
 				pattern_id = b.id(scope.generate('pattern'));
-				node.left.declarations[0].id = pattern_id;
+				/** @type {AST.VariableDeclaration} */ (node.left).declarations[0].id = pattern_id;
 			}
 
 			for (const path of paths) {
-				const name = path.node.name;
+				const name = /** @type {AST.Identifier} */ (path.node).name;
 				const binding = context.state.scope.get(name);
 
-				binding.kind = 'for_pattern';
-				if (!binding.metadata) {
-					binding.metadata = {
-						pattern: pattern_id,
-					};
-				}
-
 				if (binding !== null) {
+					binding.kind = 'for_pattern';
+					if (!binding.metadata) {
+						binding.metadata = {
+							pattern: /** @type {AST.Identifier} */ (pattern_id),
+						};
+					}
+
 					binding.transform = {
 						read: () => {
-							return path.expression(b.call('_$_.get', pattern_id));
+							return path.expression(b.call('_$_.get', /** @type {AST.Identifier} */ (pattern_id)));
 						},
 					};
 				}
@@ -498,15 +530,17 @@ const visitors = {
 		if (!context.state.inside_server_block) {
 			return context.next();
 		}
-		const server_block = context.path.find((n) => n.type === 'ServerBlock');
-		const declaration = node.declaration;
+		const server_block = /** @type {AST.ServerBlock} */ (
+			context.path.find((n) => n.type === 'ServerBlock')
+		);
+		const declaration = /** @type {AST.RippleExportNamedDeclaration} */ (node).declaration;
 
 		if (declaration && declaration.type === 'FunctionDeclaration') {
 			server_block.metadata.exports.push(declaration.id.name);
 		} else if (declaration && declaration.type === 'Component') {
 			// Handle exported components in server blocks
 			if (server_block) {
-				server_block.metadata.exports.push(declaration.id.name);
+				server_block.metadata.exports.push(/** @type {AST.Identifier} */ (declaration.id).name);
 			}
 		} else {
 			// TODO
@@ -518,8 +552,11 @@ const visitors = {
 
 	TSTypeReference(node, context) {
 		// bug in our acorn pasrer: it uses typeParameters instead of typeArguments
+		// @ts-expect-error
 		if (node.typeParameters) {
+			// @ts-expect-error
 			node.typeArguments = node.typeParameters;
+			// @ts-expect-error
 			delete node.typeParameters;
 		}
 		context.next();
@@ -560,12 +597,7 @@ const visitors = {
 			}
 		}
 	},
-	/**
-	 *
-	 * @param {any} node
-	 * @param {any} context
-	 * @returns
-	 */
+
 	TryStatement(node, context) {
 		const { state } = context;
 		if (!is_inside_component(context)) {
@@ -651,7 +683,7 @@ const visitors = {
 
 		mark_control_flow_has_template(path);
 
-		validate_nesting(node, state, context);
+		validate_nesting(node, context);
 
 		// Store capitalized name for dynamic components/elements
 		if (node.id.tracked) {
@@ -696,7 +728,7 @@ const visitors = {
 			}
 			if (state.inside_head) {
 				if (node.id.name === 'title') {
-					const chiildren = normalize_children(node.children);
+					const chiildren = normalize_children(node.children, context);
 
 					if (chiildren.length !== 1 || chiildren[0].type !== 'Text') {
 						error(
@@ -733,12 +765,12 @@ const visitors = {
 						}
 
 						if (is_event_attribute(attr.name.name)) {
-							const handler = visit(attr.value, state);
+							const handler = visit(/** @type {AST.Expression} */ (attr.value), state);
 							const is_delegated = is_delegated_event(attr.name.name, handler, context);
 
 							if (is_delegated) {
 								if (attr.metadata === undefined) {
-									attr.metadata = {};
+									attr.metadata = { path: [...path] };
 								}
 
 								attr.metadata.delegated = is_delegated;
@@ -777,7 +809,7 @@ const visitors = {
 
 			for (const child of node.children) {
 				if (child.type === 'Component') {
-					if (child.id.name === 'children') {
+					if (child.id?.name === 'children') {
 						explicit_children = true;
 						if (implicit_children) {
 							error(
@@ -825,11 +857,6 @@ const visitors = {
 		context.next();
 	},
 
-	/**
-	 *
-	 * @param {any} node
-	 * @param {any} context
-	 */
 	AwaitExpression(node, context) {
 		const parent_block = get_parent_block_node(context);
 
@@ -851,7 +878,7 @@ const visitors = {
 
 		if (parent_block) {
 			if (!parent_block.metadata) {
-				parent_block.metadata = {};
+				parent_block.metadata = { path: [...context.path] };
 			}
 			parent_block.metadata.has_await = true;
 		}
@@ -865,6 +892,7 @@ const visitors = {
  * @param {AST.Program} ast
  * @param {string} filename
  * @param {AnalyzeOptions} options
+ * @returns {AnalysisResult}
  */
 export function analyze(ast, filename, options = {}) {
 	const scope_root = new ScopeRoot();
@@ -881,6 +909,7 @@ export function analyze(ast, filename, options = {}) {
 
 	walk(
 		ast,
+		/** @type {AnalysisState} */
 		{
 			scope,
 			scopes,
@@ -889,6 +918,7 @@ export function analyze(ast, filename, options = {}) {
 			inside_server_block: options.mode === 'server',
 			to_ts: options.to_ts ?? false,
 			loose: options.loose ?? false,
+			metadata: {},
 		},
 		visitors,
 	);

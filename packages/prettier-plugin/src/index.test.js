@@ -104,6 +104,7 @@ describe('prettier-plugin', () => {
   let count = 0;
 
   // comment
+
   <div>{'Hello'}</div>
   <div>
     let two = 2;

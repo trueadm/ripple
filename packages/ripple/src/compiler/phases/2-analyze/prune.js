@@ -1,25 +1,58 @@
+/** @import * as AST from 'estree' */
+/** @import { Visitors } from '#compiler' */
+/** @typedef {0 | 1} Direction */
+
 import { walk } from 'zimmerframe';
 import { is_element_dom_element } from '../../utils.js';
 
 const seen = new Set();
 const regex_backslash_and_following_character = /\\(.)/g;
+/** @type {Direction} */
 const FORWARD = 0;
+/** @type {Direction} */
 const BACKWARD = 1;
 
 // CSS selector constants
-const descendant_combinator = { name: ' ', type: 'Combinator' };
-const nesting_selector = {
-	type: 'NestingSelector',
-	name: '&',
-	selectors: [],
-	metadata: { scoped: false },
-};
-const any_selector = {
-	type: 'RelativeSelector',
-	selectors: [{ type: 'TypeSelector', name: '*' }],
-	combinator: null,
-	metadata: { scoped: false },
-};
+/**
+ * @param {number} start
+ * @param {number} end
+ * @returns {AST.CSS.Combinator}
+ */
+function create_descendant_combinator(start, end) {
+	return { name: ' ', type: 'Combinator', start, end };
+}
+
+/**
+ * @param {number} start
+ * @param {number} end
+ * @returns {AST.CSS.RelativeSelector}
+ */
+function create_nesting_selector(start, end) {
+	return {
+		type: 'RelativeSelector',
+		selectors: [{ type: 'NestingSelector', name: '&', start, end }],
+		combinator: null,
+		metadata: { is_global: false, is_global_like: false, scoped: false },
+		start,
+		end,
+	};
+}
+
+/**
+ * @param {number} start
+ * @param {number} end
+ * @returns {AST.CSS.RelativeSelector}
+ */
+function create_any_selector(start, end) {
+	return {
+		type: 'RelativeSelector',
+		selectors: [{ type: 'TypeSelector', name: '*', start, end }],
+		combinator: null,
+		metadata: { is_global: false, is_global_like: false, scoped: false },
+		start,
+		end,
+	};
+}
 
 // Whitelist for attribute selectors on specific elements
 const whitelist_attribute_selector = new Map([
@@ -72,6 +105,9 @@ const whitelist_attribute_selector = new Map([
 	['video', ['autoplay', 'controls', 'loop', 'muted', 'playsinline']],
 ]);
 
+/**
+ * @param {AST.CSS.ComplexSelector} node
+ */
 function get_relative_selectors(node) {
 	const selectors = truncate(node);
 
@@ -80,12 +116,15 @@ function get_relative_selectors(node) {
 
 		// nesting could be inside pseudo classes like :is, :has or :where
 		for (let selector of selectors) {
-			walk(selector, null, {
-				// @ts-ignore
-				NestingSelector() {
-					has_explicit_nesting_selector = true;
-				},
-			});
+			walk(
+				selector,
+				null,
+				/** @type {Visitors<AST.CSS.Node, null>} */ ({
+					NestingSelector() {
+						has_explicit_nesting_selector = true;
+					},
+				}),
+			);
 
 			// if we found one we can break from the others
 			if (has_explicit_nesting_selector) break;
@@ -95,17 +134,22 @@ function get_relative_selectors(node) {
 			if (selectors[0].combinator === null) {
 				selectors[0] = {
 					...selectors[0],
-					combinator: descendant_combinator,
+					combinator: create_descendant_combinator(selectors[0].start, selectors[0].end),
 				};
 			}
 
-			selectors.unshift(nesting_selector);
+			selectors.unshift(create_nesting_selector(selectors[0].start, selectors[0].end));
 		}
 	}
 
 	return selectors;
 }
 
+/**
+ *
+ * @param {AST.CSS.ComplexSelector} node
+ * @returns {AST.CSS.RelativeSelector[]}
+ */
 function truncate(node) {
 	const i = node.children.findLastIndex(({ metadata, selectors }) => {
 		const first = selectors[0];
@@ -133,6 +177,13 @@ function truncate(node) {
 	});
 }
 
+/**
+ * @param {AST.CSS.RelativeSelector[]} relative_selectors
+ * @param {AST.CSS.Rule} rule
+ * @param {AST.Element} element
+ * @param {Direction} direction
+ * @returns {boolean}
+ */
 function apply_selector(relative_selectors, rule, element, direction) {
 	const rest_selectors = relative_selectors.slice();
 	const relative_selector = direction === FORWARD ? rest_selectors.shift() : rest_selectors.pop();
@@ -153,7 +204,13 @@ function apply_selector(relative_selectors, rule, element, direction) {
 	return matched;
 }
 
-function get_ancestor_elements(node, adjacent_only, seen = new Set()) {
+/**
+ * @param {AST.Element} node
+ * @param {boolean} adjacent_only
+ * @returns {AST.Element[]}
+ */
+function get_ancestor_elements(node, adjacent_only) {
+	/** @type {AST.Element[]} */
 	const ancestors = [];
 
 	const path = node.metadata.path;
@@ -173,9 +230,20 @@ function get_ancestor_elements(node, adjacent_only, seen = new Set()) {
 	return ancestors;
 }
 
+/**
+ * @param {AST.Element} node
+ * @param {boolean} adjacent_only
+ * @returns {AST.Element[]}
+ */
 function get_descendant_elements(node, adjacent_only) {
+	/** @type {AST.Element[]} */
 	const descendants = [];
 
+	/**
+	 * @param {AST.Node} current_node
+	 * @param {number} depth
+	 * @returns {void}
+	 */
 	function visit(current_node, depth = 0) {
 		if (current_node.type === 'Element' && current_node !== node) {
 			descendants.push(current_node);
@@ -183,21 +251,24 @@ function get_descendant_elements(node, adjacent_only) {
 		}
 
 		// Visit children based on Ripple's AST structure
-		if (current_node.children) {
-			for (const child of current_node.children) {
+		if (/** @type {AST.Element} */ (current_node).children) {
+			for (const child of /** @type {AST.Element} */ (current_node).children) {
 				visit(child, depth + 1);
 			}
 		}
 
-		if (current_node.body) {
-			for (const child of current_node.body) {
+		if (/** @type {AST.Component} */ (current_node).body) {
+			for (const child of /** @type {AST.Component} */ (current_node).body) {
 				visit(child, depth + 1);
 			}
 		}
 
 		// For template nodes and text interpolations
-		if (current_node.expression && typeof current_node.expression === 'object') {
-			visit(current_node.expression, depth + 1);
+		if (
+			/** @type {AST.TextNode} */ (current_node).expression &&
+			typeof (/** @type {AST.TextNode} */ (current_node).expression) === 'object'
+		) {
+			visit(/** @type {AST.TextNode} */ (current_node).expression, depth + 1);
 		}
 	}
 
@@ -208,18 +279,12 @@ function get_descendant_elements(node, adjacent_only) {
 		}
 	}
 
-	if (node.body) {
-		for (const child of node.body) {
-			visit(child);
-		}
-	}
-
 	return descendants;
 }
 
 /**
  * Check if an element can render dynamic content that might affect CSS matching
- * @param {any} element
+ * @param {AST.Node} element
  * @param {boolean} check_classes - Whether to check for dynamic class attributes
  * @returns {boolean}
  */
@@ -230,14 +295,14 @@ function can_render_dynamic_content(element, check_classes = false) {
 
 	// Either a dynamic element or component (only can tell at runtime)
 	// But dynamic elements should return false ideally
-	if (element.id?.tracked) {
+	if (/** @type {AST.Element} */ (element).id.tracked) {
 		return true;
 	}
 
 	// Check for dynamic class attributes if requested (for class-based selectors)
-	if (check_classes && element.attributes) {
-		for (const attr of element.attributes) {
-			if (attr.type === 'Attribute' && attr.name?.name === 'class') {
+	if (check_classes && /** @type {AST.Element} */ (element).attributes) {
+		for (const attr of /** @type {AST.Element} */ (element).attributes) {
+			if (attr.type === 'Attribute' && attr.name.name === 'class') {
 				// Check if class value is an expression (not a static string)
 				if (attr.value && typeof attr.value === 'object') {
 					// If it's a CallExpression or other dynamic value, it's dynamic
@@ -252,8 +317,15 @@ function can_render_dynamic_content(element, check_classes = false) {
 	return false;
 }
 
+/**
+ * @param {AST.Node} node
+ * @param {Direction} direction
+ * @param {boolean} adjacent_only
+ * @returns {Map<AST.Element, boolean>}
+ */
 function get_possible_element_siblings(node, direction, adjacent_only) {
 	const siblings = new Map();
+	// Parent has to be an Element not a Component
 	const parent = get_element_parent(node);
 
 	if (!parent) {
@@ -261,7 +333,7 @@ function get_possible_element_siblings(node, direction, adjacent_only) {
 	}
 
 	// Get the container that holds the siblings
-	const container = parent.children || parent.body || [];
+	const container = parent.children || [];
 	const node_index = container.indexOf(node);
 
 	if (node_index === -1) return siblings;
@@ -292,7 +364,13 @@ function get_possible_element_siblings(node, direction, adjacent_only) {
 			}
 		}
 		// Stop at non-whitespace text nodes for adjacent selectors
-		else if (adjacent_only && sibling.type === 'Text' && sibling.value?.trim()) {
+		else if (
+			adjacent_only &&
+			sibling.type === 'Text' &&
+			sibling.expression.type === 'Literal' &&
+			typeof sibling.expression.value === 'string' &&
+			sibling.expression.value.trim()
+		) {
 			break;
 		}
 	}
@@ -300,6 +378,14 @@ function get_possible_element_siblings(node, direction, adjacent_only) {
 	return siblings;
 }
 
+/**
+ * @param {AST.CSS.RelativeSelector} relative_selector
+ * @param {AST.CSS.RelativeSelector[]} rest_selectors
+ * @param {AST.CSS.Rule} rule
+ * @param {AST.Element} node
+ * @param {Direction} direction
+ * @returns {boolean}
+ */
 function apply_combinator(relative_selector, rest_selectors, rule, node, direction) {
 	const combinator =
 		direction == FORWARD ? rest_selectors[0]?.combinator : relative_selector.combinator;
@@ -358,7 +444,7 @@ function apply_combinator(relative_selector, rest_selectors, rule, node, directi
 								// Check if there are any elements after this component that could match the remaining selectors
 								const parent = get_element_parent(node);
 								if (parent) {
-									const container = parent.children || parent.body || [];
+									const container = parent.children || [];
 									const component_index = container.indexOf(possible_sibling);
 
 									// For adjacent combinator, only check immediate next element
@@ -411,7 +497,10 @@ function apply_combinator(relative_selector, rest_selectors, rule, node, directi
 			return true;
 	}
 }
-
+/**
+ * @param {AST.Node} node
+ * @returns {AST.Element | null}
+ */
 function get_element_parent(node) {
 	// Check if metadata and path exist
 	if (!node.metadata || !node.metadata.path) {
@@ -434,7 +523,8 @@ function get_element_parent(node) {
 
 /**
  * `true` if is a pseudo class that cannot be or is not scoped
- * @param {Compiler.AST.CSS.SimpleSelector} selector
+ * @param {AST.CSS.SimpleSelector} selector
+ * @returns {boolean}
  */
 function is_unscoped_pseudo_class(selector) {
 	return (
@@ -457,7 +547,7 @@ function is_unscoped_pseudo_class(selector) {
 
 /**
  * True if is `:global(...)` or `:global` and no pseudo class that is scoped.
- * @param {Compiler.AST.CSS.RelativeSelector} relative_selector
+ * @param {AST.CSS.RelativeSelector} relative_selector
  */
 function is_global_simple(relative_selector) {
 	const first = relative_selector.selectors[0];
@@ -475,6 +565,11 @@ function is_global_simple(relative_selector) {
 	);
 }
 
+/**
+ * @param {AST.CSS.RelativeSelector} selector
+ * @param {AST.CSS.Rule} rule
+ * @return {boolean}
+ */
 function is_global(selector, rule) {
 	if (selector.metadata.is_global || selector.metadata.is_global_like) {
 		return true;
@@ -483,7 +578,7 @@ function is_global(selector, rule) {
 	let explicitly_global = false;
 
 	for (const s of selector.selectors) {
-		/** @type {Compiler.AST.CSS.SelectorList | null} */
+		/** @type {AST.CSS.SelectorList | null} */
 		let selector_list = null;
 		let can_be_global = false;
 		let owner = rule;
@@ -497,7 +592,7 @@ function is_global(selector, rule) {
 		}
 
 		if (s.type === 'NestingSelector') {
-			owner = /** @type {Compiler.AST.CSS.Rule} */ (rule.metadata.parent_rule);
+			owner = /** @type {AST.CSS.Rule} */ (rule.metadata.parent_rule);
 			selector_list = owner.prelude;
 		}
 
@@ -516,10 +611,21 @@ function is_global(selector, rule) {
 	return explicitly_global || selector.selectors.length === 0;
 }
 
+/**
+ * @param {AST.Attribute} attribute
+ * @returns {attribute is AST.Attribute & { value: AST.Literal & { value: string } }}
+ */
 function is_text_attribute(attribute) {
-	return attribute.value.type === 'Literal';
+	return attribute.value?.type === 'Literal' && typeof attribute.value.value === 'string';
 }
 
+/**
+ * @param {string | null} operator
+ * @param {string} expected_value
+ * @param {boolean} case_insensitive
+ * @param {string} value
+ * @returns {boolean}
+ */
 function test_attribute(operator, expected_value, case_insensitive, value) {
 	if (case_insensitive) {
 		expected_value = expected_value.toLowerCase();
@@ -543,6 +649,14 @@ function test_attribute(operator, expected_value, case_insensitive, value) {
 	}
 }
 
+/**
+ * @param {AST.Element} node
+ * @param {string} name
+ * @param {string | null} expected_value
+ * @param {string | null} operator
+ * @param {boolean} case_insensitive
+ * @returns {boolean}
+ */
 function attribute_matches(node, name, expected_value, operator, case_insensitive) {
 	for (const attribute of node.attributes) {
 		if (attribute.type === 'SpreadAttribute') return true;
@@ -564,6 +678,10 @@ function attribute_matches(node, name, expected_value, operator, case_insensitiv
 	return false;
 }
 
+/**
+ * @param {AST.CSS.RelativeSelector} relative_selector
+ * @returns {boolean}
+ */
 function is_outer_global(relative_selector) {
 	const first = relative_selector.selectors[0];
 
@@ -581,6 +699,13 @@ function is_outer_global(relative_selector) {
 	);
 }
 
+/**
+ * @param {AST.CSS.RelativeSelector} relative_selector
+ * @param {AST.CSS.Rule} rule
+ * @param {AST.Element} element
+ * @param {Direction} direction
+ * @return {boolean}
+ */
 function relative_selector_might_apply_to_node(relative_selector, rule, element, direction) {
 	// Sort :has(...) selectors in one bucket and everything else into another
 	const has_selectors = [];
@@ -617,8 +742,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 		// upwards and back-to-front, we need to first check the selectors inside :has(...), then check the rest of the
 		// selector in a way that is similar to ancestor matching. In a sense, we're treating `.x:has(.y)` as `.x .y`.
 		for (const has_selector of has_selectors) {
-			const complex_selectors = /** @type {Compiler.AST.CSS.SelectorList} */ (has_selector.args)
-				.children;
+			const complex_selectors = /** @type {AST.CSS.SelectorList} */ (has_selector.args).children;
 			let matched = false;
 
 			for (const complex_selector of complex_selectors) {
@@ -642,8 +766,10 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 				}
 
 				const selector_excluding_self = [
-					any_selector,
-					first.combinator ? first : { ...first, combinator: descendant_combinator },
+					create_any_selector(first.start, first.end),
+					first.combinator
+						? first
+						: { ...first, combinator: create_descendant_combinator(first.start, first.end) },
 					...rest,
 				];
 				if (apply_selector(selector_excluding_self, rule, element, FORWARD)) {
@@ -701,6 +827,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 								selector.metadata.scoped = true;
 							}
 
+							/** @type {AST.Element | null} */
 							let el = element;
 							while (el) {
 								el.metadata.scoped = true;
@@ -797,7 +924,7 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 			case 'NestingSelector': {
 				let matched = false;
 
-				const parent = /** @type {Compiler.AST.CSS.Rule} */ (rule.metadata.parent_rule);
+				const parent = /** @type {AST.CSS.Rule} */ (rule.metadata.parent_rule);
 
 				for (const complex_selector of parent.prelude.children) {
 					if (
@@ -822,7 +949,10 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 	return true;
 }
 
-// Utility functions for parsing CSS values
+/**
+ * @param {string} str
+ * @returns {string}
+ */
 function unquote(str) {
 	if (
 		(str[0] === '"' && str[str.length - 1] === '"') ||
@@ -833,6 +963,10 @@ function unquote(str) {
 	return str;
 }
 
+/**
+ * @param {AST.CSS.Rule} rule
+ * @returns {AST.CSS.Rule[]}
+ */
 function get_parent_rules(rule) {
 	const rules = [rule];
 	let current = rule;
@@ -847,7 +981,7 @@ function get_parent_rules(rule) {
 
 /**
  * Check if a CSS rule contains animation or animation-name properties
- * @param {Compiler.AST.CSS.Rule} rule
+ * @param {AST.CSS.Rule} rule
  * @returns {boolean}
  */
 function rule_has_animation(rule) {
@@ -865,8 +999,14 @@ function rule_has_animation(rule) {
 	return false;
 }
 
+/**
+ * @param {AST.CSS.StyleSheet} css
+ * @param {AST.Element} element
+ * @return {void}
+ */
 export function prune_css(css, element) {
-	walk(css, null, {
+	/** @type {Visitors<AST.CSS.Node, null>} */
+	const visitors = {
 		Rule(node, context) {
 			if (node.metadata.is_global_block) {
 				context.visit(node.prelude);
@@ -879,7 +1019,7 @@ export function prune_css(css, element) {
 
 			seen.clear();
 
-			const rule = /** @type {Compiler.AST.CSS.Rule} */ (node.metadata.rule);
+			const rule = /** @type {AST.CSS.Rule} */ (node.metadata.rule);
 
 			if (apply_selector(selectors, rule, element, BACKWARD) || rule_has_animation(rule)) {
 				node.metadata.used = true;
@@ -899,5 +1039,7 @@ export function prune_css(css, element) {
 				context.next();
 			}
 		},
-	});
+	};
+
+	walk(css, null, visitors);
 }

@@ -1,5 +1,6 @@
-/** @import { Identifier, Pattern, Super, MemberExpression, AssignmentExpression, Expression, Node, AssignmentOperator } from 'estree' */
-/** @import { Component, Element, RippleNode, TransformContext } from '#compiler' */
+/** @import { CommonContext, NameSpace, ScopeInterface } from '#compiler' */
+/** @import * as AST from 'estree' */
+
 import { build_assignment_value, extract_paths } from '../utils/ast.js';
 import * as b from '../utils/builders.js';
 import { is_capture_event, is_non_delegated, normalize_event_name } from '../utils/events.js';
@@ -172,8 +173,8 @@ export function is_dom_property(name) {
 /**
  * Determines if an event handler can be delegated
  * @param {string} event_name
- * @param {Expression} handler
- * @param {TransformContext} context
+ * @param {AST.Node} handler
+ * @param {CommonContext} context
  * @returns {boolean}
  */
 export function is_delegated_event(event_name, handler, context) {
@@ -184,7 +185,7 @@ export function is_delegated_event(event_name, handler, context) {
 		is_non_delegated(normalize_event_name(event_name)) ||
 		(handler.type !== 'FunctionExpression' &&
 			handler.type !== 'ArrowFunctionExpression' &&
-			!is_declared_function_within_component(/** @type {Identifier}*/ (handler), context))
+			!is_declared_function_within_component(/** @type {AST.Identifier}*/ (handler), context))
 	) {
 		return false;
 	}
@@ -193,7 +194,7 @@ export function is_delegated_event(event_name, handler, context) {
 
 /**
  * Returns true if context is inside a top-level await
- * @param {TransformContext} context
+ * @param {CommonContext} context
  * @returns {boolean}
  */
 export function is_top_level_await(context) {
@@ -205,7 +206,7 @@ export function is_top_level_await(context) {
 		const context_node = context.path[i];
 		const type = context_node.type;
 
-		if (/** @type {Component} */ (context_node).type === 'Component') {
+		if (context_node.type === 'Component') {
 			return true;
 		}
 
@@ -222,7 +223,7 @@ export function is_top_level_await(context) {
 
 /**
  * Returns true if context is inside a Component node
- * @param {TransformContext} context
+ * @param {CommonContext} context
  * @param {boolean} [includes_functions=false]
  * @returns {boolean}
  */
@@ -239,7 +240,7 @@ export function is_inside_component(context, includes_functions = false) {
 		) {
 			return false;
 		}
-		if (/** @type {Component} */ (context_node).type === 'Component') {
+		if (context_node.type === 'Component') {
 			return true;
 		}
 	}
@@ -248,7 +249,7 @@ export function is_inside_component(context, includes_functions = false) {
 
 /**
  * Returns true if context is inside a component-level function
- * @param {TransformContext} context
+ * @param {CommonContext} context
  * @returns {boolean}
  */
 export function is_component_level_function(context) {
@@ -256,7 +257,10 @@ export function is_component_level_function(context) {
 		const context_node = context.path[i];
 		const type = context_node.type;
 
-		if (type === 'BlockStatement' && context_node.body.find((n) => n.type === 'Component')) {
+		if (
+			type === 'BlockStatement' &&
+			context_node.body.find((n) => /** @type {AST.Node} */ (n).type === 'Component')
+		) {
 			return true;
 		}
 
@@ -273,8 +277,8 @@ export function is_component_level_function(context) {
 
 /**
  * Returns true if callee is a Ripple track call
- * @param {Expression | Super} callee
- * @param {TransformContext} context
+ * @param {AST.Expression | AST.Super} callee
+ * @param {CommonContext} context
  * @returns {boolean}
  */
 export function is_ripple_track_call(callee, context) {
@@ -294,7 +298,7 @@ export function is_ripple_track_call(callee, context) {
 
 /**
  * Returns true if context is inside a call expression
- * @param {TransformContext} context
+ * @param {CommonContext} context
  * @returns {boolean}
  */
 export function is_inside_call_expression(context) {
@@ -322,7 +326,7 @@ export function is_inside_call_expression(context) {
 
 /**
  * Returns true if node is a static value (Literal, ArrayExpression, etc)
- * @param {Node} node
+ * @param {AST.Node} node
  * @returns {boolean}
  */
 export function is_value_static(node) {
@@ -344,8 +348,8 @@ export function is_value_static(node) {
 
 /**
  * Returns true if callee is a Ripple import
- * @param {Expression} callee
- * @param {TransformContext} context
+ * @param {AST.Expression} callee
+ * @param {CommonContext} context
  * @returns {boolean}
  */
 export function is_ripple_import(callee, context) {
@@ -380,16 +384,16 @@ export function is_ripple_import(callee, context) {
 
 /**
  * Returns true if node is a function declared within a component
- * @param {import('estree').Identifier} node
- * @param {TransformContext} context
+ * @param {AST.Node} node
+ * @param {CommonContext} context
  * @returns {boolean}
  */
 export function is_declared_function_within_component(node, context) {
-	const component = context.path?.find(/** @param {RippleNode} n */ (n) => n.type === 'Component');
+	const component = context.path?.find((n) => n.type === 'Component');
 
 	if (node.type === 'Identifier' && component) {
 		const binding = context.state.scope.get(node.name);
-		const component_scope = context.state.scopes.get(component);
+		const component_scope = context.state.scopes?.get(component);
 
 		if (binding !== null && component_scope !== null) {
 			if (
@@ -400,6 +404,7 @@ export function is_declared_function_within_component(node, context) {
 			) {
 				return false;
 			}
+			/** @type {ScopeInterface | null} */
 			let scope = binding.scope;
 
 			while (scope !== null) {
@@ -415,10 +420,10 @@ export function is_declared_function_within_component(node, context) {
 }
 /**
  * Visits and transforms an assignment expression
- * @param {AssignmentExpression} node
- * @param {TransformContext} context
+ * @param {AST.AssignmentExpression} node
+ * @param {CommonContext} context
  * @param {Function} build_assignment
- * @returns {Expression | AssignmentExpression | null}
+ * @returns {AST.Expression | AST.AssignmentExpression | null}
  */
 export function visit_assignment_expression(node, context, build_assignment) {
 	if (
@@ -426,7 +431,7 @@ export function visit_assignment_expression(node, context, build_assignment) {
 		node.left.type === 'ObjectPattern' ||
 		node.left.type === 'RestElement'
 	) {
-		const value = /** @type {Expression} */ (context.visit(node.right));
+		const value = /** @type {AST.Expression} */ (context.visit(node.right));
 		const should_cache = value.type !== 'Identifier';
 		const rhs = should_cache ? b.id('$$value') : value;
 
@@ -442,8 +447,8 @@ export function visit_assignment_expression(node, context, build_assignment) {
 				assignment ??
 				b.assignment(
 					'=',
-					/** @type {Pattern} */ (context.visit(path.node)),
-					/** @type {Expression} */ (context.visit(value)),
+					/** @type {AST.Pattern} */ (context.visit(path.node)),
+					/** @type {AST.Expression} */ (context.visit(value)),
 				)
 			);
 		});
@@ -453,7 +458,7 @@ export function visit_assignment_expression(node, context, build_assignment) {
 			return null;
 		}
 
-		const is_standalone = context.path.at(-1).type.endsWith('Statement');
+		const is_standalone = context.path.at(-1)?.type.endsWith('Statement');
 		const sequence = b.sequence(assignments);
 
 		if (!is_standalone) {
@@ -486,11 +491,11 @@ export function visit_assignment_expression(node, context, build_assignment) {
 
 /**
  * Builds an assignment node, possibly transforming for reactivity
- * @param {AssignmentOperator} operator
- * @param {Pattern | MemberExpression | Identifier} left
- * @param {Expression} right
- * @param {TransformContext} context
- * @returns {Expression|null}
+ * @param {AST.AssignmentOperator} operator
+ * @param {AST.Pattern} left
+ * @param {AST.Expression} right
+ * @param {CommonContext} context
+ * @returns {AST.Expression | null}
  */
 export function build_assignment(operator, left, right, context) {
 	let object = left;
@@ -511,32 +516,14 @@ export function build_assignment(operator, left, right, context) {
 
 	// reassignment
 	if (object === left || (left.type === 'MemberExpression' && left.computed && operator === '=')) {
-		const assign_fn = transform?.assign || transform?.assign_tracked;
+		const assign_fn = transform?.assign;
 		if (assign_fn) {
-			let value = /** @type {Expression} */ (
+			let value = /** @type {AST.Expression} */ (
 				context.visit(build_assignment_value(operator, left, right))
 			);
 
-			return assign_fn(
-				object,
-				value,
-				left.type === 'MemberExpression' && left.computed
-					? context.visit(left.property)
-					: undefined,
-			);
+			return assign_fn(object, value);
 		}
-	}
-
-	// mutation
-	if (transform?.mutate) {
-		return transform.mutate(
-			object,
-			b.assignment(
-				operator,
-				/** @type {Pattern} */ (context.visit(left)),
-				/** @type {Expression} */ (context.visit(right)),
-			),
-		);
 	}
 
 	return null;
@@ -547,7 +534,7 @@ const CONTENT_REGEX = /[&<]/g;
 
 /**
  * Escapes HTML special characters in a string
- * @param {string} value
+ * @param {string | number | bigint | boolean | RegExp | null | undefined} value
  * @param {boolean} [is_attr=false]
  * @returns {string}
  */
@@ -586,26 +573,27 @@ export function hash(str) {
 
 /**
  * Returns true if node is a DOM element (not a component)
- * @param {Element} node
+ * @param {AST.Node} node
  * @returns {boolean}
  */
 export function is_element_dom_element(node) {
+	const id = /** @type {AST.Element} */ (node).id;
 	return (
-		node.id.type === 'Identifier' &&
-		node.id.name[0].toLowerCase() === node.id.name[0] &&
-		node.id.name !== 'children' &&
-		!node.id.tracked
+		id.type === 'Identifier' &&
+		id.name[0].toLowerCase() === id.name[0] &&
+		id.name !== 'children' &&
+		!id.tracked
 	);
 }
 
 /**
  * Normalizes children nodes (merges adjacent text, removes empty)
- * @param {RippleNode[]} children
- * @param {TransformContext} context
- * @returns {RippleNode[]}
+ * @param {AST.Node[]} children
+ * @param {CommonContext} context
+ * @returns {AST.Node[]}
  */
 export function normalize_children(children, context) {
-	/** @type {RippleNode[]} */
+	/** @type {AST.Node[]} */
 	const normalized = [];
 
 	for (const node of children) {
@@ -636,9 +624,9 @@ export function normalize_children(children, context) {
 }
 
 /**
- * @param {RippleNode} node
- * @param {RippleNode[]} normalized
- * @param {TransformContext} context
+ * @param {AST.Node} node
+ * @param {AST.Node[]} normalized
+ * @param {CommonContext} context
  */
 function normalize_child(node, normalized, context) {
 	if (node.type === 'EmptyStatement') {
@@ -657,7 +645,7 @@ function normalize_child(node, normalized, context) {
 }
 
 /**
- * @param {TransformContext} context
+ * @param {CommonContext} context
  */
 export function get_parent_block_node(context) {
 	const path = context.path;
@@ -686,9 +674,9 @@ export function get_parent_block_node(context) {
 
 /**
  * Builds a getter for a tracked identifier
- * @param {Identifier} node
- * @param {TransformContext} context
- * @returns {Expression | Identifier}
+ * @param {AST.Identifier} node
+ * @param {CommonContext} context
+ * @returns {AST.Expression | AST.Identifier}
  */
 export function build_getter(node, context) {
 	const state = context.state;
@@ -704,7 +692,7 @@ export function build_getter(node, context) {
 			const read_fn = transform?.read;
 
 			if (read_fn) {
-				return read_fn(node, context.state?.metadata?.spread, context.visit);
+				return read_fn(node);
 			}
 		}
 	}
@@ -715,8 +703,8 @@ export function build_getter(node, context) {
 /**
  * Determines the namespace for child elements
  * @param {string} element_name
- * @param {string} current_namespace
- * @returns {string}
+ * @param {NameSpace} current_namespace
+ * @returns {NameSpace}
  */
 export function determine_namespace_for_children(element_name, current_namespace) {
 	if (element_name === 'foreignObject') {

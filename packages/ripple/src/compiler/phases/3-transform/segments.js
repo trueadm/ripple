@@ -75,12 +75,14 @@ function extractCssSourceRegions(ast, source, source_line_offsets) {
 			// Check if this is a style element with CSS content
 			if (node.id?.name === 'style' && node.css) {
 				const openLoc = node.openingElement.loc;
-				const cssStart =
-					loc_to_offset(openLoc.end.line, openLoc.end.column, source_line_offsets) + 1;
+				const cssStart = loc_to_offset(openLoc.end.line, openLoc.end.column, source_line_offsets);
 
 				const closeLoc = node.closingElement.loc;
-				const cssEnd =
-					loc_to_offset(closeLoc.start.line, closeLoc.start.column, source_line_offsets) - 1;
+				const cssEnd = loc_to_offset(
+					closeLoc.start.line,
+					closeLoc.start.column,
+					source_line_offsets,
+				);
 
 				regions.push({
 					start: cssStart,

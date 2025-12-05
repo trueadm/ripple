@@ -1,4 +1,18 @@
-/** @import {Expression, FunctionExpression, Node, Program, Statement} from 'estree' */
+/** @import * as AST from 'estree' */
+/** @import * as ESTreeJSX from 'estree-jsx' */
+/** @import { SourceMapMappings } from '@jridgewell/sourcemap-codec' */
+/** @import * as ESRap from 'esrap' */
+/**
+@import {
+	AnalysisResult,
+	TransformClientContext,
+	VisitorClientContext,
+	TransformClientState,
+	ScopeInterface,
+	Visitor,
+	Visitors
+}	from '#compiler';
+ */
 
 /** @typedef {Map<number, {offset: number, delta: number}>} PostProcessingChanges */
 /** @typedef {number[]} LineOffsets */
@@ -47,6 +61,9 @@ import {
 } from '../../../../utils/events.js';
 import { createHash } from 'node:crypto';
 
+/**
+ * @param {TransformClientContext} context
+ */
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
 		if (!context.state.imports.has(`import * as _$_ from 'ripple/internal/client'`)) {
@@ -55,6 +72,11 @@ function add_ripple_internal_import(context) {
 	}
 }
 
+/**
+ *
+ * @param {AST.FunctionDeclaration | AST.FunctionExpression | AST.ArrowFunctionExpression} node
+ * @param {TransformClientContext} context
+ */
 function visit_function(node, context) {
 	// Function overload signatures don't have a body - they're TypeScript-only
 	// Remove them when compiling to JavaScript
@@ -62,11 +84,12 @@ function visit_function(node, context) {
 		return b.empty;
 	}
 
-	if (context.state.to_ts) {
-		return context.next(context.state);
-	}
-	const metadata = node.metadata;
 	const state = context.state;
+	const metadata = /** @type {AST.FunctionExpression['metadata']} */ (node.metadata);
+
+	if (context.state.to_ts) {
+		return context.next(state);
+	}
 
 	delete node.returnType;
 	delete node.typeParameters;
@@ -96,46 +119,68 @@ function visit_function(node, context) {
 			new_body.push(...body.body);
 		}
 
-		return /** @type {FunctionExpression} */ ({
+		return {
 			...node,
 			params: node.params.map((param) => context.visit(param, state)),
 			body: body.type === 'BlockStatement' ? { ...body, body: new_body } : body,
-		});
+		};
 	}
 
-	context.next(state);
+	return context.next(state);
 }
 
+/**
+ * @param {AST.Element} node
+ * @param {TransformClientContext} context
+ */
 function visit_head_element(node, context) {
 	const { state, visit } = context;
 
+	/** @type {TransformClientState['init']} */
 	const init = [];
+	/** @type {TransformClientState['update']} */
 	const update = [];
+	/** @type {TransformClientState['final']} */
 	const final = [];
+	/** @type {TransformClientState['template']} */
 	const template = [];
 
-	transform_children(node.children, {
-		visit,
-		state: { ...state, init, update, final, template, inside_head: true },
-		root: true,
-	});
+	transform_children(
+		node.children,
+		/** @type {VisitorClientContext} */ ({
+			visit,
+			state: { ...state, init, update, final, template, inside_head: true },
+			root: true,
+		}),
+	);
 
 	if (init.length > 0 || update.length > 0 || final.length > 0) {
-		context.state.init.push(
-			b.call(
-				'_$_.head',
-				b.arrow(
-					[b.id('__anchor')],
-					b.block([...init, ...update.map((u) => u.operation), ...final]),
+		context.state.init?.push(
+			b.stmt(
+				b.call(
+					'_$_.head',
+					b.arrow(
+						[b.id('__anchor')],
+						b.block([
+							...init,
+							.../** @type {AST.Statement[]} */ (update.map((u) => u.operation())),
+							...final,
+						]),
+					),
 				),
 			),
 		);
 	}
 }
 
+/**
+ * @param {NonNullable<TransformClientState['init']>} init
+ * @param {NonNullable<TransformClientState['update']>} update
+ * @param {TransformClientState} state
+ */
 function apply_updates(init, update, state) {
-	if (update.length === 1 && !update[0].needsPrevTracking) {
-		init.push(
+	if (update?.length === 1 && !update[0].needsPrevTracking) {
+		init?.push(
 			b.stmt(
 				b.call(
 					'_$_.render',
@@ -145,7 +190,7 @@ function apply_updates(init, update, state) {
 								if (u.initial) {
 									return u.operation(u.expression);
 								}
-								return u.operation;
+								return u.operation();
 							}),
 						),
 						!!update.async,
@@ -154,7 +199,6 @@ function apply_updates(init, update, state) {
 			),
 		);
 	} else {
-		const index_map = new Map();
 		const initial = [];
 		const render_statements = [];
 		let index = 0;
@@ -164,7 +208,9 @@ function apply_updates(init, update, state) {
 		for (const u of update) {
 			if (u.initial) {
 				const id =
-					u.identity.type === 'Identifier' ? state.scope.get(u.identity.name)?.initial : u.identity;
+					u.identity?.type === 'Identifier'
+						? state.scope.get(u.identity.name)?.initial
+						: u.identity;
 				let updates = grouped_updates.get(id);
 
 				if (updates === undefined) {
@@ -179,7 +225,6 @@ function apply_updates(init, update, state) {
 			if (updates.length === 1) {
 				const u = updates[0];
 				const key = index_to_key(index);
-				index_map.set(u.operation, key);
 				initial.push(b.prop('init', b.id(key), u.initial));
 				render_statements.push(
 					b.var('__' + key, u.expression),
@@ -204,7 +249,7 @@ function apply_updates(init, update, state) {
 				index++;
 			} else {
 				const key = index_to_key(index);
-				/** @type {Array<Statement>} */
+				/** @type {Array<AST.Statement>} */
 				const if_body = [];
 				initial.push(b.prop('init', b.id(key), updates[0].initial));
 				render_statements.push(
@@ -215,7 +260,6 @@ function apply_updates(init, update, state) {
 					),
 				);
 				for (const u of updates) {
-					index_map.set(u.operation, key);
 					if_body.push(
 						u.needsPrevTracking
 							? u.operation(b.id('__' + key), b.member(b.id('__prev'), b.id(key)))
@@ -232,7 +276,7 @@ function apply_updates(init, update, state) {
 
 		for (const u of update) {
 			if (!u.initial && !u.needsPrevTracking) {
-				render_statements.push(u.operation);
+				render_statements.push(u.operation());
 			}
 		}
 
@@ -248,30 +292,37 @@ function apply_updates(init, update, state) {
 	}
 }
 
+/**
+ * @param {AST.Element} node
+ * @param {TransformClientContext} context
+ */
 function visit_title_element(node, context) {
 	const normalized = normalize_children(node.children, context);
 	const content = normalized[0];
 
 	const metadata = { tracking: false, await: false };
-	const result = context.visit(content, { ...context.state, metadata }).expression;
+	const visited = context.visit(content, { ...context.state, metadata });
+	const result = /** @type {AST.Expression} */ (
+		/** @type {{expression?: AST.Expression}} */ (visited).expression
+	);
 
 	if (metadata.tracking) {
-		context.state.init.push(
+		context.state.init?.push(
 			b.stmt(
 				b.call(
 					'_$_.render',
-					b.thunk(b.block([b.assignment('=', b.id('_$_.document.title'), result)])),
+					b.thunk(b.block([b.stmt(b.assignment('=', b.id('_$_.document.title'), result))])),
 				),
 			),
 		);
 	} else {
-		context.state.init.push(b.stmt(b.assignment('=', b.id('_$_.document.title'), result)));
+		context.state.init?.push(b.stmt(b.assignment('=', b.id('_$_.document.title'), result)));
 	}
 }
 
 /**
  * @param {string} name
- * @param {any} context
+ * @param {TransformClientContext} context
  * @returns {string}
  */
 function import_from_ripple_if_needed(name, context) {
@@ -284,8 +335,15 @@ function import_from_ripple_if_needed(name, context) {
 	return alias ?? name;
 }
 
+/** @type {Visitors<AST.Node, TransformClientState>} */
 const visitors = {
-	_: function set_scope(node, { next, state }) {
+	_(node, { next, state, path }) {
+		if (!node.metadata) {
+			node.metadata = { path: [...path] };
+		} else {
+			node.metadata.path = [...path];
+		}
+
 		const scope = state.scopes.get(node);
 
 		if (scope && scope !== state.scope) {
@@ -296,7 +354,7 @@ const visitors = {
 	},
 
 	Identifier(node, context) {
-		const parent = /** @type {Node} */ (context.path.at(-1));
+		const parent = /** @type {AST.Node} */ (context.path.at(-1));
 
 		if (is_reference(node, parent)) {
 			if (context.state.to_ts) {
@@ -353,26 +411,31 @@ const visitors = {
 		return b.id('_$_server_$_');
 	},
 
+	/** @type {Visitor<AST.ImportDeclaration, TransformClientState, AST.Node>} */
 	ImportDeclaration(node, context) {
 		if (!context.state.to_ts && node.importKind === 'type') {
 			return b.empty;
 		}
 
-		return {
+		return /** @type {AST.ImportDeclaration} */ ({
 			...node,
 			specifiers: node.specifiers
-				.filter((spec) => context.state.to_ts || spec.importKind !== 'type')
+				.filter(
+					(spec) =>
+						context.state.to_ts || /** @type {AST.ImportSpecifier} */ (spec).importKind !== 'type',
+				)
 				.map((spec) => context.visit(spec)),
-		};
+		});
 	},
 
 	TSNonNullExpression(node, context) {
 		if (context.state.to_ts) {
 			return context.next();
 		}
-		return context.visit(node.expression);
+		return context.visit(/** @type {AST.Expression} */ (node.expression));
 	},
 
+	/** @type {Visitor<AST.CallExpression, TransformClientState, AST.Node>} */
 	CallExpression(node, context) {
 		if (!context.state.to_ts) {
 			delete node.typeArguments;
@@ -385,7 +448,7 @@ const visitors = {
 		}
 
 		if (!context.state.to_ts && is_ripple_track_call(callee, context)) {
-			if (callee.name === 'track') {
+			if (callee.type === 'Identifier' && callee.name === 'track') {
 				if (node.arguments.length === 0) {
 					node.arguments.push(b.void0, b.void0, b.void0);
 				} else if (node.arguments.length === 1) {
@@ -396,7 +459,10 @@ const visitors = {
 			}
 			return {
 				...node,
-				arguments: [...node.arguments.map((arg) => context.visit(arg)), b.id('__block')],
+				arguments: /** @type {(AST.Expression | AST.SpreadElement)[]} */ ([
+					...node.arguments.map((arg) => context.visit(arg)),
+					b.id('__block'),
+				]),
 			};
 		}
 
@@ -422,11 +488,11 @@ const visitors = {
 					b.thunk(
 						b.call(
 							'_$_.call_property',
-							context.visit(callee.object),
-							context.visit(property),
+							/** @type {AST.Expression} */ (context.visit(callee.object)),
+							/** @type {AST.Expression} */ (context.visit(property)),
 							callee.optional ? b.true : undefined,
-							node.optional ? b.true : undefined,
-							...node.arguments.map((arg) => context.visit(arg)),
+							/** @type {AST.SimpleCallExpression} */ (node).optional ? b.true : undefined,
+							.../** @type {AST.Expression[]} */ (node.arguments.map((arg) => context.visit(arg))),
 						),
 					),
 				);
@@ -439,8 +505,10 @@ const visitors = {
 			b.thunk(
 				{
 					...node,
-					callee: context.visit(callee),
-					arguments: node.arguments.map((arg) => context.visit(arg)),
+					callee: /** @type {AST.Expression} */ (context.visit(callee)),
+					arguments: /** @type {(AST.Expression | AST.SpreadElement)[]} */ (
+						node.arguments.map((arg) => context.visit(arg))
+					),
 				},
 				context.state.metadata?.await ?? false,
 			),
@@ -489,15 +557,19 @@ const visitors = {
 				calleeId.loc = callee.loc;
 				calleeId.metadata = {
 					tracked_shorthand: callee.type === 'TrackedMapExpression' ? '#Map' : '#Set',
+					path: [...context.path],
 				};
-				return b.new(calleeId, ...argsToUse.map((arg) => context.visit(arg)));
+				return b.new(
+					calleeId,
+					.../** @type {AST.Expression[]} */ (argsToUse.map((arg) => context.visit(arg))),
+				);
 			}
 
 			const helperName = callee.type === 'TrackedMapExpression' ? 'tracked_map' : 'tracked_set';
 			return b.call(
 				`_$_.${helperName}`,
 				b.id('__block'),
-				...argsToUse.map((arg) => context.visit(arg)),
+				.../** @type {AST.Expression[]} */ (argsToUse.map((arg) => context.visit(arg))),
 			);
 		}
 
@@ -514,10 +586,13 @@ const visitors = {
 			return context.next();
 		}
 
+		/** @type {AST.NewExpression} */
 		const new_node = {
 			...node,
-			callee: context.visit(callee),
-			arguments: node.arguments.map((arg) => context.visit(arg)),
+			callee: /** @type {AST.Expression} */ (context.visit(callee)),
+			arguments: /** @type {(AST.Expression | AST.SpreadElement)[]} */ (
+				node.arguments.map((arg) => context.visit(arg))
+			),
 		};
 		if (!context.state.to_ts) {
 			delete new_node.typeArguments;
@@ -532,13 +607,21 @@ const visitors = {
 
 			return b.call(
 				b.member(b.id(arrayAlias), b.id('from')),
-				b.array(node.elements.map((el) => context.visit(el))),
+				b.array(
+					/** @type {(AST.Expression | AST.SpreadElement)[]} */ (
+						node.elements.map((el) => context.visit(/** @type {AST.Node} */ (el)))
+					),
+				),
 			);
 		}
 
 		return b.call(
 			'_$_.tracked_array',
-			b.array(node.elements.map((el) => context.visit(el))),
+			b.array(
+				/** @type {(AST.Expression | AST.SpreadElement)[]} */ (
+					node.elements.map((el) => context.visit(/** @type {AST.Node} */ (el)))
+				),
+			),
 			b.id('__block'),
 		);
 	},
@@ -547,23 +630,33 @@ const visitors = {
 		if (context.state.to_ts) {
 			const objectAlias = import_from_ripple_if_needed('TrackedObject', context);
 
-			return b.new(b.id(objectAlias), b.object(node.properties.map((prop) => context.visit(prop))));
+			return b.new(
+				b.id(objectAlias),
+				b.object(
+					/** @type {(AST.Property | AST.SpreadElement)[]} */ (
+						node.properties.map((prop) => context.visit(prop))
+					),
+				),
+			);
 		}
 
 		return b.call(
 			'_$_.tracked_object',
-			b.object(node.properties.map((prop) => context.visit(prop))),
+			b.object(
+				/** @type {(AST.Property | AST.SpreadElement)[]} */ (
+					node.properties.map((prop) => context.visit(prop))
+				),
+			),
 			b.id('__block'),
 		);
 	},
 
 	TrackedExpression(node, context) {
-		return b.call('_$_.get', context.visit(node.argument));
+		return b.call('_$_.get', /** @type {AST.Expression} */ (context.visit(node.argument)));
 	},
 
+	/** @type {Visitor<AST.MemberExpression, TransformClientState, AST.Node>} */
 	MemberExpression(node, context) {
-		const parent = context.path.at(-1);
-
 		if (context.state.metadata?.tracking === false) {
 			context.state.metadata.tracking = true;
 		}
@@ -575,8 +668,10 @@ const visitors = {
 			if (!context.state.to_ts) {
 				return b.call(
 					'_$_.get_property',
-					context.visit(node.object),
-					node.computed ? context.visit(node.property) : b.literal(node.property.name),
+					/** @type {AST.Expression} */ (context.visit(node.object)),
+					node.computed
+						? /** @type {AST.Expression} */ (context.visit(node.property))
+						: b.literal(/** @type {AST.Identifier} */ (node.property).name),
 					node.optional ? b.true : undefined,
 				);
 			}
@@ -588,15 +683,15 @@ const visitors = {
 			const object = context.visit(node.object, { ...context.state, metadata });
 
 			if (metadata.tracking) {
-				if (context.state.metadata?.tracking === false) {
+				if (/** @type {boolean | undefined} */ (context.state.metadata?.tracking) === false) {
 					context.state.metadata.tracking = true;
 				}
 
 				return {
 					...node,
 					optional: true,
-					object,
-					property: context.visit(node.property),
+					object: /** @type {AST.Expression} */ (object),
+					property: /** @type {AST.Expression} */ (context.visit(node.property)),
 				};
 			}
 			if (metadata.await) {
@@ -626,13 +721,14 @@ const visitors = {
 		return context.next();
 	},
 
+	/** @type {Visitor<AST.VariableDeclarator, TransformClientState, AST.Node>} */
 	VariableDeclarator(node, context) {
 		// In TypeScript mode, capitalize identifiers that are used as dynamic components
 		if (context.state.to_ts) {
 			/**
 			 * Recursively capitalize identifiers in patterns (ArrayPattern, ObjectPattern)
-			 * @param {any} pattern - The pattern node to process
-			 * @returns {any} The transformed pattern
+			 * @param {AST.Pattern} pattern - The pattern node to process
+			 * @returns {AST.Pattern} The transformed pattern
 			 */
 			const capitalize_pattern = (pattern) => {
 				if (pattern.type === 'Identifier') {
@@ -685,7 +781,7 @@ const visitors = {
 					return {
 						...pattern,
 						left: capitalize_pattern(pattern.left),
-						right: context.visit(pattern.right),
+						right: /** @type {AST.Expression} */ (context.visit(pattern.right)),
 					};
 				}
 				return pattern;
@@ -696,7 +792,7 @@ const visitors = {
 				return {
 					...node,
 					id: transformed_id,
-					init: node.init ? context.visit(node.init) : null,
+					init: node.init ? /** @type {AST.Expression} */ (context.visit(node.init)) : null,
 				};
 			}
 		}
@@ -704,15 +800,19 @@ const visitors = {
 	},
 
 	FunctionDeclaration(node, context) {
-		return visit_function(node, context);
+		return /** @type AST.FunctionDeclaration | AST.EmptyStatement */ (
+			visit_function(node, context)
+		);
 	},
 
 	ArrowFunctionExpression(node, context) {
-		return visit_function(node, context);
+		return /** @type AST.ArrowFunctionExpression | AST.EmptyStatement */ (
+			visit_function(node, context)
+		);
 	},
 
 	FunctionExpression(node, context) {
-		return visit_function(node, context);
+		return /** @type AST.FunctionExpression | AST.EmptyStatement */ (visit_function(node, context));
 	},
 
 	JSXText(node, context) {
@@ -759,9 +859,16 @@ const visitors = {
 		const props = b.object(
 			attributes.map((attr) => {
 				if (attr.type === 'JSXAttribute') {
-					return b.prop('init', context.visit(attr.name), context.visit(attr.value));
-				} else if (attr.type === 'JSXSpreadAttribute') {
-					return b.spread(context.visit(attr.argument));
+					return b.prop(
+						'init',
+						/** @type {AST.Expression} */ (context.visit(attr.name)),
+						attr.value
+							? /** @type {AST.Expression} */ (context.visit(attr.value))
+							: b.literal(true),
+					);
+				} else {
+					// attr.type === 'JSXSpreadAttribute'
+					return b.spread(/** @type {AST.Expression} */ (context.visit(attr.argument)));
 				}
 			}),
 		);
@@ -772,8 +879,15 @@ const visitors = {
 					'init',
 					b.id('children'),
 					normalized_children.length === 1
-						? context.visit(normalized_children[0])
-						: b.array(normalized_children.map((child) => context.visit(child))),
+						? /** @type {AST.Expression} */ (
+								context.visit(/** @type {AST.Node} */ (normalized_children[0]))
+							)
+						: b.array(
+								normalized_children.map(
+									(child) =>
+										/** @type {AST.Expression} */ (context.visit(/** @type {AST.Node} */ (child))),
+								),
+							),
 				),
 			);
 		}
@@ -798,9 +912,16 @@ const visitors = {
 		const props = b.object(
 			attributes.map((attr) => {
 				if (attr.type === 'JSXAttribute') {
-					return b.prop('init', context.visit(attr.name), context.visit(attr.value));
-				} else if (attr.type === 'JSXSpreadAttribute') {
-					return b.spread(context.visit(attr.argument));
+					return b.prop(
+						'init',
+						/** @type {AST.Expression} */ (context.visit(attr.name)),
+						attr.value
+							? /** @type {AST.Expression} */ (context.visit(attr.value))
+							: b.literal(true),
+					);
+				} else {
+					// attr.type === 'JSXSpreadAttribute'
+					return b.spread(/** @type {AST.Expression} */ (context.visit(attr.argument)));
 				}
 			}),
 		);
@@ -811,8 +932,15 @@ const visitors = {
 					'init',
 					b.id('children'),
 					normalized_children.length === 1
-						? context.visit(normalized_children[0])
-						: b.array(normalized_children.map((child) => context.visit(child))),
+						? /** @type {AST.Expression} */ (
+								context.visit(/** @type {AST.Node} */ (normalized_children[0]))
+							)
+						: b.array(
+								normalized_children.map(
+									(child) =>
+										/** @type {AST.Expression} */ (context.visit(/** @type {AST.Node} */ (child))),
+								),
+							),
 				),
 			);
 		}
@@ -821,7 +949,7 @@ const visitors = {
 			normalized_children.length > 1 ? '__compat.jsxs' : '__compat.jsx',
 			name.type === 'JSXIdentifier' && name.name[0].toLowerCase() === name.name[0]
 				? b.literal(name.name)
-				: context.visit(name),
+				: /** @type {AST.Expression} */ (context.visit(name)),
 			props,
 		);
 	},
@@ -829,13 +957,13 @@ const visitors = {
 	TsxCompat(node, context) {
 		const { state, visit } = context;
 
-		state.template.push('<!>');
+		state.template?.push('<!>');
 
 		const normalized_children = node.children.filter((child) => {
 			return child.type !== 'JSXText' || child.value.trim() !== '';
 		});
 		const needs_fragment = normalized_children.length !== 1;
-		const id = state.flush_node();
+		const id = state.flush_node?.();
 		const children_fn = b.arrow(
 			[b.id('__compat')],
 			needs_fragment
@@ -846,14 +974,22 @@ const visitors = {
 							b.prop(
 								'init',
 								b.id('children'),
-								b.array(normalized_children.map((child) => visit(child, state))),
+								b.array(
+									/** @type {(AST.Expression | AST.SpreadElement | null)[]} */ (
+										normalized_children.map((child) =>
+											visit(/** @type {AST.Node} */ (child), state),
+										)
+									),
+								),
 							),
 						]),
 					)
-				: visit(normalized_children[0], state),
+				: /** @type {AST.Expression} */ (
+						visit(/** @type {AST.Node} */ (normalized_children[0]), state)
+					),
 		);
 
-		context.state.init.push(
+		context.state.init?.push(
 			b.stmt(b.call('_$_.tsx_compat', b.literal(node.kind), id, children_fn)),
 		);
 	},
@@ -863,13 +999,13 @@ const visitors = {
 
 		if (context.state.inside_head) {
 			if (node.id.type === 'Identifier' && node.id.name === 'style') {
-				state.template.push(`<style>${sanitize_template_string(node.css)}</style>`);
+				state.template?.push(`<style>${sanitize_template_string(node.css)}</style>`);
 				return;
 			}
 			if (node.id.type === 'Identifier' && node.id.name === 'script') {
-				const id = state.flush_node();
-				state.template.push('<!>');
-				context.state.init.push(
+				const id = state.flush_node?.();
+				state.template?.push('<!>');
+				context.state.init?.push(
 					b.stmt(b.call('_$_.script', id, b.literal(sanitize_template_string(node.content)))),
 				);
 				return;
@@ -878,17 +1014,22 @@ const visitors = {
 
 		const is_dom_element = is_element_dom_element(node);
 		const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
+		/** @type {(AST.Property | AST.SpreadElement)[] | null} */
 		const spread_attributes = is_spreading ? [] : null;
 		const child_namespace = is_dom_element
 			? determine_namespace_for_children(node.id.name, state.namespace)
 			: state.namespace;
 
+		/**
+		 * @param {string} name
+		 *  @param {string | number | bigint | boolean | RegExp | null | undefined} value
+		 */
 		const handle_static_attr = (name, value) => {
 			const attr_value = b.literal(
 				` ${name}${
 					is_boolean_attribute(name) && value === true
 						? ''
-						: `="${value === true ? '' : escape_html(value, true)}"`
+						: `="${value === true ? '' : escape_html(/** @type {string} */ (value), true)}"`
 				}`,
 			);
 
@@ -898,21 +1039,23 @@ const visitors = {
 					is_boolean_attribute(name) && value === true
 						? b.literal(true)
 						: b.literal(value === true ? '' : value);
-				spread_attributes.push(b.prop('init', b.literal(name), actual_value));
+				spread_attributes?.push(b.prop('init', b.literal(name), actual_value));
 			} else {
-				state.template.push(attr_value);
+				state.template?.push(attr_value);
 			}
 		};
 
 		if (is_dom_element) {
 			let class_attribute = null;
 			let style_attribute = null;
+			const component = /** @type {AST.Component} */ (state.component);
+			/** @type {TransformClientState['update']} */
 			const local_updates = [];
 			const is_void = is_void_element(node.id.name);
 
 			let scoping_hash = null;
-			if (node.metadata.scoped && state.component.css) {
-				scoping_hash = state.component.css.hash;
+			if (node.metadata?.scoped && component.css) {
+				scoping_hash = component.css.hash;
 			} else {
 				let inside_dynamic_children = false;
 				for (let i = context.path.length - 1; i >= 0; i--) {
@@ -933,7 +1076,7 @@ const visitors = {
 				}
 			}
 
-			state.template.push(`<${node.id.name}`);
+			state.template?.push(`<${node.id.name}`);
 
 			for (const attr of node.attributes) {
 				if (attr.type === 'Attribute') {
@@ -963,9 +1106,11 @@ const visitors = {
 						}
 
 						if (name === 'value') {
-							const id = state.flush_node();
+							const id = state.flush_node?.();
 							const metadata = { tracking: false, await: false };
-							const expression = visit(attr.value, { ...state, metadata });
+							const expression = /** @type {AST.Expression} */ (
+								visit(attr.value, { ...state, metadata })
+							);
 
 							if (metadata.tracking) {
 								local_updates.push({
@@ -975,16 +1120,18 @@ const visitors = {
 									initial: b.void0,
 								});
 							} else {
-								state.init.push(b.stmt(b.call('_$_.set_value', id, expression)));
+								state.init?.push(b.stmt(b.call('_$_.set_value', id, expression)));
 							}
 
 							continue;
 						}
 
 						if (name === 'checked') {
-							const id = state.flush_node();
+							const id = state.flush_node?.();
 							const metadata = { tracking: false, await: false };
-							const expression = visit(attr.value, { ...state, metadata });
+							const expression = /** @type {AST.Expression} */ (
+								visit(attr.value, { ...state, metadata })
+							);
 
 							if (metadata.tracking) {
 								local_updates.push({
@@ -994,15 +1141,17 @@ const visitors = {
 									initial: b.void0,
 								});
 							} else {
-								state.init.push(b.stmt(b.call('_$_.set_checked', id, expression)));
+								state.init?.push(b.stmt(b.call('_$_.set_checked', id, expression)));
 							}
 							continue;
 						}
 
 						if (name === 'selected') {
-							const id = state.flush_node();
+							const id = state.flush_node?.();
 							const metadata = { tracking: false, await: false };
-							const expression = visit(attr.value, { ...state, metadata });
+							const expression = /** @type {AST.Expression} */ (
+								visit(attr.value, { ...state, metadata })
+							);
 
 							if (metadata.tracking) {
 								local_updates.push({
@@ -1012,15 +1161,17 @@ const visitors = {
 									initial: b.void0,
 								});
 							} else {
-								state.init.push(b.stmt(b.call('_$_.set_selected', id, expression)));
+								state.init?.push(b.stmt(b.call('_$_.set_selected', id, expression)));
 							}
 							continue;
 						}
 
 						if (is_event_attribute(name)) {
 							const metadata = { tracking: false, await: false };
-							let handler = visit(attr.value, { ...state, metadata });
-							const id = state.flush_node();
+							let handler = /** @type {AST.Expression} */ (
+								visit(attr.value, { ...state, metadata })
+							);
+							const id = state.flush_node?.();
 
 							if (attr.metadata?.delegated) {
 								const event_name = normalize_event_name(name);
@@ -1029,34 +1180,49 @@ const visitors = {
 									state.events.add(event_name);
 								}
 
-								state.init.push(
-									b.stmt(b.assignment('=', b.member(id, '__' + event_name), handler)),
+								state.init?.push(
+									b.stmt(
+										b.assignment(
+											'=',
+											b.member(/** @type {AST.Identifier} */ (id), '__' + event_name),
+											handler,
+										),
+									),
 								);
 							} else {
 								const event_name = get_original_event_name(name);
 								// Check if handler is reactive (contains tracking)
 								if (metadata.tracking) {
 									// Use reactive_event with a thunk to re-evaluate when dependencies change
-									state.init.push(
+									state.init?.push(
 										b.stmt(b.call('_$_.render_event', b.literal(event_name), id, b.thunk(handler))),
 									);
 								} else {
-									state.init.push(b.stmt(b.call('_$_.event', b.literal(event_name), id, handler)));
+									state.init?.push(b.stmt(b.call('_$_.event', b.literal(event_name), id, handler)));
 								}
 							}
 
 							continue;
 						}
 						const metadata = { tracking: false, await: false };
-						const expression = visit(attr.value, { ...state, metadata });
+						const expression = /** @type {AST.Expression} */ (
+							visit(attr.value, { ...state, metadata })
+						);
 						// All other attributes
 						if (metadata.tracking) {
 							const attribute = name;
-							const id = state.flush_node();
+							const id = state.flush_node?.();
 
 							if (is_dom_property(attribute)) {
 								local_updates.push({
-									operation: b.stmt(b.assignment('=', b.member(id, attribute), expression)),
+									operation: () =>
+										b.stmt(
+											b.assignment(
+												'=',
+												b.member(/** @type {AST.Identifier} */ (id), attribute),
+												expression,
+											),
+										),
 								});
 							} else {
 								local_updates.push({
@@ -1068,28 +1234,47 @@ const visitors = {
 								});
 							}
 						} else {
-							const id = state.flush_node();
+							const id = state.flush_node?.();
 
 							if (is_dom_property(name)) {
-								state.init.push(b.stmt(b.assignment('=', b.member(id, name), expression)));
+								state.init?.push(
+									b.stmt(
+										b.assignment(
+											'=',
+											b.member(/** @type {AST.Identifier} */ (id), name),
+											expression,
+										),
+									),
+								);
 							} else {
-								state.init.push(
+								state.init?.push(
 									b.stmt(b.call('_$_.set_attribute', id, b.literal(name), expression)),
 								);
 							}
 						}
 					}
 				} else if (attr.type === 'SpreadAttribute') {
-					spread_attributes.push(b.spread(visit(attr.argument, state)));
+					spread_attributes?.push(
+						b.spread(/** @type {AST.Expression} */ (visit(attr.argument, state))),
+					);
 				} else if (attr.type === 'RefAttribute') {
-					const id = state.flush_node();
-					state.init.push(b.stmt(b.call('_$_.ref', id, b.thunk(visit(attr.argument, state)))));
+					const id = state.flush_node?.();
+					state.init?.push(
+						b.stmt(
+							b.call(
+								'_$_.ref',
+								id,
+								b.thunk(/** @type {AST.Expression} */ (visit(attr.argument, state))),
+							),
+						),
+					);
 				}
 			}
 
 			if (class_attribute !== null) {
-				if (class_attribute.value.type === 'Literal') {
-					let value = class_attribute.value.value;
+				const attr_value = /** @type {AST.Expression} */ (class_attribute.value);
+				if (attr_value.type === 'Literal') {
+					let value = attr_value.value;
 
 					if (scoping_hash) {
 						value = `${scoping_hash} ${value}`;
@@ -1097,9 +1282,11 @@ const visitors = {
 
 					handle_static_attr(class_attribute.name.name, value);
 				} else {
-					const id = state.flush_node();
+					const id = state.flush_node?.();
 					const metadata = { tracking: false, await: false };
-					let expression = visit(class_attribute.value, { ...state, metadata });
+					const expression = /** @type {AST.Expression} */ (
+						visit(attr_value, { ...state, metadata })
+					);
 
 					const hash_arg = scoping_hash ? b.literal(scoping_hash) : undefined;
 					const is_html = context.state.namespace === 'html' && node.id.name !== 'svg';
@@ -1109,11 +1296,11 @@ const visitors = {
 							operation: (key) =>
 								b.stmt(b.call('_$_.set_class', id, key, hash_arg, b.literal(is_html))),
 							expression,
-							identity: class_attribute.value,
+							identity: attr_value,
 							initial: b.literal(''),
 						});
 					} else {
-						state.init.push(
+						state.init?.push(
 							b.stmt(b.call('_$_.set_class', id, expression, hash_arg, b.literal(is_html))),
 						);
 					}
@@ -1123,60 +1310,63 @@ const visitors = {
 			}
 
 			if (style_attribute !== null) {
-				if (style_attribute.value.type === 'Literal') {
-					handle_static_attr(style_attribute.name.name, style_attribute.value.value);
+				const attr_value = /** @type {AST.Expression} */ (style_attribute.value);
+				if (attr_value.type === 'Literal') {
+					handle_static_attr(style_attribute.name.name, attr_value.value);
 				} else {
-					const id = state.flush_node();
+					const id = state.flush_node?.();
 					const metadata = { tracking: false, await: false };
-					const expression = visit(style_attribute.value, { ...state, metadata });
+					const expression = /** @type {AST.Expression} */ (
+						visit(attr_value, { ...state, metadata })
+					);
 
 					if (metadata.tracking) {
-						if (
-							style_attribute.value.type === 'Literal' ||
-							style_attribute.value.type === 'TemplateLiteral'
-						) {
+						if (attr_value.type === 'TemplateLiteral') {
 							// Doesn't need prev tracking
 							local_updates.push({
-								operation: b.stmt(b.call('_$_.set_style', id, expression, b.void0)),
+								operation: () => b.stmt(b.call('_$_.set_style', id, expression, b.void0)),
 							});
 						} else {
 							// Object or unknown - needs prev tracking
 							local_updates.push({
 								operation: (new_value, prev_value) =>
 									b.stmt(b.call('_$_.set_style', id, new_value, prev_value)),
-								identity: style_attribute.value,
+								identity: attr_value,
 								expression,
 								initial: b.void0,
 								needsPrevTracking: true,
 							});
 						}
 					} else {
-						state.init.push(b.stmt(b.call('_$_.set_style', id, expression, b.void0)));
+						state.init?.push(b.stmt(b.call('_$_.set_style', id, expression, b.void0)));
 					}
 				}
 			}
 
-			state.template.push('>');
+			state.template?.push('>');
 
 			if (spread_attributes !== null && spread_attributes.length > 0) {
-				const id = state.flush_node();
-				state.init.push(
+				const id = state.flush_node?.();
+				state.init?.push(
 					b.stmt(b.call('_$_.render_spread', id, b.thunk(b.object(spread_attributes)))),
 				);
 			}
 
-			/** @type {Array<Statement>} */
+			/** @type {TransformClientState['init']} */
 			const init = [];
-			/** @type {Array<Statement>} */
+			/** @type {TransformClientState['update']} */
 			const update = [];
 
 			if (!is_void) {
-				transform_children(node.children, {
-					visit,
-					state: { ...state, init, update, namespace: child_namespace },
-					root: false,
-				});
-				state.template.push(`</${node.id.name}>`);
+				transform_children(
+					node.children,
+					/** @type {VisitorClientContext} */ ({
+						visit,
+						state: { ...state, init, update, namespace: child_namespace },
+						root: false,
+					}),
+				);
+				state.template?.push(`</${node.id.name}>`);
 			}
 
 			update.push(...local_updates);
@@ -1185,20 +1375,22 @@ const visitors = {
 				if (state.scope.declarations.size > 0) {
 					apply_updates(init, update, state);
 				} else {
-					state.update.push(...update);
+					state.update?.push(...update);
 				}
 			}
 
 			if (init.length > 0) {
-				state.init.push(b.block(init));
+				state.init?.push(b.block(init));
 			}
 		} else {
-			const id = state.flush_node();
+			const id = state.flush_node?.();
 
-			state.template.push('<!>');
+			state.template?.push('<!>');
 
 			const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
+			/** @type {(AST.Property | AST.SpreadElement)[]} */
 			const props = [];
+			/** @type {AST.Expression | AST.BlockStatement | null} */
 			let children_prop = null;
 
 			for (const attr of node.attributes) {
@@ -1206,9 +1398,11 @@ const visitors = {
 					if (attr.name.type === 'Identifier') {
 						const metadata = { tracking: false, await: false };
 						let property =
-							attr.value === null ? b.literal(true) : visit(attr.value, { ...state, metadata });
+							attr.value === null
+								? b.literal(true)
+								: /** @type {AST.Expression} */ (visit(attr.value, { ...state, metadata }));
 
-						if (attr.name.name === 'class' && node.metadata.scoped && state.component.css) {
+						if (attr.name.name === 'class' && node.metadata?.scoped && state.component?.css) {
 							if (property.type === 'Literal') {
 								property = b.literal(`${state.component.css.hash} ${property.value}`);
 							} else {
@@ -1233,24 +1427,38 @@ const visitors = {
 							props.push(b.prop('init', b.key(attr.name.name), property));
 						}
 					} else {
-						props.push(b.prop('init', b.key(attr.name.name), visit(attr.value, state)));
+						props.push(
+							b.prop(
+								'init',
+								b.key(attr.name.name),
+								/** @type {AST.Expression} */ (visit(/** @type {AST.Node} */ (attr.value), state)),
+							),
+						);
 					}
 				} else if (attr.type === 'SpreadAttribute') {
 					props.push(
 						b.spread(
-							visit(attr.argument, { ...state, metadata: { ...state.metadata, spread: true } }),
+							/** @type {AST.Expression} */
+							(visit(attr.argument, { ...state, metadata: { ...state.metadata } })),
 						),
 					);
 				} else if (attr.type === 'RefAttribute') {
 					const ref_id = state.scope.generate('ref');
-					state.setup.push(b.var(ref_id, b.call('_$_.ref_prop')));
-					props.push(b.prop('init', b.id(ref_id), visit(attr.argument, state), true));
+					state.setup?.push(b.var(ref_id, b.call('_$_.ref_prop')));
+					props.push(
+						b.prop(
+							'init',
+							b.id(ref_id),
+							/** @type {AST.Expression} */ (visit(attr.argument, state)),
+							true,
+						),
+					);
 				} else {
 					throw new Error('TODO');
 				}
 			}
 
-			if (node.metadata.scoped && state.component.css) {
+			if (node.metadata?.scoped && state.component?.css) {
 				const hasClassAttr = node.attributes.some(
 					(attr) =>
 						attr.type === 'Attribute' &&
@@ -1268,8 +1476,18 @@ const visitors = {
 
 			for (const child of node.children) {
 				if (child.type === 'Component') {
-					const id = child.id;
-					props.push(b.prop('init', id, visit(child, { ...state, namespace: child_namespace })));
+					// in this case, id cannot be null
+					// as these are direct children of the component
+					const id = /** @type {AST.Identifier} */ (child.id);
+					props.push(
+						b.prop(
+							'init',
+							id,
+							/** @type {AST.Expression} */ (
+								visit(child, { ...state, namespace: child_namespace })
+							),
+						),
+					);
 				} else {
 					children_filtered.push(child);
 				}
@@ -1284,14 +1502,22 @@ const visitors = {
 					inherited_css: true,
 				};
 
-				const children = visit(children_component, {
-					...context.state,
-					scope: component_scope,
-					namespace: child_namespace,
-				});
+				const children = /** @type {AST.Expression} */ (
+					visit(children_component, {
+						...context.state,
+						scope: /** @type {ScopeInterface} */ (component_scope),
+						namespace: child_namespace,
+					})
+				);
 
 				if (children_prop) {
-					children_prop.body = b.logical('??', children_prop.body, children);
+					/** @type {AST.ArrowFunctionExpression} */ (children_prop).body = b.logical(
+						'??',
+						/** @type {AST.Expression} */ (
+							/** @type {AST.ArrowFunctionExpression} */ (children_prop).body
+						),
+						children,
+					);
 				} else {
 					props.push(b.prop('init', b.id('children'), children));
 				}
@@ -1299,7 +1525,7 @@ const visitors = {
 
 			const metadata = { tracking: false, await: false };
 			// We visit, but only to gather metadata
-			b.call(visit(node.id, { ...state, metadata }));
+			b.call(/** @type {AST.Expression} */ (visit(node.id, { ...state, metadata })));
 
 			// We're calling a component from within svg/mathml context
 			const is_with_ns = state.namespace !== DEFAULT_NAMESPACE;
@@ -1340,17 +1566,27 @@ const visitors = {
 				object_props = b.object(props);
 			}
 			if (metadata.tracking) {
-				const shared = b.call('_$_.composite', b.thunk(visit(node.id, state)), id, object_props);
-				state.init.push(
+				const shared = b.call(
+					'_$_.composite',
+					b.thunk(/** @type {AST.Expression} */ (visit(node.id, state))),
+					id,
+					object_props,
+				);
+				state.init?.push(
 					is_with_ns
-						? b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared))
+						? b.stmt(b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared)))
 						: b.stmt(shared),
 				);
 			} else {
-				const shared = b.call(visit(node.id, state), id, object_props, b.id('_$_.active_block'));
-				state.init.push(
+				const shared = b.call(
+					/** @type {AST.Expression} */ (visit(node.id, state)),
+					id,
+					object_props,
+					b.id('_$_.active_block'),
+				);
+				state.init?.push(
 					is_with_ns
-						? b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared))
+						? b.stmt(b.call('_$_.with_ns', b.literal(state.namespace), b.thunk(shared)))
 						: b.stmt(shared),
 				);
 			}
@@ -1374,11 +1610,17 @@ const visitors = {
 
 			const func = b.function(
 				node.id,
-				node.params.map((param) => context.visit(param, { ...context.state, metadata })),
+				node.params.map(
+					(param) =>
+						/** @type {AST.Pattern} */ (context.visit(param, { ...context.state, metadata })),
+				),
 				b.block(body_statements),
 			);
 			// Mark that this function was originally a component
-			func.metadata = { ...func.metadata, was_component: true };
+			func.metadata = /** @type {AST.FunctionExpression['metadata']} */ ({
+				...func.metadata,
+				was_component: true,
+			});
 			func.loc = node.loc; // Copy source location for Volar mappings
 			return func;
 		}
@@ -1422,7 +1664,10 @@ const visitors = {
 			]),
 		);
 		// Mark that this function was originally a component
-		func.metadata = { ...func.metadata, was_component: true };
+		func.metadata = /** @type {AST.FunctionExpression['metadata']} */ ({
+			...func.metadata,
+			was_component: true,
+		});
 		func.loc = node.loc; // Copy source location for Volar mappings
 		return func;
 	},
@@ -1448,14 +1693,18 @@ const visitors = {
 
 			return b.call(
 				'_$_.set_property',
-				context.visit(left.object, { ...context.state, metadata: { tracking: false } }),
-				left.computed ? context.visit(left.property) : b.literal(left.property.name),
+				/** @type {AST.Expression} */ (
+					context.visit(left.object, { ...context.state, metadata: { tracking: false } })
+				),
+				left.computed
+					? /** @type {AST.Expression} */ (context.visit(left.property))
+					: b.literal(/** @type {AST.Identifier} */ (left.property).name),
 				operator === '='
-					? context.visit(right)
+					? /** @type {AST.Expression} */ (context.visit(right))
 					: b.binary(
 							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */ (context.visit(left)),
-							/** @type {Expression} */ (context.visit(right)),
+							/** @type {AST.Expression} */ (context.visit(left)),
+							/** @type {AST.Expression} */ (context.visit(right)),
 						),
 			);
 		}
@@ -1467,15 +1716,17 @@ const visitors = {
 
 			return b.call(
 				'_$_.set',
-				context.visit(left, { ...context.state, metadata: { tracking: null } }),
+				/** @type {AST.Expression} */ (
+					context.visit(left, { ...context.state, metadata: { tracking: null } })
+				),
 				operator === '='
-					? context.visit(right)
+					? /** @type {AST.Expression} */ (context.visit(right))
 					: b.binary(
 							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {Expression} */ (
+							/** @type {AST.Expression} */ (
 								context.visit(left, { ...context.state, metadata: { tracking: false } })
 							),
-							/** @type {Expression} */ (context.visit(right)),
+							/** @type {AST.Expression} */ (context.visit(right)),
 						),
 			);
 		}
@@ -1500,8 +1751,11 @@ const visitors = {
 
 			return b.call(
 				node.prefix ? '_$_.update_pre_property' : '_$_.update_property',
-				context.visit(argument.object, { ...context.state, metadata: { tracking: false } }),
-				argument.computed ? context.visit(argument.property) : b.literal(argument.property.name),
+				/** @type {AST.Expression} */
+				(context.visit(argument.object, { ...context.state, metadata: { tracking: false } })),
+				argument.computed
+					? /** @type {AST.Expression} */ (context.visit(argument.property))
+					: b.literal(/** @type {AST.Identifier} */ (argument.property).name),
 				node.operator === '--' ? b.literal(-1) : undefined,
 			);
 		}
@@ -1509,7 +1763,8 @@ const visitors = {
 		if (argument.type === 'Identifier' && argument.tracked) {
 			return b.call(
 				node.prefix ? '_$_.update_pre' : '_$_.update',
-				context.visit(argument, { ...context.state, metadata: { tracking: null } }),
+				/** @type {AST.Expression} */
+				(context.visit(argument, { ...context.state, metadata: { tracking: null } })),
 				node.operator === '--' ? b.literal(-1) : undefined,
 			);
 		}
@@ -1517,17 +1772,18 @@ const visitors = {
 		if (argument.type === 'TrackedExpression') {
 			return b.call(
 				node.prefix ? '_$_.update_pre' : '_$_.update',
-				context.visit(argument.argument, { ...context.state, metadata: { tracking: null } }),
+				/** @type {AST.Expression} */
+				(context.visit(argument.argument, { ...context.state, metadata: { tracking: null } })),
 				node.operator === '--' ? b.literal(-1) : undefined,
 			);
 		}
 
-		const left = object(argument);
+		const left = object(/** @type {AST.MemberExpression | AST.Identifier} */ (argument));
 		const binding = left && context.state.scope.get(left.name);
 		const transformers = left && binding?.transform;
 
 		if (left === argument) {
-			const update_fn = transformers?.update || transformers?.update_tracked;
+			const update_fn = transformers?.update;
 			if (update_fn) {
 				return update_fn(node);
 			}
@@ -1551,23 +1807,23 @@ const visitors = {
 
 		// do only if not controller
 		if (!is_controlled) {
-			context.state.template.push('<!>');
+			context.state.template?.push('<!>');
 		}
 
-		const id = context.state.flush_node(is_controlled);
-		const pattern = node.left.declarations[0].id;
-		const body_scope = context.state.scopes.get(node.body);
+		const id = context.state.flush_node?.(is_controlled);
+		const pattern = /** @type {AST.VariableDeclaration} */ (node.left).declarations[0].id;
+		const body_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node.body));
 
-		context.state.init.push(
+		context.state.init?.push(
 			b.stmt(
 				b.call(
 					key != null ? '_$_.for_keyed' : '_$_.for',
 					id,
-					b.thunk(context.visit(node.right)),
+					b.thunk(/** @type {AST.Expression} */ (context.visit(node.right))),
 					b.arrow(
 						index ? [b.id('__anchor'), pattern, index] : [b.id('__anchor'), pattern],
 						b.block(
-							transform_body(node.body.body, {
+							transform_body(/** @type {AST.BlockStatement} */ (node.body).body, {
 								...context,
 								state: { ...context.state, scope: body_scope, namespace: context.state.namespace },
 							}),
@@ -1575,7 +1831,10 @@ const visitors = {
 					),
 					b.literal(flags),
 					key != null
-						? b.arrow(index ? [pattern, index] : [pattern], context.visit(key))
+						? b.arrow(
+								index ? [pattern, index] : [pattern],
+								/** @type {AST.Expression} */ (context.visit(key)),
+							)
 						: undefined,
 				),
 			),
@@ -1586,9 +1845,9 @@ const visitors = {
 		if (!is_inside_component(context)) {
 			return context.next();
 		}
-		context.state.template.push('<!>');
+		context.state.template?.push('<!>');
 
-		const id = context.state.flush_node();
+		const id = context.state.flush_node?.();
 		const statements = [];
 		const cases = [];
 
@@ -1610,9 +1869,10 @@ const visitors = {
 			statements.push(b.var(b.id(consequent_id), b.arrow([b.id('__anchor')], consequent)));
 
 			cases.push(
-				b.switch_case(switch_case.test ? context.visit(switch_case.test) : null, [
-					b.return(b.id(consequent_id)),
-				]),
+				b.switch_case(
+					switch_case.test ? /** @type {AST.Expression} */ (context.visit(switch_case.test)) : null,
+					[b.return(b.id(consequent_id))],
+				),
 			);
 			i++;
 		}
@@ -1622,26 +1882,32 @@ const visitors = {
 				b.call(
 					'_$_.switch',
 					id,
-					b.thunk(b.block([b.switch(context.visit(node.discriminant), cases)])),
+					b.thunk(
+						b.block([
+							b.switch(/** @type {AST.Expression} */ (context.visit(node.discriminant)), cases),
+						]),
+					),
 				),
 			),
 		);
 
-		context.state.init.push(b.block(statements));
+		context.state.init?.push(b.block(statements));
 	},
 
 	IfStatement(node, context) {
 		if (!is_inside_component(context)) {
 			return context.next();
 		}
-		context.state.template.push('<!>');
+		context.state.template?.push('<!>');
 
-		const id = context.state.flush_node();
+		const id = context.state.flush_node?.();
 		const statements = [];
 
-		const consequent_scope = context.state.scopes.get(node.consequent);
+		const consequent_scope = /** @type {ScopeInterface} */ (
+			context.state.scopes.get(node.consequent)
+		);
 		const consequent = b.block(
-			transform_body(node.consequent.body, {
+			transform_body(/** @type {AST.BlockStatement} */ (node.consequent).body, {
 				...context,
 				state: { ...context.state, scope: consequent_scope },
 			}),
@@ -1653,19 +1919,18 @@ const visitors = {
 		let alternate_id;
 
 		if (node.alternate !== null) {
-			const alternate_scope = context.state.scopes.get(node.alternate) || context.state.scope;
-			let alternate_body = node.alternate.body;
-			if (node.alternate.type === 'IfStatement') {
-				alternate_body = [node.alternate];
-			}
-			const alternate = b.block(
+			const alternate = /** @type {AST.BlockStatement | AST.IfStatement} */ (node.alternate);
+			const alternate_scope = context.state.scopes.get(alternate) || context.state.scope;
+			/** @type {AST.Node[]} */
+			let alternate_body = alternate.type === 'IfStatement' ? [alternate] : alternate.body;
+			const alternate_block = b.block(
 				transform_body(alternate_body, {
 					...context,
 					state: { ...context.state, scope: alternate_scope },
 				}),
 			);
 			alternate_id = context.state.scope.generate('alternate');
-			statements.push(b.var(b.id(alternate_id), b.arrow([b.id('__anchor')], alternate)));
+			statements.push(b.var(b.id(alternate_id), b.arrow([b.id('__anchor')], alternate_block)));
 		}
 
 		statements.push(
@@ -1677,7 +1942,7 @@ const visitors = {
 						[b.id('__render')],
 						b.block([
 							b.if(
-								context.visit(node.test),
+								/** @type {AST.Expression} */ (context.visit(node.test)),
 								b.stmt(b.call(b.id('__render'), b.id(consequent_id))),
 								alternate_id
 									? b.stmt(
@@ -1695,12 +1960,12 @@ const visitors = {
 			),
 		);
 
-		context.state.init.push(b.block(statements));
+		context.state.init?.push(b.block(statements));
 	},
 
 	TSAsExpression(node, context) {
 		if (!context.state.to_ts) {
-			return context.visit(node.expression);
+			return context.visit(/** @type {AST.Expression} */ (node.expression));
 		}
 		return context.next();
 	},
@@ -1708,7 +1973,11 @@ const visitors = {
 	TSInstantiationExpression(node, context) {
 		if (!context.state.to_ts) {
 			// In JavaScript, just return the expression wrapped in parentheses
-			return b.sequence([context.visit(node.expression)]);
+			return b.sequence([
+				/** @type {AST.Expression} */ (
+					context.visit(/** @type {AST.Expression} */ (node.expression))
+				),
+			]);
 		}
 		return context.next();
 	},
@@ -1719,7 +1988,10 @@ const visitors = {
 		}
 
 		// Remove TSDeclareFunction nodes (function overload signatures) in JavaScript mode
-		if (!context.state.to_ts && node.declaration?.type === 'TSDeclareFunction') {
+		if (
+			!context.state.to_ts &&
+			/** @type {AST.RippleDeclaration} */ (node.declaration)?.type === 'TSDeclareFunction'
+		) {
 			return b.empty;
 		}
 
@@ -1741,34 +2013,37 @@ const visitors = {
 		if (!is_inside_component(context)) {
 			return context.next();
 		}
-		context.state.template.push('<!>');
+		context.state.template?.push('<!>');
 
-		const id = context.state.flush_node();
+		const id = context.state.flush_node?.();
 		const metadata = { await: false };
 		let body = transform_body(node.block.body, {
 			...context,
 			state: { ...context.state, metadata },
 		});
 
-		if (metadata.pending) {
+		if (node.pending) {
 			body = [b.stmt(b.call('_$_.async', b.thunk(b.block(body), true)))];
 		}
 
-		context.state.init.push(
+		const handler = /** @type {AST.CatchClause | null} */ (node.handler);
+		const pending = /** @type {AST.BlockStatement | null} */ (node.pending);
+
+		context.state.init?.push(
 			b.stmt(
 				b.call(
 					'_$_.try',
 					id,
 					b.arrow([b.id('__anchor')], b.block(body)),
-					node.handler === null
+					handler === null
 						? b.literal(null)
 						: b.arrow(
-								[b.id('__anchor'), ...(node.handler.param ? [node.handler.param] : [])],
-								b.block(transform_body(node.handler.body.body, context)),
+								[b.id('__anchor'), ...(handler.param ? [handler.param] : [])],
+								b.block(transform_body(handler.body.body, context)),
 							),
-					node.pending === null
+					pending === null
 						? undefined
-						: b.arrow([b.id('__anchor')], b.block(transform_body(node.pending.body, context))),
+						: b.arrow([b.id('__anchor')], b.block(transform_body(pending.body, context))),
 				),
 			),
 		);
@@ -1783,11 +2058,19 @@ const visitors = {
 			context.state.metadata.await = true;
 		}
 
-		return b.call(b.await(b.call('_$_.maybe_tracked', context.visit(node.argument))));
+		return b.call(
+			b.await(
+				b.call('_$_.maybe_tracked', /** @type {AST.Expression} */ (context.visit(node.argument))),
+			),
+		);
 	},
 
 	BinaryExpression(node, context) {
-		return b.binary(node.operator, context.visit(node.left), context.visit(node.right));
+		return b.binary(
+			node.operator,
+			/** @type {AST.Expression} */ (context.visit(node.left)),
+			/** @type {AST.Expression} */ (context.visit(node.right)),
+		);
 	},
 
 	TemplateLiteral(node, context) {
@@ -1797,15 +2080,18 @@ const visitors = {
 			return b.literal(node.quasis[0].value.cooked);
 		}
 
-		const expressions = node.expressions.map((expr) => context.visit(expr));
+		const expressions = /** @type {AST.Expression[]} */ (
+			node.expressions.map((expr) => context.visit(expr))
+		);
 		return b.template(node.quasis, expressions);
 	},
 
 	BlockStatement(node, context) {
+		/** @type {AST.Statement[]} */
 		const statements = [];
 
 		for (const statement of node.body) {
-			statements.push(context.visit(statement));
+			statements.push(/** @type {AST.Statement} */ (context.visit(statement)));
 		}
 
 		return b.block(statements);
@@ -1822,7 +2108,7 @@ const visitors = {
 		return b.const(
 			'_$_server_$_',
 			b.object(
-				exports.map((name) => {
+				/** @type {AST.ServerBlock['metadata']['exports']} */ (exports).map((name) => {
 					const func_path = file_path + '#' + name;
 					// needs to be a sha256 hash of func_path, to avoid leaking file structure
 					const hash = createHash('sha256').update(func_path).digest('hex').slice(0, 8);
@@ -1841,11 +2127,17 @@ const visitors = {
 		);
 	},
 
+	/** @type {Visitor<AST.Program, TransformClientState, AST.Node>} */
 	Program(node, context) {
+		/** @type {Array<AST.Statement | AST.Directive | AST.ModuleDeclaration>} */
 		const statements = [];
 
 		for (const statement of node.body) {
-			statements.push(context.visit(statement));
+			statements.push(
+				/** @type {AST.Statement | AST.Directive | AST.ModuleDeclaration} */ (
+					context.visit(statement)
+				),
+			);
 		}
 
 		return { ...node, body: statements };
@@ -1853,14 +2145,14 @@ const visitors = {
 };
 
 /**
- * @param {Array<string | Expression>} items
+ * @param {Array<string | AST.Expression>} items
  */
 function join_template(items) {
 	let quasi = b.quasi('');
 	const template = b.template([quasi], []);
 
 	/**
-	 * @param {Expression} expression
+	 * @param {AST.Expression} expression
 	 */
 	function push(expression) {
 		if (expression.type === 'TemplateLiteral') {
@@ -1872,8 +2164,8 @@ function join_template(items) {
 				push(e);
 			}
 
-			const last = /** @type {any} */ (expression.quasis.at(-1));
-			quasi.value.cooked += /** @type {string} */ (last.value.cooked);
+			const last = expression.quasis.at(-1);
+			quasi.value.cooked += /** @type {string} */ (last?.value.cooked);
 		} else if (expression.type === 'Literal') {
 			/** @type {string} */ (quasi.value.cooked) += expression.value;
 		} else {
@@ -1899,27 +2191,33 @@ function join_template(items) {
 	return template;
 }
 
+/**
+ * @param {AST.Node} node
+ * @param {TransformClientContext} context
+ */
 function transform_ts_child(node, context) {
 	const { state, visit } = context;
 
 	if (node.type === 'Text') {
-		state.init.push(b.stmt(visit(node.expression, { ...state })));
+		state.init?.push(b.stmt(/** @type {AST.Expression} */ (visit(node.expression, { ...state }))));
 	} else if (node.type === 'Html') {
 		// Do we need to do something special here?
-		state.init.push(b.stmt(visit(node.expression, { ...state })));
+		state.init?.push(b.stmt(/** @type {AST.Expression} */ (visit(node.expression, { ...state }))));
 	} else if (node.type === 'Element') {
 		// Use capitalized name for dynamic components/elements in TypeScript output
 		// If node.id is not an Identifier (e.g., MemberExpression like props.children),
 		// we need to visit it to get the proper expression
+		/** @type {string | AST.Node} */
 		let type_expression;
 		let type_is_expression = false;
-		if (node.id.type === 'MemberExpression') {
+		if (/** @type {AST.Node} */ (node.id).type === 'MemberExpression') {
 			// For MemberExpressions, we need to create a JSXExpression, not a JSXIdentifier
 			type_expression = visit(node.id, state);
 			type_is_expression = true;
 		} else {
 			type_expression = node.metadata?.ts_name || node.id.name;
 		}
+		/** @type {ESTreeJSX.JSXElement['children']} */
 		const children = [];
 		let has_children_props = false;
 
@@ -1947,27 +2245,35 @@ function transform_ts_child(node, context) {
 				}
 				jsx_name.loc = attr.name.loc || name.loc;
 
-				const jsx_attr = b.jsx_attribute(jsx_name, b.jsx_expression_container(value));
+				const jsx_attr = b.jsx_attribute(
+					jsx_name,
+					b.jsx_expression_container(/** @type {AST.Expression} */ (value)),
+				);
 				// Preserve shorthand flag from parser (set for {identifier} syntax)
 				jsx_attr.shorthand = attr.shorthand ?? false;
 				return jsx_attr;
 			} else if (attr.type === 'SpreadAttribute') {
 				const metadata = { await: false };
 				const argument = visit(attr.argument, { ...state, metadata });
-				return b.jsx_spread_attribute(argument);
+				return b.jsx_spread_attribute(/** @type {AST.Expression} */ (argument));
 			} else if (attr.type === 'RefAttribute') {
 				const createRefKeyAlias = import_from_ripple_if_needed('createRefKey', context);
 				const metadata = { await: false };
 				const argument = visit(attr.argument, { ...state, metadata });
-				const wrapper = b.object([b.prop('init', b.call(createRefKeyAlias), argument, true)]);
+				const wrapper = b.object([
+					b.prop('init', b.call(createRefKeyAlias), /** @type {AST.Expression} */ (argument), true),
+				]);
 				return b.jsx_spread_attribute(wrapper);
+			} else {
+				// Should not happen
+				throw new Error(`Unexpected attribute type: ${/** @type {AST.Attribute} */ (attr).type}`);
 			}
 		});
 
 		if (!node.selfClosing && !node.unclosed && !has_children_props && node.children.length > 0) {
 			const is_dom_element = is_element_dom_element(node);
 
-			const component_scope = context.state.scopes.get(node);
+			const component_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node));
 			const thunk = b.thunk(
 				b.block(
 					transform_body(node.children, {
@@ -1984,15 +2290,19 @@ function transform_ts_child(node, context) {
 			}
 		}
 
-		let opening_name_element, closing_name_element;
+		/** @type {ESTreeJSX.JSXIdentifier | AST.Node | undefined} */
+		let opening_name_element;
+		/** @type {AST.Node | ESTreeJSX.JSXClosingElement['name'] | undefined} */
+		let closing_name_element;
 
 		if (type_is_expression) {
 			// For dynamic/expression-based components (e.g., props.children),
 			// use JSX expression instead of identifier
-			opening_name_element = type_expression;
-			closing_name_element = node.selfClosing || node.unclosed ? undefined : type_expression;
+			opening_name_element = /** @type {AST.Node} */ (type_expression);
+			closing_name_element =
+				node.selfClosing || node.unclosed ? undefined : /** @type {AST.Node} */ (type_expression);
 		} else {
-			opening_name_element = b.jsx_id(type_expression);
+			opening_name_element = b.jsx_id(/** @type {string} */ (type_expression));
 			// For tracked identifiers (dynamic components), adjust the loc to skip the '@' prefix
 			// and add metadata for mapping
 			if (node.id.tracked && node.id.loc) {
@@ -2009,6 +2319,7 @@ function transform_ts_child(node, context) {
 					opening_name_element.metadata = {
 						original_name: node.metadata.original_name,
 						is_capitalized: true,
+						path: [...node.metadata.path],
 					};
 				}
 			} else {
@@ -2020,18 +2331,19 @@ function transform_ts_child(node, context) {
 					},
 					end: {
 						line: node.loc.start.line,
-						column: node.loc.start.column + 2 + type_expression.length,
+						column: node.loc.start.column + 2 + /** @type {string} */ (type_expression).length,
 					},
 				};
 			}
 
 			if (!node.selfClosing && !node.unclosed) {
-				closing_name_element = b.jsx_id(type_expression);
+				closing_name_element = b.jsx_id(/** @type {string} */ (type_expression));
 				// For tracked identifiers, also adjust closing tag location
 				if (node.id.tracked && node.id.loc) {
 					// Calculate position relative to closing tag
 					// Format: </@identifier>
-					const closing_tag_start = node.loc.end.column - type_expression.length - 3; // </@
+					const closing_tag_start =
+						node.loc.end.column - /** @type {string} */ (type_expression).length - 3; // </@
 					closing_name_element.loc = {
 						start: {
 							line: node.loc.end.line,
@@ -2042,7 +2354,8 @@ function transform_ts_child(node, context) {
 							column:
 								closing_tag_start +
 								3 +
-								(node.metadata?.original_name?.length || type_expression.length),
+								(node.metadata?.original_name?.length ||
+									/** @type {string} */ (type_expression).length),
 						},
 					};
 					// Add metadata if this was capitalized
@@ -2050,13 +2363,14 @@ function transform_ts_child(node, context) {
 						closing_name_element.metadata = {
 							original_name: node.metadata.original_name,
 							is_capitalized: true,
+							path: [...node.metadata.path],
 						};
 					}
 				} else {
 					closing_name_element.loc = {
 						start: {
 							line: node.loc.end.line,
-							column: node.loc.end.column - type_expression.length - 1,
+							column: node.loc.end.column - /** @type {string} */ (type_expression).length - 1,
 						},
 						end: {
 							line: node.loc.end.line,
@@ -2068,13 +2382,11 @@ function transform_ts_child(node, context) {
 		}
 
 		let jsxElement = b.jsx_element(
-			opening_name_element,
-			node.loc,
+			/** @type {ESTreeJSX.JSXIdentifier} */ (opening_name_element),
+			node,
 			attributes,
 			children,
-			node.selfClosing,
-			node.unclosed,
-			closing_name_element,
+			/** @type {ESTreeJSX.JSXClosingElement['name'] | undefined} */ (closing_name_element),
 		);
 
 		// Calculate the location for the entire JSXClosingElement (including </ and >)
@@ -2084,8 +2396,9 @@ function transform_ts_child(node, context) {
 			// - '<' is at node.loc.end.column - type_expression.length - 3
 			// - '>' is at node.loc.end.column - 1
 			const tag_name_length = node.id.tracked
-				? (node.metadata?.original_name?.length || type_expression.length) + 1 // +1 for '@'
-				: type_expression.length;
+				? (node.metadata?.original_name?.length || /** @type {string} */ (type_expression).length) +
+					1 // +1 for '@'
+				: /** @type {string} */ (type_expression).length;
 
 			jsxElement.closingElement.loc = {
 				start: {
@@ -2104,19 +2417,22 @@ function transform_ts_child(node, context) {
 			jsxElement.metadata = {
 				ts_name: node.metadata.ts_name,
 				original_name: node.metadata.original_name,
+				path: [...node.metadata.path],
 			};
 		}
 		// For unclosed elements, push the JSXElement directly without wrapping in ExpressionStatement
 		// This keeps it in the AST for mappings but avoids adding a semicolon
 		if (node.unclosed) {
-			state.init.push(jsxElement);
+			state.init?.push(/** @type {AST.Statement} */ (/** @type {unknown} */ (jsxElement)));
 		} else {
-			state.init.push(b.stmt(jsxElement));
+			state.init?.push(b.stmt(jsxElement));
 		}
 	} else if (node.type === 'IfStatement') {
-		const consequent_scope = context.state.scopes.get(node.consequent);
+		const consequent_scope = /** @type {ScopeInterface} */ (
+			context.state.scopes.get(node.consequent)
+		);
 		const consequent = b.block(
-			transform_body(node.consequent.body, {
+			transform_body(/** @type {AST.BlockStatement} */ (node.consequent).body, {
 				...context,
 				state: { ...context.state, scope: consequent_scope },
 			}),
@@ -2125,11 +2441,10 @@ function transform_ts_child(node, context) {
 		let alternate;
 
 		if (node.alternate !== null) {
-			const alternate_scope = context.state.scopes.get(node.alternate) || context.state.scope;
-			let alternate_body = node.alternate.body;
-			if (node.alternate.type === 'IfStatement') {
-				alternate_body = [node.alternate];
-			}
+			const alternate_node = /** @type {AST.BlockStatement | AST.IfStatement} */ (node.alternate);
+			const alternate_scope = context.state.scopes.get(alternate_node) || context.state.scope;
+			const alternate_body =
+				alternate_node.type === 'IfStatement' ? [alternate_node] : alternate_node.body;
 			alternate = b.block(
 				transform_body(alternate_body, {
 					...context,
@@ -2138,7 +2453,7 @@ function transform_ts_child(node, context) {
 			);
 		}
 
-		state.init.push(b.if(visit(node.test), consequent, alternate));
+		state.init?.push(b.if(/** @type {AST.Expression} */ (visit(node.test)), consequent, alternate));
 	} else if (node.type === 'SwitchStatement') {
 		const cases = [];
 
@@ -2151,28 +2466,40 @@ function transform_ts_child(node, context) {
 			});
 
 			cases.push(
-				b.switch_case(switch_case.test ? context.visit(switch_case.test) : null, consequent_body),
+				b.switch_case(
+					switch_case.test ? /** @type {AST.Expression} */ (context.visit(switch_case.test)) : null,
+					consequent_body,
+				),
 			);
 		}
 
-		context.state.init.push(b.switch(context.visit(node.discriminant), cases));
+		context.state.init?.push(
+			b.switch(/** @type {AST.Expression} */ (context.visit(node.discriminant)), cases),
+		);
 	} else if (node.type === 'ForOfStatement') {
-		const body_scope = context.state.scopes.get(node.body);
-		const block_body = transform_body(node.body.body, {
+		const body_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node.body));
+		const block_body = transform_body(/** @type {AST.BlockStatement} */ (node.body).body, {
 			...context,
 			state: { ...context.state, scope: body_scope },
 		});
 		if (node.key) {
-			block_body.unshift(b.stmt(visit(node.key)));
+			block_body.unshift(b.stmt(/** @type {AST.Expression} */ (visit(node.key))));
 		}
 		if (node.index) {
-			block_body.unshift(b.let(visit(node.index), b.literal(0)));
+			block_body.unshift(b.let(/** @type {AST.Identifier} */ (visit(node.index)), b.literal(0)));
 		}
 		const body = b.block(block_body);
 
-		state.init.push(b.for_of(visit(node.left), visit(node.right), body, node.await));
+		state.init?.push(
+			b.for_of(
+				/** @type {AST.Pattern} */ (visit(node.left)),
+				/** @type {AST.Expression} */ (visit(node.right)),
+				body,
+				node.await,
+			),
+		);
 	} else if (node.type === 'TryStatement') {
-		const try_scope = context.state.scopes.get(node.block);
+		const try_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node.block));
 		const try_body = b.block(
 			transform_body(node.block.body, {
 				...context,
@@ -2182,7 +2509,9 @@ function transform_ts_child(node, context) {
 
 		let catch_handler = null;
 		if (node.handler) {
-			const catch_scope = context.state.scopes.get(node.handler.body);
+			const catch_scope = /** @type {ScopeInterface} */ (
+				context.state.scopes.get(node.handler.body)
+			);
 			const catch_body = b.block(
 				transform_body(node.handler.body.body, {
 					...context,
@@ -2194,7 +2523,7 @@ function transform_ts_child(node, context) {
 
 		let pending_block = null;
 		if (node.pending) {
-			const pending_scope = context.state.scopes.get(node.pending);
+			const pending_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node.pending));
 			pending_block = b.try_item_block(
 				transform_body(node.pending.body, {
 					...context,
@@ -2206,7 +2535,9 @@ function transform_ts_child(node, context) {
 
 		let finally_block = null;
 		if (node.finalizer) {
-			const finally_scope = context.state.scopes.get(node.finalizer);
+			const finally_scope = /** @type {ScopeInterface} */ (
+				context.state.scopes.get(node.finalizer)
+			);
 			finally_block = b.block(
 				transform_body(node.finalizer.body, {
 					...context,
@@ -2215,33 +2546,46 @@ function transform_ts_child(node, context) {
 			);
 		}
 
-		state.init.push(b.try(try_body, catch_handler, finally_block, pending_block));
+		state.init?.push(b.try(try_body, catch_handler, finally_block, pending_block));
 	} else if (node.type === 'Component') {
 		const component = visit(node, state);
 
-		state.init.push(component);
+		state.init?.push(/** @type {AST.Statement} */ (component));
 	} else if (node.type === 'BreakStatement') {
-		state.init.push(b.break);
+		state.init?.push(/** @type {AST.Statement} */ (b.break));
 	} else if (node.type === 'TsxCompat') {
-		const children = node.children
-			.map((child) => visit(child, state))
-			.filter((child) => child.type !== 'JSXText' || child.value.trim() !== '');
+		const children = /** @type {AST.TsxCompat['children']} */ (
+			node.children
+				.map((child) => visit(/** @type {AST.Node} */ (child), state))
+				.filter((child) => child.type !== 'JSXText' || child.value.trim() !== '')
+		);
 
-		state.init.push(b.stmt(b.jsx_fragment(children)));
+		state.init?.push(b.stmt(b.jsx_fragment(children)));
 	} else if (node.type === 'JSXExpressionContainer') {
 		// JSX comments {/* ... */} are JSXExpressionContainer with JSXEmptyExpression
 		// These should be preserved in the output as-is for prettier to handle
-		state.init.push(b.stmt(b.jsx_expression_container(visit(node.expression, state))));
+		const jsx_container = b.jsx_expression_container(
+			/** @type {AST.Expression} */ (visit(node.expression, state)),
+		);
+		state.init?.push(/** @type {AST.Statement} */ (/** @type {unknown} */ (jsx_container)));
 	} else {
 		throw new Error('TODO');
 	}
 }
 
+/**
+ *
+ * @param {AST.Node[]} children
+ * @param {VisitorClientContext} context
+ */
 function transform_children(children, context) {
 	const { visit, state, root } = context;
 	const normalized = normalize_children(children, context);
-	const head_elements = children.filter(
-		(node) => node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'head',
+
+	const head_elements = /** @type {AST.Element[]} */ (
+		children.filter(
+			(node) => node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'head',
+		)
 	);
 
 	const is_fragment =
@@ -2259,10 +2603,12 @@ function transform_children(children, context) {
 		normalized.filter(
 			(node) => node.type !== 'VariableDeclaration' && node.type !== 'EmptyStatement',
 		).length > 1;
+	/** @type {AST.Identifier | null} */
 	let initial = null;
 	let prev = null;
 	let template_id = null;
 
+	/** @param {AST.Node} node */
 	const get_id = (node) => {
 		return b.id(
 			node.type == 'Element' && is_element_dom_element(node)
@@ -2273,11 +2619,12 @@ function transform_children(children, context) {
 		);
 	};
 
+	/** @param {AST.Node} node */
 	const create_initial = (node) => {
 		const id = is_fragment ? b.id(state.scope.generate('fragment')) : get_id(node);
 		initial = id;
 		template_id = state.scope.generate('root');
-		state.setup.push(b.var(id, b.call(template_id)));
+		state.setup?.push(b.var(id, b.call(template_id)));
 	};
 
 	for (const node of normalized) {
@@ -2293,22 +2640,23 @@ function transform_children(children, context) {
 			node.type === 'Component'
 		) {
 			const metadata = { await: false };
-			state.init.push(visit(node, { ...state, metadata }));
+			state.init?.push(/** @type {AST.Statement} */ (visit(node, { ...state, metadata })));
 			if (metadata.await) {
-				state.init.push(b.if(b.call('_$_.aborted'), b.return(null)));
+				state.init?.push(b.if(b.call('_$_.aborted'), b.return(null)));
 				if (state.metadata?.await === false) {
 					state.metadata.await = true;
 				}
 			}
 		} else if (state.to_ts) {
-			transform_ts_child(node, { visit, state });
+			transform_ts_child(node, /** @type {VisitorClientContext} */ ({ visit, state }));
 		} else {
 			let metadata;
-			let expression;
+			/** @type {AST.Expression | undefined} */
+			let expression = undefined;
 			let isCreateTextOnly = false;
 			if (node.type === 'Text' || node.type === 'Html') {
 				metadata = { tracking: false, await: false };
-				expression = visit(node.expression, { ...state, metadata });
+				expression = /** @type {AST.Expression} */ (visit(node.expression, { ...state, metadata }));
 				isCreateTextOnly =
 					node.type === 'Text' && normalized.length === 1 && expression.type === 'Literal';
 			}
@@ -2318,30 +2666,32 @@ function transform_children(children, context) {
 			}
 
 			const current_prev = prev;
+			/** @type {AST.Identifier | null} */
 			let cached;
+			/** @param {boolean} [is_controlled] */
 			const flush_node = (is_controlled) => {
 				if (cached && !is_controlled) {
 					return cached;
 				} else if (current_prev !== null) {
 					const id = get_id(node);
-					state.setup.push(b.var(id, b.call('_$_.sibling', current_prev())));
+					state.setup?.push(b.var(id, b.call('_$_.sibling', current_prev())));
 					cached = id;
 					return id;
 				} else if (initial !== null) {
 					if (is_fragment) {
 						const id = get_id(node);
-						state.setup.push(b.var(id, b.call('_$_.child_frag', initial)));
+						state.setup?.push(b.var(id, b.call('_$_.child_frag', initial)));
 						cached = id;
 						return id;
 					}
 					return initial;
 				} else if (state.flush_node !== null) {
 					if (is_controlled) {
-						return state.flush_node();
+						return state.flush_node?.();
 					}
 
 					const id = get_id(node);
-					state.setup.push(b.var(id, b.call('_$_.child', state.flush_node())));
+					state.setup?.push(b.var(id, b.call('_$_.child', state.flush_node?.())));
 					cached = id;
 					return id;
 				} else {
@@ -2354,80 +2704,117 @@ function transform_children(children, context) {
 			const is_controlled = normalized.length === 1 && !root;
 
 			if (node.type === 'Element') {
-				visit(node, { ...state, flush_node, namespace: state.namespace });
-			} else if (node.type === 'HeadElement') {
-				visit(node, { ...state, flush_node, namespace: state.namespace });
+				visit(node, {
+					...state,
+					flush_node: /** @type {TransformClientState['flush_node']} */ (flush_node),
+					namespace: state.namespace,
+				});
 			} else if (node.type === 'TsxCompat') {
-				visit(node, { ...state, flush_node, namespace: state.namespace });
+				visit(node, {
+					...state,
+					flush_node: /** @type {TransformClientState['flush_node']} */ (flush_node),
+					namespace: state.namespace,
+				});
 			} else if (node.type === 'Html') {
-				context.state.template.push('<!>');
+				context.state.template?.push('<!>');
 
 				const id = flush_node();
-				state.update.push({
-					operation: b.stmt(
-						b.call(
-							'_$_.html',
-							id,
-							b.thunk(expression),
-							state.namespace === 'svg' && b.true,
-							state.namespace === 'mathml' && b.true,
+				state.update?.push({
+					operation: () =>
+						b.stmt(
+							b.call(
+								'_$_.html',
+								id,
+								b.thunk(/** @type {AST.Expression} */ (expression)),
+								state.namespace === 'svg' && b.true,
+								state.namespace === 'mathml' && b.true,
+							),
 						),
-					),
 				});
 			} else if (node.type === 'Text') {
-				if (metadata.tracking) {
-					state.template.push(' ');
+				if (metadata?.tracking) {
+					state.template?.push(' ');
 					const id = flush_node();
-					state.update.push({
+					state.update?.push({
 						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
-						expression,
+						expression: /** @type {AST.Expression} */ (expression),
 						identity: node.expression,
 						initial: b.literal(' '),
 					});
 					if (metadata.await) {
-						state.update.async = true;
+						/** @type {NonNullable<TransformClientState['update']>} */ (state.update).async = true;
 					}
 				} else if (normalized.length === 1) {
-					if (expression.type === 'Literal') {
-						if (state.template.length > 0) {
-							state.template.push(escape_html(expression.value));
+					const expr = /** @type {AST.Expression} */ (expression);
+					if (expr.type === 'Literal') {
+						if (
+							/** @type {NonNullable<TransformClientState['template']>} */ (state.template).length >
+							0
+						) {
+							state.template?.push(escape_html(expr.value));
 						} else {
 							const id = flush_node();
-							state.init.push(b.var(id, b.call('_$_.create_text', expression)));
-							state.final.push(b.stmt(b.call('_$_.append', b.id('__anchor'), id)));
+							state.init?.push(
+								b.var(/** @type {AST.Identifier} */ (id), b.call('_$_.create_text', expr)),
+							);
+							state.final?.push(b.stmt(b.call('_$_.append', b.id('__anchor'), id)));
 						}
 					} else {
 						const id = flush_node();
-						state.template.push(' ');
+						state.template?.push(' ');
 						// avoid set_text overhead for single text nodes
-						state.init.push(b.stmt(b.assignment('=', b.member(id, b.id('nodeValue')), expression)));
+						state.init?.push(
+							b.stmt(
+								b.assignment(
+									'=',
+									b.member(/** @type {AST.Identifier} */ (id), b.id('nodeValue')),
+									expr,
+								),
+							),
+						);
 					}
 				} else {
 					// Handle Text nodes in fragments
-					state.template.push(' ');
+					state.template?.push(' ');
 					const id = flush_node();
-					state.update.push({
+					state.update?.push({
 						operation: (key) => b.stmt(b.call('_$_.set_text', id, key)),
-						expression,
+						expression: /** @type {AST.Expression} */ (expression),
 						identity: node.expression,
 						initial: b.literal(' '),
 					});
-					if (metadata.await) {
-						state.update.async = true;
+					if (metadata?.await) {
+						/** @type {NonNullable<TransformClientState['update']>} */ (state.update).async = true;
 					}
 				}
 			} else if (node.type === 'ForOfStatement') {
 				node.is_controlled = is_controlled;
-				visit(node, { ...state, flush_node, namespace: state.namespace });
+				visit(node, {
+					...state,
+					flush_node: /** @type {TransformClientState['flush_node']} */ (flush_node),
+					namespace: state.namespace,
+				});
 			} else if (node.type === 'IfStatement') {
 				node.is_controlled = is_controlled;
-				visit(node, { ...state, flush_node, namespace: state.namespace });
+				visit(node, {
+					...state,
+					flush_node: /** @type {TransformClientState['flush_node']} */ (flush_node),
+					namespace: state.namespace,
+				});
 			} else if (node.type === 'TryStatement') {
 				node.is_controlled = is_controlled;
-				visit(node, { ...state, flush_node, namespace: state.namespace });
+				visit(node, {
+					...state,
+					flush_node: /** @type {TransformClientState['flush_node']} */ (flush_node),
+					namespace: state.namespace,
+				});
 			} else if (node.type === 'SwitchStatement') {
 				node.is_controlled = is_controlled;
-				visit(node, { ...state, flush_node, namespace: state.namespace });
+				visit(node, {
+					...state,
+					flush_node: /** @type {TransformClientState['flush_node']} */ (flush_node),
+					namespace: state.namespace,
+				});
 			} else if (node.type === 'BreakStatement') {
 				// do nothing
 			} else {
@@ -2441,9 +2828,11 @@ function transform_children(children, context) {
 	}
 
 	if (context.state.inside_head) {
-		const title_element = children.find(
-			(node) =>
-				node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'title',
+		const title_element = /** @type {AST.Element} */ (
+			children.find(
+				(node) =>
+					node.type === 'Element' && node.id.type === 'Identifier' && node.id.name === 'title',
+			)
 		);
 
 		if (title_element) {
@@ -2460,14 +2849,29 @@ function transform_children(children, context) {
 		} else if (template_namespace === 'mathml') {
 			flags |= TEMPLATE_MATHML_NAMESPACE;
 		}
-		state.final.push(b.stmt(b.call('_$_.append', b.id('__anchor'), initial)));
+		state.final?.push(b.stmt(b.call('_$_.append', b.id('__anchor'), initial)));
 		state.hoisted.push(
-			b.var(template_id, b.call('_$_.template', join_template(state.template), b.literal(flags))),
+			b.var(
+				template_id,
+				b.call(
+					'_$_.template',
+					join_template(
+						/** @type {NonNullable<TransformClientState['template']>} */ (state.template),
+					),
+					b.literal(flags),
+				),
+			),
 		);
 	}
 }
 
+/**
+ * @param {AST.Node[]} body
+ * @param {TransformClientContext} context
+ * @returns {AST.Statement[]}
+ */
 function transform_body(body, { visit, state }) {
+	/** @type {TransformClientState} */
 	const body_state = {
 		...state,
 		template: [],
@@ -2480,18 +2884,29 @@ function transform_body(body, { visit, state }) {
 		inside_head: state.inside_head || false,
 	};
 
-	transform_children(body, { visit, state: body_state, root: true });
+	transform_children(
+		body,
+		/** @type {VisitorClientContext} */ ({ visit, state: body_state, root: true }),
+	);
 
-	if (body_state.update.length > 0) {
-		if (state.to_ts) {
-			// In TypeScript mode, just add the update statements directly
-			body_state.init.push(...body_state.update);
-		} else {
-			apply_updates(body_state.init, body_state.update, state);
+	if (/** @type {NonNullable<TransformClientState['update']>} */ (body_state.update).length > 0) {
+		if (!state.to_ts) {
+			apply_updates(
+				/** @type {NonNullable<TransformClientState['init']>} */ (body_state.init),
+				/** @type {NonNullable<TransformClientState['update']>} */ (body_state.update),
+				state,
+			);
 		}
+
+		// NOTE: transform_children in `to_ts` mode does NOT add to body_state.update
+		// So, we skip adding doing any actions with body_state.update
 	}
 
-	return [...body_state.setup, ...body_state.init, ...body_state.final];
+	return [
+		.../** @type {NonNullable<TransformClientState['setup']>} */ (body_state.setup),
+		.../** @type {AST.Statement[]} */ (body_state.init),
+		.../** @type {NonNullable<TransformClientState['final']>} */ (body_state.final),
+	];
 }
 
 /**
@@ -2499,12 +2914,16 @@ function transform_body(body, { visit, state }) {
  * @returns {Object} TSX language handler with TypeScript return type support
  */
 function create_tsx_with_typescript_support() {
-	const base_tsx = tsx();
+	const base_tsx = /** @type {ESRap.Visitors<AST.Node>} */ (tsx());
 
 	// Add custom TypeScript node handlers that aren't in tsx
 
-	// Shared handler for function-like nodes to support component->function mapping
-	// Creates source maps for 'function' keyword by passing node to context.write()
+	/**
+	 * Shared handler for function-like nodes to support component->function mapping
+	 * Creates source maps for 'function' keyword by passing node to context.write()
+	 * @param {AST.Function} node
+	 * @param {ESRap.Context} context
+	 */
 	const handle_function = (node, context) => {
 		if (node.async) {
 			context.write('async ');
@@ -2516,12 +2935,15 @@ function create_tsx_with_typescript_support() {
 		if (node.generator) {
 			context.write('*');
 		}
+
+		const id = /** @type {AST.FunctionExpression | AST.FunctionDeclaration} */ (node).id;
+
 		// FunctionDeclaration always has a space before id, FunctionExpression only if id exists
-		if (node.type === 'FunctionDeclaration' || node.id) {
+		if (node.type === 'FunctionDeclaration' || id) {
 			context.write(' ');
 		}
-		if (node.id) {
-			context.visit(node.id);
+		if (id) {
+			context.visit(id);
 		}
 		if (node.typeParameters) {
 			context.visit(node.typeParameters);
@@ -2543,10 +2965,14 @@ function create_tsx_with_typescript_support() {
 
 	return {
 		...base_tsx,
-		// Custom handler for Property nodes to prevent method shorthand for components
-		// When a component is transformed to a FunctionExpression, we want to preserve
-		// the explicit syntax (key: function name() {}) instead of method shorthand (key() {})
-		// This ensures proper source mapping for the 'function'/'component' keyword
+		/**
+		 * Custom handler for Property nodes to prevent method shorthand for components
+		 * When a component is transformed to a FunctionExpression, we want to preserve
+		 * the explicit syntax (key: function name() {}) instead of method shorthand (key() {})
+		 * This ensures proper source mapping for the 'function'/'component' keyword
+		 * @param {AST.Property} node
+		 * @param {ESRap.Context} context
+		 */
 		Property(node, context) {
 			// Check if the value is a function that was originally a component
 			const isComponent =
@@ -2593,14 +3019,18 @@ function create_tsx_with_typescript_support() {
 					context.write(node.computed ? ']: ' : ': ');
 					context.visit(node.value);
 				} else {
-					base_tsx.Property(node, context);
+					base_tsx.Property?.(node, context);
 				}
 			} else {
 				// Use default handler for non-component properties
-				base_tsx.Property(node, context);
+				base_tsx.Property?.(node, context);
 			}
 		},
-		// Custom handler for JSXClosingElement to ensure closing tag brackets have source mappings
+		/**
+		 * Custom handler for JSXClosingElement to ensure closing tag brackets have source mappings
+		 * @param {ESTreeJSX.JSXClosingElement} node
+		 * @param {ESRap.Context} context
+		 */
 		JSXClosingElement(node, context) {
 			// Set location for '<' then write '</'
 			if (node.loc) {
@@ -2620,14 +3050,18 @@ function create_tsx_with_typescript_support() {
 				context.write('>');
 			}
 		},
-		// Custom handler for ArrayPattern to ensure typeAnnotation is visited
-		// esrap's TypeScript handler doesn't visit typeAnnotation for ArrayPattern (only for ObjectPattern)
+		/**
+		 * Custom handler for ArrayPattern to ensure typeAnnotation is visited
+		 * esrap's TypeScript handler doesn't visit typeAnnotation for ArrayPattern (only for ObjectPattern)
+		 * @param {AST.ArrayPattern} node
+		 * @param {ESRap.Context} context
+		 */
 		ArrayPattern(node, context) {
 			context.write('[');
 			for (let i = 0; i < node.elements.length; i++) {
 				if (i > 0) context.write(', ');
 				if (node.elements[i]) {
-					context.visit(node.elements[i]);
+					context.visit(/** @type {AST.Pattern} */ (node.elements[i]));
 				}
 			}
 			context.write(']');
@@ -2636,19 +3070,31 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.typeAnnotation);
 			}
 		},
-		// Custom handler for FunctionDeclaration to support component->function mapping
-		// Needed for volar mappings and intellisense on function or component keyword
+		/**
+		 * Custom handler for FunctionDeclaration to support component->function mapping
+		 * Needed for volar mappings and intellisense on function or component keyword
+		 * @param {AST.FunctionDeclaration} node
+		 * @param {ESRap.Context} context
+		 */
 		FunctionDeclaration(node, context) {
 			handle_function(node, context);
 		},
-		// Custom handler for FunctionExpression to support component->function mapping
-		// This is used for components transformed by the Component visitor
+		/**
+		 * Custom handler for FunctionExpression to support component->function mapping
+		 * This is used for components transformed by the Component visitor
+		 * @param {AST.FunctionExpression} node
+		 * @param {ESRap.Context} context
+		 */
 		FunctionExpression(node, context) {
 			handle_function(node, context);
 		},
-		// Custom handler for ImportDeclaration to ensure 'import' keyword has source mapping
-		// This creates a source map entry at the start of the import statement
-		// Esrap's default handler writes 'import' without passing the node, so no source map entry
+		/**
+		 * Custom handler for ImportDeclaration to ensure 'import' keyword has source mapping
+		 * This creates a source map entry at the start of the import statement
+		 * Esrap's default handler writes 'import' without passing the node, so no source map entry
+		 * @param {AST.ImportDeclaration} node
+		 * @param {ESRap.Context} context
+		 */
 		ImportDeclaration(node, context) {
 			// Write 'import' keyword with node location for source mapping
 			context.write('import', node);
@@ -2702,9 +3148,13 @@ function create_tsx_with_typescript_support() {
 			// Write source
 			context.visit(node.source);
 		},
-		// Custom handler for JSXOpeningElement to ensure '<' and '>' have source mappings
-		// Esrap's default handler only maps the tag name, not the brackets
-		// This creates mappings for the brackets so auto-close can find the cursor position
+		/**
+		 * Custom handler for JSXOpeningElement to ensure '<' and '>' have source mappings
+		 * Esrap's default handler only maps the tag name, not the brackets
+		 * This creates mappings for the brackets so auto-close can find the cursor position
+		 * @param {ESTreeJSX.JSXOpeningElement} node
+		 * @param {ESRap.Context} context
+		 */
 		JSXOpeningElement(node, context) {
 			// Set location for '<'
 			if (node.loc) {
@@ -2732,13 +3182,21 @@ function create_tsx_with_typescript_support() {
 				context.write('>');
 			}
 		},
-		// Custom handler for TSParenthesizedType: (Type)
+		/**
+		 * Custom handler for TSParenthesizedType: (Type)
+		 * @param {AST.TSParenthesizedType} node
+		 * @param {ESRap.Context} context
+		 */
 		TSParenthesizedType(node, context) {
 			context.write('(');
-			context.visit(node.typeAnnotation);
+			context.visit(/** @type {AST.TSTypeAnnotation} */ (node.typeAnnotation));
 			context.write(')');
 		},
-		// Custom handler for TSMappedType: { [K in keyof T]: T[K] }
+		/**
+		 * Custom handler for TSMappedType: { [K in keyof T]: T[K] }
+		 * @param {AST.TSMappedType} node
+		 * @param {ESRap.Context} context
+		 */
 		TSMappedType(node, context) {
 			context.write('{ ');
 			if (node.readonly) {
@@ -2770,8 +3228,12 @@ function create_tsx_with_typescript_support() {
 			}
 			context.write(' }');
 		},
-		// Custom handler for TSTypeParameter: K in T (for mapped types)
-		// acorn-ts has a bug where `in` is printed as `extends`, so we override it here
+		/**
+		 * Custom handler for TSTypeParameter: K in T (for mapped types)
+		 * acorn-ts has a bug where `in` is printed as `extends`, so we override it here
+		 * @param {AST.TSTypeParameter} node
+		 * @param {ESRap.Context} context
+		 */
 		TSTypeParameter(node, context) {
 			// For mapped types, the name is just a string, not an Identifier node
 			// Pass the node as second parameter to context.write() to create source map entry
@@ -2789,7 +3251,11 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.default);
 			}
 		},
-		// Override the ArrowFunctionExpression handler to support TypeScript return types
+		/**
+		 * Override the ArrowFunctionExpression handler to support TypeScript return types
+		 * @param {AST.ArrowFunctionExpression} node
+		 * @param {ESRap.Context} context
+		 */
 		ArrowFunctionExpression(node, context) {
 			if (node.async) context.write('async ');
 
@@ -2821,7 +3287,11 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.body);
 			}
 		},
-		// Custom handler for TryStatement to support Ripple's pending block
+		/**
+		 * Custom handler for TryStatement to support Ripple's pending block
+		 * @param {AST.TryStatement} node
+		 * @param {ESRap.Context} context
+		 */
 		TryStatement(node, context) {
 			context.write('try ');
 			context.visit(node.block);
@@ -2830,8 +3300,10 @@ function create_tsx_with_typescript_support() {
 				// Output the pending block with source mapping for the 'pending' keyword
 				context.write(' ');
 				context.location(
-					node.pending.loc.start.line,
-					node.pending.loc.start.column - 'pending '.length,
+					/** @type {AST.SourceLocation} */
+					(node.pending.loc).start.line,
+					/** @type {AST.SourceLocation} */
+					(node.pending.loc).start.column - 'pending '.length,
 				);
 				context.write('pending ');
 				context.visit(node.pending);
@@ -2860,10 +3332,10 @@ function create_tsx_with_typescript_support() {
  * Transform Ripple AST to JavaScript/TypeScript
  * @param {string} filename - Source filename
  * @param {string} source - Original source code
- * @param {any} analysis - Analysis result
+ * @param {AnalysisResult} analysis - Analysis result
  * @param {boolean} to_ts - Whether to generate TypeScript output
  * @param {boolean} minify_css - Whether to minify CSS output
- * @returns {{ ast: any, js: { code: string, map: any, post_processing_changes?: PostProcessingChanges, line_offsets?: LineOffsets }, css: any }}
+ * @returns {{ ast: AST.Program, js: { code: string, map: SourceMapMappings, post_processing_changes?: PostProcessingChanges, line_offsets?: LineOffsets }, css: string }}
  */
 export function transform_client(filename, source, analysis, to_ts, minify_css) {
 	/**
@@ -2885,13 +3357,17 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 			) {
 				for (const spec of stmt.specifiers || []) {
 					if (spec.type === 'ImportSpecifier' && spec.imported && spec.local) {
-						ripple_user_imports.set(spec.imported.name, spec.local.name);
+						ripple_user_imports.set(
+							/** @type {AST.Identifier} */ (spec.imported).name,
+							spec.local.name,
+						);
 					}
 				}
 			}
 		}
 	}
 
+	/** @type {TransformClientState} */
 	const state = {
 		imports: new Set(),
 		ripple_user_imports,
@@ -2900,6 +3376,7 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		hoisted: [],
 		setup: null,
 		init: null,
+		inside_head: false,
 		update: null,
 		final: null,
 		flush_node: null,
@@ -2908,11 +3385,11 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		stylesheets: [],
 		to_ts,
 		filename,
+		namespace: 'html',
+		metadata: {},
 	};
 
-	const program = /** @type {Program} */ (
-		walk(/** @type {Node} */ (analysis.ast), { ...state, namespace: 'html' }, visitors)
-	);
+	const program = /** @type {AST.Program} */ (walk(analysis.ast, { ...state }, visitors));
 
 	for (const hoisted of state.hoisted) {
 		program.body.unshift(hoisted);

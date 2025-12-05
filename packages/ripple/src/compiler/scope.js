@@ -1,6 +1,5 @@
-/** @import { ClassDeclaration, Expression, FunctionDeclaration, FunctionExpression, Identifier, ImportDeclaration, MemberExpression, LogicalOperator, Node, Pattern, UnaryOperator, VariableDeclarator, Super } from 'estree' */
-/** @import { DeclarationKind, BindingKind, Component, Element } from '#compiler' */
-/** @import { RippleNode } from '#compiler' */
+/** @import { Binding, ScopeInterface, ScopeRoot as ScopeRootInterface } from '#compiler' */
+/** @import * as AST from 'estree' */
 
 import is_reference from 'is-reference';
 import { extract_identifiers, object, unwrap_pattern } from '../utils/ast.js';
@@ -8,79 +7,32 @@ import { walk } from 'zimmerframe';
 import { is_reserved } from './utils.js';
 import * as b from '../utils/builders.js';
 
-export class Binding {
-	/** @type {Scope} */
-	scope;
-
-	/** @type {Identifier} */
-	node;
-
-	/** @type {BindingKind} */
-	kind;
-
-	/** @type {DeclarationKind} */
-	declaration_kind;
-
-	/**
-	 * What the value was initialized with
-	 * @type {null | Expression | FunctionDeclaration | ClassDeclaration | ImportDeclaration}
-	 */
-	initial = null;
-
-	/** @type {Array<{ node: Identifier; path: RippleNode[] }>} */
-	references = [];
-
-	mutated = false;
-	reassigned = false;
-	is_called = false;
-	metadata = null;
-
-	/**
-	 * @param {Scope} scope
-	 * @param {Identifier} node
-	 * @param {BindingKind} kind
-	 * @param {DeclarationKind} declaration_kind
-	 * @param {Binding['initial']} initial
-	 */
-	constructor(scope, node, kind, declaration_kind, initial) {
-		this.scope = scope;
-		this.node = node;
-		this.initial = initial;
-		this.kind = kind;
-		this.declaration_kind = declaration_kind;
-	}
-
-	get updated() {
-		return this.mutated || this.reassigned;
-	}
-}
-
 /**
  * Create scopes for an AST
- * @param {Node} ast - The AST to create scopes for
- * @param {ScopeRoot} root - Root scope manager
- * @param {Scope | null} parent - Parent scope
- * @returns {{ scope: Scope, scopes: Map<RippleNode, Scope> }} Scope information
+ * @param {AST.Node} ast - The AST to create scopes for
+ * @param {ScopeRootInterface} root - Root scope manager
+ * @param {ScopeInterface | null} parent - Parent scope
+ * @returns {{ scope: ScopeInterface, scopes: Map<AST.Node, ScopeInterface> }} Scope information
  */
 export function create_scopes(ast, root, parent) {
-	/** @typedef {{ scope: Scope }} State */
+	/** @typedef {{ scope: ScopeInterface }} State */
 
-	/** @type {Map<RippleNode, Scope>} */
+	/** @type {Map<AST.Node, ScopeInterface>} */
 	const scopes = new Map();
 	const scope = new Scope(root, parent, false);
 	scopes.set(ast, scope);
 
 	/** @type {State} */
 	const state = { scope };
-	/** @type {Array<[Scope, { node: Identifier, path: RippleNode[] }]>} */
+	/** @type {Array<[ScopeInterface, { node: AST.Identifier, path: AST.Node[] }]>} */
 	const references = [];
-	/** @type {Array<[Scope, Pattern | MemberExpression]>} */
+	/** @type {Array<[ScopeInterface, AST.Pattern | AST.MemberExpression]>} */
 	const updates = [];
 
 	/**
 	 * Add parameters to scope
-	 * @param {Scope} scope - The scope to add parameters to
-	 * @param {Pattern[]} params - Parameter nodes
+	 * @param {ScopeInterface} scope - The scope to add parameters to
+	 * @param {AST.Pattern[]} params - Parameter nodes
 	 */
 	function add_params(scope, params) {
 		for (const param of params) {
@@ -92,7 +44,7 @@ export function create_scopes(ast, root, parent) {
 
 	/**
 	 * Create a block scope
-	 * @param {any} node - AST node
+	 * @param {AST.Node} node - AST node
 	 * @param {{ state: any, next: Function }} context - Visitor context
 	 */
 	const create_block_scope = (node, { state, next }) => {
@@ -108,13 +60,13 @@ export function create_scopes(ast, root, parent) {
 		next({ scope });
 	};
 
-	walk(/** @type {RippleNode} */ (ast), state, {
+	walk(/** @type {AST.Node} */ (ast), state, {
 		// references
 		Identifier(node, { path, state }) {
 			const parent = path.at(-1);
 			if (
 				parent &&
-				is_reference(node, /** @type {Node} */ (parent)) &&
+				is_reference(node, /** @type {AST.Node} */ (parent)) &&
 				// TSTypeAnnotation, TSInterfaceDeclaration etc - these are normally already filtered out,
 				// but for the migration they aren't, so we need to filter them out here
 				// TODO -> once migration script is gone we can remove this check
@@ -130,7 +82,10 @@ export function create_scopes(ast, root, parent) {
 		},
 
 		UpdateExpression(node, { state, next }) {
-			updates.push([state.scope, /** @type {Identifier | MemberExpression} */ (node.argument)]);
+			updates.push([
+				state.scope,
+				/** @type {AST.Identifier | AST.MemberExpression} */ (node.argument),
+			]);
 			next();
 		},
 
@@ -141,7 +96,7 @@ export function create_scopes(ast, root, parent) {
 		},
 
 		/**
-		 * @param {Component} node
+		 * @param {AST.Component} node
 		 * @param {Object} context
 		 * @param {any} context.state
 		 * @param {Function} context.next
@@ -160,7 +115,7 @@ export function create_scopes(ast, root, parent) {
 		},
 
 		/**
-		 * @param {Element} node
+		 * @param {AST.Element} node
 		 * @param {Object} context
 		 * @param {any} context.state
 		 * @param {Function} context.next
@@ -290,13 +245,14 @@ export function create_scopes(ast, root, parent) {
 	};
 }
 
+/** @implements {ScopeInterface} */
 export class Scope {
-	/** @type {ScopeRoot} */
+	/** @type {ScopeRootInterface} */
 	root;
 
 	/**
 	 * The immediate parent scope
-	 * @type {Scope | null}
+	 * @type {ScopeInterface['parent']}
 	 */
 	parent;
 
@@ -309,45 +265,46 @@ export class Scope {
 	/**
 	 * A map of every identifier declared by this scope, and all the
 	 * identifiers that reference it
-	 * @type {Map<string, Binding>}
+	 * @type {ScopeInterface['declarations']}
 	 */
 	declarations = new Map();
 
 	/**
 	 * A map of declarators to the bindings they declare
-	 * @type {Map<VariableDeclarator, Binding[]>}
+	 * @type {ScopeInterface['declarators']}
 	 */
 	declarators = new Map();
 
 	/**
 	 * A set of all the names referenced with this scope
 	 * — useful for generating unique names
-	 * @type {Map<string, { node: Identifier; path: RippleNode[] }[]>}
+	 * @type {ScopeInterface['references']}
 	 */
 	references = new Map();
 
 	/**
 	 * The scope depth allows us to determine if a state variable is referenced in its own scope,
 	 * which is usually an error. Block statements do not increase this value
+	 * @type {ScopeInterface['function_depth']}
 	 */
 	function_depth = 0;
 
 	/**
 	 * If tracing of reactive dependencies is enabled for this scope
-	 * @type {null | Expression}
+	 * @type {ScopeInterface['tracing']}
 	 */
 	tracing = null;
 
 	/**
 	 * Is this scope a top-level server block scope
-	 * @type {boolean}
+	 * @type {ScopeInterface['server_block']}
 	 */
 	server_block = false;
 
 	/**
 	 *
-	 * @param {ScopeRoot} root
-	 * @param {Scope | null} parent
+	 * @param {ScopeRootInterface} root
+	 * @param {ScopeInterface | null} parent
 	 * @param {boolean} porous
 	 */
 	constructor(root, parent, porous) {
@@ -358,11 +315,7 @@ export class Scope {
 	}
 
 	/**
-	 * @param {Identifier} node
-	 * @param {Binding['kind']} kind
-	 * @param {DeclarationKind} declaration_kind
-	 * @param {null | Expression | FunctionDeclaration | ClassDeclaration | ImportDeclaration} initial
-	 * @returns {Binding}
+	 * @type {ScopeInterface['declare']}
 	 */
 	declare(node, kind, declaration_kind, initial = null) {
 		if (this.parent) {
@@ -403,17 +356,19 @@ export class Scope {
 		return binding;
 	}
 
+	/**
+	 * @type {ScopeInterface['child']}
+	 */
 	child(porous = false) {
 		return new Scope(this.root, this, porous);
 	}
 
 	/**
-	 * @param {string} preferred_name
-	 * @returns {string}
+	 * @type {ScopeInterface['generate']}
 	 */
 	generate(preferred_name) {
 		if (this.#porous) {
-			return /** @type {Scope} */ (this.parent).generate(preferred_name);
+			return /** @type {ScopeInterface} */ (this.parent).generate(preferred_name);
 		}
 
 		preferred_name = preferred_name.replace(/[^a-zA-Z0-9_$]/g, '_').replace(/^[0-9]/, '_');
@@ -435,16 +390,14 @@ export class Scope {
 	}
 
 	/**
-	 * @param {string} name
-	 * @returns {Binding | null}
+	 * @type {ScopeInterface['get']}
 	 */
 	get(name) {
 		return this.declarations.get(name) ?? this.parent?.get(name) ?? null;
 	}
 
 	/**
-	 * @param {VariableDeclarator} node
-	 * @returns {Binding[]}
+	 * @type {ScopeInterface['get_bindings']}
 	 */
 	get_bindings(node) {
 		const bindings = this.declarators.get(node);
@@ -455,16 +408,14 @@ export class Scope {
 	}
 
 	/**
-	 * @param {string} name
-	 * @returns {Scope | null}
+	 * @type {ScopeInterface['owner']}
 	 */
 	owner(name) {
 		return this.declarations.has(name) ? this : this.parent && this.parent.owner(name);
 	}
 
 	/**
-	 * @param {Identifier} node
-	 * @param {RippleNode[]} path
+	 * @type {ScopeInterface['reference']}
 	 */
 	reference(node, path) {
 		path = [...path]; // ensure that mutations to path afterwards don't affect this reference
@@ -487,12 +438,13 @@ export class Scope {
 	}
 }
 
+/** @implements {ScopeRootInterface} */
 export class ScopeRoot {
-	/** @type {Set<string>} */
+	/** @type {ScopeRootInterface['conflicts']} */
 	conflicts = new Set();
 
 	/**
-	 * @param {string} preferred_name
+	 * @type {ScopeRootInterface['unique']}
 	 */
 	unique(preferred_name) {
 		preferred_name = preferred_name.replace(/[^a-zA-Z0-9_$]/g, '_');

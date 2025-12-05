@@ -60,6 +60,7 @@
     "#client/constants": "./src/internal/client/constants.js",
     "#server": "./src/runtime/internal/server/types.d.ts",
     "#compiler": "./src/compiler/types/index.d.ts",
+    "#parser": "./src/compiler/types/parse.d.ts",
     "#public": "./types/index.d.ts"
   },
   "dependencies": {
@@ -79,6 +80,7 @@
     "@types/estree": "catalog:default",
     "@types/estree-jsx": "catalog:default",
     "@types/node": "catalog:default",
+    "@typescript-eslint/types": "catalog:default",
     "typescript": "catalog:default",
     "@volar/language-core": "catalog:default",
     "vscode-languageserver-types": "catalog:default"

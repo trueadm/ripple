@@ -51,6 +51,30 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Debug SSR Rendering",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/playground",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "debug-ssr"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Debug SSR Runtime",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/playground",
+      "program": "${workspaceFolder}/playground/ssr-dev.js",
+      "env": {
+        "DEBUG_APP": "true"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
     }
   ]
 }

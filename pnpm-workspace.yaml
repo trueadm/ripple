@@ -17,6 +17,7 @@ catalogs:
     '@types/node': ^24.3.0
     '@types/prompts': ^2.4.9
     '@typescript-eslint/parser': *ts_eslint_parser
+    '@typescript-eslint/types': ^8.40.0
     '@volar/language-core': ~2.4.23
     '@volar/language-server': ~2.4.23
     '@volar/typescript': ~2.4.23

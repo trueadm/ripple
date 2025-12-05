@@ -1,4 +1,15 @@
-/** @import * as ESTree from 'estree' */
+/** @import * as AST from 'estree'; */
+/** @import { SourceMapMappings } from '@jridgewell/sourcemap-codec'; */
+/** @import { TSESTree } from '@typescript-eslint/types'; */
+/**
+@import {
+	TransformServerContext,
+	TransformServerState,
+	Visitors,
+	AnalysisResult,
+	ScopeInterface,
+	Visitor
+} from '#compiler' */
 
 import * as b from '../../../../utils/builders.js';
 import { walk } from 'zimmerframe';
@@ -19,6 +30,9 @@ import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';
 import { createHash } from 'node:crypto';
 
+/**
+ * @param {TransformServerContext} context
+ */
 function add_ripple_internal_import(context) {
 	if (!context.state.to_ts) {
 		if (!context.state.imports.has(`import * as _$_ from 'ripple/internal/server'`)) {
@@ -27,13 +41,17 @@ function add_ripple_internal_import(context) {
 	}
 }
 
+/**
+ * @param {AST.Node[]} children
+ * @param {TransformServerContext} context
+ */
 function transform_children(children, context) {
-	const { visit, state, root } = context;
+	const { visit, state } = context;
 	const normalized = normalize_children(children, context);
 
 	for (const node of normalized) {
 		if (node.type === 'BreakStatement') {
-			state.init.push(b.break);
+			state.init?.push(b.break);
 			continue;
 		}
 		if (
@@ -48,33 +66,41 @@ function transform_children(children, context) {
 			node.type === 'Component'
 		) {
 			const metadata = { await: false };
-			state.init.push(visit(node, { ...state, metadata }));
+			state.init?.push(/** @type {AST.Statement} */ (visit(node, { ...state, metadata })));
 			if (metadata.await) {
-				state.init.push(b.if(b.call('_$_.aborted'), b.return(null)));
+				state.init?.push(b.if(b.call('_$_.aborted'), b.return(null)));
 				if (state.metadata?.await === false) {
 					state.metadata.await = true;
 				}
 			}
 		} else {
-			visit(node, { ...state, root: false });
+			visit(node, { ...state });
 		}
 	}
 }
 
-function transform_body(body, { visit, state }) {
+/**
+ * @param {AST.Node[]} body
+ * @param {TransformServerContext} context
+ * @returns {AST.Statement[]}
+ */
+function transform_body(body, context) {
+	const { state } = context;
+	/** @type {TransformServerState} */
 	const body_state = {
 		...state,
 		init: [],
 		metadata: state.metadata,
 	};
 
-	transform_children(body, { visit, state: body_state, root: true });
+	transform_children(body, { ...context, state: body_state });
 
-	return body_state.init;
+	return /** @type {AST.Statement[]} */ (body_state.init);
 }
 
+/** @type {Visitors<AST.Node, TransformServerState>} */
 const visitors = {
-	_: function set_scope(node, { next, state }) {
+	_: (node, { next, state }) => {
 		const scope = state.scopes.get(node);
 
 		if (scope && scope !== state.scope) {
@@ -120,6 +146,26 @@ const visitors = {
 			component_fn = b.async(component_fn);
 		}
 
+		// Anonymous components return a FunctionExpression
+		if (!node.id) {
+			// For async anonymous components, we need to set .async on the function
+			if (metadata.await) {
+				// Use IIFE pattern: (fn => (fn.async = true, fn))(function() { ... })
+				return b.call(
+					b.arrow(
+						[b.id('fn')],
+						b.sequence([
+							b.assignment('=', b.member(b.id('fn'), b.id('async')), b.true),
+							b.id('fn'),
+						]),
+					),
+					component_fn,
+				);
+			}
+			return component_fn;
+		}
+
+		// Named components return a FunctionDeclaration
 		const declaration = b.function_declaration(
 			node.id,
 			component_fn.params,
@@ -129,8 +175,8 @@ const visitors = {
 
 		if (metadata.await) {
 			const parent = context.path.at(-1);
-			if (parent.type === 'Program' || parent.type === 'BlockStatement') {
-				const body = parent.body;
+			if (parent?.type === 'Program' || parent?.type === 'BlockStatement') {
+				const body = /** @type {AST.RippleProgram} */ (parent).body;
 				const index = body.indexOf(node);
 				body.splice(
 					index + 1,
@@ -160,7 +206,10 @@ const visitors = {
 			const argsToUse = node.arguments.length > 0 ? node.arguments : callee.arguments;
 			// For SSR, use regular Map/Set
 			const constructorName = callee.type === 'TrackedMapExpression' ? 'Map' : 'Set';
-			return b.new(b.id(constructorName), ...argsToUse.map((arg) => context.visit(arg)));
+			return b.new(
+				b.id(constructorName),
+				.../** @type {AST.Expression[]} */ (argsToUse.map((arg) => context.visit(arg))),
+			);
 		}
 
 		if (!context.state.to_ts) {
@@ -231,7 +280,7 @@ const visitors = {
 	TSInstantiationExpression(node, context) {
 		if (!context.state.to_ts) {
 			// In JavaScript, just return the expression wrapped in parentheses
-			return b.sequence([context.visit(node.expression)]);
+			return b.sequence(/** @type {AST.Expression[]} */ ([context.visit(node.expression)]));
 		}
 		return context.next();
 	},
@@ -264,7 +313,8 @@ const visitors = {
 				b.assignment(
 					'=',
 					b.member(b.id('_$_server_$_'), b.id(declaration.id.name)),
-					context.visit(declaration),
+					/** @type {AST.Expression} */
+					(context.visit(declaration)),
 				),
 			);
 		} else {
@@ -288,6 +338,7 @@ const visitors = {
 
 		const is_dom_element = is_element_dom_element(node);
 		const is_spreading = node.attributes.some((attr) => attr.type === 'SpreadAttribute');
+		/** @type {(AST.Property | AST.SpreadElement)[] | null} */
 		const spread_attributes = is_spreading ? [] : null;
 		const child_namespace = is_dom_element
 			? determine_namespace_for_children(node.id.name, state.namespace)
@@ -296,11 +347,15 @@ const visitors = {
 		if (is_dom_element) {
 			const is_void = is_void_element(node.id.name);
 
-			state.init.push(
+			state.init?.push(
 				b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(`<${node.id.name}`))),
 			);
 			let class_attribute = null;
 
+			/**
+			 * @param {string} name
+			 *  @param {string | number | bigint | boolean | RegExp | null | undefined} value
+			 */
 			const handle_static_attr = (name, value) => {
 				const attr_str = ` ${name}${
 					is_boolean_attribute(name) && value === true
@@ -314,9 +369,9 @@ const visitors = {
 						is_boolean_attribute(name) && value === true
 							? b.literal(true)
 							: b.literal(value === true ? '' : value);
-					spread_attributes.push(b.prop('init', b.literal(name), actual_value));
+					spread_attributes?.push(b.prop('init', b.literal(name), actual_value));
 				} else {
-					state.init.push(
+					state.init?.push(
 						b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(attr_str))),
 					);
 				}
@@ -347,9 +402,11 @@ const visitors = {
 							continue;
 						}
 						const metadata = { tracking: false, await: false };
-						const expression = visit(attr.value, { ...state, metadata });
+						const expression = /** @type {AST.Expression} */ (
+							visit(attr.value, { ...state, metadata })
+						);
 
-						state.init.push(
+						state.init?.push(
 							b.stmt(
 								b.call(
 									b.member(b.id('__output'), b.id('push')),
@@ -359,29 +416,34 @@ const visitors = {
 						);
 					}
 				} else if (attr.type === 'SpreadAttribute') {
-					spread_attributes.push(b.spread(visit(attr.argument, state)));
+					spread_attributes?.push(
+						b.spread(/** @type {AST.Expression} */ (visit(attr.argument, state))),
+					);
 				}
 			}
 
 			if (class_attribute !== null) {
-				if (class_attribute.value.type === 'Literal') {
-					let value = class_attribute.value.value;
+				const attr_value = /** @type {AST.Expression} */ (class_attribute.value);
+				if (attr_value.type === 'Literal') {
+					let value = attr_value.value;
 
-					if (node.metadata.scoped && state.component.css) {
+					if (node.metadata.scoped && state.component?.css) {
 						value = `${state.component.css.hash} ${value}`;
 					}
 
 					handle_static_attr(class_attribute.name.name, value);
 				} else {
 					const metadata = { tracking: false, await: false };
-					let expression = visit(class_attribute.value, { ...state, metadata });
+					let expression = /** @type {AST.Expression} */ (
+						visit(attr_value, { ...state, metadata })
+					);
 
-					if (node.metadata.scoped && state.component.css) {
+					if (node.metadata.scoped && state.component?.css) {
 						// Pass array to clsx so it can handle objects properly
 						expression = b.array([expression, b.literal(state.component.css.hash)]);
 					}
 
-					state.init.push(
+					state.init?.push(
 						b.stmt(
 							b.call(
 								b.member(b.id('__output'), b.id('push')),
@@ -390,21 +452,21 @@ const visitors = {
 						),
 					);
 				}
-			} else if (node.metadata.scoped && state.component.css) {
+			} else if (node.metadata.scoped && state.component?.css) {
 				const value = state.component.css.hash;
 
 				handle_static_attr('class', value);
 			}
 
 			if (spread_attributes !== null && spread_attributes.length > 0) {
-				state.init.push(
+				state.init?.push(
 					b.stmt(
 						b.call(
 							b.member(b.id('__output'), b.id('push')),
 							b.call(
 								'_$_.spread_attrs',
 								b.object(spread_attributes),
-								node.metadata.scoped && state.component.css
+								node.metadata.scoped && state.component?.css
 									? b.literal(state.component.css.hash)
 									: undefined,
 							),
@@ -413,24 +475,34 @@ const visitors = {
 				);
 			}
 
-			state.init.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(`>`))));
+			state.init?.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(`>`))));
 
 			if (!is_void) {
-				transform_children(node.children, { visit, state: { ...state, root: false } });
+				transform_children(
+					node.children,
+					/** @type {TransformServerContext} */ ({ visit, state: { ...state } }),
+				);
 
-				state.init.push(
+				state.init?.push(
 					b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(`</${node.id.name}>`))),
 				);
 			}
 		} else {
+			/** @type {(AST.Property | AST.SpreadElement)[]} */
 			const props = [];
+			/** @type {AST.Expression | null} */
 			let children_prop = null;
 
 			for (const attr of node.attributes) {
 				if (attr.type === 'Attribute') {
 					if (attr.name.type === 'Identifier') {
 						const metadata = { tracking: false, await: false };
-						let property = visit(attr.value, { ...state, metadata });
+						let property = /** @type {AST.Expression} */ (
+							visit(/** @type {AST.Expression} */ (attr.value), {
+								...state,
+								metadata,
+							})
+						);
 
 						if (attr.name.name === 'children') {
 							children_prop = b.thunk(property);
@@ -438,13 +510,15 @@ const visitors = {
 						}
 
 						props.push(b.prop('init', attr.name, property));
-					} else if (attr.type === 'SpreadAttribute') {
-						props.push(
-							b.spread(
-								visit(attr.argument, { ...state, metadata: { ...state.metadata, spread: true } }),
-							),
-						);
 					}
+				} else if (attr.type === 'SpreadAttribute') {
+					props.push(
+						b.spread(
+							/** @type {AST.Expression} */ (
+								visit(attr.argument, { ...state, metadata: { ...state.metadata } })
+							),
+						),
+					);
 				}
 			}
 
@@ -452,30 +526,52 @@ const visitors = {
 
 			for (const child of node.children) {
 				if (child.type === 'Component') {
-					const id = child.id;
-					props.push(b.prop('init', id, visit(child, { ...state, namespace: child_namespace })));
+					// in this case, id cannot be null
+					// as these are direct children of the component
+					const id = /** @type {AST.Identifier} */ (child.id);
+					props.push(
+						b.prop(
+							'init',
+							id,
+							/** @type {AST.Expression} */ (
+								visit(child, { ...state, namespace: child_namespace })
+							),
+						),
+					);
 				} else {
 					children_filtered.push(child);
 				}
 			}
 
 			if (children_filtered.length > 0) {
-				const component_scope = context.state.scopes.get(node);
-				const children = visit(b.component(b.id('children'), [], children_filtered), {
-					...context.state,
-					scope: component_scope,
-					namespace: child_namespace,
-				});
+				const component_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node));
+				const children = /** @type {AST.Expression} */ (
+					visit(b.component(b.id('children'), [], children_filtered), {
+						...context.state,
+						scope: component_scope,
+						namespace: child_namespace,
+					})
+				);
 
 				if (children_prop) {
-					children_prop.body = b.logical('??', children_prop.body, children);
+					/** @type {AST.ArrowFunctionExpression} */ (children_prop).body = b.logical(
+						'??',
+						/** @type {AST.Expression} */ (
+							/** @type {AST.ArrowFunctionExpression} */ (children_prop).body
+						),
+						children,
+					);
 				} else {
 					props.push(b.prop('init', b.id('children'), children));
 				}
 			}
 
 			// For SSR, determine if we should await based on component metadata
-			const component_call = b.call(visit(node.id, state), b.id('__output'), b.object(props));
+			const component_call = b.call(
+				/** @type {AST.Expression} */ (visit(node.id, state)),
+				b.id('__output'),
+				b.object(props),
+			);
 
 			// Check if this is a locally defined component and if it's async
 			const component_name = node.id.type === 'Identifier' ? node.id.name : null;
@@ -486,16 +582,16 @@ const visitors = {
 			if (local_metadata) {
 				// Component is defined locally - we know if it's async or not
 				if (local_metadata.async) {
-					state.init.push(b.stmt(b.await(component_call)));
+					state.init?.push(b.stmt(b.await(component_call)));
 				} else {
-					state.init.push(b.stmt(component_call));
+					state.init?.push(b.stmt(component_call));
 				}
 			} else {
 				// Component is imported or dynamic - check .async property at runtime
 				// Use if-statement instead of ternary to avoid parser issues with await in conditionals
-				state.init.push(
+				state.init?.push(
 					b.if(
-						b.member(visit(node.id, state), b.id('async')),
+						b.member(/** @type {AST.Expression} */ (visit(node.id, state)), b.id('async')),
 						b.block([b.stmt(b.await(component_call))]),
 						b.block([b.stmt(component_call)]),
 					),
@@ -523,10 +619,15 @@ const visitors = {
 				}),
 			);
 			cases.push(
-				b.switch_case(switch_case.test ? context.visit(switch_case.test) : null, consequent.body),
+				b.switch_case(
+					switch_case.test ? /** @type {AST.Expression} */ (context.visit(switch_case.test)) : null,
+					consequent.body,
+				),
 			);
 		}
-		context.state.init.push(b.switch(context.visit(node.discriminant), cases));
+		context.state.init?.push(
+			b.switch(/** @type {AST.Expression} */ (context.visit(node.discriminant)), cases),
+		);
 	},
 
 	ForOfStatement(node, context) {
@@ -536,18 +637,23 @@ const visitors = {
 		}
 		const body_scope = context.state.scopes.get(node.body);
 
-		const body = transform_body(node.body.body, {
+		const body = transform_body(/** @type {AST.BlockStatement} */ (node.body).body, {
 			...context,
-			state: { ...context.state, scope: body_scope },
+			state: { ...context.state, scope: /** @type {ScopeInterface} */ (body_scope) },
 		});
 
 		if (node.index) {
-			context.state.init.push(b.var(node.index, b.literal(0)));
-			body.push(b.update('++', node.index));
+			context.state.init?.push(b.var(node.index, b.literal(0)));
+			body.push(b.stmt(b.update('++', node.index)));
 		}
 
-		context.state.init.push(
-			b.for_of(context.visit(node.left), context.visit(node.right), b.block(body)),
+		context.state.init?.push(
+			b.for_of(
+				/** @type {AST.VariableDeclaration} */ (context.visit(node.left)),
+				/** @type {AST.Expression} */
+				(context.visit(node.right)),
+				b.block(body),
+			),
 		);
 	},
 
@@ -558,17 +664,23 @@ const visitors = {
 		}
 
 		const consequent = b.block(
-			transform_body(node.consequent.body, {
+			transform_body(/** @type {AST.BlockStatement} */ (node.consequent).body, {
 				...context,
-				state: { ...context.state, scope: context.state.scopes.get(node.consequent) },
+				state: {
+					...context.state,
+					scope: /** @type {ScopeInterface} */ (context.state.scopes.get(node.consequent)),
+				},
 			}),
 		);
 
+		/** @type {AST.BlockStatement | AST.IfStatement | null} */
 		let alternate = null;
 		if (node.alternate) {
 			const alternate_scope = context.state.scopes.get(node.alternate) || context.state.scope;
 			const alternate_body_nodes =
-				node.alternate.type === 'IfStatement' ? [node.alternate] : node.alternate.body;
+				node.alternate.type === 'IfStatement'
+					? [node.alternate]
+					: /** @type {AST.BlockStatement} */ (node.alternate).body;
 
 			alternate = b.block(
 				transform_body(alternate_body_nodes, {
@@ -578,7 +690,9 @@ const visitors = {
 			);
 		}
 
-		context.state.init.push(b.if(context.visit(node.test), consequent, alternate));
+		context.state.init?.push(
+			b.if(/** @type {AST.Expression} */ (context.visit(node.test)), consequent, alternate),
+		);
 	},
 
 	AssignmentExpression(node, context) {
@@ -587,8 +701,10 @@ const visitors = {
 		if (left.type === 'Identifier' && left.tracked) {
 			return b.call(
 				'set',
-				context.visit(left, { ...context.state, metadata: { tracking: false } }),
-				context.visit(node.right),
+				/** @type {AST.Expression} */
+				(context.visit(left, { ...context.state, metadata: { tracking: false } })),
+				/** @type {AST.Expression} */
+				(context.visit(node.right)),
 			);
 		}
 
@@ -599,17 +715,18 @@ const visitors = {
 		return b.id('_$_server_$_');
 	},
 
+	/** @type {Visitor<AST.ImportDeclaration, TransformServerState, AST.Node>} */
 	ImportDeclaration(node, context) {
 		if (!context.state.to_ts && node.importKind === 'type') {
 			return b.empty;
 		}
 
-		return {
+		return /** @type {AST.ImportDeclaration} */ ({
 			...node,
 			specifiers: node.specifiers
-				.filter((spec) => spec.importKind !== 'type')
+				.filter((spec) => /** @type {AST.ImportSpecifier} */ (spec).importKind !== 'type')
 				.map((spec) => context.visit(spec)),
-		};
+		});
 	},
 
 	TryStatement(node, context) {
@@ -641,79 +758,97 @@ const visitors = {
 			if (node.pending) {
 				const pending_body = transform_body(node.pending.body, {
 					...context,
-					state: { ...context.state, scope: context.state.scopes.get(node.pending) },
+					state: {
+						...context.state,
+						scope: /** @type {ScopeInterface} */ (context.state.scopes.get(node.pending)),
+					},
 				});
-				context.state.init.push(...pending_body);
+				context.state.init?.push(...pending_body);
 			}
 
 			// For SSR with pending block: render the resolved content wrapped in async
 			// In a streaming SSR implementation, we'd render pending first, then stream resolved
-			const try_statements =
-				node.handler !== null
-					? [
-							b.try(
-								b.block(body),
-								b.catch_clause(
-									node.handler.param || b.id('error'),
-									b.block(
-										transform_body(node.handler.body.body, {
-											...context,
-											state: {
-												...context.state,
-												scope: context.state.scopes.get(node.handler.body),
-											},
-										}),
-									),
-								),
+			const handler = node.handler;
+			/** @type {AST.Statement[]} */
+			let try_statements = body;
+			if (handler != null) {
+				try_statements = [
+					b.try(
+						b.block(body),
+						b.catch_clause(
+							handler.param || b.id('error'),
+							b.block(
+								transform_body(handler.body.body, {
+									...context,
+									state: {
+										...context.state,
+										scope: /** @type {ScopeInterface} */ (context.state.scopes.get(handler.body)),
+									},
+								}),
 							),
-						]
-					: body;
+						),
+					),
+				];
+			}
 
-			context.state.init.push(
+			context.state.init?.push(
 				b.stmt(b.await(b.call('_$_.async', b.thunk(b.block(try_statements), true)))),
 			);
 		} else {
 			// No async, just regular try/catch
-			if (node.handler !== null) {
+			if (node.handler != null) {
 				const handler_body = transform_body(node.handler.body.body, {
 					...context,
-					state: { ...context.state, scope: context.state.scopes.get(node.handler.body) },
+					state: {
+						...context.state,
+						scope: /** @type {ScopeInterface} */ (context.state.scopes.get(node.handler.body)),
+					},
 				});
 
-				context.state.init.push(
+				context.state.init?.push(
 					b.try(
 						b.block(body),
 						b.catch_clause(node.handler.param || b.id('error'), b.block(handler_body)),
 					),
 				);
 			} else {
-				context.state.init.push(...body);
+				context.state.init?.push(...body);
 			}
 		}
 	},
 
 	AwaitExpression(node, context) {
-		context.state.scope.server_block = true;
-		context.inside_server_block = true;
-		if (context.state.to_ts) {
+		const { state } = context;
+		state.scope.server_block = true;
+		state.inside_server_block = true;
+		if (state.to_ts) {
 			return context.next();
 		}
 
-		if (context.state.metadata?.await === false) {
-			context.state.metadata.await = true;
+		if (state.metadata?.await === false) {
+			state.metadata.await = true;
 		}
 
-		return b.await(context.visit(node.argument));
+		return b.await(/** @type {AST.AwaitExpression} */ (context.visit(node.argument)));
 	},
 
 	TrackedObjectExpression(node, context) {
 		// For SSR, we just evaluate the object as-is since there's no reactivity
-		return b.object(node.properties.map((prop) => context.visit(prop)));
+		return b.object(
+			/** @type {(AST.Property | AST.SpreadElement)[]} */
+			(node.properties.map((prop) => context.visit(prop))),
+		);
 	},
 
 	TrackedArrayExpression(node, context) {
 		// For SSR, we just evaluate the array as-is since there's no reactivity
-		return b.array(node.elements.map((el) => context.visit(el)));
+		return b.array(
+			/** @type {(AST.Expression | AST.SpreadElement)[]} */
+			(
+				/** @param {AST.Node} el */
+				node.elements.map((el) => context.visit(/** @type {AST.Node} */ (el)))
+			),
+		);
 	},
 
 	MemberExpression(node, context) {
@@ -723,8 +858,11 @@ const visitors = {
 			return b.call(
 				'get',
 				b.member(
-					context.visit(node.object),
-					node.computed ? context.visit(node.property) : node.property,
+					/** @type {AST.Expression} */
+					(context.visit(node.object)),
+					node.computed
+						? /** @type {AST.Expression} */ (context.visit(node.property))
+						: node.property,
 					node.computed,
 					node.optional,
 				),
@@ -736,20 +874,20 @@ const visitors = {
 
 	Text(node, { visit, state }) {
 		const metadata = { await: false };
-		let expression = visit(node.expression, { ...state, metadata });
+		let expression = /** @type {AST.Expression} */ (visit(node.expression, { ...state, metadata }));
 
 		if (expression.type === 'Identifier' && expression.tracked) {
 			expression = b.call('get', expression);
 		}
 
 		if (expression.type === 'Literal') {
-			state.init.push(
+			state.init?.push(
 				b.stmt(
 					b.call(b.member(b.id('__output'), b.id('push')), b.literal(escape(expression.value))),
 				),
 			);
 		} else {
-			state.init.push(
+			state.init?.push(
 				b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.call('_$_.escape', expression))),
 			);
 		}
@@ -757,16 +895,18 @@ const visitors = {
 
 	Html(node, { visit, state }) {
 		const metadata = { await: false };
-		const expression = visit(node.expression, { ...state, metadata });
+		const expression = /** @type {AST.Expression} */ (
+			visit(node.expression, { ...state, metadata })
+		);
 
 		// For Html nodes, we render the content as-is without escaping
 		if (expression.type === 'Literal') {
-			state.init.push(
+			state.init?.push(
 				b.stmt(b.call(b.member(b.id('__output'), b.id('push')), b.literal(expression.value))),
 			);
 		} else {
 			// If it's dynamic, we need to evaluate it and push it directly (not escaped)
-			state.init.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), expression)));
+			state.init?.push(b.stmt(b.call(b.member(b.id('__output'), b.id('push')), expression)));
 		}
 	},
 
@@ -777,7 +917,9 @@ const visitors = {
 			return context.visit(node.body);
 		}
 		const file_path = context.state.filename;
-		const block = context.visit(node.body, { ...context.state, inside_server_block: true });
+		const block = /** @type {AST.BlockStatement} */ (
+			context.visit(node.body, { ...context.state, inside_server_block: true })
+		);
 		const rpc_modules = globalThis.rpc_modules;
 
 		if (rpc_modules) {
@@ -806,10 +948,18 @@ const visitors = {
 	},
 };
 
+/**
+ * @param {string} filename
+ * @param {string} source
+ * @param {AnalysisResult} analysis
+ * @param {boolean} minify_css
+ * @returns {{ ast: AST.Program; js: { code: string; map: SourceMapMappings | null }; css: string; }}
+ */
 export function transform_server(filename, source, analysis, minify_css) {
 	// Use component metadata collected during the analyze phase
 	const component_metadata = analysis.component_metadata || [];
 
+	/** @type {TransformServerState} */
 	const state = {
 		imports: new Set(),
 		init: null,
@@ -819,11 +969,13 @@ export function transform_server(filename, source, analysis, minify_css) {
 		component_metadata,
 		inside_server_block: false,
 		filename,
+		namespace: 'html',
+		// TODO: should we remove all `to_ts` usages we use the client rendering for that?
+		to_ts: false,
+		metadata: {},
 	};
 
-	const program = /** @type {ESTree.Program} */ (
-		walk(analysis.ast, { ...state, namespace: 'html' }, visitors)
-	);
+	const program = walk(analysis.ast, { ...state }, visitors);
 
 	const css = render_stylesheets(state.stylesheets, minify_css);
 
@@ -832,7 +984,7 @@ export function transform_server(filename, source, analysis, minify_css) {
 		// Register each stylesheet's CSS
 		for (const stylesheet of state.stylesheets) {
 			const css_for_component = render_stylesheets([stylesheet]);
-			program.body.push(
+			/** @type {AST.Program} */ (program).body.push(
 				b.stmt(
 					b.call('_$_.register_css', b.literal(stylesheet.hash), b.literal(css_for_component)),
 				),
@@ -843,16 +995,21 @@ export function transform_server(filename, source, analysis, minify_css) {
 	// Add async property to component functions
 
 	for (const import_node of state.imports) {
-		program.body.unshift(b.stmt(b.id(import_node)));
+		/** @type {AST.Program} */ (program).body.unshift(b.stmt(b.id(import_node)));
 	}
 
-	const js = print(program, ts(), {
+	// ESRap unfortunately hard codes the type from '@typescript-eslint/types'
+	// Our types from 'estree' are incompatible
+	// So we'll just give it what it wants with an unknown cast.
+	// Functionally, none of the properties that are different between the two types
+	// are used by the printer, so this is safe.
+	const js = print(/** @type {TSESTree.Node} */ (/** @type {unknown} */ (program)), ts(), {
 		sourceMapContent: source,
 		sourceMapSource: path.basename(filename),
 	});
 
 	return {
-		ast: program,
+		ast: /** @type {AST.Program} */ (program),
 		js,
 		css,
 	};

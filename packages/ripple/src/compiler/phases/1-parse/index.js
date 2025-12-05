@@ -1,8 +1,9 @@
-// @ts-nocheck
-/** @import { Program } from 'estree' */
+/** @import * as AST from 'estree' */
+/** @import * as ESTreeJSX from 'estree-jsx' */
+/** @import { Parse } from '#parser' */
+
 /**
  * @import {
- *   CommentWithLocation,
  *   RipplePluginConfig
  * } from '#compiler' */
 
@@ -14,22 +15,69 @@ import { parse_style } from './style.js';
 import { walk } from 'zimmerframe';
 import { regex_newline_characters } from '../../../utils/patterns.js';
 
-const parser = acorn.Parser.extend(tsPlugin({ jsx: true }), RipplePlugin());
+/**
+ * @typedef {(BaseParser: typeof acorn.Parser) => typeof acorn.Parser} AcornPlugin
+ */
+
+const parser = /** @type {Parse.ParserConstructor} */ (
+	/** @type {unknown} */ (
+		acorn.Parser.extend(
+			tsPlugin({ jsx: true }),
+			/** @type {AcornPlugin} */ (/** @type {unknown} */ (RipplePlugin())),
+		)
+	)
+);
+
+/** @type {Parse.BindingType} */
+const BINDING_TYPES = {
+	BIND_NONE: 0, // Not a binding
+	BIND_VAR: 1, // Var-style binding
+	BIND_LEXICAL: 2, // Let- or const-style binding
+	BIND_FUNCTION: 3, // Function declaration
+	BIND_SIMPLE_CATCH: 4, // Simple (identifier pattern) catch binding
+	BIND_OUTSIDE: 5, // Special case for function names as bound inside the function
+};
+
+/**
+ * @this {Parse.DestructuringErrors}
+ * @returns {Parse.DestructuringErrors}
+ */
+function DestructuringErrors() {
+	if (!(this instanceof DestructuringErrors)) {
+		throw new TypeError("'DestructuringErrors' must be invoked with 'new'");
+	}
+	this.shorthandAssign = -1;
+	this.trailingComma = -1;
+	this.parenthesizedAssign = -1;
+	this.parenthesizedBind = -1;
+	this.doubleProto = -1;
+	return this;
+}
 
 /**
  * Convert JSX node types to regular JavaScript node types
- * @param {any} node - The JSX node to convert
- * @returns {any} The converted node
+ * @param {ESTreeJSX.JSXIdentifier | ESTreeJSX.JSXMemberExpression | AST.Node} node - The JSX node to convert
+ * @returns {AST.Identifier | AST.MemberExpression | AST.Node} The converted node
  */
 function convert_from_jsx(node) {
+	/** @type {AST.Identifier | AST.MemberExpression | AST.Node} */
+	let converted_node;
 	if (node.type === 'JSXIdentifier') {
-		node.type = 'Identifier';
+		converted_node = /** @type {AST.Identifier} */ (/** @type {unknown} */ (node));
+		converted_node.type = 'Identifier';
 	} else if (node.type === 'JSXMemberExpression') {
-		node.type = 'MemberExpression';
-		node.object = convert_from_jsx(node.object);
-		node.property = convert_from_jsx(node.property);
+		converted_node = /** @type {AST.MemberExpression} */ (/** @type {unknown} */ (node));
+		converted_node.type = 'MemberExpression';
+		converted_node.object = /** @type {AST.Identifier | AST.MemberExpression} */ (
+			convert_from_jsx(converted_node.object)
+		);
+		converted_node.property = /** @type {AST.Identifier} */ (
+			convert_from_jsx(converted_node.property)
+		);
+	} else {
+		converted_node = node;
 	}
-	return node;
+	return converted_node;
 }
 
 const regex_whitespace_only = /\s/;
@@ -38,7 +86,7 @@ const regex_whitespace_only = /\s/;
  * Skip whitespace characters without skipping comments.
  * This is needed because Acorn's skipSpace() also skips comments, which breaks
  * parsing in certain contexts. Updates parser position and line tracking.
- * @param {acorn.Parser} parser
+ * @param {Parse.Parser} parser
  */
 function skipWhitespace(parser) {
 	const originalStart = parser.start;
@@ -62,22 +110,56 @@ function skipWhitespace(parser) {
 	parser.startLoc = lineInfo || acorn.getLineInfo(parser.input, parser.start);
 }
 
+/**
+ * @param {AST.Node | null | undefined} node
+ * @returns {boolean}
+ */
 function isWhitespaceTextNode(node) {
 	if (!node || node.type !== 'Text') {
 		return false;
 	}
-	const value =
-		typeof node.value === 'string' ? node.value : typeof node.raw === 'string' ? node.raw : '';
-	return /^\s*$/.test(value);
+
+	const expr = node.expression;
+	if (expr && expr.type === 'Literal' && typeof expr.value === 'string') {
+		return /^\s*$/.test(expr.value);
+	}
+	return false;
+}
+
+/**
+ * @param {AST.Element} element
+ * @param {ESTreeJSX.JSXOpeningElement} open
+ */
+function addOpeningAndClosing(element, open) {
+	const name = /** @type {ESTreeJSX.JSXIdentifier} */ (open.name).name;
+
+	element.openingElement = open;
+	element.closingElement = {
+		type: 'JSXClosingElement',
+		name: open.name,
+		start: /** @type {AST.NodeWithLocation} */ (element).end - `</${name}>`.length,
+		end: element.end,
+		loc: {
+			start: {
+				line: element.loc.end.line,
+				column: element.loc.end.column - `</${name}>`.length,
+			},
+			end: {
+				line: element.loc.end.line,
+				column: element.loc.end.column,
+			},
+		},
+		metadata: { path: [] },
+	};
 }
 
 /**
  * Acorn parser plugin for Ripple syntax extensions
  * @param {RipplePluginConfig} [config] - Plugin configuration
- * @returns {function(any): any} Parser extension function
+ * @returns {(Parser: Parse.ParserConstructor) => Parse.ParserConstructor} Parser extension function
  */
 function RipplePlugin(config) {
-	return (/** @type {typeof acorn.Parser} */ Parser) => {
+	return (/** @type {Parse.ParserConstructor} */ Parser) => {
 		const original = acorn.Parser.prototype;
 		const tt = Parser.tokTypes || acorn.tokTypes;
 		const tc = Parser.tokContexts || acorn.tokContexts;
@@ -85,16 +167,23 @@ function RipplePlugin(config) {
 		const tstc = Parser.acornTypeScript.tokContexts;
 
 		class RippleParser extends Parser {
-			/** @type {any[]} */
+			/** @type {AST.Node[]} */
 			#path = [];
 			#commentContextId = 0;
 			#loose = false;
 
+			/**
+			 * @param {Parse.Options} options
+			 * @param {string} input
+			 */
 			constructor(options, input) {
 				super(options, input);
 				this.#loose = options?.rippleOptions.loose === true;
 			}
 
+			/**
+			 * @returns {Parse.CommentMetaData | null}
+			 */
 			#createCommentMetadata() {
 				if (this.#path.length === 0) {
 					return null;
@@ -114,23 +203,21 @@ function RipplePlugin(config) {
 					return null;
 				}
 
-				container.metadata ??= {};
+				container.metadata ??= { path: [] };
 				if (container.metadata.commentContainerId === undefined) {
 					container.metadata.commentContainerId = ++this.#commentContextId;
 				}
 
-				return {
+				return /*** @type {Parse.CommentMetaData} */ ({
 					containerId: container.metadata.commentContainerId,
-					containerType: container.type,
 					childIndex: children.length,
 					beforeMeaningfulChild: !hasMeaningfulChildren,
-				};
+				});
 			}
 
 			/**
 			 * Helper method to get the element name from a JSX identifier or member expression
-			 * @param {any} node - The node to get the name from
-			 * @returns {string | null} Element name or null
+			 * @type {Parse.Parser['getElementName']}
 			 */
 			getElementName(node) {
 				if (!node) return null;
@@ -145,8 +232,7 @@ function RipplePlugin(config) {
 
 			/**
 			 * Get token from character code - handles Ripple-specific tokens
-			 * @param {number} code - Character code
-			 * @returns {any} Token or calls super method
+			 * @type {Parse.Parser['getTokenFromCode']}
 			 */
 			getTokenFromCode(code) {
 				if (code === 60) {
@@ -376,7 +462,7 @@ function RipplePlugin(config) {
 
 			/**
 			 * Read an @ prefixed identifier
-			 * @returns {any} Token with @ identifier
+			 * @type {Parse.Parser['readAtIdentifier']}
 			 */
 			readAtIdentifier() {
 				const start = this.pos;
@@ -410,11 +496,12 @@ function RipplePlugin(config) {
 
 			/**
 			 * Override parseIdent to mark @ identifiers as tracked
-			 * @param {any} [liberal] - Whether to allow liberal parsing
-			 * @returns {any} Parsed identifier node
+			 * @type {Parse.Parser['parseIdent']}
 			 */
 			parseIdent(liberal) {
-				const node = super.parseIdent(liberal);
+				const node = /** @type {AST.Identifier &AST.NodeWithLocation} */ (
+					super.parseIdent(liberal)
+				);
 				if (node.name && node.name.startsWith('@')) {
 					node.name = node.name.slice(1); // Remove the '@' for internal use
 					node.tracked = true;
@@ -429,14 +516,7 @@ function RipplePlugin(config) {
 
 			/**
 			 * Override parseSubscripts to handle `.@[expression]` syntax for reactive computed member access
-			 * @param {any} base - The base expression
-			 * @param {number} startPos - Start position
-			 * @param {any} startLoc - Start location
-			 * @param {boolean} noCalls - Whether calls are disallowed
-			 * @param {any} maybeAsyncArrow - Optional async arrow flag
-			 * @param {any} optionalChained - Optional chaining flag
-			 * @param {any} forInit - For-init flag
-			 * @returns {any} Parsed subscript expression
+			 * @type {Parse.Parser['parseSubscripts']}
 			 */
 			parseSubscripts(
 				base,
@@ -458,7 +538,7 @@ function RipplePlugin(config) {
 
 					// Check for @[ pattern (@ = 64, [ = 91)
 					if (nextChar === 64 && charAfter === 91) {
-						const node = this.startNodeAt(startPos, startLoc);
+						const node = /** @type {AST.MemberExpression} */ (this.startNodeAt(startPos, startLoc));
 						node.object = base;
 						node.computed = true;
 						node.optional = this.type === tt.questionDot;
@@ -483,7 +563,7 @@ function RipplePlugin(config) {
 						this.expect(tt.bracketR);
 
 						// Finish this MemberExpression node
-						base = this.finishNode(node, 'MemberExpression');
+						base = /** @type {AST.MemberExpression} */ (this.finishNode(node, 'MemberExpression'));
 
 						// Recursively handle any further subscripts (chaining)
 						return this.parseSubscripts(
@@ -512,10 +592,7 @@ function RipplePlugin(config) {
 
 			/**
 			 * Parse expression atom - handles TrackedArray and TrackedObject literals
-			 * @param {any} [refDestructuringErrors]
-			 * @param {any} [forNew]
-			 * @param {any} [forInit]
-			 * @returns {any} Parsed expression atom
+			 * @type {Parse.Parser['parseExprAtom']}
 			 */
 			parseExprAtom(refDestructuringErrors, forNew, forInit) {
 				// Check if this is @(expression) for unboxing tracked values
@@ -527,7 +604,7 @@ function RipplePlugin(config) {
 				if (this.type === tt.name && this.value === '#server') {
 					const node = this.startNode();
 					this.next();
-					return this.finishNode(node, 'ServerIdentifier');
+					return /** @type {AST.ServerIdentifier} */ (this.finishNode(node, 'ServerIdentifier'));
 				}
 
 				// Check if this is #Map( or #Set(
@@ -554,6 +631,7 @@ function RipplePlugin(config) {
 			/**
 			 * Override to track parenthesized expressions in metadata
 			 * This allows the prettier plugin to preserve parentheses where they existed
+			 * @type {Parse.Parser['parseParenAndDistinguishExpression']}
 			 */
 			parseParenAndDistinguishExpression(canBeArrow, forInit) {
 				const startPos = this.start;
@@ -561,8 +639,8 @@ function RipplePlugin(config) {
 
 				// If the expression's start position is after the opening paren,
 				// it means it was wrapped in parentheses. Mark it in metadata.
-				if (expr && expr.start > startPos) {
-					expr.metadata ??= {};
+				if (expr && /** @type {AST.NodeWithLocation} */ (expr).start > startPos) {
+					expr.metadata ??= { path: [] };
 					expr.metadata.parenthesized = true;
 				}
 
@@ -572,10 +650,10 @@ function RipplePlugin(config) {
 			/**
 			 * Parse `@(expression)` syntax for unboxing tracked values
 			 * Creates a TrackedExpression node with the argument property
-			 * @returns {any} TrackedExpression node
+			 * @type {Parse.Parser['parseTrackedExpression']}
 			 */
 			parseTrackedExpression() {
-				const node = this.startNode();
+				const node = /** @type {AST.TrackedExpression} */ (this.startNode());
 				this.next(); // consume '@(' token
 				node.argument = this.parseExpression();
 				this.expect(tt.parenR); // expect ')'
@@ -584,9 +662,7 @@ function RipplePlugin(config) {
 
 			/**
 			 * Override to allow TrackedExpression as a valid lvalue for update expressions
-			 * @param {any} expr - Expression to check
-			 * @param {any} bindingType - Binding type
-			 * @param {any} checkClashes - Check for clashes
+			 * @type {Parse.Parser['checkLValSimple']}
 			 */
 			checkLValSimple(expr, bindingType, checkClashes) {
 				// Allow TrackedExpression as a valid lvalue for ++/-- operators
@@ -596,18 +672,21 @@ function RipplePlugin(config) {
 				return super.checkLValSimple(expr, bindingType, checkClashes);
 			}
 
+			/**
+			 * @type {Parse.Parser['parseServerBlock']}
+			 */
 			parseServerBlock() {
-				const node = this.startNode();
+				const node = /** @type {AST.ServerBlock} */ (this.startNode());
 				this.next();
 
-				const body = this.startNode();
+				const body = /** @type {AST.BlockStatement} */ (this.startNode());
 				node.body = body;
 				body.body = [];
 
 				this.expect(tt.braceL);
 				this.enterScope(0);
 				while (this.type !== tt.braceR) {
-					const stmt = this.parseStatement(null, true);
+					const stmt = /** @type {AST.Statement} */ (this.parseStatement(null, true));
 					body.body.push(stmt);
 				}
 				this.next();
@@ -621,11 +700,13 @@ function RipplePlugin(config) {
 			/**
 			 * Parse `#Map(...)` or `#Set(...)` syntax for tracked collections
 			 * Creates a TrackedMap or TrackedSet node with the arguments property
-			 * @param {string} type - Either 'TrackedMap' or 'TrackedSet'
-			 * @returns {any} TrackedMap or TrackedSet node
+			 * @type {Parse.Parser['parseTrackedCollectionExpression']}
 			 */
 			parseTrackedCollectionExpression(type) {
-				const node = this.startNode();
+				const node =
+					/** @type {(AST.TrackedMapExpression | AST.TrackedSetExpression) & AST.NodeWithLocation} */ (
+						this.startNode()
+					);
 				this.next(); // consume '#Map' or '#Set'
 
 				// Check if we should NOT consume the parentheses
@@ -639,20 +720,22 @@ function RipplePlugin(config) {
 				const beforeStart = this.input.substring(Math.max(0, node.start - 5), node.start);
 				const isAfterNew = /new\s*$/.test(beforeStart);
 
-				if (isAfterNew && this.type === tt.parenL) {
+				if (!isAfterNew) {
+					// If we reach here, it means #Map or #Set is being called without 'new'
+					// Throw a TypeError to match JavaScript class constructor behavior
+					const constructorName =
+						type === 'TrackedMapExpression' ? '#Map (TrackedMap)' : '#Set (TrackedSet)';
+					this.raise(
+						node.start,
+						`TypeError: Class constructor ${constructorName} cannot be invoked without 'new'`,
+					);
+				}
+
+				if (this.type === tt.parenL) {
 					// Don't consume parens - they belong to NewExpression
 					node.arguments = [];
 					return this.finishNode(node, type);
 				}
-
-				// If we reach here, it means #Map or #Set is being called without 'new'
-				// Throw a TypeError to match JavaScript class constructor behavior
-				const constructorName =
-					type === 'TrackedMapExpression' ? '#Map (TrackedMap)' : '#Set (TrackedSet)';
-				this.raise(
-					node.start,
-					`TypeError: Class constructor ${constructorName} cannot be invoked without 'new'`,
-				);
 
 				this.expect(tt.parenL); // expect '('
 
@@ -680,8 +763,11 @@ function RipplePlugin(config) {
 				return this.finishNode(node, type);
 			}
 
+			/**
+			 * @type {Parse.Parser['parseTrackedArrayExpression']}
+			 */
 			parseTrackedArrayExpression() {
-				const node = this.startNode();
+				const node = /** @type {AST.TrackedArrayExpression} */ (this.startNode());
 				this.next(); // consume the '#['
 
 				node.elements = [];
@@ -715,8 +801,11 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'TrackedArrayExpression');
 			}
 
+			/**
+			 * @type {Parse.Parser['parseTrackedObjectExpression']}
+			 */
 			parseTrackedObjectExpression() {
-				const node = this.startNode();
+				const node = /** @type {AST.TrackedObjectExpression} */ (this.startNode());
 				this.next(); // consume the '#{'
 
 				node.properties = [];
@@ -740,7 +829,7 @@ function RipplePlugin(config) {
 						}
 					} else {
 						// Regular property
-						node.properties.push(this.parseProperty(false, {}));
+						node.properties.push(this.parseProperty(false, new DestructuringErrors()));
 					}
 				}
 
@@ -749,14 +838,10 @@ function RipplePlugin(config) {
 
 			/**
 			 * Parse a component - common implementation used by statements, expressions, and export defaults
-			 * @param {Object} options - Parsing options
-			 * @param {boolean} [options.requireName=false] - Whether component name is required
-			 * @param {boolean} [options.isDefault=false] - Whether this is an export default component
-			 * @param {boolean} [options.declareName=false] - Whether to declare the name in scope
-			 * @returns {any} Component node
+			 * @type {Parse.Parser['parseComponent']}
 			 */
 			parseComponent({ requireName = false, isDefault = false, declareName = false } = {}) {
-				const node = this.startNode();
+				const node = /** @type {AST.Component} */ (this.startNode());
 				node.type = 'Component';
 				node.css = null;
 				node.default = isDefault;
@@ -766,12 +851,20 @@ function RipplePlugin(config) {
 				if (requireName) {
 					node.id = this.parseIdent();
 					if (declareName) {
-						this.declareName(node.id.name, 'var', node.id.start);
+						this.declareName(
+							node.id.name,
+							BINDING_TYPES.BIND_VAR,
+							/** @type {AST.NodeWithLocation} */ (node.id).start,
+						);
 					}
 				} else {
 					node.id = this.type.label === 'name' ? this.parseIdent() : null;
 					if (declareName && node.id) {
-						this.declareName(node.id.name, 'var', node.id.start);
+						this.declareName(
+							node.id.name,
+							BINDING_TYPES.BIND_VAR,
+							/** @type {AST.NodeWithLocation} */ (node.id).start,
+						);
 					}
 				}
 
@@ -792,6 +885,9 @@ function RipplePlugin(config) {
 				return node;
 			}
 
+			/**
+			 * @type {Parse.Parser['parseExportDefaultDeclaration']}
+			 */
 			parseExportDefaultDeclaration() {
 				// Check if this is "export default component"
 				if (this.value === 'component') {
@@ -801,6 +897,7 @@ function RipplePlugin(config) {
 				return super.parseExportDefaultDeclaration();
 			}
 
+			/** @type {Parse.Parser['parseForStatement']} */
 			parseForStatement(node) {
 				this.next();
 				let awaitAt =
@@ -818,12 +915,16 @@ function RipplePlugin(config) {
 
 				let isLet = this.isLet();
 				if (this.type === tt._var || this.type === tt._const || isLet) {
-					let init = this.startNode(),
-						kind = isLet ? 'let' : this.value;
+					let init = /** @type {AST.VariableDeclaration} */ (this.startNode()),
+						kind = isLet ? 'let' : /** @type {AST.VariableDeclaration['kind']} */ (this.value);
 					this.next();
 					this.parseVar(init, true, kind);
 					this.finishNode(init, 'VariableDeclaration');
-					return this.parseForAfterInitWithIndex(node, init, awaitAt);
+					return this.parseForAfterInitWithIndex(
+						/** @type {AST.ForInStatement | AST.ForOfStatement} */ (node),
+						init,
+						awaitAt,
+					);
 				}
 
 				// Handle other cases like using declarations if they exist
@@ -836,7 +937,7 @@ function RipplePlugin(config) {
 							? 'await using'
 							: null;
 				if (usingKind) {
-					let init = this.startNode();
+					let init = /** @type {AST.VariableDeclaration} */ (this.startNode());
 					this.next();
 					if (usingKind === 'await using') {
 						if (!this.canAwait) {
@@ -846,13 +947,17 @@ function RipplePlugin(config) {
 					}
 					this.parseVar(init, true, usingKind);
 					this.finishNode(init, 'VariableDeclaration');
-					return this.parseForAfterInitWithIndex(node, init, awaitAt);
+					return this.parseForAfterInitWithIndex(
+						/** @type {AST.ForInStatement | AST.ForOfStatement} */ (node),
+						init,
+						awaitAt,
+					);
 				}
 
 				let containsEsc = this.containsEsc;
-				let refDestructuringErrors = {};
+				let refDestructuringErrors = new DestructuringErrors();
 				let initPos = this.start;
-				let init =
+				let init_expr =
 					awaitAt > -1
 						? this.parseExprSubscripts(refDestructuringErrors, 'await')
 						: this.parseExpression(true, refDestructuringErrors);
@@ -864,30 +969,38 @@ function RipplePlugin(config) {
 					if (awaitAt > -1) {
 						// implies `ecmaVersion >= 9`
 						if (this.type === tt._in) this.unexpected(awaitAt);
-						node.await = true;
+						/** @type {AST.ForOfStatement} */ (node).await = true;
 					} else if (isForOf && this.options.ecmaVersion >= 8) {
 						if (
-							init.start === initPos &&
+							init_expr.start === initPos &&
 							!containsEsc &&
-							init.type === 'Identifier' &&
-							init.name === 'async'
+							init_expr.type === 'Identifier' &&
+							init_expr.name === 'async'
 						)
 							this.unexpected();
-						else if (this.options.ecmaVersion >= 9) node.await = false;
+						else if (this.options.ecmaVersion >= 9)
+							/** @type {AST.ForOfStatement} */ (node).await = false;
 					}
 					if (startsWithLet && isForOf)
-						this.raise(init.start, "The left-hand side of a for-of loop may not start with 'let'.");
-					this.toAssignable(init, false, refDestructuringErrors);
+						this.raise(
+							/** @type {AST.NodeWithLocation} */ (init_expr).start,
+							"The left-hand side of a for-of loop may not start with 'let'.",
+						);
+					const init = this.toAssignable(init_expr, false, refDestructuringErrors);
 					this.checkLValPattern(init);
-					return this.parseForInWithIndex(node, init);
+					return this.parseForInWithIndex(
+						/** @type {AST.ForInStatement | AST.ForOfStatement} */ (node),
+						init,
+					);
 				} else {
 					this.checkExpressionErrors(refDestructuringErrors, true);
 				}
 
 				if (awaitAt > -1) this.unexpected(awaitAt);
-				return this.parseFor(node, init);
+				return this.parseFor(node, init_expr);
 			}
 
+			/** @type {Parse.Parser['parseForAfterInitWithIndex']} */
 			parseForAfterInitWithIndex(node, init, awaitAt) {
 				if (
 					(this.type === tt._in || (this.options.ecmaVersion >= 6 && this.isContextual('of'))) &&
@@ -895,15 +1008,25 @@ function RipplePlugin(config) {
 				) {
 					if (this.options.ecmaVersion >= 9) {
 						if (this.type === tt._in) {
-							if (awaitAt > -1) this.unexpected(awaitAt);
-						} else node.await = awaitAt > -1;
+							if (awaitAt > -1) {
+								this.unexpected(awaitAt);
+							}
+						} else {
+							/** @type {AST.ForOfStatement} */ (node).await = awaitAt > -1;
+						}
 					}
-					return this.parseForInWithIndex(node, init);
+					return this.parseForInWithIndex(
+						/** @type {AST.ForInStatement | AST.ForOfStatement} */ (node),
+						init,
+					);
 				}
-				if (awaitAt > -1) this.unexpected(awaitAt);
+				if (awaitAt > -1) {
+					this.unexpected(awaitAt);
+				}
 				return this.parseFor(node, init);
 			}
 
+			/** @type {Parse.Parser['parseForInWithIndex']} */
 			parseForInWithIndex(node, init) {
 				const isForIn = this.type === tt._in;
 				this.next();
@@ -918,7 +1041,7 @@ function RipplePlugin(config) {
 						init.declarations[0].id.type !== 'Identifier')
 				) {
 					this.raise(
-						init.start,
+						/** @type {AST.NodeWithLocation} */ (init).start,
 						`${isForIn ? 'for-in' : 'for-of'} loop variable declaration may not have an initializer`,
 					);
 				}
@@ -932,8 +1055,13 @@ function RipplePlugin(config) {
 
 					if (this.isContextual('index')) {
 						this.next(); // consume 'index'
-						node.index = this.parseExpression();
-						if (node.index.type !== 'Identifier') {
+						/** @type {AST.ForOfStatement} */ (node).index = /** @type {AST.Identifier} */ (
+							this.parseExpression()
+						);
+						if (
+							/** @type {AST.Identifier} */ (/** @type {AST.ForOfStatement} */ (node).index)
+								.type !== 'Identifier'
+						) {
 							this.raise(this.start, 'Expected identifier after "index" keyword');
 						}
 						this.eat(tt.semi);
@@ -941,7 +1069,7 @@ function RipplePlugin(config) {
 
 					if (this.isContextual('key')) {
 						this.next(); // consume 'key'
-						node.key = this.parseExpression();
+						/** @type {AST.ForOfStatement} */ (node).key = this.parseExpression();
 					}
 
 					if (this.isContextual('index')) {
@@ -949,16 +1077,19 @@ function RipplePlugin(config) {
 					}
 				} else if (!isForIn) {
 					// Set index to null for standard for-of loops
-					node.index = null;
+					/** @type {AST.ForOfStatement} */ (node).index = null;
 				}
 
 				this.expect(tt.parenR);
-				node.body = this.parseStatement('for');
+				node.body = /** @type {AST.BlockStatement} */ (this.parseStatement('for'));
 				this.exitScope();
 				this.labels.pop();
 				return this.finishNode(node, isForIn ? 'ForInStatement' : 'ForOfStatement');
 			}
 
+			/**
+			 * @type {Parse.Parser['checkUnreserved']}
+			 */
 			checkUnreserved(ref) {
 				if (ref.name === 'component') {
 					this.raise(
@@ -969,6 +1100,7 @@ function RipplePlugin(config) {
 				return super.checkUnreserved(ref);
 			}
 
+			/** @type {Parse.Parser['shouldParseExportStatement']} */
 			shouldParseExportStatement() {
 				if (super.shouldParseExportStatement()) {
 					return true;
@@ -979,8 +1111,11 @@ function RipplePlugin(config) {
 				return this.type.keyword === 'var';
 			}
 
+			/**
+			 * @return {ESTreeJSX.JSXExpressionContainer}
+			 */
 			jsx_parseExpressionContainer() {
-				let node = this.startNode();
+				let node = /** @type {ESTreeJSX.JSXExpressionContainer} */ (this.startNode());
 				this.next();
 				let tracked = false;
 
@@ -1010,17 +1145,25 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'JSXExpressionContainer');
 			}
 
+			/**
+			 * @returns {ESTreeJSX.JSXEmptyExpression}
+			 */
 			jsx_parseEmptyExpression() {
 				// Override to properly handle the range for JSXEmptyExpression
 				// The range should be from after { to before }
-				const node = this.startNodeAt(this.lastTokEnd, this.lastTokEndLoc);
+				const node = /** @type {ESTreeJSX.JSXEmptyExpression} */ (
+					this.startNodeAt(this.lastTokEnd, this.lastTokEndLoc)
+				);
 				node.end = this.start;
 				node.loc.end = this.startLoc;
 				return this.finishNodeAt(node, 'JSXEmptyExpression', this.start, this.startLoc);
 			}
 
+			/**
+			 * @returns {ESTreeJSX.JSXExpressionContainer}
+			 */
 			jsx_parseTupleContainer() {
-				const t = this.startNode();
+				const t = /** @type {ESTreeJSX.JSXExpressionContainer} */ (this.startNode());
 				return (
 					this.next(),
 					(t.expression =
@@ -1030,8 +1173,11 @@ function RipplePlugin(config) {
 				);
 			}
 
+			/**
+			 * @type {Parse.Parser['jsx_parseAttribute']}
+			 */
 			jsx_parseAttribute() {
-				let node = this.startNode();
+				let node = /** @type {AST.RippleAttribute | ESTreeJSX.JSXAttribute} */ (this.startNode());
 
 				if (this.eat(tt.braceL)) {
 					if (this.value === 'ref') {
@@ -1042,57 +1188,71 @@ function RipplePlugin(config) {
 								'"ref" is a Ripple keyword and must be used in the form {ref fn}',
 							);
 						}
-						node.argument = this.parseMaybeAssign();
+						/** @type {AST.RefAttribute} */ (node).argument = this.parseMaybeAssign();
 						this.expect(tt.braceR);
-						return this.finishNode(node, 'RefAttribute');
+						return /** @type {AST.RefAttribute} */ (this.finishNode(node, 'RefAttribute'));
 					} else if (this.type === tt.ellipsis) {
 						this.expect(tt.ellipsis);
-						node.argument = this.parseMaybeAssign();
+						/** @type {AST.SpreadAttribute} */ (node).argument = this.parseMaybeAssign();
 						this.expect(tt.braceR);
 						return this.finishNode(node, 'SpreadAttribute');
 					} else if (this.lookahead().type === tt.ellipsis) {
 						this.expect(tt.ellipsis);
-						node.argument = this.parseMaybeAssign();
+						/** @type {AST.SpreadAttribute} */ (node).argument = this.parseMaybeAssign();
 						this.expect(tt.braceR);
 						return this.finishNode(node, 'SpreadAttribute');
 					} else {
-						const id = this.parseIdentNode();
+						const id = /** @type {AST.Identifier} */ (this.parseIdentNode());
 						id.tracked = false;
 						if (id.name.startsWith('@')) {
 							id.tracked = true;
 							id.name = id.name.slice(1);
 						}
 						this.finishNode(id, 'Identifier');
-						node.name = id;
-						node.value = id;
-						node.shorthand = true; // Mark as shorthand since name and value are the same
+						/** @type {AST.Attribute} */ (node).name = id;
+						/** @type {AST.Attribute} */ (node).value = id;
+						/** @type {AST.Attribute} */ (node).shorthand = true; // Mark as shorthand since name and value are the same
 						this.next();
 						this.expect(tt.braceR);
 						return this.finishNode(node, 'Attribute');
 					}
 				}
-				node.name = this.jsx_parseNamespacedName();
-				node.value = this.eat(tt.eq) ? this.jsx_parseAttributeValue() : null;
+				/** @type {ESTreeJSX.JSXAttribute} */ (node).name = this.jsx_parseNamespacedName();
+				/** @type {ESTreeJSX.JSXAttribute} */ (node).value =
+					/** @type {ESTreeJSX.JSXAttribute['value'] | null} */ (
+						this.eat(tt.eq) ? this.jsx_parseAttributeValue() : null
+					);
 				return this.finishNode(node, 'JSXAttribute');
 			}
 
+			/**
+			 * @type {Parse.Parser['jsx_parseNamespacedName']}
+			 */
 			jsx_parseNamespacedName() {
 				const base = this.jsx_parseIdentifier();
 				if (!this.eat(tt.colon)) return base;
-				const node = this.startNodeAt(base.start, base.loc.start);
+				const node = /** @type {ESTreeJSX.JSXNamespacedName} */ (
+					this.startNodeAt(
+						/** @type {AST.NodeWithLocation} */ (base).start,
+						/** @type {AST.NodeWithLocation} */ (base).loc.start,
+					)
+				);
 				node.namespace = base;
 				node.name = this.jsx_parseIdentifier();
 				return this.finishNode(node, 'JSXNamespacedName');
 			}
 
+			/**
+			 * @type {Parse.Parser['jsx_parseIdentifier']}
+			 */
 			jsx_parseIdentifier() {
-				const node = this.startNode();
+				const node = /** @type {ESTreeJSX.JSXIdentifier} */ (this.startNode());
 
 				if (this.type.label === '@') {
 					this.next(); // consume @
 
 					if (this.type === tt.name || this.type === tstt.jsxName) {
-						node.name = this.value;
+						node.name = /** @type {string} */ (this.value);
 						node.tracked = true;
 						this.next();
 					} else {
@@ -1102,13 +1262,13 @@ function RipplePlugin(config) {
 				} else if (
 					(this.type === tt.name || this.type === tstt.jsxName) &&
 					this.value &&
-					this.value.startsWith('@')
+					/** @type {string} */ (this.value).startsWith('@')
 				) {
-					node.name = this.value.substring(1);
+					node.name = /** @type {string} */ (this.value).substring(1);
 					node.tracked = true;
 					this.next();
 				} else if (this.type === tt.name || this.type.keyword || this.type === tstt.jsxName) {
-					node.name = this.value;
+					node.name = /** @type {string} */ (this.value);
 					node.tracked = false; // Explicitly mark as not tracked
 					this.next();
 				} else {
@@ -1118,6 +1278,9 @@ function RipplePlugin(config) {
 				return this.finishNode(node, 'JSXIdentifier');
 			}
 
+			/**
+			 * @type {Parse.Parser['jsx_parseElementName']}
+			 */
 			jsx_parseElementName() {
 				if (this.type === tstt.jsxTagEnd) {
 					return '';
@@ -1130,7 +1293,12 @@ function RipplePlugin(config) {
 				}
 
 				if (this.eat(tt.dot)) {
-					let memberExpr = this.startNodeAt(node.start, node.loc && node.loc.start);
+					let memberExpr = /** @type {ESTreeJSX.JSXMemberExpression} */ (
+						this.startNodeAt(
+							/** @type {AST.NodeWithLocation} */ (node).start,
+							/** @type {AST.NodeWithLocation} */ (node).loc.start,
+						)
+					);
 					memberExpr.object = node;
 
 					// Check for .@[expression] syntax for tracked computed member access
@@ -1151,8 +1319,8 @@ function RipplePlugin(config) {
 							this.expect(tt.bracketL);
 
 							// Parse the expression inside brackets
-							memberExpr.property = this.parseExpression();
-							memberExpr.property.tracked = true;
+							memberExpr.property = /** @type {ESTreeJSX.JSXIdentifier} */ (this.parseExpression());
+							/** @type {AST.TrackedNode} */ (memberExpr.property).tracked = true;
 
 							// Expect closing bracket
 							this.expect(tt.bracketR);
@@ -1167,9 +1335,11 @@ function RipplePlugin(config) {
 						memberExpr.computed = false;
 					}
 					while (this.eat(tt.dot)) {
-						let newMemberExpr = this.startNodeAt(
-							memberExpr.start,
-							memberExpr.loc && memberExpr.loc.start,
+						let newMemberExpr = /** @type {ESTreeJSX.JSXMemberExpression} */ (
+							this.startNodeAt(
+								/** @type {AST.NodeWithLocation} */ (memberExpr).start,
+								/** @type {AST.NodeWithLocation} */ (memberExpr).loc.start,
+							)
 						);
 						newMemberExpr.object = memberExpr;
 						newMemberExpr.property = this.jsx_parseIdentifier();
@@ -1181,13 +1351,17 @@ function RipplePlugin(config) {
 				return node;
 			}
 
+			/** @type {Parse.Parser['jsx_parseAttributeValue']} */
 			jsx_parseAttributeValue() {
 				switch (this.type) {
 					case tt.braceL:
 						const t = this.jsx_parseExpressionContainer();
 						return (
-							'JSXEmptyExpression' === t.expression.type &&
-								this.raise(t.start, 'attributes must only be assigned a non-empty expression'),
+							t.expression.type === 'JSXEmptyExpression' &&
+								this.raise(
+									/** @type {AST.NodeWithLocation} */ (t).start,
+									'attributes must only be assigned a non-empty expression',
+								),
 							t
 						);
 					case tstt.jsxTagStart:
@@ -1198,6 +1372,9 @@ function RipplePlugin(config) {
 				}
 			}
 
+			/**
+			 * @type {Parse.Parser['parseTryStatement']}
+			 */
 			parseTryStatement(node) {
 				this.next();
 				node.block = this.parseBlock();
@@ -1211,7 +1388,7 @@ function RipplePlugin(config) {
 				}
 
 				if (this.type === tt._catch) {
-					const clause = this.startNode();
+					const clause = /** @type {AST.CatchClause} */ (this.startNode());
 					this.next();
 					if (this.eat(tt.parenL)) {
 						clause.param = this.parseCatchClauseParam();
@@ -1229,11 +1406,15 @@ function RipplePlugin(config) {
 				node.finalizer = this.eat(tt._finally) ? this.parseBlock() : null;
 
 				if (!node.handler && !node.finalizer && !node.pending) {
-					this.raise(node.start, 'Missing catch or finally clause');
+					this.raise(
+						/** @type {AST.NodeWithLocation} */ (node).start,
+						'Missing catch or finally clause',
+					);
 				}
 				return this.finishNode(node, 'TryStatement');
 			}
 
+			/** @type {Parse.Parser['jsx_readToken']} */
 			jsx_readToken() {
 				const inside_tsx_compat = this.#path.findLast((n) => n.type === 'TsxCompat');
 				if (inside_tsx_compat) {
@@ -1386,64 +1567,83 @@ function RipplePlugin(config) {
 				}
 			}
 
+			/**
+			 * @type {Parse.Parser['parseElement']}
+			 */
 			parseElement() {
 				const inside_head = this.#path.findLast(
 					(n) => n.type === 'Element' && n.id.type === 'Identifier' && n.id.name === 'head',
 				);
 				// Adjust the start so we capture the `<` as part of the element
-				const prev_pos = this.pos;
-				this.pos = this.start - 1;
-				const position = this.curPosition();
-				this.pos = prev_pos;
+				const start = this.start - 1;
+				const position = new acorn.Position(this.curLine, start - this.lineStart);
 
-				const element = this.startNode();
-				element.start = position.index;
-				element.loc.start = position;
-				element.metadata = {};
+				const element = /** @type {AST.Element | AST.TsxCompat} */ (this.startNode());
+				element.start = start;
+				/** @type {AST.NodeWithLocation} */ (element).loc.start = position;
+				element.metadata = { path: [] };
 				element.children = [];
 
 				// Check if this is a <script> or <style> tag
 				const tagName = this.value;
 				const isScriptOrStyle = tagName === 'script' || tagName === 'style';
-
+				/** @type {ESTreeJSX.JSXOpeningElement & AST.NodeWithLocation} */
 				let open;
 				if (isScriptOrStyle) {
 					// Manually parse opening tag to avoid jsx_parseOpeningElementAt consuming content
-					const tagStart = this.start;
-					const tagEndPos = this.input.indexOf('>', tagStart);
+					const tagEndPos = this.input.indexOf('>', start) + 1; // +1 as end positions are exclusive
+					const opening_position = new acorn.Position(position.line, position.column);
+					const end_position = acorn.getLineInfo(this.input, tagEndPos);
 
 					open = {
 						type: 'JSXOpeningElement',
-						name: { type: 'JSXIdentifier', name: tagName },
-						attributes: [],
-						selfClosing: false,
-						end: tagEndPos + 1,
-						loc: {
-							end: {
-								line: this.curLine,
-								column: tagEndPos + 1,
+						name: {
+							type: 'JSXIdentifier',
+							name: tagName,
+							metadata: { path: [] },
+							start: start + 1,
+							end: tagEndPos - 1,
+							loc: {
+								start: { ...position, column: position.column + 1 },
+								end: {
+									...end_position,
+									column: end_position.column - 1,
+								},
 							},
 						},
+						attributes: [],
+						selfClosing: false,
+						start,
+						end: tagEndPos,
+						loc: {
+							start: opening_position,
+							end: end_position,
+						},
+						metadata: { path: [] },
 					};
 
 					// Position after the '>'
-					this.pos = tagEndPos + 1;
+					this.pos = tagEndPos;
 
 					// Add opening and closing for easier location tracking
 					// TODO: we should also parse attributes inside the opening tag
 				} else {
-					open = this.jsx_parseOpeningElementAt();
+					open =
+						/** @type {ReturnType<Parse.Parser['jsx_parseOpeningElementAt']> & AST.NodeWithLocation} */ (
+							this.jsx_parseOpeningElementAt()
+						);
 				}
 
 				// Check if this is a namespaced element (tsx:react)
 				const is_tsx_compat = open.name.type === 'JSXNamespacedName';
 
 				if (is_tsx_compat) {
-					element.type = 'TsxCompat';
-					element.kind = open.name.name.name; // e.g., "react" from "tsx:react"
+					const namespace_node = /** @type {ESTreeJSX.JSXNamespacedName} */ (open.name);
+					/** @type {AST.TsxCompat} */ (element).type = 'TsxCompat';
+					/** @type {AST.TsxCompat} */ (element).kind = namespace_node.name.name; // e.g., "react" from "tsx:react"
 
 					if (open.selfClosing) {
-						const tagName = open.name.namespace.name + ':' + open.name.name.name;
+						const tagName = namespace_node.namespace.name + ':' + namespace_node.name.name;
 						this.raise(
 							open.start,
 							`TSX compatibility elements cannot be self-closing. '<${tagName} />' must have a closing tag '</${tagName}>'.`,
@@ -1457,64 +1657,33 @@ function RipplePlugin(config) {
 
 				for (const attr of open.attributes) {
 					if (attr.type === 'JSXAttribute') {
-						attr.type = 'Attribute';
+						/** @type {AST.Attribute} */ (/** @type {unknown} */ (attr)).type = 'Attribute';
 						if (attr.name.type === 'JSXIdentifier') {
-							attr.name.type = 'Identifier';
+							/** @type {AST.Identifier} */ (/** @type {unknown} */ (attr.name)).type =
+								'Identifier';
 						}
 						if (attr.value !== null) {
 							if (attr.value.type === 'JSXExpressionContainer') {
-								attr.value = attr.value.expression;
+								/** @type {ESTreeJSX.JSXExpressionContainer['expression']} */ (attr.value) =
+									attr.value.expression;
 							}
 						}
 					}
 				}
 
 				if (!is_tsx_compat) {
-					if (open.name.type === 'JSXIdentifier') {
-						open.name.type = 'Identifier';
-					}
-					element.id = convert_from_jsx(open.name);
+					/** @type {AST.Element} */ (element).id = /** @type {AST.Identifier} */ (
+						convert_from_jsx(/** @type {ESTreeJSX.JSXIdentifier} */ (open.name))
+					);
 					element.selfClosing = open.selfClosing;
 				}
 
 				element.attributes = open.attributes;
-				element.metadata ??= {};
+				element.metadata ??= { path: [] };
 				element.metadata.commentContainerId = ++this.#commentContextId;
 				// Store opening tag's end position for use in loose mode when element is unclosed
 				element.metadata.openingTagEnd = open.end;
 				element.metadata.openingTagEndLoc = open.loc.end;
-
-				function addOpeningAndClosing() {
-					//TODO: once parse attributes of style and script
-					// we should the open element loc properly
-					const name = open.name.name;
-					open.loc = {
-						start: {
-							line: element.loc.start.line,
-							column: element.loc.start.column,
-						},
-						end: {
-							line: element.loc.start.line,
-							column: element.loc.start.column + `${name}>`.length,
-						},
-					};
-
-					element.openingElement = open;
-					element.closingElement = {
-						type: 'JSXClosingElement',
-						name: open.name,
-						loc: {
-							start: {
-								line: element.loc.end.line,
-								column: element.loc.end.column - `</${name}>`.length,
-							},
-							end: {
-								line: element.loc.end.line,
-								column: element.loc.end.column,
-							},
-						},
-					};
-				}
 
 				if (element.selfClosing) {
 					this.#path.pop();
@@ -1524,7 +1693,7 @@ function RipplePlugin(config) {
 						this.next();
 					}
 				} else {
-					if (open.name.name === 'script') {
+					if (/** @type {ESTreeJSX.JSXIdentifier} */ (open.name).name === 'script') {
 						let content = '';
 
 						// TODO implement this where we get a string for content of the content of the script tag
@@ -1551,10 +1720,10 @@ function RipplePlugin(config) {
 							this.next();
 						}
 
-						element.content = content;
+						/** @type {AST.Element} */ (element).content = content;
 						this.finishNode(element, 'Element');
-						addOpeningAndClosing(element, open);
-					} else if (open.name.name === 'style') {
+						addOpeningAndClosing(/** @type {AST.Element} */ (element), open);
+					} else if (/** @type {ESTreeJSX.JSXIdentifier} */ (open.name).name === 'style') {
 						// jsx_parseOpeningElementAt treats ID selectors (ie. #myid) or type selectors (ie. div) as identifier and read it
 						// So backtrack to the end of the <style> tag to make sure everything is included
 						const start = open.end;
@@ -1562,7 +1731,9 @@ function RipplePlugin(config) {
 						const end = input.indexOf('</style>');
 						const content = input.slice(0, end);
 
-						const component = this.#path.findLast((n) => n.type === 'Component');
+						const component = /** @type {AST.Component} */ (
+							this.#path.findLast((n) => n.type === 'Component')
+						);
 						const parsed_css = parse_style(content, { loose: this.#loose });
 
 						if (!inside_head) {
@@ -1590,7 +1761,9 @@ function RipplePlugin(config) {
 						}
 						// This node is used for Prettier - always add parsed CSS as children
 						// for proper formatting, regardless of whether it's inside head or not
-						element.children = [parsed_css];
+						/** @type {AST.Element} */ (element).children = [
+							/** @type {AST.Node} */ (/** @type {unknown} */ (parsed_css)),
+						];
 
 						// Ensure we escape JSX <tag></tag> context
 						const curContext = this.curContext();
@@ -1599,13 +1772,13 @@ function RipplePlugin(config) {
 							this.context.pop();
 						}
 
-						element.css = content;
+						/** @type {AST.Element} */ (element).css = content;
 						this.finishNode(element, 'Element');
-						addOpeningAndClosing(element, open);
+						addOpeningAndClosing(/** @type {AST.Element} */ (element), open);
 						return element;
 					} else {
 						this.enterScope(0);
-						this.parseTemplateBody(element.children);
+						this.parseTemplateBody(/** @type {AST.Element} */ (element).children);
 						this.exitScope();
 
 						if (element.type === 'TsxCompat') {
@@ -1669,6 +1842,9 @@ function RipplePlugin(config) {
 				return element;
 			}
 
+			/**
+			 * @type {Parse.Parser['parseTemplateBody']}
+			 */
 			parseTemplateBody(body) {
 				const inside_func =
 					this.context.some((n) => n.token === 'function') || this.scopeStack.length > 1;
@@ -1720,13 +1896,13 @@ function RipplePlugin(config) {
 							}
 
 							if (text) {
-								const node = {
+								const node = /** @type {ESTreeJSX.JSXText} */ ({
 									type: 'JSXText',
 									value: text,
 									raw: text,
 									start,
 									end: this.pos,
-								};
+								});
 								body.push(node);
 							}
 
@@ -1739,7 +1915,9 @@ function RipplePlugin(config) {
 					// Keep JSXEmptyExpression as-is (for prettier to handle comments)
 					// but convert other expressions to Text/Html nodes
 					if (node.expression.type !== 'JSXEmptyExpression') {
-						node.type = node.html ? 'Html' : 'Text';
+						/** @type {AST.Html | AST.TextNode} */ (/** @type {unknown} */ (node)).type = node.html
+							? 'Html'
+							: 'Text';
 						delete node.html;
 					}
 					body.push(node);
@@ -1749,7 +1927,10 @@ function RipplePlugin(config) {
 					this.next();
 					if (this.value === '/') {
 						this.next();
-						const closingTag = this.jsx_parseElementName();
+						const closingTag =
+							/** @type {ESTreeJSX.JSXIdentifier | ESTreeJSX.JSXNamespacedName | ESTreeJSX.JSXMemberExpression} */ (
+								this.jsx_parseElementName()
+							);
 						this.exprAllowed = true;
 
 						// Validate that the closing tag matches the opening tag
@@ -1761,7 +1942,9 @@ function RipplePlugin(config) {
 							this.raise(this.start, 'Unexpected closing tag');
 						}
 
+						/** @type {string | null} */
 						let openingTagName;
+						/** @type {string | null} */
 						let closingTagName;
 
 						if (currentElement.type === 'TsxCompat') {
@@ -1808,9 +1991,11 @@ function RipplePlugin(config) {
 									// Mark as unclosed and adjust location
 									elem.unclosed = true;
 									const position = this.curPosition();
-									position.line = elem.metadata.openingTagEndLoc.line;
-									position.column = elem.metadata.openingTagEndLoc.column;
-									elem.loc.end = position;
+									position.line = /** @type {AST.Position} */ (elem.metadata.openingTagEndLoc).line;
+									position.column = /** @type {AST.Position} */ (
+										elem.metadata.openingTagEndLoc
+									).column;
+									/** @type {AST.NodeWithLocation} */ (elem).loc.end = position;
 									elem.end = elem.metadata.openingTagEnd;
 
 									this.#path.pop(); // Remove from stack
@@ -1841,24 +2026,29 @@ function RipplePlugin(config) {
 				this.parseTemplateBody(body);
 			}
 
+			/**
+			 * @type {Parse.Parser['parseStatement']}
+			 */
 			parseStatement(context, topLevel, exports) {
 				if (
 					context !== 'for' &&
 					context !== 'if' &&
 					this.context.at(-1) === tc.b_stat &&
 					this.type === tt.braceL &&
-					this.context.some((c) => c === tstt.tc_expr)
+					this.context.some((c) => c === tstc.tc_expr)
 				) {
 					this.next();
 					const node = this.jsx_parseExpressionContainer();
 					// Keep JSXEmptyExpression as-is (don't convert to Text)
 					if (node.expression.type !== 'JSXEmptyExpression') {
-						node.type = 'Text';
+						/** @type {AST.TextNode} */ (/** @type {unknown} */ (node)).type = 'Text';
 					}
 					this.next();
 					this.context.pop();
 					this.context.pop();
-					return node;
+					return /** @type {ESTreeJSX.JSXEmptyExpression | AST.TextNode | ESTreeJSX.JSXExpressionContainer} */ (
+						/** @type {unknown} */ (node)
+					);
 				}
 
 				if (this.value === '#server') {
@@ -1875,7 +2065,7 @@ function RipplePlugin(config) {
 					// interfering with legitimate decorator syntax
 					this.skip_decorator = true;
 					const expressionResult = this.tryParse(() => {
-						const node = this.startNode();
+						const node = /** @type {AST.ExpressionStatement} */ (this.startNode());
 						this.next();
 						// Force expression context to ensure @ is tokenized correctly
 						const old_expr_allowed = this.exprAllowed;
@@ -1883,17 +2073,19 @@ function RipplePlugin(config) {
 						node.expression = this.parseExpression();
 
 						if (node.expression.type === 'UpdateExpression') {
+							/** @type {AST.Expression} */
 							let object = node.expression.argument;
 							while (object.type === 'MemberExpression') {
-								object = object.object;
+								object = /** @type {AST.Expression} */ (object.object);
 							}
 							if (object.type === 'Identifier') {
 								object.tracked = true;
 							}
 						} else if (node.expression.type === 'AssignmentExpression') {
+							/** @type {AST.Expression | AST.Pattern | AST.Identifier} */
 							let object = node.expression.left;
 							while (object.type === 'MemberExpression') {
-								object = object.object;
+								object = /** @type {AST.Expression} */ (object.object);
 							}
 							if (object.type === 'Identifier') {
 								object.tracked = true;
@@ -1931,12 +2123,15 @@ function RipplePlugin(config) {
 				return super.parseStatement(context, topLevel, exports);
 			}
 
+			/**
+			 * @type {Parse.Parser['parseBlock']}
+			 */
 			parseBlock(createNewLexicalScope, node, exitStrict) {
 				const parent = this.#path.at(-1);
 
 				if (parent?.type === 'Component' || parent?.type === 'Element') {
 					if (createNewLexicalScope === void 0) createNewLexicalScope = true;
-					if (node === void 0) node = this.startNode();
+					if (node === void 0) node = /** @type {AST.BlockStatement} */ (this.startNode());
 
 					node.body = [];
 					this.expect(tt.braceL);
@@ -1961,7 +2156,7 @@ function RipplePlugin(config) {
 			}
 		}
 
-		return RippleParser;
+		return /** @type {Parse.ParserConstructor} */ (RippleParser);
 	};
 }
 
@@ -1970,11 +2165,15 @@ function RipplePlugin(config) {
  * to add them after the fact. They are needed in order to support `ripple-ignore` comments
  * in JS code and so that `prettier-plugin` doesn't remove all comments when formatting.
  * @param {string} source
- * @param {CommentWithLocation[]} comments
+ * @param {AST.CommentWithLocation[]} comments
  * @param {number} [index=0] - Starting index
- * @returns {{ onComment: Function, add_comments: Function }} Comment handler functions
  */
 function get_comment_handlers(source, comments, index = 0) {
+	/**
+	 * @param {string} text
+	 * @param {number} startIndex
+	 * @returns {string | null}
+	 */
 	function getNextNonWhitespaceCharacter(text, startIndex) {
 		for (let i = startIndex; i < text.length; i++) {
 			const char = text[i];
@@ -1986,6 +2185,9 @@ function get_comment_handlers(source, comments, index = 0) {
 	}
 
 	return {
+		/**
+		 * @type {Parse.Options['onComment']}
+		 */
 		onComment: (block, value, start, end, start_loc, end_loc, metadata) => {
 			if (block && /\n/.test(value)) {
 				let a = start;
@@ -2004,12 +2206,16 @@ function get_comment_handlers(source, comments, index = 0) {
 				start,
 				end,
 				loc: {
-					start: /** @type {import('acorn').Position} */ (start_loc),
-					end: /** @type {import('acorn').Position} */ (end_loc),
+					start: start_loc,
+					end: end_loc,
 				},
 				context: metadata ?? null,
 			});
 		},
+
+		/**
+		 * @param {AST.Node} ast
+		 */
 		add_comments: (ast) => {
 			if (comments.length === 0) return;
 
@@ -2024,14 +2230,13 @@ function get_comment_handlers(source, comments, index = 0) {
 					context,
 				}));
 
+			/**
+			 *  @param {AST.Node} ast
+			 */
 			walk(ast, null, {
+				/** @param {AST.Node} node */
 				_(node, { next, path }) {
-					let comment;
-
-					const metadata =
-						/** @type {{ commentContainerId?: number, elementLeadingComments?: CommentWithLocation[] }} */ (
-							node?.metadata
-						);
+					const metadata = node?.metadata;
 
 					if (metadata && metadata.commentContainerId !== undefined) {
 						while (
@@ -2040,15 +2245,17 @@ function get_comment_handlers(source, comments, index = 0) {
 							comments[0].context.containerId === metadata.commentContainerId &&
 							comments[0].context.beforeMeaningfulChild
 						) {
-							const elementComment = /** @type {CommentWithLocation & { context?: any }} */ (
-								comments.shift()
-							);
+							const elementComment = /** @type {AST.CommentWithLocation} */ (comments.shift());
+
 							(metadata.elementLeadingComments ||= []).push(elementComment);
 						}
 					}
 
-					while (comments[0] && comments[0].start < node.start) {
-						comment = /** @type {CommentWithLocation} */ (comments.shift());
+					while (
+						comments[0] &&
+						comments[0].start < /** @type {AST.NodeWithLocation} */ (node).start
+					) {
+						const comment = /** @type {AST.CommentWithLocation} */ (comments.shift());
 
 						// Skip leading comments for BlockStatement that is a function body
 						// These comments should be dangling on the function instead
@@ -2067,21 +2274,20 @@ function get_comment_handlers(source, comments, index = 0) {
 							}
 						}
 
-						if (comment.loc) {
-							const ancestorElements = path
-								.filter((ancestor) => ancestor && ancestor.type === 'Element' && ancestor.loc)
-								.sort((a, b) => a.loc.start.line - b.loc.start.line);
+						const ancestorElements = /** @type {(AST.Element & AST.NodeWithLocation)[]} */ (
+							path.filter((ancestor) => ancestor && ancestor.type === 'Element' && ancestor.loc)
+						).sort((a, b) => a.loc.start.line - b.loc.start.line);
 
-							const targetAncestor = ancestorElements.find(
-								(ancestor) => comment.loc.start.line < ancestor.loc.start.line,
-							);
+						const targetAncestor = ancestorElements.find(
+							(ancestor) => comment.loc.start.line < ancestor.loc.start.line,
+						);
 
-							if (targetAncestor) {
-								targetAncestor.metadata ??= {};
-								(targetAncestor.metadata.elementLeadingComments ||= []).push(comment);
-								continue;
-							}
+						if (targetAncestor) {
+							targetAncestor.metadata ??= { path: [] };
+							(targetAncestor.metadata.elementLeadingComments ||= []).push(comment);
+							continue;
 						}
+
 						(node.leadingComments ||= []).push(comment);
 					}
 
@@ -2090,8 +2296,12 @@ function get_comment_handlers(source, comments, index = 0) {
 					if (comments[0]) {
 						if (node.type === 'BlockStatement' && node.body.length === 0) {
 							// Collect all comments that fall within this empty block
-							while (comments[0] && comments[0].start < node.end && comments[0].end < node.end) {
-								comment = /** @type {CommentWithLocation} */ (comments.shift());
+							while (
+								comments[0] &&
+								comments[0].start < /** @type {AST.NodeWithLocation} */ (node).end &&
+								comments[0].end < /** @type {AST.NodeWithLocation} */ (node).end
+							) {
+								const comment = /** @type {AST.CommentWithLocation} */ (comments.shift());
 								(node.innerComments ||= []).push(comment);
 							}
 							if (node.innerComments && node.innerComments.length > 0) {
@@ -2103,10 +2313,10 @@ function get_comment_handlers(source, comments, index = 0) {
 							// Collect all comments that fall within this JSXEmptyExpression
 							while (
 								comments[0] &&
-								comments[0].start >= node.start &&
-								comments[0].end <= node.end
+								comments[0].start >= /** @type {AST.NodeWithLocation} */ (node).start &&
+								comments[0].end <= /** @type {AST.NodeWithLocation} */ (node).end
 							) {
-								comment = /** @type {CommentWithLocation} */ (comments.shift());
+								const comment = /** @type {AST.CommentWithLocation} */ (comments.shift());
 								(node.innerComments ||= []).push(comment);
 							}
 							if (node.innerComments && node.innerComments.length > 0) {
@@ -2116,8 +2326,12 @@ function get_comment_handlers(source, comments, index = 0) {
 						// Handle empty Element nodes the same way as empty BlockStatements
 						if (node.type === 'Element' && (!node.children || node.children.length === 0)) {
 							// Collect all comments that fall within this empty element
-							while (comments[0] && comments[0].start < node.end && comments[0].end < node.end) {
-								comment = /** @type {CommentWithLocation} */ (comments.shift());
+							while (
+								comments[0] &&
+								comments[0].start < /** @type {AST.NodeWithLocation} */ (node).end &&
+								comments[0].end < /** @type {AST.NodeWithLocation} */ (node).end
+							) {
+								const comment = /** @type {AST.CommentWithLocation} */ (comments.shift());
 								(node.innerComments ||= []).push(comment);
 							}
 							if (node.innerComments && node.innerComments.length > 0) {
@@ -2186,7 +2400,7 @@ function get_comment_handlers(source, comments, index = 0) {
 										const nextChar = getNextNonWhitespaceCharacter(source, potentialComment.end);
 										if (nextChar === ')') {
 											(node.trailingComments ||= []).push(
-												/** @type {CommentWithLocation} */ (comments.shift()),
+												/** @type {AST.CommentWithLocation} */ (comments.shift()),
 											);
 											continue;
 										}
@@ -2207,7 +2421,7 @@ function get_comment_handlers(source, comments, index = 0) {
 										end = comment.end;
 									}
 								}
-							} else if (node.end <= comments[0].start) {
+							} else if (/** @type {AST.NodeWithLocation} */ (node).end <= comments[0].start) {
 								const onlySimpleWhitespace = /^[,) \t]*$/.test(slice);
 								const onlyWhitespace = /^\s*$/.test(slice);
 								const hasBlankLine = /\n\s*\n/.test(slice);
@@ -2225,7 +2439,9 @@ function get_comment_handlers(source, comments, index = 0) {
 										commentStartLine !== null &&
 										nodeEndLine === commentStartLine
 									) {
-										node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+										node.trailingComments = [
+											/** @type {AST.CommentWithLocation} */ (comments.shift()),
+										];
 									}
 									return;
 								}
@@ -2267,12 +2483,14 @@ function get_comment_handlers(source, comments, index = 0) {
 										const commentStartLine = source.slice(0, comments[0].start).split('\n').length;
 										if (nodeEndLine === commentStartLine) {
 											node.trailingComments = [
-												/** @type {CommentWithLocation} */ (comments.shift()),
+												/** @type {AST.CommentWithLocation} */ (comments.shift()),
 											];
 										}
 										// Otherwise leave it for next parameter's leading comments
 									} else {
-										node.trailingComments = [/** @type {CommentWithLocation} */ (comments.shift())];
+										node.trailingComments = [
+											/** @type {AST.CommentWithLocation} */ (comments.shift()),
+										];
 									}
 								} else if (hasBlankLine && onlyWhitespace && array_prop && parent[array_prop]) {
 									// When there's a blank line between node and comment(s),
@@ -2336,7 +2554,9 @@ function get_comment_handlers(source, comments, index = 0) {
 											if (!commentsInsideElement) {
 												// Attach all the comments as trailing
 												for (let i = 0; i <= lastCommentIndex; i++) {
-													(node.trailingComments ||= []).push(comments.shift());
+													(node.trailingComments ||= []).push(
+														/** @type {AST.CommentWithLocation} */ (comments.shift()),
+													);
 												}
 											}
 										}
@@ -2355,10 +2575,10 @@ function get_comment_handlers(source, comments, index = 0) {
  * Parse Ripple source code into an AST
  * @param {string} source
  * @param {ParseOptions} [options]
- * @returns {Program}
+ * @returns {AST.Program}
  */
 export function parse(source, options) {
-	/** @type {CommentWithLocation[]} */
+	/** @type {AST.CommentWithLocation[]} */
 	const comments = [];
 
 	// Preprocess step 1: Add trailing commas to single-parameter generics followed by (
@@ -2413,7 +2633,7 @@ export function parse(source, options) {
 			sourceType: 'module',
 			ecmaVersion: 13,
 			locations: true,
-			onComment: /** @type {any} */ (onComment),
+			onComment,
 			rippleOptions: {
 				loose: options?.loose || false,
 			},
@@ -2424,5 +2644,5 @@ export function parse(source, options) {
 
 	add_comments(ast);
 
-	return /** @type {Program} */ (ast);
+	return ast;
 }
