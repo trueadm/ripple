@@ -1,5 +1,12 @@
-/** @import { Binding, ScopeInterface, ScopeRoot as ScopeRootInterface } from '#compiler' */
-/** @import * as AST from 'estree' */
+/**
+@import {
+	Binding,
+	ScopeInterface,
+	ScopeRoot as ScopeRootInterface,
+	Context
+} from '#compiler';
+ @import * as AST from 'estree';
+ */
 
 import is_reference from 'is-reference';
 import { extract_identifiers, object, unwrap_pattern } from '../utils/ast.js';
@@ -45,7 +52,7 @@ export function create_scopes(ast, root, parent) {
 	/**
 	 * Create a block scope
 	 * @param {AST.Node} node - AST node
-	 * @param {{ state: any, next: Function }} context - Visitor context
+	 * @param {Context<AST.Node, State>} context - Visitor context
 	 */
 	const create_block_scope = (node, { state, next }) => {
 		const scope = state.scope.child(true);
@@ -60,7 +67,7 @@ export function create_scopes(ast, root, parent) {
 		next({ scope });
 	};
 
-	walk(/** @type {AST.Node} */ (ast), state, {
+	walk(ast, state, {
 		// references
 		Identifier(node, { path, state }) {
 			const parent = path.at(-1);
@@ -95,12 +102,6 @@ export function create_scopes(ast, root, parent) {
 			}
 		},
 
-		/**
-		 * @param {AST.Component} node
-		 * @param {Object} context
-		 * @param {any} context.state
-		 * @param {Function} context.next
-		 */
 		Component(node, { state, next }) {
 			const scope = state.scope.child();
 			scopes.set(node, scope);
@@ -114,12 +115,6 @@ export function create_scopes(ast, root, parent) {
 			next({ scope });
 		},
 
-		/**
-		 * @param {AST.Element} node
-		 * @param {Object} context
-		 * @param {any} context.state
-		 * @param {Function} context.next
-		 */
 		Element(node, { state, next }) {
 			const scope = state.scope.child();
 			scopes.set(node, scope);

@@ -65,6 +65,85 @@ export namespace Parse {
 		BIND_OUTSIDE: 5;
 	}
 
+	/**
+	 * Branch ID for tracking disjunction structure in regular expressions
+	 * Used to determine whether a duplicate capture group name is allowed
+	 * because it is in a separate branch.
+	 */
+	export interface BranchID {
+		/** Parent disjunction branch */
+		parent: BranchID | null;
+		/** Identifies this set of sibling branches */
+		base: BranchID;
+		/** Check if this branch is separated from another branch */
+		separatedFrom(alt: BranchID): boolean;
+		/** Create a sibling branch */
+		sibling(): BranchID;
+	}
+
+	/**
+	 * Regular expression validation state
+	 * Used by the parser to validate regular expression literals
+	 * See: https://github.com/acornjs/acorn/blob/main/acorn/src/regexp.js
+	 */
+	export interface RegExpValidationState {
+		/** Reference to the parser instance */
+		parser: Parser;
+		/** Valid flags for the current ECMAScript version */
+		validFlags: string;
+		/** Unicode properties data for the current ECMAScript version */
+		unicodeProperties: any;
+		/** Source pattern string of the regular expression */
+		source: string;
+		/** Flags string of the regular expression */
+		flags: string;
+		/** Start position of the regular expression in the source */
+		start: number;
+		/** Whether unicode flag (u) is enabled */
+		switchU: boolean;
+		/** Whether unicode sets flag (v) is enabled (ES2024+) */
+		switchV: boolean;
+		/** Whether named capture groups are enabled */
+		switchN: boolean;
+		/** Current position in the pattern */
+		pos: number;
+		/** Last integer value parsed */
+		lastIntValue: number;
+		/** Last string value parsed */
+		lastStringValue: string;
+		/** Whether the last assertion can be quantified */
+		lastAssertionIsQuantifiable: boolean;
+		/** Number of capturing parentheses */
+		numCapturingParens: number;
+		/** Maximum back reference number */
+		maxBackReference: number;
+		/** Map of group names to their information */
+		groupNames: Record<string, BranchID[]>;
+		/** Array of back reference names */
+		backReferenceNames: string[];
+		/** Current branch ID for tracking disjunction structure */
+		branchID: BranchID | null;
+
+		/** Reset state for a new pattern */
+		reset(start: number, pattern: string, flags: string): void;
+		/** Raise a validation error */
+		raise(message: string): void;
+		/** Get code point at position i (handles surrogate pairs if unicode mode) */
+		at(i: number, forceU?: boolean): number;
+		/** Get next index after position i (handles surrogate pairs if unicode mode) */
+		nextIndex(i: number, forceU?: boolean): number;
+		/** Get code point at current position */
+		current(forceU?: boolean): number;
+		/** Get code point at next position */
+		lookahead(forceU?: boolean): number;
+		/** Advance position to next character */
+		advance(forceU?: boolean): void;
+		/** Try to eat a specific character */
+		eat(ch: number, forceU?: boolean): boolean;
+		/** Try to eat a sequence of characters */
+		eatChars(chs: number[], forceU?: boolean): boolean;
+	}
+
 	export interface Options extends Omit<acorn.Options, 'onComment' | 'ecmaVersion'> {
 		rippleOptions: {
 			loose: boolean;
@@ -297,6 +376,15 @@ export namespace Parse {
 		tokContexts: AcornTypeScriptTokContexts;
 	}
 
+	interface Scope {
+		flags: number;
+		var: string[];
+		lexical: string[];
+		functions: string[];
+	}
+
+	type Exports = Record<string, boolean>;
+
 	/**
 	 * Extended Parser instance with internal properties
 	 *
@@ -360,7 +448,7 @@ export namespace Parse {
 		/** Current scope flags stack */
 		scopeStack: Array<{ flags: number; var: string[]; lexical: string[]; functions: string[] }>;
 		/** Regular expression validation state */
-		regexpState?: any;
+		regexpState: RegExpValidationState | null;
 		/** Whether we can use await keyword */
 		canAwait: boolean;
 		/** Position of await keyword (0 if not in async context) */
@@ -376,7 +464,7 @@ export namespace Parse {
 		/** Potential arrow in for-await position */
 		potentialArrowInForAwait: boolean;
 		/** Private name stack for class private fields validation */
-		privateNameStack: Array<{ declared: Record<string, any>; used: Array<AST.Node> }>;
+		privateNameStack: Array<{ declared: Record<string, string>; used: Array<AST.Node> }>;
 		/** Undefined exports for module validation */
 		undefinedExports: Record<string, AST.Node>;
 
@@ -646,16 +734,16 @@ export namespace Parse {
 		declareName(name: string, bindingType: BindingType[keyof BindingType], pos: number): void;
 
 		/** Get current scope */
-		currentScope(): { flags: number; var: string[]; lexical: string[]; functions: string[] };
+		currentScope(): Scope;
 
 		/** Get current variable scope (for var declarations) */
-		currentVarScope(): { flags: number; var: string[]; lexical: string[]; functions: string[] };
+		currentVarScope(): Scope;
 
 		/** Get current "this" scope */
-		currentThisScope(): { flags: number; var: string[]; lexical: string[]; functions: string[] };
+		currentThisScope(): Scope;
 
 		/** Check if treating functions as var in current scope */
-		treatFunctionsAsVarInScope(scope: any): boolean;
+		treatFunctionsAsVarInScope(scope: Scope): boolean;
 
 		// ============================================================
 		// Context Management
@@ -1262,7 +1350,7 @@ export namespace Parse {
 		parseClassSuper(node: AST.Node): void;
 
 		/** Enter class body scope */
-		enterClassBody(): Record<string, any>;
+		enterClassBody(): Record<string, string>;
 
 		/** Exit class body scope */
 		exitClassBody(): void;
@@ -1325,11 +1413,11 @@ export namespace Parse {
 		/** Parse export declaration */
 		parseExport(
 			node: AST.Node,
-			exports?: any,
+			exports?: Exports,
 		): AST.ExportNamedDeclaration | AST.ExportDefaultDeclaration | AST.ExportAllDeclaration;
 
 		/** Parse export specifiers */
-		parseExportSpecifiers(exports?: any): AST.ExportSpecifier[];
+		parseExportSpecifiers(exports?: Exports): AST.ExportSpecifier[];
 
 		/** Parse export default declaration */
 		parseExportDefaultDeclaration(): AST.Declaration | AST.Expression | AST.Component;
