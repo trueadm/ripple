@@ -86,7 +86,7 @@ declare module 'estree' {
 		Attribute: Attribute;
 		RefAttribute: RefAttribute;
 		SpreadAttribute: SpreadAttribute;
-		// Stylesheet: AST.CSS.StyleSheet;
+		ParenthesizedExpression: ParenthesizedExpression;
 	}
 
 	interface ExpressionMap {
@@ -96,6 +96,12 @@ declare module 'estree' {
 		TrackedSetExpression: TrackedSetExpression;
 		TrackedExpression: TrackedExpression;
 		Text: TextNode;
+	}
+
+	// Missing estree type
+	interface ParenthesizedExpression extends BaseNode {
+		type: 'ParenthesizedExpression';
+		expression: Expression;
 	}
 
 	interface Comment {
@@ -512,7 +518,9 @@ declare module 'estree-jsx' {
 }
 
 declare module 'estree' {
-	interface NodeMap {
+	// Helper map for creating our own TypeNode
+	// and to be used to extend estree's NodeMap
+	interface TSNodeMap {
 		// TypeScript nodes
 		TSAnyKeyword: TSAnyKeyword;
 		TSArrayType: TSArrayType;
@@ -577,49 +585,188 @@ declare module 'estree' {
 		TSUnknownKeyword: TSUnknownKeyword;
 		TSVoidKeyword: TSVoidKeyword;
 		TSParenthesizedType: TSParenthesizedType;
+		TSExpressionWithTypeArguments: TSExpressionWithTypeArguments;
 	}
+
+	// Extend NodeMap to include TypeScript nodes
+	interface NodeMap extends TSNodeMap {}
+
+	// Create our version of TypeNode with modified types to be used in replacements
+	type TypeNode = TSNodeMap[keyof TSNodeMap];
+	type EntityName = AST.Identifier | AST.ThisExpression | TSQualifiedName;
+	type Parameter =
+		| ArrayPattern
+		| AssignmentPattern
+		| Identifier
+		| ObjectPattern
+		| RestElement
+		| TSParameterProperty;
+	type TypeElement =
+		| TSCallSignatureDeclaration
+		| TSConstructSignatureDeclaration
+		| TSIndexSignature
+		| TSMethodSignature
+		| TSPropertySignature;
+	type TSPropertySignature = TSPropertySignatureComputedName | TSPropertySignatureNonComputedName;
+	type PropertyNameComputed = Expression;
+	type PropertyNameNonComputed = Identifier | NumberLiteral | StringLiteral;
 
 	// TypeScript AST node interfaces from @sveltejs/acorn-typescript
 	// Based on TSESTree types but adapted for acorn's output format
 	interface TSAnyKeyword extends AcornTSNode<TSESTree.TSAnyKeyword> {}
-	interface TSArrayType extends AcornTSNode<TSESTree.TSArrayType> {}
+	interface TSArrayType extends Omit<AcornTSNode<TSESTree.TSArrayType>, 'elementType'> {
+		elementType: TypeNode;
+	}
 	interface TSAsExpression extends AcornTSNode<TSESTree.TSAsExpression> {
 		// Have to override it to use our Expression for required properties like metadata
 		expression: AST.Expression;
 	}
 	interface TSBigIntKeyword extends AcornTSNode<TSESTree.TSBigIntKeyword> {}
 	interface TSBooleanKeyword extends AcornTSNode<TSESTree.TSBooleanKeyword> {}
-	interface TSCallSignatureDeclaration extends AcornTSNode<TSESTree.TSCallSignatureDeclaration> {}
-	interface TSConditionalType extends AcornTSNode<TSESTree.TSConditionalType> {}
-	interface TSConstructorType extends AcornTSNode<TSESTree.TSConstructorType> {}
+	interface TSCallSignatureDeclaration
+		extends Omit<
+			AcornTSNode<TSESTree.TSCallSignatureDeclaration>,
+			'typeParameters' | 'typeAnnotation'
+		> {
+		parameters: Parameter[];
+		typeParameters: TSTypeParameterDeclaration | undefined;
+		typeAnnotation: TSTypeAnnotation | undefined;
+	}
+	interface TSConditionalType
+		extends Omit<
+			AcornTSNode<TSESTree.TSConditionalType>,
+			'checkType' | 'extendsType' | 'falseType' | 'trueType'
+		> {
+		checkType: TypeNode;
+		extendsType: TypeNode;
+		falseType: TypeNode;
+		trueType: TypeNode;
+	}
+	interface TSConstructorType
+		extends Omit<AcornTSNode<TSESTree.TSConstructorType>, 'typeParameters' | 'params'> {
+		typeAnnotation: TSTypeAnnotation | undefined;
+		typeParameters: TSTypeParameterDeclaration | undefined;
+		parameters: Parameter[];
+	}
 	interface TSConstructSignatureDeclaration
-		extends AcornTSNode<TSESTree.TSConstructSignatureDeclaration> {}
-	interface TSDeclareFunction extends AcornTSNode<TSESTree.TSDeclareFunction> {}
-	interface TSEnumDeclaration extends AcornTSNode<TSESTree.TSEnumDeclaration> {}
-	interface TSEnumMember extends AcornTSNode<TSESTree.TSEnumMember> {}
-	interface TSExportAssignment extends AcornTSNode<TSESTree.TSExportAssignment> {}
-	interface TSExternalModuleReference extends AcornTSNode<TSESTree.TSExternalModuleReference> {}
-	interface TSFunctionType extends AcornTSNode<TSESTree.TSFunctionType> {}
+		extends Omit<
+			AcornTSNode<TSESTree.TSConstructSignatureDeclaration>,
+			'typeParameters' | 'typeAnnotation'
+		> {
+		parameters: Parameter[];
+		typeParameters: TSTypeParameterDeclaration | undefined;
+		typeAnnotation: TSTypeAnnotation | undefined;
+	}
+	interface TSDeclareFunction
+		extends Omit<
+			AcornTSNode<TSESTree.TSDeclareFunction>,
+			'id' | 'params' | 'typeParameters' | 'returnType'
+		> {
+		id: AST.Identifier;
+		params: Parameter[];
+		typeParameters: TSTypeParameterDeclaration | undefined;
+		returnType: TSTypeAnnotation | undefined;
+	}
+	interface TSEnumDeclaration
+		extends Omit<AcornTSNode<TSESTree.TSEnumDeclaration>, 'id' | 'members'> {
+		id: AST.Identifier;
+		members: TSEnumMember[];
+	}
+	interface TSEnumMember extends Omit<AcornTSNode<TSESTree.TSEnumMember>, 'id' | 'initializer'> {
+		id: AST.Identifier | StringLiteral;
+		initializer: AST.Expression | undefined;
+	}
+	interface TSExportAssignment
+		extends Omit<AcornTSNode<TSESTree.TSExportAssignment>, 'expression'> {
+		expression: AST.Expression;
+	}
+	interface TSExternalModuleReference
+		extends Omit<AcornTSNode<TSESTree.TSExternalModuleReference>, 'expression'> {
+		expression: StringLiteral;
+	}
+	interface TSFunctionType
+		extends Omit<AcornTSNode<TSESTree.TSFunctionType>, 'typeParameters' | 'params'> {
+		typeAnnotation: TSTypeAnnotation | undefined;
+		typeParameters: TSTypeParameterDeclaration | undefined;
+		parameters: Parameter[];
+	}
 	interface TSImportEqualsDeclaration extends AcornTSNode<TSESTree.TSImportEqualsDeclaration> {}
-	interface TSImportType extends AcornTSNode<TSESTree.TSImportType> {}
-	interface TSIndexedAccessType extends AcornTSNode<TSESTree.TSIndexedAccessType> {}
-	interface TSIndexSignature extends AcornTSNode<TSESTree.TSIndexSignature> {}
-	interface TSInferType extends AcornTSNode<TSESTree.TSInferType> {}
+	interface TSImportType
+		extends Omit<AcornTSNode<TSESTree.TSImportType>, 'argument' | 'qualifier' | 'typeParameters'> {
+		argument: TypeNode;
+		qualifier: EntityName | null;
+		// looks like acorn-typescript has typeParameters
+		typeParameters: TSTypeParameterDeclaration | undefined | undefined;
+	}
+	interface TSIndexedAccessType
+		extends Omit<AcornTSNode<TSESTree.TSIndexedAccessType>, 'indexType' | 'objectType'> {
+		indexType: TypeNode;
+		objectType: TypeNode;
+	}
+	interface TSIndexSignature
+		extends Omit<AcornTSNode<TSESTree.TSIndexSignature>, 'parameters' | 'typeAnnotation'> {
+		parameters: Parameter[];
+		typeAnnotation: TSTypeAnnotation | undefined;
+	}
+	interface TSInferType extends Omit<AcornTSNode<TSESTree.TSInferType>, 'typeParameter'> {
+		typeParameter: TSTypeParameter;
+	}
 	interface TSInstantiationExpression extends AcornTSNode<TSESTree.TSInstantiationExpression> {
 		expression: AST.Expression;
 	}
-	interface TSInterfaceBody extends AcornTSNode<TSESTree.TSInterfaceBody> {}
-	interface TSInterfaceDeclaration extends AcornTSNode<TSESTree.TSInterfaceDeclaration> {}
-	interface TSIntersectionType extends AcornTSNode<TSESTree.TSIntersectionType> {}
+	interface TSInterfaceBody extends Omit<AcornTSNode<TSESTree.TSInterfaceBody>, 'body'> {
+		body: TypeElement[];
+	}
+	interface TSInterfaceDeclaration
+		extends Omit<
+			AcornTSNode<TSESTree.TSInterfaceDeclaration>,
+			'id' | 'typeParameters' | 'body' | 'extends'
+		> {
+		id: AST.Identifier;
+		typeParameters: TSTypeParameterDeclaration | undefined;
+		body: TSInterfaceBody;
+		extends: TSExpressionWithTypeArguments[];
+	}
+	interface TSIntersectionType extends Omit<AcornTSNode<TSESTree.TSIntersectionType>, 'types'> {
+		types: TypeNode[];
+	}
 	interface TSIntrinsicKeyword extends AcornTSNode<TSESTree.TSIntrinsicKeyword> {}
-	interface TSLiteralType extends AcornTSNode<TSESTree.TSLiteralType> {}
-	interface TSMappedType extends AcornTSNode<TSESTree.TSMappedType> {}
-	interface TSMethodSignature extends AcornTSNode<TSESTree.TSMethodSignature> {}
-	interface TSModuleBlock extends AcornTSNode<TSESTree.TSModuleBlock> {}
-	interface TSModuleDeclaration extends AcornTSNode<TSESTree.TSModuleDeclaration> {}
-	interface TSNamedTupleMember extends AcornTSNode<TSESTree.TSNamedTupleMember> {}
+	interface TSLiteralType extends Omit<AcornTSNode<TSESTree.TSLiteralType>, 'literal'> {
+		literal: AST.Literal | AST.TemplateLiteral;
+	}
+	interface TSMappedType
+		extends Omit<AcornTSNode<TSESTree.TSMappedType>, 'typeParameter' | 'typeAnnotation'> {
+		typeAnnotation: TypeNode | undefined;
+		typeParameter: TSTypeParameter;
+	}
+	interface TSMethodSignature
+		extends Omit<
+			AcornTSNode<TSESTree.TSMethodSignature>,
+			'key' | 'typeParameters' | 'params' | 'typeAnnotation'
+		> {
+		key: PropertyNameComputed | PropertyNameNonComputed;
+		typeParameters: TSTypeParameterDeclaration | undefined;
+		parameters: Parameter[];
+		// doesn't actually exist in the spec but acorn-typescript adds it
+		typeAnnotation: TSTypeAnnotation | undefined;
+	}
+	interface TSModuleBlock extends Omit<AcornTSNode<TSESTree.TSModuleBlock>, 'body'> {
+		body: AST.Statement[];
+	}
+	interface TSModuleDeclaration
+		extends Omit<AcornTSNode<TSESTree.TSModuleDeclaration>, 'body' | 'id'> {
+		body: TSModuleBlock;
+		id: AST.Identifier;
+	}
+	interface TSNamedTupleMember
+		extends Omit<AcornTSNode<TSESTree.TSNamedTupleMember>, 'elementType' | 'label'> {
+		elementType: TypeNode;
+		label: AST.Identifier;
+	}
 	interface TSNamespaceExportDeclaration
-		extends AcornTSNode<TSESTree.TSNamespaceExportDeclaration> {}
+		extends Omit<AcornTSNode<TSESTree.TSNamespaceExportDeclaration>, 'id'> {
+		id: AST.Identifier;
+	}
 	interface TSNeverKeyword extends AcornTSNode<TSESTree.TSNeverKeyword> {}
 	interface TSNonNullExpression extends AcornTSNode<TSESTree.TSNonNullExpression> {
 		expression: AST.Expression;
@@ -627,36 +774,106 @@ declare module 'estree' {
 	interface TSNullKeyword extends AcornTSNode<TSESTree.TSNullKeyword> {}
 	interface TSNumberKeyword extends AcornTSNode<TSESTree.TSNumberKeyword> {}
 	interface TSObjectKeyword extends AcornTSNode<TSESTree.TSObjectKeyword> {}
-	interface TSOptionalType extends AcornTSNode<TSESTree.TSOptionalType> {}
+	interface TSOptionalType extends Omit<AcornTSNode<TSESTree.TSOptionalType>, 'typeAnnotation'> {
+		typeAnnotation: TypeNode;
+	}
 	interface TSParameterProperty extends AcornTSNode<TSESTree.TSParameterProperty> {}
-	interface TSPropertySignature extends AcornTSNode<TSESTree.TSPropertySignature> {}
-	interface TSQualifiedName extends AcornTSNode<TSESTree.TSQualifiedName> {}
-	interface TSRestType extends AcornTSNode<TSESTree.TSRestType> {}
+	interface TSPropertySignatureComputedName
+		extends Omit<AcornTSNode<TSESTree.TSPropertySignatureComputedName>, 'key' | 'typeAnnotation'> {
+		key: PropertyNameComputed;
+		typeAnnotation: TSTypeAnnotation | undefined;
+	}
+	interface TSPropertySignatureNonComputedName
+		extends Omit<
+			AcornTSNode<TSESTree.TSPropertySignatureNonComputedName>,
+			'key' | 'typeAnnotation'
+		> {
+		key: PropertyNameNonComputed;
+		typeAnnotation: TSTypeAnnotation | undefined;
+	}
+	interface TSQualifiedName extends Omit<AcornTSNode<TSESTree.TSQualifiedName>, 'left' | 'right'> {
+		left: EntityName;
+		right: AST.Identifier;
+	}
+	interface TSRestType extends Omit<AcornTSNode<TSESTree.TSRestType>, 'typeAnnotation'> {
+		typeAnnotation: TypeNode;
+	}
 	interface TSSatisfiesExpression extends AcornTSNode<TSESTree.TSSatisfiesExpression> {
 		expression: AST.Expression;
 	}
 	interface TSStringKeyword extends AcornTSNode<TSESTree.TSStringKeyword> {}
 	interface TSSymbolKeyword extends AcornTSNode<TSESTree.TSSymbolKeyword> {}
 	interface TSThisType extends AcornTSNode<TSESTree.TSThisType> {}
-	interface TSTupleType extends AcornTSNode<TSESTree.TSTupleType> {}
-	interface TSTypeAliasDeclaration extends AcornTSNode<TSESTree.TSTypeAliasDeclaration> {}
-	interface TSTypeAnnotation extends AcornTSNode<TSESTree.TSTypeAnnotation> {}
+	interface TSTupleType extends Omit<AcornTSNode<TSESTree.TSTupleType>, 'elementTypes'> {
+		elementTypes: TypeNode[];
+	}
+	interface TSTypeAliasDeclaration
+		extends Omit<
+			AcornTSNode<TSESTree.TSTypeAliasDeclaration>,
+			'id' | 'typeParameters' | 'typeAnnotation'
+		> {
+		id: AST.Identifier;
+		typeAnnotation: TypeNode;
+		typeParameters: TSTypeParameterDeclaration | undefined;
+	}
+	interface TSTypeAnnotation
+		extends Omit<AcornTSNode<TSESTree.TSTypeAnnotation>, 'typeAnnotation'> {
+		typeAnnotation: TypeNode;
+	}
 	interface TSTypeAssertion extends AcornTSNode<TSESTree.TSTypeAssertion> {
 		expression: AST.Expression;
 	}
-	interface TSTypeLiteral extends AcornTSNode<TSESTree.TSTypeLiteral> {}
-	interface TSTypeOperator extends AcornTSNode<TSESTree.TSTypeOperator> {}
-	interface TSTypeParameter extends AcornTSNode<TSESTree.TSTypeParameter> {}
-	interface TSTypeParameterDeclaration extends AcornTSNode<TSESTree.TSTypeParameterDeclaration> {}
+	interface TSTypeLiteral extends Omit<AcornTSNode<TSESTree.TSTypeLiteral>, 'members'> {
+		members: TypeElement[];
+	}
+	interface TSTypeOperator extends Omit<AcornTSNode<TSESTree.TSTypeOperator>, 'typeAnnotation'> {
+		typeAnnotation: TypeNode | undefined;
+	}
+	interface TSTypeParameter
+		extends Omit<AcornTSNode<TSESTree.TSTypeParameter>, 'name' | 'constraint' | 'default'> {
+		constraint: TypeNode | undefined;
+		default: TypeNode | undefined;
+		name: AST.Identifier;
+	}
+	interface TSTypeParameterDeclaration
+		extends Omit<AcornTSNode<TSESTree.TSTypeParameterDeclaration>, 'params'> {
+		params: TypeNode[];
+	}
 	interface TSTypeParameterInstantiation
-		extends AcornTSNode<TSESTree.TSTypeParameterInstantiation> {}
+		extends Omit<AcornTSNode<TSESTree.TSTypeParameterInstantiation>, 'params'> {
+		params: TypeNode[];
+	}
 	interface TSTypePredicate extends AcornTSNode<TSESTree.TSTypePredicate> {}
-	interface TSTypeQuery extends AcornTSNode<TSESTree.TSTypeQuery> {}
-	interface TSTypeReference extends AcornTSNode<TSESTree.TSTypeReference> {}
+	interface TSTypeQuery
+		extends Omit<AcornTSNode<TSESTree.TSTypeQuery>, 'exprName' | 'typeArguments'> {
+		exprName: EntityName | TSImportType;
+		typeArguments: TSTypeParameterInstantiation | undefined;
+	}
+	interface TSTypeReference
+		extends Omit<AcornTSNode<TSESTree.TSTypeReference>, 'typeName' | 'typeArguments'> {
+		typeArguments: TSTypeParameterInstantiation | undefined;
+		typeName: EntityName;
+	}
 	interface TSUndefinedKeyword extends AcornTSNode<TSESTree.TSUndefinedKeyword> {}
-	interface TSUnionType extends AcornTSNode<TSESTree.TSUnionType> {}
+	interface TSUnionType extends Omit<AcornTSNode<TSESTree.TSUnionType>, 'types'> {
+		types: TypeNode[];
+	}
+	// TSInterfaceHeritage doesn't exist in acorn-typescript which uses TSExpressionWithTypeArguments
+	interface TSInterfaceHeritage
+		extends Omit<AcornTSNode<TSESTree.TSInterfaceHeritage>, 'expression' | 'typeParameters'> {
+		expression: AST.Expression;
+		// acorn-typescript uses typeParameters instead of typeArguments
+		typeParameters: TSTypeParameterInstantiation | undefined;
+	}
+	// Extends TSInterfaceHeritage as it's the semantically the same as used by acorn-typescript
+	interface TSExpressionWithTypeArguments extends Omit<TSInterfaceHeritage, 'type'> {
+		type: 'TSExpressionWithTypeArguments';
+	}
+
 	interface TSUnknownKeyword extends AcornTSNode<TSESTree.TSUnknownKeyword> {}
 	interface TSVoidKeyword extends AcornTSNode<TSESTree.TSVoidKeyword> {}
+	interface NumberLiteral extends AcornTSNode<TSESTree.NumberLiteral> {}
+	interface StringLiteral extends AcornTSNode<TSESTree.StringLiteral> {}
 
 	// acorn-typescript specific nodes (not in @typescript-eslint/types)
 	interface TSParenthesizedType extends AST.BaseNode {
@@ -674,7 +891,7 @@ declare module 'estree' {
 }
 
 import type { Comment, Position } from 'acorn';
-import type { M } from 'vitest/dist/chunks/environment.d.cL3nLXbE.js';
+import type { A, M } from 'vitest/dist/chunks/environment.d.cL3nLXbE.js';
 
 /**
  * Parse error information

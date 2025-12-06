@@ -1,13 +1,13 @@
-/** @import { CustomMappingData, PluginActionOverrides } from 'ripple/compiler'; */
-/** @import { DocumentHighlightKind } from 'vscode-languageserver-types'; */
+/**
+@import { CustomMappingData, PluginActionOverrides } from 'ripple/compiler';
+@import { DocumentHighlightKind } from 'vscode-languageserver-types';
+@import * as AST from 'estree';
+@import * as ESTreeJSX from 'estree-jsx';
+@import {MappingData, CodeMapping, VolarMappingsResult} from 'ripple/compiler';
+@import {CodeMapping as VolarCodeMapping} from '@volar/language-core';
+*/
 
 /**
- * @typedef {import('estree').Position} Position
- * @typedef {{start: Position, end: Position}} Location
- * @typedef {import('@volar/language-core').CodeMapping} VolarCodeMapping
- * @typedef {import('ripple/compiler').MappingData} MappingData
- * @typedef {import('ripple/compiler').CodeMapping} CodeMapping
- * @typedef {import('ripple/compiler').VolarMappingsResult} VolarMappingsResult
  * @typedef {{
  *	start: number,
  *	end: number,
@@ -61,7 +61,7 @@ function loc_to_offset(line, column, line_offsets) {
 
 /**
  * Extract CSS source regions from style elements in the AST
- * @param {any} ast - The parsed AST
+ * @param {AST.Node} ast - The parsed AST
  * @param {string} source - Original source code
  * @param {number[]} source_line_offsets
  * @returns {CssSourceRegion[]}
@@ -74,10 +74,14 @@ function extractCssSourceRegions(ast, source, source_line_offsets) {
 		Element(node) {
 			// Check if this is a style element with CSS content
 			if (node.id?.name === 'style' && node.css) {
-				const openLoc = node.openingElement.loc;
+				const openLoc = /** @type {ESTreeJSX.JSXOpeningElement & AST.NodeWithLocation} */ (
+					node.openingElement
+				).loc;
 				const cssStart = loc_to_offset(openLoc.end.line, openLoc.end.column, source_line_offsets);
 
-				const closeLoc = node.closingElement.loc;
+				const closeLoc = /** @type {ESTreeJSX.JSXClosingElement & AST.NodeWithLocation} */ (
+					node.closingElement
+				).loc;
 				const cssEnd = loc_to_offset(
 					closeLoc.start.line,
 					closeLoc.start.column,
@@ -102,8 +106,8 @@ function extractCssSourceRegions(ast, source, source_line_offsets) {
 
 /**
  * Create Volar mappings by walking the transformed AST
- * @param {any} ast - The transformed AST
- * @param {any} ast_from_source - The original AST from source
+ * @param {AST.Node} ast - The transformed AST
+ * @param {AST.Node} ast_from_source - The original AST from source
  * @param {string} source - Original source code
  * @param {string} generated_code - Generated code (returned in output, not used for searching)
  * @param {object} esrap_source_map - Esrap source map for accurate position lookup
@@ -147,17 +151,18 @@ export function convert_source_map_to_mappings(
 	// All tokens must have source/generated text and loc property for accurate positioning
 	/**
 	 * @type {Array<{
-	 *		source: string,
+	 *		source: string | null | undefined,
 	 *		generated: string,
 	 *		is_full_import_statement?: boolean,
-	 *		loc: Location,
-	 *		end_loc?: Location,
+	 *		loc: AST.SourceLocation,
+	 *		end_loc?: AST.SourceLocation,
 	 *		metadata?: PluginActionOverrides
 	 * }>}
 	 */
 	const tokens = [];
 
 	// We have to visit everything in generated order to maintain correct indices
+
 	walk(ast, null, {
 		_(node, { visit }) {
 			// Collect key node types: Identifiers, Literals, and JSX Elements
@@ -231,7 +236,11 @@ export function convert_source_map_to_mappings(
 			} else if (node.type === 'ImportSpecifier') {
 				// If local and imported are the same, only visit local to avoid duplicates
 				// Otherwise visit both in order
-				if (node.imported && node.local && node.imported.name !== node.local.name) {
+				if (
+					node.imported &&
+					node.local &&
+					/** @type {AST.Identifier} */ (node.imported).name !== node.local.name
+				) {
 					visit(node.imported);
 					visit(node.local);
 				} else if (node.local) {
@@ -250,7 +259,12 @@ export function convert_source_map_to_mappings(
 			} else if (node.type === 'ExportSpecifier') {
 				// If local and exported are the same, only visit local to avoid duplicates
 				// Otherwise visit both in order
-				if (node.local && node.exported && node.local.name !== node.exported.name) {
+				if (
+					node.local &&
+					node.exported &&
+					/** @type {AST.Identifier} */ (node.local).name !==
+						/** @type {AST.Identifier} */ (node.exported).name
+				) {
 					visit(node.local);
 					visit(node.exported);
 				} else if (node.local) {
@@ -271,7 +285,7 @@ export function convert_source_map_to_mappings(
 			} else if (node.type === 'ExportDefaultDeclaration') {
 				// Visit the declaration
 				if (node.declaration) {
-					visit(node.declaration);
+					visit(/** @type {AST.Node} */ (node.declaration));
 				}
 				return;
 			} else if (node.type === 'ExportAllDeclaration') {
@@ -357,7 +371,7 @@ export function convert_source_map_to_mappings(
 				// 2. Visit children in order
 				if (node.children) {
 					for (const child of node.children) {
-						visit(child);
+						visit(/** @type {AST.Node} */ (child));
 					}
 				}
 
@@ -366,7 +380,9 @@ export function convert_source_map_to_mappings(
 					!node.openingElement?.selfClosing &&
 					node.closingElement?.name?.type === 'JSXIdentifier'
 				) {
-					const closingNameNode = node.closingElement.name;
+					const closingNameNode = /** @type {ESTreeJSX.JSXIdentifier & AST.NodeWithLocation} */ (
+						node.closingElement.name
+					);
 					if (closingNameNode.metadata?.is_capitalized) {
 						tokens.push({
 							source: closingNameNode.metadata.original_name,
@@ -390,24 +406,25 @@ export function convert_source_map_to_mappings(
 			) {
 				// Add function/component keyword token
 				if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
+					const node_fn = /** @type (typeof node) & AST.NodeWithLocation */ (node);
 					const source_keyword = node.metadata?.was_component ? 'component' : 'function';
 					// Add token for the keyword - esrap already mapped it via context.write('function', node)
 					tokens.push({
 						source: source_keyword,
 						generated: 'function',
 						loc: {
-							start: { line: node.loc.start.line, column: node.loc.start.column },
+							start: { line: node_fn.loc.start.line, column: node_fn.loc.start.column },
 							end: {
-								line: node.loc.start.line,
-								column: node.loc.start.column + source_keyword.length,
+								line: node_fn.loc.start.line,
+								column: node_fn.loc.start.column + source_keyword.length,
 							},
 						},
 					});
 				}
 
 				// Visit in source order: id, params, body
-				if (node.id) {
-					visit(node.id);
+				if (/** @type {AST.FunctionDeclaration | AST.FunctionExpression} */ (node).id) {
+					visit(/** @type {AST.FunctionDeclaration | AST.FunctionExpression} */ (node).id);
 				}
 				if (node.params) {
 					for (const param of node.params) {
@@ -478,8 +495,8 @@ export function convert_source_map_to_mappings(
 					visit(node.right);
 				}
 				// Ripple-specific: index variable
-				if (node.index) {
-					visit(node.index);
+				if (/** @type {AST.ForOfStatement} */ (node).index) {
+					visit(/** @type {AST.ForOfStatement} */ (node).index);
 				}
 				if (node.body) {
 					visit(node.body);
@@ -511,14 +528,17 @@ export function convert_source_map_to_mappings(
 				if (node.pending) {
 					// Add a special token for the 'pending' keyword with customData
 					// to suppress TypeScript diagnostics and provide custom hover/definition
+					const pending = /** @type {(typeof node.pending) & AST.NodeWithLocation} */ (
+						node.pending
+					);
 					const pendingKeywordLoc = {
 						start: {
-							line: node.pending.loc.start.line,
-							column: node.pending.loc.start.column - 'pending '.length,
+							line: pending.loc.start.line,
+							column: pending.loc.start.column - 'pending '.length,
 						},
 						end: {
-							line: node.pending.loc.start.line,
-							column: node.pending.loc.start.column - 1,
+							line: pending.loc.start.line,
+							column: pending.loc.start.column - 1,
 						},
 					};
 					tokens.push({
@@ -764,8 +784,8 @@ export function convert_source_map_to_mappings(
 				if (node.argument) {
 					visit(node.argument);
 					// Visit type annotation if present (for RestElement)
-					if (node.argument.typeAnnotation) {
-						visit(node.argument.typeAnnotation);
+					if (/** @type {AST.Pattern} */ (node.argument).typeAnnotation) {
+						visit(/** @type {AST.Pattern} */ (node.argument).typeAnnotation);
 					}
 				}
 				// RestElement itself can have typeAnnotation
@@ -828,7 +848,7 @@ export function convert_source_map_to_mappings(
 				// Visit children in order
 				if (node.children) {
 					for (const child of node.children) {
-						visit(child);
+						visit(/** @type {AST.Node} */ (child));
 					}
 				}
 				return;
@@ -956,10 +976,11 @@ export function convert_source_map_to_mappings(
 				if (node.typeName) {
 					visit(node.typeName);
 				}
-				// Check both typeParameters and typeArguments (different parsers use different names)
-				if (node.typeParameters) {
-					visit(node.typeParameters);
-				}
+
+				// typeParameters and typeArguments (different parsers use different names)
+				// tsTypeParameters is a bug in the estree-typescript
+				// but we fixed in the analyzer to typeArguments.
+
 				if (node.typeArguments) {
 					visit(node.typeArguments);
 				}
@@ -1004,8 +1025,13 @@ export function convert_source_map_to_mappings(
 					for (const param of node.parameters) {
 						visit(param);
 						// Visit type annotation on the parameter
-						if (param.typeAnnotation) {
-							visit(param.typeAnnotation);
+						if (
+							/** @type {Exclude<AST.Parameter, AST.TSParameterProperty>} */ (param).typeAnnotation
+						) {
+							visit(
+								/** @type {Exclude<AST.Parameter, AST.TSParameterProperty>} */ (param)
+									.typeAnnotation,
+							);
 						}
 					}
 				}
@@ -1042,8 +1068,13 @@ export function convert_source_map_to_mappings(
 					for (const param of node.parameters) {
 						visit(param);
 						// Visit type annotation on the parameter
-						if (param.typeAnnotation) {
-							visit(param.typeAnnotation);
+						if (
+							/** @type {Exclude<AST.Parameter, AST.TSParameterProperty>} */ (param).typeAnnotation
+						) {
+							visit(
+								/** @type {Exclude<AST.Parameter, AST.TSParameterProperty>} */ (param)
+									.typeAnnotation,
+							);
 						}
 					}
 				}
@@ -1057,8 +1088,13 @@ export function convert_source_map_to_mappings(
 					for (const param of node.parameters) {
 						visit(param);
 						// Visit type annotation on the parameter
-						if (param.typeAnnotation) {
-							visit(param.typeAnnotation);
+						if (
+							/** @type {Exclude<AST.Parameter, AST.TSParameterProperty>} */ (param).typeAnnotation
+						) {
+							visit(
+								/** @type {Exclude<AST.Parameter, AST.TSParameterProperty>} */ (param)
+									.typeAnnotation,
+							);
 						}
 					}
 				}
@@ -1078,8 +1114,13 @@ export function convert_source_map_to_mappings(
 					for (const param of node.parameters) {
 						visit(param);
 						// Visit type annotation on the parameter
-						if (param.typeAnnotation) {
-							visit(param.typeAnnotation);
+						if (
+							/** @type {Exclude<AST.Parameter, AST.TSParameterProperty>} */ (param).typeAnnotation
+						) {
+							visit(
+								/** @type {Exclude<AST.Parameter, AST.TSParameterProperty>} */ (param)
+									.typeAnnotation,
+							);
 						}
 					}
 				}
@@ -1169,6 +1210,9 @@ export function convert_source_map_to_mappings(
 				// Type query: typeof x
 				if (node.exprName) {
 					visit(node.exprName);
+				}
+				if (node.typeArguments) {
+					visit(node.typeArguments);
 				}
 				return;
 			} else if (node.type === 'TSInterfaceDeclaration') {
@@ -1327,7 +1371,7 @@ export function convert_source_map_to_mappings(
 	});
 
 	for (const token of tokens) {
-		const source_text = token.source;
+		const source_text = token.source ?? '';
 		const gen_text = token.generated;
 
 		const source_start = loc_to_offset(
@@ -1344,7 +1388,7 @@ export function convert_source_map_to_mappings(
 		let gen_start;
 
 		if (token.is_full_import_statement) {
-			const end_loc = /** @type {Location} */ (token.end_loc).end;
+			const end_loc = /** @type {AST.SourceLocation} */ (token.end_loc).end;
 			const source_end = loc_to_offset(end_loc.line, end_loc.column, source_line_offsets);
 
 			// Look up where import keyword and source literal map to in generated code

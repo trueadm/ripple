@@ -728,9 +728,9 @@ const visitors = {
 			}
 			if (state.inside_head) {
 				if (node.id.name === 'title') {
-					const chiildren = normalize_children(node.children, context);
+					const children = normalize_children(node.children, context);
 
-					if (chiildren.length !== 1 || chiildren[0].type !== 'Text') {
+					if (children.length !== 1 || children[0].type !== 'Text') {
 						error(
 							'<title> must have only contain text nodes',
 							state.analysis.module.filename,
