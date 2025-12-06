@@ -1,0 +1,19 @@
+import { track } from 'ripple';
+
+describe('Bug #550 - Dynamic element types', () => {
+	it('should allow attributes on dynamic elements', () => {
+		component App() {
+			let div = track('div');
+			
+			// This should not cause TypeScript errors
+			<@div />
+			<@div class="container" />
+			<@div id="test" class="my-class" style={{ color: 'red' }} />
+		}
+		
+		render(App);
+		
+		const element = container.querySelector('.container');
+		expect(element).toBeTruthy();
+	});
+});
