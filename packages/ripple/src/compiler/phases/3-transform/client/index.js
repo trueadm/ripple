@@ -62,17 +62,6 @@ import {
 import { createHash } from 'node:crypto';
 
 /**
- * @param {TransformClientContext} context
- */
-function add_ripple_internal_import(context) {
-	if (!context.state.to_ts) {
-		if (!context.state.imports.has(`import * as _$_ from 'ripple/internal/client'`)) {
-			context.state.imports.add(`import * as _$_ from 'ripple/internal/client'`);
-		}
-	}
-}
-
-/**
  *
  * @param {AST.FunctionDeclaration | AST.FunctionExpression | AST.ArrowFunctionExpression} node
  * @param {TransformClientContext} context
@@ -112,7 +101,6 @@ function visit_function(node, context) {
 		const new_body = [];
 
 		if (!is_inside_component(context, true) && is_component_level_function(context)) {
-			add_ripple_internal_import(context);
 			new_body.push(b.var('__block', b.call('_$_.scope')));
 		}
 		if (body.type === 'BlockStatement') {
@@ -397,11 +385,9 @@ const visitors = {
 						context.state.metadata.tracking = true;
 					}
 					if (node.tracked) {
-						add_ripple_internal_import(context);
 						return b.call('_$_.get', build_getter(node, context));
 					}
 				}
-				add_ripple_internal_import(context);
 				return build_getter(node, context);
 			}
 		}
@@ -663,8 +649,6 @@ const visitors = {
 
 		if (node.tracked || (node.property.type === 'Identifier' && node.property.tracked)) {
 			// In TypeScript mode, skip the transformation and let transform_ts_child handle it
-			add_ripple_internal_import(context);
-
 			if (!context.state.to_ts) {
 				return b.call(
 					'_$_.get_property',
@@ -1595,9 +1579,6 @@ const visitors = {
 
 	Component(node, context) {
 		let prop_statements;
-
-		add_ripple_internal_import(context);
-
 		const metadata = { await: false };
 
 		if (context.state.to_ts) {
@@ -1683,7 +1664,6 @@ const visitors = {
 			left.type === 'MemberExpression' &&
 			(left.tracked || (left.property.type === 'Identifier' && left.property.tracked))
 		) {
-			add_ripple_internal_import(context);
 			const operator = node.operator;
 			const right = node.right;
 
@@ -1710,7 +1690,6 @@ const visitors = {
 		}
 
 		if (left.type === 'Identifier' && left.tracked) {
-			add_ripple_internal_import(context);
 			const operator = node.operator;
 			const right = node.right;
 
@@ -1744,7 +1723,6 @@ const visitors = {
 			argument.type === 'MemberExpression' &&
 			(argument.tracked || (argument.property.type === 'Identifier' && argument.property.tracked))
 		) {
-			add_ripple_internal_import(context);
 			if (context.state.metadata?.tracking === false) {
 				context.state.metadata.tracking = true;
 			}
@@ -3388,6 +3366,13 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		namespace: 'html',
 		metadata: {},
 	};
+
+	// Add ripple internal import once for the entire module
+	// Whatever is unused will be tree-shaken later, including a rare case
+	// where nothing from ripple/internal/client is used
+	if (!to_ts) {
+		state.imports.add(`import * as _$_ from 'ripple/internal/client'`);
+	}
 
 	const program = /** @type {AST.Program} */ (walk(analysis.ast, { ...state }, visitors));
 

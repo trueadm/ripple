@@ -512,10 +512,10 @@ export function async_computed(fn, block) {
 
 			var restore = capture();
 			/** @type {(() => void) | undefined} */
-			var unuspend;
+			var unsuspend;
 
 			if (deferred === null) {
-				unuspend = suspend();
+				unsuspend = suspend();
 			} else {
 				for (var i = 0; i < deferred.length; i++) {
 					var tracked = deferred[i];
@@ -538,7 +538,7 @@ export function async_computed(fn, block) {
 				}
 
 				if (deferred === null) {
-					unuspend?.();
+					unsuspend?.();
 				} else if (promise === current) {
 					for (var i = 0; i < deferred.length; i++) {
 						var tracked = deferred[i];
@@ -586,16 +586,16 @@ function capture_deferred(fn) {
 	var value = fn();
 	/** @type {Tracked[] | null} */
 	var deferred = null;
-	var depedency = active_dependency;
+	var dependency = active_dependency;
 
-	while (depedency !== null) {
-		var tracked = depedency.t;
+	while (dependency !== null) {
+		var tracked = dependency.t;
 		if ((tracked.f & DEFERRED) !== 0) {
 			deferred ??= [];
 			deferred.push(tracked);
 			break;
 		}
-		depedency = depedency.n;
+		dependency = dependency.n;
 	}
 
 	return [value, deferred];

@@ -1,11 +1,15 @@
+/**
+@import { Component, Derived, Tracked } from '#server';
+@import { render, renderToStream, SSRComponent } from 'ripple/server';
+*/
+
 import { Readable } from 'stream';
-/** @import { Component, Derived } from '#server' */
-/** @import { render, renderToStream, SSRComponent } from 'ripple/server'*/
 import { DERIVED, UNINITIALIZED } from '../client/constants.js';
 import { is_tracked_object } from '../client/utils.js';
 import { escape } from '../../../utils/escaping.js';
 import { is_boolean_attribute } from '../../../compiler/utils.js';
 import { clsx } from 'clsx';
+import { normalize_css_property_name } from '../../../utils/normalize_css_property_name.js';
 
 export { escape };
 export { register_component_css as register_css } from './css-registry.js';
@@ -161,30 +165,93 @@ export function aborted() {
 }
 
 /**
- * @param {Derived} tracked
- * @returns {any}
- */
-function get_derived(tracked) {
-	let v = tracked.v;
-
-	if (v === UNINITIALIZED) {
-		v = tracked.fn();
-		tracked.v = v;
-	}
-	return v;
-}
-
-/**
  * @param {any} tracked
  * @returns {any}
  */
 export function get(tracked) {
-	// reflect back the value if it's not boxed
 	if (!is_tracked_object(tracked)) {
 		return tracked;
 	}
 
-	return (tracked.f & DERIVED) !== 0 ? get_derived(/** @type {Derived} */ (tracked)) : tracked.v;
+	if ((tracked.f & DERIVED) !== 0 && tracked.v === UNINITIALIZED) {
+		tracked.v = tracked.fn();
+	}
+
+	var g = tracked.a.get;
+	return g ? g(tracked.v) : tracked.v;
+}
+
+/**
+ * @param {Derived | Tracked} tracked
+ * @param {any} value
+ */
+export function set(tracked, value) {
+	var s = tracked.a.set;
+
+	tracked.v = s ? s(value, tracked.v) : value;
+}
+
+/**
+ * @param {Tracked} tracked
+ * @param {number} [d]
+ * @returns {number}
+ */
+export function update(tracked, d = 1) {
+	var value = get(tracked);
+	var result = d === 1 ? value++ : value--;
+	set(tracked, value);
+	return result;
+}
+
+/**
+ * @param {Tracked} tracked
+ * @param {number} [d]
+ * @returns {number}
+ */
+export function update_pre(tracked, d = 1) {
+	var value = get(tracked);
+	var new_value = d === 1 ? ++value : --value;
+	set(tracked, new_value);
+	return new_value;
+}
+
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {any} value
+ * @returns {void}
+ */
+export function set_property(obj, property, value) {
+	var tracked = obj[property];
+	set(tracked, value);
+}
+
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {number} [d=1]
+ * @returns {number}
+ */
+export function update_property(obj, property, d = 1) {
+	var tracked = obj[property];
+	var value = get(tracked);
+	var new_value = d === 1 ? value++ : value--;
+	set(tracked, value);
+	return new_value;
+}
+
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {number} [d=1]
+ * @returns {number}
+ */
+export function update_pre_property(obj, property, d = 1) {
+	var tracked = obj[property];
+	var value = get(tracked);
+	var new_value = d === 1 ? ++value : --value;
+	set(tracked, new_value);
+	return new_value;
 }
 
 /**
@@ -200,9 +267,29 @@ export function attr(name, value, is_boolean = false) {
 	}
 	if (value == null || (!value && is_boolean)) return '';
 	const normalized = (name in replacements && replacements[name].get(value)) || value;
-	const value_to_escape = name === 'class' ? clsx(normalized) : normalized;
+	let value_to_escape = name === 'class' ? clsx(normalized) : normalized;
+	value_to_escape =
+		name === 'style'
+			? typeof value !== 'string'
+				? get_styles(value)
+				: String(normalized).trim()
+			: value_to_escape;
 	const assignment = is_boolean ? '' : `="${escape(value_to_escape, true)}"`;
 	return ` ${name}${assignment}`;
+}
+
+/**
+ * @param {Record<string, string | number>} styles
+ * @returns {string}
+ */
+function get_styles(styles) {
+	var result = '';
+	for (const key in styles) {
+		const css_prop = normalize_css_property_name(key);
+		const value = String(styles[key]).trim();
+		result += `${css_prop}: ${value}; `;
+	}
+	return result.trim();
 }
 
 /**

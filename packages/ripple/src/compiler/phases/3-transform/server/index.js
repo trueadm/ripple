@@ -16,6 +16,7 @@ import { walk } from 'zimmerframe';
 import ts from 'esrap/languages/ts';
 import path from 'node:path';
 import { print } from 'esrap';
+import is_reference from 'is-reference';
 import {
 	determine_namespace_for_children,
 	escape_html,
@@ -29,17 +30,6 @@ import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';
 import { createHash } from 'node:crypto';
-
-/**
- * @param {TransformServerContext} context
- */
-function add_ripple_internal_import(context) {
-	if (!context.state.to_ts) {
-		if (!context.state.imports.has(`import * as _$_ from 'ripple/internal/server'`)) {
-			context.state.imports.add(`import * as _$_ from 'ripple/internal/server'`);
-		}
-	}
-}
 
 /**
  * @param {AST.Node[]} children
@@ -110,8 +100,33 @@ const visitors = {
 		}
 	},
 
+	Identifier(node, context) {
+		const parent = /** @type {AST.Node} */ (context.path.at(-1));
+
+		if (is_reference(node, parent) && node.tracked) {
+			const is_right_side_of_assignment =
+				parent.type === 'AssignmentExpression' && parent.right === node;
+			if (
+				(parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression') ||
+				is_right_side_of_assignment
+			) {
+				if (node.tracked) {
+					return b.call('_$_.get', node);
+				}
+			}
+		}
+	},
+
 	Component(node, context) {
-		add_ripple_internal_import(context);
+		if (node.params.length > 0) {
+			let props_param = node.params[0];
+
+			if (props_param.type === 'Identifier') {
+				delete props_param.typeAnnotation;
+			} else if (props_param.type === 'ObjectPattern') {
+				delete props_param.typeAnnotation;
+			}
+		}
 
 		const metadata = { await: false };
 		const body_statements = [
@@ -698,17 +713,84 @@ const visitors = {
 	AssignmentExpression(node, context) {
 		const left = node.left;
 
-		if (left.type === 'Identifier' && left.tracked) {
+		if (
+			left.type === 'MemberExpression' &&
+			(left.tracked || (left.property.type === 'Identifier' && left.property.tracked))
+		) {
+			const operator = node.operator;
+			const right = node.right;
+
 			return b.call(
-				'set',
-				/** @type {AST.Expression} */
-				(context.visit(left, { ...context.state, metadata: { tracking: false } })),
-				/** @type {AST.Expression} */
-				(context.visit(node.right)),
+				'_$_.set_property',
+				/** @type {AST.Expression} */ (context.visit(left.object)),
+				left.computed
+					? /** @type {AST.Expression} */ (context.visit(left.property))
+					: b.literal(/** @type {AST.Identifier} */ (left.property).name),
+				operator === '='
+					? /** @type {AST.Expression} */ (context.visit(right))
+					: b.binary(
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {AST.Expression} */ (context.visit(left)),
+							/** @type {AST.Expression} */ (context.visit(right)),
+						),
+			);
+		}
+
+		if (left.type === 'Identifier' && left.tracked) {
+			const operator = node.operator;
+			const right = node.right;
+
+			return b.call(
+				'_$_.set',
+				/** @type {AST.Expression} */ (context.visit(left)),
+				operator === '='
+					? /** @type {AST.Expression} */ (context.visit(right))
+					: b.binary(
+							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
+							/** @type {AST.Expression} */ (context.visit(left)),
+							/** @type {AST.Expression} */ (context.visit(right)),
+						),
 			);
 		}
 
 		return context.next();
+	},
+
+	UpdateExpression(node, context) {
+		const argument = node.argument;
+
+		if (
+			argument.type === 'MemberExpression' &&
+			(argument.tracked || (argument.property.type === 'Identifier' && argument.property.tracked))
+		) {
+			return b.call(
+				node.prefix ? '_$_.update_pre_property' : '_$_.update_property',
+				/** @type {AST.Expression} */
+				(context.visit(argument.object, { ...context.state, metadata: { tracking: false } })),
+				argument.computed
+					? /** @type {AST.Expression} */ (context.visit(argument.property))
+					: b.literal(/** @type {AST.Identifier} */ (argument.property).name),
+				node.operator === '--' ? b.literal(-1) : undefined,
+			);
+		}
+
+		if (argument.type === 'Identifier' && argument.tracked) {
+			return b.call(
+				node.prefix ? '_$_.update_pre' : '_$_.update',
+				/** @type {AST.Expression} */
+				(context.visit(argument)),
+				node.operator === '--' ? b.literal(-1) : undefined,
+			);
+		}
+
+		if (argument.type === 'TrackedExpression') {
+			return b.call(
+				node.prefix ? '_$_.update_pre' : '_$_.update',
+				/** @type {AST.Expression} */
+				(context.visit(argument.argument)),
+				node.operator === '--' ? b.literal(-1) : undefined,
+			);
+		}
 	},
 
 	ServerIdentifier(node, context) {
@@ -832,6 +914,10 @@ const visitors = {
 		return b.await(/** @type {AST.AwaitExpression} */ (context.visit(node.argument)));
 	},
 
+	TrackedExpression(node, context) {
+		return b.call('_$_.get', /** @type {AST.Expression} */ (context.visit(node.argument)));
+	},
+
 	TrackedObjectExpression(node, context) {
 		// For SSR, we just evaluate the object as-is since there's no reactivity
 		return b.object(
@@ -852,11 +938,9 @@ const visitors = {
 	},
 
 	MemberExpression(node, context) {
-		const parent = context.path.at(-1);
-
 		if (node.tracked || (node.property.type === 'Identifier' && node.property.tracked)) {
 			return b.call(
-				'get',
+				'_$_.get',
 				b.member(
 					/** @type {AST.Expression} */
 					(context.visit(node.object)),
@@ -877,7 +961,7 @@ const visitors = {
 		let expression = /** @type {AST.Expression} */ (visit(node.expression, { ...state, metadata }));
 
 		if (expression.type === 'Identifier' && expression.tracked) {
-			expression = b.call('get', expression);
+			expression = b.call('_$_.get', expression);
 		}
 
 		if (expression.type === 'Literal') {
@@ -974,6 +1058,8 @@ export function transform_server(filename, source, analysis, minify_css) {
 		to_ts: false,
 		metadata: {},
 	};
+
+	state.imports.add(`import * as _$_ from 'ripple/internal/server'`);
 
 	const program = walk(analysis.ast, { ...state }, visitors);
 

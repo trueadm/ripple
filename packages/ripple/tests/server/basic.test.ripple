@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from 'ripple/server';
+import { track } from 'ripple';
 
 describe('basic client', () => {
 	it('render static text', async () => {
@@ -11,5 +12,87 @@ describe('basic client', () => {
 
 		expect(head).toBe('');
 		expect(body).toBe('<div>Hello World</div>');
+	});
+
+	it('renders tracked state updates', async () => {
+		component Counter() {
+			const count = track(0);
+
+			@count++;
+			@count = @count + 5;
+
+			<div>{@count}</div>
+		}
+
+		const { body } = await render(Counter);
+
+		expect(body).toBe('<div>6</div>');
+	});
+
+	it('renders dynamic component with tracked props', async () => {
+		component Child({ count, ...rest }) {
+			<div {...rest}>{'Child Component'}</div>
+			<div>{@count}</div>
+		}
+
+		component Parent() {
+			const count = track(10);
+			let Dynamic = track(() => Child);
+
+			<@Dynamic {count} class={{ test: true }} />
+		}
+
+		const { body } = await render(Parent);
+
+		expect(body).toBe('<div class="test">Child Component</div><div>10</div>');
+	});
+
+	it('renders tracked object properties', async () => {
+		component ObjCounter() {
+			const obj = { count: track(2) };
+
+			obj.@count += 3;
+			obj.@count = obj.@count + 1;
+
+			<div>{obj.@count}</div>
+		}
+
+		const { body } = await render(ObjCounter);
+
+		expect(body).toBe('<div>6</div>');
+	});
+
+	it('renders spread props with tracked values', async () => {
+		component SpreadProps() {
+			const id = track('unique-id');
+			const isActive = track(true);
+			const styles = track({ color: 'red', fontSize: '16px' });
+
+			<div {...{ id: @id, class: { active: @isActive }, style: @styles }}>{'Spread Props'}</div>
+		}
+
+		const { body } = await render(SpreadProps);
+
+		expect(body).toBe(
+			'<div id="unique-id" class="active" style="color: red; font-size: 16px;">Spread Props</div>',
+		);
+	});
+
+	it.skip('handles derived tracked values', async () => {
+		component Derived() {
+			let base = track(5);
+			let multiplier = track(3);
+			const derived = track(() => @base * @multiplier);
+
+			<div>{@derived}</div>
+
+			@base += 2;
+
+			<div>{@derived}</div>
+		}
+
+		const { body } = await render(Derived);
+
+		expect(body).toBe('<div>15</div><div>21</div>');
 	});
 });

@@ -2,9 +2,11 @@
 
 import { DERIVED, TRACKED, UNINITIALIZED } from './internal/client/constants.js';
 import { is_tracked_object } from './internal/client/utils.js';
-import { active_component } from './internal/server/index.js';
+import { active_component, get, set } from './internal/server/index.js';
 
 export { Context } from './internal/server/context.js';
+
+export { get, set };
 
 export function effect() {
 	// NO-OP
@@ -13,31 +15,6 @@ export function effect() {
 var empty_get_set = { get: undefined, set: undefined };
 
 /**
- * @param {Derived | Tracked} tracked
- * @returns {any}
- */
-export function get(tracked) {
-	if (!is_tracked_object(tracked)) {
-		return tracked;
-	}
-
-	var g = tracked.a.get;
-
-	return g ? g(tracked.v) : tracked.v;
-}
-
-/**
- * @param {Tracked} tracked
- * @param {any} value
- */
-export function set(tracked, value) {
-	var s = tracked.a.set;
-
-	tracked.v = s ? s(value, tracked.v) : value;
-}
-
-/**
- *
  * @param {any} v
  * @param {Function} [get]
  * @param {Function} [set]
@@ -91,5 +68,7 @@ export function MediaQuery(query, matches = false) {
  * @param {any} _
  */
 export function createSubscriber(_) {
-	return () => { /* NO-OP */ };
+	return () => {
+		/* NO-OP */
+	};
 }
