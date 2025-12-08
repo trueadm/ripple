@@ -85,6 +85,46 @@ describe('switch statements', () => {
 		expect(container.textContent).toBe('Change ValueDefault for y');
 	});
 
+	it('renders switch using fallthrough without recreating DOM unnecessarily', () => {
+		component App() {
+			let value = track('a');
+
+			<button onClick={() => @value = 'b'}>{'Change to B'}</button>
+			<button onClick={() => @value = 'c'}>{'Change to C'}</button>
+
+			switch (@value) {
+				case 'a':
+					<div>{'Case A'}</div>
+					break;
+				case 'b':
+				case 'c':
+					<div>{'Case B or C'}</div>
+					break;
+				default:
+					<div>{'Default Case'}</div>
+			}
+		}
+
+		render(App);
+		expect(container.textContent).toBe('Change to BChange to CCase A');
+
+		const [buttonB, buttonC] = container.querySelectorAll('button');
+
+		buttonB.click();
+		flushSync();
+		expect(container.textContent).toBe('Change to BChange to CCase B or C');
+
+		buttonC.click();
+		flushSync();
+		expect(container.textContent).toBe('Change to BChange to CCase B or C');
+
+		container.querySelector('div').textContent = 'DOM check';
+
+		buttonB.click();
+		flushSync();
+		expect(container.textContent).toBe('Change to BChange to CDOM check');
+	});
+
 	it('renders switch with template content and JS logic', () => {
 		component App() {
 			let status = track('active');

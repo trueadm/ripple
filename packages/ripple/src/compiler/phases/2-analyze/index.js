@@ -423,6 +423,11 @@ const visitors = {
 		context.visit(node.discriminant, context.state);
 
 		for (const switch_case of node.cases) {
+			// Fallthrough
+			if (switch_case.consequent.length === 0) {
+				continue;
+			}
+
 			// Validate that each cases ends in a break statement, except for the last case
 			const last = switch_case.consequent?.[switch_case.consequent.length - 1];
 

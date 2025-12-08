@@ -1832,27 +1832,34 @@ const visitors = {
 		let i = 1;
 
 		for (const switch_case of node.cases) {
-			const consequent_scope =
-				context.state.scopes.get(switch_case.consequent) || context.state.scope;
-			const consequent_id = context.state.scope.generate(
-				'switch_case_' + (switch_case.test == null ? 'default' : i),
-			);
-			const consequent = b.block(
-				transform_body(switch_case.consequent, {
-					...context,
-					state: { ...context.state, scope: consequent_scope },
-				}),
-			);
+			const case_body = [];
 
-			statements.push(b.var(b.id(consequent_id), b.arrow([b.id('__anchor')], consequent)));
+			if (switch_case.consequent.length !== 0) {
+				const consequent_scope =
+					context.state.scopes.get(switch_case.consequent) || context.state.scope;
+				const consequent_id = context.state.scope.generate(
+					'switch_case_' + (switch_case.test == null ? 'default' : i),
+				);
+				const consequent = b.block(
+					transform_body(switch_case.consequent, {
+						...context,
+						state: { ...context.state, scope: consequent_scope },
+					}),
+				);
+
+				statements.push(b.var(b.id(consequent_id), b.arrow([b.id('__anchor')], consequent)));
+
+				case_body.push(b.return(b.id(consequent_id)));
+
+				i++;
+			}
 
 			cases.push(
 				b.switch_case(
 					switch_case.test ? /** @type {AST.Expression} */ (context.visit(switch_case.test)) : null,
-					[b.return(b.id(consequent_id))],
+					case_body,
 				),
 			);
-			i++;
 		}
 
 		statements.push(
