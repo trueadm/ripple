@@ -429,7 +429,7 @@ export function track_split(v, l, b) {
 }
 
 /**
- * @param {Tracked} tracked
+ * @param {Tracked | Derived} tracked
  * @returns {Dependency}
  */
 function create_dependency(tracked) {

@@ -110,9 +110,7 @@ const visitors = {
 				(parent.type !== 'AssignmentExpression' && parent.type !== 'UpdateExpression') ||
 				is_right_side_of_assignment
 			) {
-				if (node.tracked) {
-					return b.call('_$_.get', node);
-				}
+				return b.call('_$_.get', node);
 			}
 		}
 	},
@@ -730,7 +728,14 @@ const visitors = {
 					? /** @type {AST.Expression} */ (context.visit(right))
 					: b.binary(
 							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {AST.Expression} */ (context.visit(left)),
+							b.call(
+								'_$_.get_property',
+								/** @type {AST.Expression} */ (context.visit(left.object)),
+								left.computed
+									? /** @type {AST.Expression} */ (context.visit(left.property))
+									: b.literal(/** @type {AST.Identifier} */ (left.property).name),
+								undefined,
+							),
 							/** @type {AST.Expression} */ (context.visit(right)),
 						),
 			);
@@ -747,7 +752,7 @@ const visitors = {
 					? /** @type {AST.Expression} */ (context.visit(right))
 					: b.binary(
 							operator === '+=' ? '+' : operator === '-=' ? '-' : operator === '*=' ? '*' : '/',
-							/** @type {AST.Expression} */ (context.visit(left)),
+							b.call('_$_.get', left),
 							/** @type {AST.Expression} */ (context.visit(right)),
 						),
 			);
@@ -940,16 +945,12 @@ const visitors = {
 	MemberExpression(node, context) {
 		if (node.tracked || (node.property.type === 'Identifier' && node.property.tracked)) {
 			return b.call(
-				'_$_.get',
-				b.member(
-					/** @type {AST.Expression} */
-					(context.visit(node.object)),
-					node.computed
-						? /** @type {AST.Expression} */ (context.visit(node.property))
-						: node.property,
-					node.computed,
-					node.optional,
-				),
+				'_$_.get_property',
+				/** @type {AST.Expression} */ (context.visit(node.object)),
+				node.computed
+					? /** @type {AST.Expression} */ (context.visit(node.property))
+					: b.literal(/** @type {AST.Identifier} */ (node.property).name),
+				node.optional ? b.true : undefined,
 			);
 		}
 

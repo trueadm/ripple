@@ -1,5 +1,5 @@
 /**
-@import { Component, Derived, Tracked } from '#server';
+@import { Component, Dependency, Derived, Tracked } from '#server';
 @import { render, renderToStream, SSRComponent } from 'ripple/server';
 */
 
@@ -14,8 +14,146 @@ import { normalize_css_property_name } from '../../../utils/normalize_css_proper
 export { escape };
 export { register_component_css as register_css } from './css-registry.js';
 
-/** @type {Component | null} */
+/** @type {null | Component} */
 export let active_component = null;
+
+/** @type {number} */
+let clock = 0;
+
+/** @type {null | Dependency} */
+let active_dependency = null;
+
+export let tracking = false;
+
+/**
+ * @returns {number}
+ */
+function increment_clock() {
+	return ++clock;
+}
+
+/**
+ * @param {Tracked | Derived} tracked
+ * @returns {Dependency}
+ */
+function create_dependency(tracked) {
+	return {
+		c: tracked.c,
+		t: tracked,
+		n: null,
+	};
+}
+
+/**
+ * @param {Tracked | Derived} tracked
+ */
+function register_dependency(tracked) {
+	var dependency = active_dependency;
+
+	if (dependency === null) {
+		dependency = create_dependency(tracked);
+		active_dependency = dependency;
+	} else {
+		var current = dependency;
+
+		while (current !== null) {
+			if (current.t === tracked) {
+				current.c = tracked.c;
+				return;
+			}
+			var next = current.n;
+			if (next === null) {
+				break;
+			}
+			current = next;
+		}
+
+		dependency = create_dependency(tracked);
+		current.n = dependency;
+	}
+}
+
+/**
+ * @param {Dependency | null} tracking
+ */
+function is_tracking_dirty(tracking) {
+	if (tracking === null) {
+		return false;
+	}
+	while (tracking !== null) {
+		var tracked = tracking.t;
+
+		if ((tracked.f & DERIVED) !== 0) {
+			update_derived(/** @type {Derived} **/ (tracked));
+		}
+
+		if (tracked.c > tracking.c) {
+			return true;
+		}
+		tracking = tracking.n;
+	}
+
+	return false;
+}
+
+/**
+ * @template T
+ * @param {() => T} fn
+ * @returns {T}
+ */
+export function untrack(fn) {
+	var previous_tracking = tracking;
+	var previous_dependency = active_dependency;
+	tracking = false;
+	active_dependency = null;
+	try {
+		return fn();
+	} finally {
+		tracking = previous_tracking;
+		active_dependency = previous_dependency;
+	}
+}
+
+/**
+ * @param {Derived} computed
+ */
+function update_derived(computed) {
+	var value = computed.v;
+
+	if (value === UNINITIALIZED || is_tracking_dirty(computed.d)) {
+		value = run_derived(computed);
+
+		if (value !== computed.v) {
+			computed.v = value;
+			computed.c = increment_clock();
+		}
+	}
+}
+
+/**
+ * @param {Derived} computed
+ */
+function run_derived(computed) {
+	var previous_tracking = tracking;
+	var previous_dependency = active_dependency;
+	var previous_component = active_component;
+
+	try {
+		active_component = computed.co;
+		tracking = true;
+		active_dependency = null;
+
+		var value = computed.fn();
+
+		computed.d = active_dependency;
+
+		return value;
+	} finally {
+		tracking = previous_tracking;
+		active_dependency = previous_dependency;
+		active_component = previous_component;
+	}
+}
 
 /**
  * `<div translate={false}>` should be rendered as `<div translate="no">` and _not_
@@ -145,7 +283,7 @@ export function push_component() {
  */
 export function pop_component() {
 	var component = /** @type {Component} */ (active_component);
-	active_component = component;
+	active_component = component.p;
 }
 
 /**
@@ -173,8 +311,13 @@ export function get(tracked) {
 		return tracked;
 	}
 
-	if ((tracked.f & DERIVED) !== 0 && tracked.v === UNINITIALIZED) {
-		tracked.v = tracked.fn();
+	if ((tracked.f & DERIVED) !== 0) {
+		update_derived(/** @type {Derived} **/ (tracked));
+		if (tracking) {
+			register_dependency(tracked);
+		}
+	} else if (tracking) {
+		register_dependency(tracked);
 	}
 
 	var g = tracked.a.get;
@@ -186,9 +329,13 @@ export function get(tracked) {
  * @param {any} value
  */
 export function set(tracked, value) {
-	var s = tracked.a.set;
+	var old_value = tracked.v;
 
-	tracked.v = s ? s(value, tracked.v) : value;
+	if (value !== old_value) {
+		var s = tracked.a.set;
+		tracked.v = s ? s(value, tracked.v) : value;
+		tracked.c = increment_clock();
+	}
 }
 
 /**
@@ -224,6 +371,23 @@ export function update_pre(tracked, d = 1) {
 export function set_property(obj, property, value) {
 	var tracked = obj[property];
 	set(tracked, value);
+}
+
+/**
+ * @param {any} obj
+ * @param {string | number | symbol} property
+ * @param {boolean} [chain=false]
+ * @returns {any}
+ */
+export function get_property(obj, property, chain = false) {
+	if (chain && obj == null) {
+		return undefined;
+	}
+	var tracked = obj[property];
+	if (tracked == null) {
+		return tracked;
+	}
+	return get(tracked);
 }
 
 /**

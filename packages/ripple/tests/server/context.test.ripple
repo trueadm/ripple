@@ -1,0 +1,31 @@
+import { describe, it, expect } from 'vitest';
+import { render } from 'ripple/server';
+import { Context } from 'ripple';
+
+describe('Context API', () => {
+	it('handles context override in nested components', async () => {
+		const MessageContext = new Context('default');
+
+		component Inner() {
+			const msg = MessageContext.get();
+			<span>{msg}</span>
+		}
+
+		component Middle() {
+			MessageContext.set('middle');
+			<div>
+				<Inner />
+			</div>
+		}
+
+		component Outer() {
+			MessageContext.set('outer');
+			<Middle />
+			<Inner />
+		}
+
+		const { body } = await render(Outer);
+
+		expect(body).toBe('<div><span>middle</span></div><span>outer</span>');
+	});
+});

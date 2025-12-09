@@ -2,11 +2,11 @@
 
 import { DERIVED, TRACKED, UNINITIALIZED } from './internal/client/constants.js';
 import { is_tracked_object } from './internal/client/utils.js';
-import { active_component, get, set } from './internal/server/index.js';
+import { active_component, get, set, untrack } from './internal/server/index.js';
 
 export { Context } from './internal/server/context.js';
 
-export { get, set };
+export { get, set, untrack };
 
 export function effect() {
 	// NO-OP
@@ -30,7 +30,9 @@ export function track(v, get, set) {
 	if (typeof v === 'function') {
 		return {
 			a: get || set ? { get, set } : empty_get_set,
+			c: 0,
 			co: active_component,
+			d: null,
 			f: TRACKED | DERIVED,
 			fn: v,
 			v: UNINITIALIZED,
@@ -39,6 +41,8 @@ export function track(v, get, set) {
 
 	return {
 		a: get || set ? { get, set } : empty_get_set,
+		c: 0,
+		d: null,
 		f: TRACKED,
 		v,
 	};

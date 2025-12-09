@@ -19,7 +19,7 @@ export type Dependency = {
 
 export type Tracked<V = any> = {
 	DO_NOT_ACCESS_THIS_OBJECT_DIRECTLY?: true;
-	a: { get?: Function, set?: Function };
+	a: { get?: Function; set?: Function };
 	b: Block;
 	c: number;
 	f: number;
@@ -28,12 +28,12 @@ export type Tracked<V = any> = {
 
 export type Derived = {
 	DO_NOT_ACCESS_THIS_OBJECT_DIRECTLY?: true;
-	a: { get?: Function, set?: Function };
+	a: { get?: Function; set?: Function };
 	b: Block;
 	blocks: null | Block[];
 	c: number;
 	co: null | Component;
-	d: null;
+	d: null | Dependency;
 	f: number;
 	fn: Function;
 	__v: any;
@@ -58,8 +58,8 @@ export type CompatApi = {
 	createRoot: () => void;
 	createComponent: (node: any, children_fn: () => any) => void;
 	jsx: (type: any, props: any) => any;
-}
+};
 
 export type CompatOptions = {
 	[key: string]: CompatApi;
-}
+};

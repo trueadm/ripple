@@ -78,7 +78,24 @@ describe('basic client', () => {
 		);
 	});
 
-	it.skip('handles derived tracked values', async () => {
+	it('handles AssignExpressions with tracked values or properties correctly', async () => {
+		component Assignments() {
+			const count = track(0);
+			const obj = { value: track(5) };
+
+			@count += 10;
+			obj.@value *= 2;
+
+			<div>{@count}</div>
+			<div>{obj.@value}</div>
+		}
+
+		const { body } = await render(Assignments);
+
+		expect(body).toBe('<div>10</div><div>10</div>');
+	});
+
+	it(`handles derived changes via tracked dependencies' changes`, async () => {
 		component Derived() {
 			let base = track(5);
 			let multiplier = track(3);
@@ -94,5 +111,24 @@ describe('basic client', () => {
 		const { body } = await render(Derived);
 
 		expect(body).toBe('<div>15</div><div>21</div>');
+	});
+
+	it(`handles derived changes based on another derived's dependencies' changes`, async () => {
+		component NestedDerived() {
+			let a = track(2);
+			let b = track(3);
+			const sum = track(() => @a + @b);
+			const product = track(() => @sum * 2);
+
+			<div>{@product}</div>
+
+			@a = 4;
+
+			<div>{@product}</div>
+		}
+
+		const { body } = await render(NestedDerived);
+
+		expect(body).toBe('<div>10</div><div>14</div>');
 	});
 });
