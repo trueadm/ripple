@@ -3347,6 +3347,67 @@ function create_tsx_with_typescript_support() {
 			}
 		},
 		/**
+		 * Custom handler for ClassDeclaration to output TypeScript type parameters
+		 * @param {AST.ClassDeclaration} node
+		 * @param {ESRap.Context} context
+		 */
+		ClassDeclaration(node, context) {
+			context.write('class ');
+			if (node.id) {
+				context.visit(node.id);
+			}
+			if (node.typeParameters) {
+				context.visit(node.typeParameters);
+			}
+			if (node.superClass) {
+				context.write(' extends ');
+				context.visit(node.superClass);
+				if (node.superTypeArguments) {
+					context.visit(node.superTypeArguments);
+				}
+			}
+			if (node.implements && node.implements.length > 0) {
+				context.write(' implements ');
+				for (let i = 0; i < node.implements.length; i++) {
+					if (i > 0) context.write(', ');
+					context.visit(node.implements[i]);
+				}
+			}
+			context.write(' ');
+			context.visit(node.body);
+		},
+		/**
+		 * Custom handler for ClassExpression to output TypeScript type parameters
+		 * @param {AST.ClassExpression} node
+		 * @param {ESRap.Context} context
+		 */
+		ClassExpression(node, context) {
+			context.write('class');
+			if (node.id) {
+				context.write(' ');
+				context.visit(node.id);
+			}
+			if (node.typeParameters) {
+				context.visit(node.typeParameters);
+			}
+			if (node.superClass) {
+				context.write(' extends ');
+				context.visit(node.superClass);
+				if (node.superTypeArguments) {
+					context.visit(node.superTypeArguments);
+				}
+			}
+			if (node.implements && node.implements.length > 0) {
+				context.write(' implements ');
+				for (let i = 0; i < node.implements.length; i++) {
+					if (i > 0) context.write(', ');
+					context.visit(node.implements[i]);
+				}
+			}
+			context.write(' ');
+			context.visit(node.body);
+		},
+		/**
 		 * Custom handler for TryStatement to support Ripple's pending block
 		 * @param {AST.TryStatement} node
 		 * @param {ESRap.Context} context

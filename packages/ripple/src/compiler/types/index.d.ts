@@ -62,7 +62,19 @@ declare module 'estree' {
 	}
 
 	interface MethodDefinition {
-		typeParameters?: AST.TSTypeParameterDeclaration;
+		typeParameters?: TSTypeParameterDeclaration;
+	}
+
+	interface ClassDeclaration {
+		typeParameters?: TSTypeParameterDeclaration;
+		superTypeArguments?: TSTypeParameterInstantiation;
+		implements?: TSClassImplements[];
+	}
+
+	interface ClassExpression {
+		typeParameters?: TSTypeParameterDeclaration;
+		superTypeArguments?: TSTypeParameterInstantiation;
+		implements?: TSClassImplements[];
 	}
 
 	interface Identifier extends TrackedNode {
@@ -164,7 +176,7 @@ declare module 'estree' {
 		// to avoid lots of typecasting or checking for undefined
 		metadata: BaseNodeMetaData;
 
-		comments?: AST.Comment[];
+		comments?: Comment[];
 	}
 
 	interface NodeWithLocation {
@@ -210,7 +222,7 @@ declare module 'estree' {
 		children: Node[];
 		selfClosing?: boolean;
 		unclosed?: boolean;
-		loc: AST.SourceLocation;
+		loc: SourceLocation;
 		metadata: BaseNodeMetaData & {
 			ts_name?: string;
 		};
@@ -228,7 +240,7 @@ declare module 'estree' {
 		innerComments?: Comment[];
 	}
 
-	export interface TextNode extends AST.BaseNode {
+	export interface TextNode extends BaseNode {
 		type: 'Text';
 		expression: Expression;
 		loc?: SourceLocation;
@@ -298,22 +310,22 @@ declare module 'estree' {
 
 	/**
 	 * Ripple's extended Declaration type that includes Component
-	 * Use this instead of AST.Declaration when you need Component support
+	 * Use this instead of Declaration when you need Component support
 	 */
-	export type RippleDeclaration = AST.Declaration | AST.Component | AST.TSDeclareFunction;
+	export type RippleDeclaration = Declaration | Component | TSDeclareFunction;
 
 	/**
 	 * Ripple's extended ExportNamedDeclaration with Component support
 	 */
-	interface RippleExportNamedDeclaration extends Omit<AST.ExportNamedDeclaration, 'declaration'> {
+	interface RippleExportNamedDeclaration extends Omit<ExportNamedDeclaration, 'declaration'> {
 		declaration?: RippleDeclaration | null | undefined;
 	}
 
 	/**
 	 * Ripple's extended Program with Component support
 	 */
-	interface RippleProgram extends Omit<AST.Program, 'body'> {
-		body: (AST.Program['body'][number] | Component)[];
+	interface RippleProgram extends Omit<Program, 'body'> {
+		body: (Program['body'][number] | Component)[];
 	}
 
 	export type RippleAttribute = Attribute | SpreadAttribute | RefAttribute;
@@ -590,6 +602,7 @@ declare module 'estree' {
 		TSVoidKeyword: TSVoidKeyword;
 		TSParenthesizedType: TSParenthesizedType;
 		TSExpressionWithTypeArguments: TSExpressionWithTypeArguments;
+		TSClassImplements: TSClassImplements;
 	}
 
 	// Extend NodeMap to include TypeScript nodes
@@ -874,6 +887,7 @@ declare module 'estree' {
 		type: 'TSExpressionWithTypeArguments';
 	}
 
+	interface TSClassImplements extends AcornTSNode<TSESTree.TSClassImplements> {}
 	interface TSUnknownKeyword extends AcornTSNode<TSESTree.TSUnknownKeyword> {}
 	interface TSVoidKeyword extends AcornTSNode<TSESTree.TSVoidKeyword> {}
 	interface NumberLiteral extends AcornTSNode<TSESTree.NumberLiteral> {}
