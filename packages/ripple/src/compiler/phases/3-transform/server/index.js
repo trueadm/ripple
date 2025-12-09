@@ -1080,17 +1080,11 @@ export function transform_server(filename, source, analysis, minify_css) {
 	}
 
 	// Add async property to component functions
-
 	for (const import_node of state.imports) {
 		/** @type {AST.Program} */ (program).body.unshift(b.stmt(b.id(import_node)));
 	}
 
-	// ESRap unfortunately hard codes the type from '@typescript-eslint/types'
-	// Our types from 'estree' are incompatible
-	// So we'll just give it what it wants with an unknown cast.
-	// Functionally, none of the properties that are different between the two types
-	// are used by the printer, so this is safe.
-	const js = print(/** @type {TSESTree.Node} */ (/** @type {unknown} */ (program)), ts(), {
+	const js = print(program, /** @type {Visitors<AST.Node, TransformServerState>} */ (ts()), {
 		sourceMapContent: source,
 		sourceMapSource: path.basename(filename),
 	});
