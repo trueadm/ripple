@@ -3029,6 +3029,110 @@ function create_tsx_with_typescript_support() {
 			}
 		},
 		/**
+		 * Custom handler for MethodDefinition to ensure typeParameters are visited
+		 * esrap's default tsx() handler doesn't visit typeParameters for MethodDefinition
+		 * @param {AST.MethodDefinition} node
+		 * @param {ESRap.Context} context
+		 */
+		MethodDefinition(node, context) {
+			// Check if there are type parameters to handle
+			// @ts-ignore - typeParameters may exist on node
+			const hasTypeParams = node.typeParameters || node.value?.typeParameters;
+
+			if (!hasTypeParams) {
+				// No type parameters, use default handler
+				return base_tsx.MethodDefinition?.(node, context);
+			}
+
+			// Has type parameters - we need to manually handle to ensure they're visited
+			// Write modifiers (static, async, etc.)
+			if (node.static) {
+				context.write('static ');
+			}
+
+			// Handle getters/setters
+			if (node.kind === 'get') {
+				context.write('get ');
+			} else if (node.kind === 'set') {
+				context.write('set ');
+			}
+
+			// Write * for generator methods
+			if (node.value?.generator) {
+				context.write('*');
+			}
+
+			// Write async keyword
+			if (node.value?.async) {
+				context.write('async ');
+			}
+
+			// Write the method key
+			if (node.computed) {
+				context.write('[');
+				context.visit(node.key);
+				context.write(']');
+			} else {
+				context.visit(node.key);
+			}
+
+			// Visit typeParameters if present (THIS IS THE FIX)
+			// TypeParameters can be on either the MethodDefinition or its value (FunctionExpression)
+			if (node.typeParameters) {
+				context.visit(node.typeParameters);
+			} else if (node.value?.typeParameters) {
+				context.visit(node.value.typeParameters);
+			}
+
+			// Write parameters - set location for opening '('
+			if (node.value?.loc) {
+				context.location(node.value.loc.start.line, node.value.loc.start.column);
+			}
+			context.write('(');
+			if (node.value?.params) {
+				for (let i = 0; i < node.value.params.length; i++) {
+					if (i > 0) context.write(', ');
+					context.visit(node.value.params[i]);
+				}
+			}
+			context.write(')');
+
+			// Write return type if present
+			if (node.value?.returnType) {
+				context.visit(node.value.returnType);
+			}
+
+			// Write method body
+			if (node.value?.body) {
+				context.write(' ');
+				context.visit(node.value.body);
+			}
+		},
+		/**
+		 * Custom handler for TSTypeParameter to output individual type parameter like T or U extends Something
+		 * @param {any} node
+		 * @param {ESRap.Context} context
+		 */
+		TSTypeParameter(node, context) {
+			// Set location for the type parameter name
+			if (node.loc) {
+				context.location(node.loc.start.line, node.loc.start.column);
+			}
+			if (typeof node.name === 'string') {
+				context.write(node.name);
+			} else if (node.name && node.name.name) {
+				context.write(node.name.name);
+			}
+			if (node.constraint) {
+				context.write(' extends ');
+				context.visit(node.constraint);
+			}
+			if (node.default) {
+				context.write(' = ');
+				context.visit(node.default);
+			}
+		},
+		/**
 		 * Custom handler for ArrayPattern to ensure typeAnnotation is visited
 		 * esrap's TypeScript handler doesn't visit typeAnnotation for ArrayPattern (only for ObjectPattern)
 		 * @param {AST.ArrayPattern} node
@@ -3205,29 +3309,6 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.nameType);
 			}
 			context.write(' }');
-		},
-		/**
-		 * Custom handler for TSTypeParameter: K in T (for mapped types)
-		 * acorn-ts has a bug where `in` is printed as `extends`, so we override it here
-		 * @param {AST.TSTypeParameter} node
-		 * @param {ESRap.Context} context
-		 */
-		TSTypeParameter(node, context) {
-			// For mapped types, the name is just a string, not an Identifier node
-			// Pass the node as second parameter to context.write() to create source map entry
-			if (typeof node.name === 'string') {
-				context.write(node.name, node);
-			} else if (node.name && node.name.name) {
-				context.write(node.name.name, node.name);
-			}
-			if (node.constraint) {
-				context.write(' in ');
-				context.visit(node.constraint);
-			}
-			if (node.default) {
-				context.write(' = ');
-				context.visit(node.default);
-			}
 		},
 		/**
 		 * Override the ArrowFunctionExpression handler to support TypeScript return types

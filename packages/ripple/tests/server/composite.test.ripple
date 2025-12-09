@@ -76,7 +76,7 @@ describe('generics', () => {
 
 			// 14. Generic with constraint + default
 			type Extractor<T extends { id: number } = { id: number }> = (v: T) => number;
-			const m: Extractor = (v) => v.id;
+			const m: Extractor<{ id: number }> = (v) => v.id;
 
 			// 15. Generic in angle after "new" + trailing call
 			class Wrapper<T> {

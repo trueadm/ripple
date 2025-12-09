@@ -61,6 +61,10 @@ declare module 'estree' {
 		metadata: FunctionMetaData;
 	}
 
+	interface MethodDefinition {
+		typeParameters?: AST.TSTypeParameterDeclaration;
+	}
+
 	interface Identifier extends TrackedNode {
 		metadata: BaseNode['metadata'] & {
 			tracked_shorthand?: '#Map' | '#Set';
@@ -891,7 +895,6 @@ declare module 'estree' {
 }
 
 import type { Comment, Position } from 'acorn';
-import type { A, M } from 'vitest/dist/chunks/environment.d.cL3nLXbE.js';
 
 /**
  * Parse error information
