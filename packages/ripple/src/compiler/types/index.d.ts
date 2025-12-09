@@ -3,6 +3,7 @@ import type * as ESTreeJSX from 'estree-jsx';
 import type { TSESTree } from '@typescript-eslint/types';
 import type { NAMESPACE_URI } from '../../runtime/internal/client/constants.js';
 import type { Parse } from '#parser';
+import type * as ESRap from 'esrap';
 
 export type RpcModules = Map<string, [string, string]>;
 
@@ -66,15 +67,15 @@ declare module 'estree' {
 	}
 
 	interface ClassDeclaration {
-		typeParameters?: TSTypeParameterDeclaration;
-		superTypeArguments?: TSTypeParameterInstantiation;
-		implements?: TSClassImplements[];
+		typeParameters?: AST.TSTypeParameterDeclaration;
+		superTypeArguments?: AST.TSTypeParameterInstantiation;
+		implements?: AST.TSClassImplements[];
 	}
 
 	interface ClassExpression {
-		typeParameters?: TSTypeParameterDeclaration;
-		superTypeArguments?: TSTypeParameterInstantiation;
-		implements?: TSClassImplements[];
+		typeParameters?: AST.TSTypeParameterDeclaration;
+		superTypeArguments?: AST.TSTypeParameterInstantiation;
+		implements?: AST.TSClassImplements[];
 	}
 
 	interface Identifier extends TrackedNode {
@@ -83,7 +84,7 @@ declare module 'estree' {
 		};
 	}
 
-	interface MemberExpression extends TrackedNode {}
+	interface MemberExpression extends AST.TrackedNode {}
 
 	interface TrackedNode {
 		tracked?: boolean;
@@ -115,9 +116,9 @@ declare module 'estree' {
 	}
 
 	// Missing estree type
-	interface ParenthesizedExpression extends BaseNode {
+	interface ParenthesizedExpression extends AST.BaseNode {
 		type: 'ParenthesizedExpression';
-		expression: Expression;
+		expression: AST.Expression;
 	}
 
 	interface Comment {
@@ -127,18 +128,18 @@ declare module 'estree' {
 	/**
 	 * Custom Comment interface with location information
 	 */
-	type CommentWithLocation = Comment & NodeWithLocation;
+	type CommentWithLocation = AST.Comment & NodeWithLocation;
 
 	interface TryStatement {
-		pending?: BlockStatement | null;
+		pending?: AST.BlockStatement | null;
 	}
 
 	interface ForOfStatement {
-		index?: Identifier | null;
-		key?: Expression | null;
+		index?: AST.Identifier | null;
+		key?: AST.Expression | null;
 	}
 
-	interface ServerIdentifier extends BaseNode {
+	interface ServerIdentifier extends AST.BaseNode {
 		type: 'ServerIdentifier';
 	}
 
@@ -182,18 +183,18 @@ declare module 'estree' {
 	interface NodeWithLocation {
 		start: number;
 		end: number;
-		loc: SourceLocation;
+		loc: AST.SourceLocation;
 	}
 
 	/**
 	 * Ripple custom interfaces and types section
 	 */
-	interface Component extends BaseNode {
+	interface Component extends AST.BaseNode {
 		type: 'Component';
 		// null is for anonymous components {component: () => {}}
-		id: Identifier | null;
-		params: Pattern[];
-		body: Node[];
+		id: AST.Identifier | null;
+		params: AST.Pattern[];
+		body: AST.Node[];
 		css: CSS.StyleSheet | null;
 		metadata: BaseNodeMetaData & {
 			inherited_css?: boolean;
@@ -201,7 +202,7 @@ declare module 'estree' {
 		default: boolean;
 	}
 
-	interface TsxCompat extends BaseNode {
+	interface TsxCompat extends AST.BaseNode {
 		type: 'TsxCompat';
 		kind: string;
 		attributes: Array<any>;
@@ -210,16 +211,16 @@ declare module 'estree' {
 		unclosed?: boolean;
 	}
 
-	interface Html extends BaseNode {
+	interface Html extends AST.BaseNode {
 		type: 'Html';
 		expression: Expression;
 	}
 
-	interface Element extends BaseNode {
+	interface Element extends AST.BaseNode {
 		type: 'Element';
-		id: Identifier;
+		id: AST.Identifier;
 		attributes: RippleAttribute[];
-		children: Node[];
+		children: AST.Node[];
 		selfClosing?: boolean;
 		unclosed?: boolean;
 		loc: SourceLocation;
@@ -240,13 +241,13 @@ declare module 'estree' {
 		innerComments?: Comment[];
 	}
 
-	export interface TextNode extends BaseNode {
+	export interface TextNode extends AST.BaseNode {
 		type: 'Text';
-		expression: Expression;
-		loc?: SourceLocation;
+		expression: AST.Expression;
+		loc?: AST.SourceLocation;
 	}
 
-	interface ServerBlock extends BaseNode {
+	interface ServerBlock extends AST.BaseNode {
 		type: 'ServerBlock';
 		body: BlockStatement;
 		metadata: BaseNodeMetaData & {
@@ -257,67 +258,67 @@ declare module 'estree' {
 	/**
 	 * Tracked Expressions
 	 */
-	interface TrackedArrayExpression extends Omit<ArrayExpression, 'type'> {
+	interface TrackedArrayExpression extends Omit<AST.ArrayExpression, 'type'> {
 		type: 'TrackedArrayExpression';
-		elements: (Expression | SpreadElement | null)[];
+		elements: (AST.Expression | AST.SpreadElement | null)[];
 	}
 
-	interface TrackedExpression extends BaseNode {
-		argument: Expression;
+	interface TrackedExpression extends AST.BaseNode {
+		argument: AST.Expression;
 		type: 'TrackedExpression';
 	}
 
-	interface TrackedObjectExpression extends Omit<ObjectExpression, 'type'> {
+	interface TrackedObjectExpression extends Omit<AST.ObjectExpression, 'type'> {
 		type: 'TrackedObjectExpression';
-		properties: (Property | SpreadElement)[];
+		properties: (AST.Property | AST.SpreadElement)[];
 	}
 
-	interface TrackedMapExpression extends BaseNode {
+	interface TrackedMapExpression extends AST.BaseNode {
 		type: 'TrackedMapExpression';
-		arguments: (Expression | SpreadElement)[];
+		arguments: (AST.Expression | AST.SpreadElement)[];
 	}
 
-	interface TrackedSetExpression extends BaseNode {
+	interface TrackedSetExpression extends AST.BaseNode {
 		type: 'TrackedSetExpression';
-		arguments: (Expression | SpreadElement)[];
+		arguments: (AST.Expression | AST.SpreadElement)[];
 	}
 
 	/**
 	 * Ripple attribute nodes
 	 */
-	interface Attribute extends BaseNode {
+	interface Attribute extends AST.BaseNode {
 		type: 'Attribute';
-		name: Identifier;
-		value: Expression | null;
-		loc?: SourceLocation;
+		name: AST.Identifier;
+		value: AST.Expression | null;
+		loc?: AST.SourceLocation;
 		shorthand?: boolean;
 		metadata: BaseNodeMetaData & {
 			delegated?: boolean;
 		};
 	}
 
-	interface RefAttribute extends BaseNode {
+	interface RefAttribute extends AST.BaseNode {
 		type: 'RefAttribute';
-		argument: Expression;
-		loc?: SourceLocation;
+		argument: AST.Expression;
+		loc?: AST.SourceLocation;
 	}
 
-	interface SpreadAttribute extends BaseNode {
+	interface SpreadAttribute extends AST.BaseNode {
 		type: 'SpreadAttribute';
-		argument: Expression;
-		loc?: SourceLocation;
+		argument: AST.Expression;
+		loc?: AST.SourceLocation;
 	}
 
 	/**
 	 * Ripple's extended Declaration type that includes Component
 	 * Use this instead of Declaration when you need Component support
 	 */
-	export type RippleDeclaration = Declaration | Component | TSDeclareFunction;
+	export type RippleDeclaration = AST.Declaration | Component | AST.TSDeclareFunction;
 
 	/**
 	 * Ripple's extended ExportNamedDeclaration with Component support
 	 */
-	interface RippleExportNamedDeclaration extends Omit<ExportNamedDeclaration, 'declaration'> {
+	interface RippleExportNamedDeclaration extends Omit<AST.ExportNamedDeclaration, 'declaration'> {
 		declaration?: RippleDeclaration | null | undefined;
 	}
 
@@ -507,7 +508,7 @@ declare module 'estree-jsx' {
 
 	interface JSXEmptyExpression {
 		loc: AST.SourceLocation;
-		innerComments?: Comment[];
+		innerComments?: AST.Comment[];
 	}
 
 	interface JSXOpeningFragment {
@@ -605,18 +606,21 @@ declare module 'estree' {
 		TSClassImplements: TSClassImplements;
 	}
 
-	// Extend NodeMap to include TypeScript nodes
-	interface NodeMap extends TSNodeMap {}
-
 	// Create our version of TypeNode with modified types to be used in replacements
 	type TypeNode = TSNodeMap[keyof TSNodeMap];
+
+	// Extend NodeMap to include TypeScript nodes
+	interface NodeMap extends TSNodeMap {
+		TypeNode: TypeNode;
+	}
+
 	type EntityName = AST.Identifier | AST.ThisExpression | TSQualifiedName;
 	type Parameter =
-		| ArrayPattern
-		| AssignmentPattern
-		| Identifier
-		| ObjectPattern
-		| RestElement
+		| AST.ArrayPattern
+		| AST.AssignmentPattern
+		| AST.Identifier
+		| AST.ObjectPattern
+		| AST.RestElement
 		| TSParameterProperty;
 	type TypeElement =
 		| TSCallSignatureDeclaration
@@ -625,8 +629,8 @@ declare module 'estree' {
 		| TSMethodSignature
 		| TSPropertySignature;
 	type TSPropertySignature = TSPropertySignatureComputedName | TSPropertySignatureNonComputedName;
-	type PropertyNameComputed = Expression;
-	type PropertyNameNonComputed = Identifier | NumberLiteral | StringLiteral;
+	type PropertyNameComputed = AST.Expression;
+	type PropertyNameNonComputed = AST.Identifier | NumberLiteral | StringLiteral;
 
 	// TypeScript AST node interfaces from @sveltejs/acorn-typescript
 	// Based on TSESTree types but adapted for acorn's output format
@@ -663,7 +667,7 @@ declare module 'estree' {
 		extends Omit<AcornTSNode<TSESTree.TSConstructorType>, 'typeParameters' | 'params'> {
 		typeAnnotation: TSTypeAnnotation | undefined;
 		typeParameters: TSTypeParameterDeclaration | undefined;
-		parameters: Parameter[];
+		parameters: AST.Parameter[];
 	}
 	interface TSConstructSignatureDeclaration
 		extends Omit<
@@ -722,7 +726,7 @@ declare module 'estree' {
 	}
 	interface TSIndexSignature
 		extends Omit<AcornTSNode<TSESTree.TSIndexSignature>, 'parameters' | 'typeAnnotation'> {
-		parameters: Parameter[];
+		parameters: AST.Parameter[];
 		typeAnnotation: TSTypeAnnotation | undefined;
 	}
 	interface TSInferType extends Omit<AcornTSNode<TSESTree.TSInferType>, 'typeParameter'> {
@@ -752,9 +756,13 @@ declare module 'estree' {
 		literal: AST.Literal | AST.TemplateLiteral;
 	}
 	interface TSMappedType
-		extends Omit<AcornTSNode<TSESTree.TSMappedType>, 'typeParameter' | 'typeAnnotation'> {
+		extends Omit<
+			AcornTSNode<TSESTree.TSMappedType>,
+			'typeParameter' | 'typeAnnotation' | 'nameType'
+		> {
 		typeAnnotation: TypeNode | undefined;
 		typeParameter: TSTypeParameter;
+		nameType: TypeNode | null;
 	}
 	interface TSMethodSignature
 		extends Omit<
@@ -1151,7 +1159,8 @@ export type Visitors<T extends AST.Node | AST.CSS.Node, U> = T['type'] extends '
 	? never
 	: SpecializedVisitors<T, U> & { _?: Visitor<T, U, T> };
 
-export interface Context<T, U> {
+export interface Context<T, U>
+	extends Omit<ESRap.Context, 'path' | 'state' | 'visit' | 'next' | 'stop'> {
 	next: (state?: U) => T | void;
 	path: T[];
 	state: U;

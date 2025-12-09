@@ -13,6 +13,9 @@
 import type * as acorn from 'acorn';
 import type * as AST from 'estree';
 import type * as ESTreeJSX from 'estree-jsx';
+import type * as ESRap from 'esrap';
+import type * as SourceMap from '@jridgewell/sourcemap-codec';
+import type * as RippleCompiler from '#compiler';
 
 type ForInit = boolean | 'await';
 
@@ -33,7 +36,34 @@ declare module 'acorn' {
 	}
 }
 
+declare module 'esrap' {
+	export function print<V extends RippleCompiler.Visitors<AST.Node, any>>(
+		ast: AST.Node,
+		visitors: V,
+		options?: ESRap.PrintOptions,
+	): { code: string; map: SourceMap.SourceMapMappings };
+}
+
+declare module 'esrap/languages/tsx' {
+	export default function tsx<V extends RippleCompiler.Visitors<AST.Node, any>>(
+		options: Parse.ESRapTSOptions,
+	): V;
+}
+
+declare module 'zimmerframe' {
+	export function walk(
+		node: AST.Node,
+		state: any,
+		visitors: RippleCompiler.Visitors<AST.Node, any>,
+	): AST.Node;
+}
+
 export namespace Parse {
+	export interface ESRapTSOptions {
+		quotes?: 'double' | 'single';
+		comments?: AST.Comment[];
+	}
+
 	/**
 	 * Destructuring errors object used during expression parsing
 	 * See: https://github.com/acornjs/acorn/blob/main/acorn/src/parseutil.js

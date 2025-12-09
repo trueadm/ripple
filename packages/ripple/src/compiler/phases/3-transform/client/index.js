@@ -2889,10 +2889,10 @@ function transform_body(body, { visit, state }) {
 
 /**
  * Create a TSX language handler with enhanced TypeScript support
- * @returns {Object} TSX language handler with TypeScript return type support
+ * @returns {Visitors<AST.Node, TransformClientState>} TSX language handler with TypeScript return type support
  */
 function create_tsx_with_typescript_support() {
-	const base_tsx = /** @type {ESRap.Visitors<AST.Node>} */ (tsx());
+	const base_tsx = /** @type {Visitors<AST.Node, TransformClientState>} */ (tsx());
 
 	// Add custom TypeScript node handlers that aren't in tsx
 
@@ -2900,7 +2900,7 @@ function create_tsx_with_typescript_support() {
 	 * Shared handler for function-like nodes to support component->function mapping
 	 * Creates source maps for 'function' keyword by passing node to context.write()
 	 * @param {AST.Function} node
-	 * @param {ESRap.Context} context
+	 * @param {TransformClientContext} context
 	 */
 	const handle_function = (node, context) => {
 		if (node.async) {
@@ -2941,16 +2941,8 @@ function create_tsx_with_typescript_support() {
 		}
 	};
 
-	return {
+	return /** @type {Visitors<AST.Node, TransformClientState>} */ ({
 		...base_tsx,
-		/**
-		 * Custom handler for Property nodes to prevent method shorthand for components
-		 * When a component is transformed to a FunctionExpression, we want to preserve
-		 * the explicit syntax (key: function name() {}) instead of method shorthand (key() {})
-		 * This ensures proper source mapping for the 'function'/'component' keyword
-		 * @param {AST.Property} node
-		 * @param {ESRap.Context} context
-		 */
 		Property(node, context) {
 			// Check if the value is a function that was originally a component
 			const isComponent =
@@ -2997,18 +2989,13 @@ function create_tsx_with_typescript_support() {
 					context.write(node.computed ? ']: ' : ': ');
 					context.visit(node.value);
 				} else {
-					base_tsx.Property?.(node, context);
+					base_tsx.Property?.(node, /** @type {ESRap.} */ (context));
 				}
 			} else {
 				// Use default handler for non-component properties
 				base_tsx.Property?.(node, context);
 			}
 		},
-		/**
-		 * Custom handler for JSXClosingElement to ensure closing tag brackets have source mappings
-		 * @param {ESTreeJSX.JSXClosingElement} node
-		 * @param {ESRap.Context} context
-		 */
 		JSXClosingElement(node, context) {
 			// Set location for '<' then write '</'
 			if (node.loc) {
@@ -3028,12 +3015,6 @@ function create_tsx_with_typescript_support() {
 				context.write('>');
 			}
 		},
-		/**
-		 * Custom handler for MethodDefinition to ensure typeParameters are visited
-		 * esrap's default tsx() handler doesn't visit typeParameters for MethodDefinition
-		 * @param {AST.MethodDefinition} node
-		 * @param {ESRap.Context} context
-		 */
 		MethodDefinition(node, context) {
 			// Check if there are type parameters to handle
 			// @ts-ignore - typeParameters may exist on node
@@ -3108,11 +3089,6 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.value.body);
 			}
 		},
-		/**
-		 * Custom handler for TSTypeParameter to output individual type parameter like T or U extends Something
-		 * @param {any} node
-		 * @param {ESRap.Context} context
-		 */
 		TSTypeParameter(node, context) {
 			// Set location for the type parameter name
 			if (node.loc) {
@@ -3132,12 +3108,6 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.default);
 			}
 		},
-		/**
-		 * Custom handler for ArrayPattern to ensure typeAnnotation is visited
-		 * esrap's TypeScript handler doesn't visit typeAnnotation for ArrayPattern (only for ObjectPattern)
-		 * @param {AST.ArrayPattern} node
-		 * @param {ESRap.Context} context
-		 */
 		ArrayPattern(node, context) {
 			context.write('[');
 			for (let i = 0; i < node.elements.length; i++) {
@@ -3152,31 +3122,12 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.typeAnnotation);
 			}
 		},
-		/**
-		 * Custom handler for FunctionDeclaration to support component->function mapping
-		 * Needed for volar mappings and intellisense on function or component keyword
-		 * @param {AST.FunctionDeclaration} node
-		 * @param {ESRap.Context} context
-		 */
 		FunctionDeclaration(node, context) {
 			handle_function(node, context);
 		},
-		/**
-		 * Custom handler for FunctionExpression to support component->function mapping
-		 * This is used for components transformed by the Component visitor
-		 * @param {AST.FunctionExpression} node
-		 * @param {ESRap.Context} context
-		 */
 		FunctionExpression(node, context) {
 			handle_function(node, context);
 		},
-		/**
-		 * Custom handler for ImportDeclaration to ensure 'import' keyword has source mapping
-		 * This creates a source map entry at the start of the import statement
-		 * Esrap's default handler writes 'import' without passing the node, so no source map entry
-		 * @param {AST.ImportDeclaration} node
-		 * @param {ESRap.Context} context
-		 */
 		ImportDeclaration(node, context) {
 			// Write 'import' keyword with node location for source mapping
 			context.write('import', node);
@@ -3230,13 +3181,6 @@ function create_tsx_with_typescript_support() {
 			// Write source
 			context.visit(node.source);
 		},
-		/**
-		 * Custom handler for JSXOpeningElement to ensure '<' and '>' have source mappings
-		 * Esrap's default handler only maps the tag name, not the brackets
-		 * This creates mappings for the brackets so auto-close can find the cursor position
-		 * @param {ESTreeJSX.JSXOpeningElement} node
-		 * @param {ESRap.Context} context
-		 */
 		JSXOpeningElement(node, context) {
 			// Set location for '<'
 			if (node.loc) {
@@ -3264,21 +3208,11 @@ function create_tsx_with_typescript_support() {
 				context.write('>');
 			}
 		},
-		/**
-		 * Custom handler for TSParenthesizedType: (Type)
-		 * @param {AST.TSParenthesizedType} node
-		 * @param {ESRap.Context} context
-		 */
 		TSParenthesizedType(node, context) {
 			context.write('(');
 			context.visit(/** @type {AST.TSTypeAnnotation} */ (node.typeAnnotation));
 			context.write(')');
 		},
-		/**
-		 * Custom handler for TSMappedType: { [K in keyof T]: T[K] }
-		 * @param {AST.TSMappedType} node
-		 * @param {ESRap.Context} context
-		 */
 		TSMappedType(node, context) {
 			context.write('{ ');
 			if (node.readonly) {
@@ -3310,11 +3244,6 @@ function create_tsx_with_typescript_support() {
 			}
 			context.write(' }');
 		},
-		/**
-		 * Override the ArrowFunctionExpression handler to support TypeScript return types
-		 * @param {AST.ArrowFunctionExpression} node
-		 * @param {ESRap.Context} context
-		 */
 		ArrowFunctionExpression(node, context) {
 			if (node.async) context.write('async ');
 
@@ -3346,11 +3275,6 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.body);
 			}
 		},
-		/**
-		 * Custom handler for ClassDeclaration to output TypeScript type parameters
-		 * @param {AST.ClassDeclaration} node
-		 * @param {ESRap.Context} context
-		 */
 		ClassDeclaration(node, context) {
 			context.write('class ');
 			if (node.id) {
@@ -3376,11 +3300,6 @@ function create_tsx_with_typescript_support() {
 			context.write(' ');
 			context.visit(node.body);
 		},
-		/**
-		 * Custom handler for ClassExpression to output TypeScript type parameters
-		 * @param {AST.ClassExpression} node
-		 * @param {ESRap.Context} context
-		 */
 		ClassExpression(node, context) {
 			context.write('class');
 			if (node.id) {
@@ -3407,11 +3326,6 @@ function create_tsx_with_typescript_support() {
 			context.write(' ');
 			context.visit(node.body);
 		},
-		/**
-		 * Custom handler for TryStatement to support Ripple's pending block
-		 * @param {AST.TryStatement} node
-		 * @param {ESRap.Context} context
-		 */
 		TryStatement(node, context) {
 			context.write('try ');
 			context.visit(node.block);
@@ -3445,7 +3359,7 @@ function create_tsx_with_typescript_support() {
 				context.visit(node.finalizer);
 			}
 		},
-	};
+	});
 }
 
 /**
@@ -3534,7 +3448,9 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		);
 	}
 
-	const language_handler = to_ts ? create_tsx_with_typescript_support() : tsx();
+	const language_handler = to_ts
+		? create_tsx_with_typescript_support()
+		: /** @type {Visitors<AST.Node, TransformClientState>} */ (tsx());
 
 	const js =
 		/** @type {ReturnType<typeof print> & { post_processing_changes?: PostProcessingChanges, line_offsets?: number[] }} */ (
