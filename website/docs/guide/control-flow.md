@@ -71,6 +71,7 @@ export component InteractiveStatus() {
   <div>
     switch (@status) {
       case 'init':
+         <p>{'Init'}</p>
       case 'loading':
         <p>{'Loading...'}</p>
         break;

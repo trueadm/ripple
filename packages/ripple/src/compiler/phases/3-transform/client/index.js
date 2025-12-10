@@ -1829,30 +1829,40 @@ const visitors = {
 		const statements = [];
 		const cases = [];
 
-		let i = 1;
-
+		let id_gen = 0;
+		let counter = 0;
 		for (const switch_case of node.cases) {
 			const case_body = [];
+			const consequent = switch_case.consequent;
 
-			if (switch_case.consequent.length !== 0) {
-				const consequent_scope =
-					context.state.scopes.get(switch_case.consequent) || context.state.scope;
+			if (consequent.length !== 0) {
+				const consequent_scope = context.state.scopes.get(consequent) || context.state.scope;
+
+				const block = transform_body(consequent, {
+					...context,
+					state: { ...context.state, scope: consequent_scope },
+				});
+				const has_break = consequent.some((stmt) => stmt.type === 'BreakStatement');
+				const is_last = counter === node.cases.length - 1;
+				const is_default = switch_case.test == null;
 				const consequent_id = context.state.scope.generate(
-					'switch_case_' + (switch_case.test == null ? 'default' : i),
-				);
-				const consequent = b.block(
-					transform_body(switch_case.consequent, {
-						...context,
-						state: { ...context.state, scope: consequent_scope },
-					}),
+					'switch_case_' + (is_default ? 'default' : id_gen),
 				);
 
-				statements.push(b.var(b.id(consequent_id), b.arrow([b.id('__anchor')], consequent)));
+				statements.push(b.var(b.id(consequent_id), b.arrow([b.id('__anchor')], b.block(block))));
+				case_body.push(
+					b.stmt(b.call(b.member(b.id('result'), b.id('push'), false), b.id(consequent_id))),
+				);
 
-				case_body.push(b.return(b.id(consequent_id)));
-
-				i++;
+				// in js, `default:` can be in the middle without a break
+				// so we only add return for the last case or cases with a break
+				if (has_break || is_last) {
+					case_body.push(b.return(b.id('result')));
+				}
+				id_gen++;
 			}
+
+			counter++;
 
 			cases.push(
 				b.switch_case(
@@ -1869,6 +1879,7 @@ const visitors = {
 					id,
 					b.thunk(
 						b.block([
+							b.var(b.id('result'), b.array([])),
 							b.switch(/** @type {AST.Expression} */ (context.visit(node.discriminant)), cases),
 						]),
 					),
