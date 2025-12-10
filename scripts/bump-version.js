@@ -183,7 +183,14 @@ function promptForOTP() {
 		output: process.stdout,
 	});
 
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
+		// Handle Ctrl+C during OTP prompt
+		rl.on('SIGINT', () => {
+			rl.close();
+			handleInterruption();
+			return;
+		});
+
 		rl.question('Enter your npm OTP code: ', (answer) => {
 			rl.close();
 			resolve(answer.trim());
