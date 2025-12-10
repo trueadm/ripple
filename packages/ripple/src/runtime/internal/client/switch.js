@@ -14,13 +14,17 @@ import { append } from './template.js';
 function move(block, anchor) {
 	var node = block.s.start;
 	var end = block.s.end;
+	/** @type {Node | null} */
+	var sibling;
 
 	while (node !== null) {
-		append(anchor, node);
 		if (node === end) {
+			append(anchor, node);
 			break;
 		}
-		node = next_sibling(node);
+		sibling = next_sibling(node);
+		append(anchor, node);
+		node = sibling;
 	}
 }
 

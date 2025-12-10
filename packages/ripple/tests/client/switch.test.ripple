@@ -196,11 +196,14 @@ describe('switch statements', () => {
 						case 2:
 							<p>{' Success'}</p>
 							break;
-						case 3:
-							<p>{' Error'}</p>
-							break;
 						default:
 							<p>{' Unknown status'}</p>
+							<p>{' Unknown 2'}</p>
+						case 3:
+							<p>{' Error'}</p>
+							<p>{' Error 2'}</p>
+							<p>{' Error 3'}</p>
+							break;
 					}
 				</div>
 				<button
@@ -230,12 +233,14 @@ describe('switch statements', () => {
 			button.click();
 			flushSync();
 
-			expect(container.querySelector('div').textContent).toBe(' Error');
+			expect(container.querySelector('div').textContent).toBe(' Error Error 2 Error 3');
 
 			button.click();
 			flushSync();
 
-			expect(container.querySelector('div').textContent).toBe(' Unknown status');
+			expect(container.querySelector('div').textContent).toBe(
+				' Unknown status Unknown 2 Error Error 2 Error 3',
+			);
 
 			button.click();
 			flushSync();
