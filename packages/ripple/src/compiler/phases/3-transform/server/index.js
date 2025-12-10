@@ -621,23 +621,32 @@ const visitors = {
 		if (!is_inside_component(context)) {
 			return context.next();
 		}
+
 		const cases = [];
+
 		for (const switch_case of node.cases) {
-			const consequent_scope =
-				context.state.scopes.get(switch_case.consequent) || context.state.scope;
-			const consequent = b.block(
-				transform_body(switch_case.consequent, {
-					...context,
-					state: { ...context.state, scope: consequent_scope },
-				}),
-			);
+			const case_body = [];
+
+			if (switch_case.consequent.length !== 0) {
+				const consequent_scope =
+					context.state.scopes.get(switch_case.consequent) || context.state.scope;
+				const consequent = b.block(
+					transform_body(switch_case.consequent, {
+						...context,
+						state: { ...context.state, scope: consequent_scope },
+					}),
+				);
+				case_body.push(...consequent.body);
+			}
+
 			cases.push(
 				b.switch_case(
 					switch_case.test ? /** @type {AST.Expression} */ (context.visit(switch_case.test)) : null,
-					consequent.body,
+					case_body,
 				),
 			);
 		}
+
 		context.state.init?.push(
 			b.switch(/** @type {AST.Expression} */ (context.visit(node.discriminant)), cases),
 		);

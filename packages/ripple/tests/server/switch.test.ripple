@@ -24,4 +24,25 @@ describe('SSR: switch statements', () => {
 		const { body } = await render(App);
 		expect(body).toBe('<div>Case B</div>');
 	});
+
+	it('renders switch using fallthrough case', async () => {
+		component App() {
+			let value = 'b';
+
+			switch (value) {
+				case 'a':
+					<div>{'Case A'}</div>
+					break;
+				case 'b':
+				case 'c':
+					<div>{'Case B or C'}</div>
+					break;
+				default:
+					<div>{'Default Case'}</div>
+			}
+		}
+
+		const { body } = await render(App);
+		expect(body).toBe('<div>Case B or C</div>');
+	});
 });
