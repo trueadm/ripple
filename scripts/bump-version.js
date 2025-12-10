@@ -103,6 +103,10 @@ function execSafe(command, args, options = {}) {
 		return '';
 	} catch (error) {
 		const execError = /** @type {ExecException} */ (error);
+		// Check if error was due to signal (SIGINT)
+		if (execError.signal === 'SIGINT') {
+			throw new Error('SCRIPT_INTERRUPTED');
+		}
 		if (execError.stdout) process.stdout.write(execError.stdout);
 		if (execError.stderr) process.stderr.write(execError.stderr);
 		throw error;
@@ -510,9 +514,11 @@ function attemptRevertCommit(commitCreated, publishStarted, publishCount, userCa
 	if (commitCreated && (!publishStarted || publishCount === 0)) {
 		try {
 			revertLastCommit();
-			const msg = !publishStarted
-				? 'Pre-publish checks failed.'
-				: 'Error while publishing the first package.';
+			const msg = userCancelled
+				? 'Publishing cancelled by user.'
+				: !publishStarted
+					? 'Pre-publish checks failed.'
+					: 'Error while publishing the first package.';
 			console.error(`${msg} The bump commit has been reverted.`);
 		} catch (revertError) {
 			const revertMessage =
@@ -537,7 +543,7 @@ const handleInterruption = () => {
 	userCancelled = true;
 	console.log('\n\nScript interrupted by user.');
 	attemptRevertCommit(commitCreated, publishStarted, publishCount, userCancelled);
-	process.exit(1);
+	process.exit(130);
 };
 
 process.on('SIGINT', handleInterruption);
@@ -648,6 +654,12 @@ process.on('SIGTERM', handleInterruption);
 		} catch (caughtError) {
 			let error = caughtError instanceof Error ? caughtError : new Error(String(caughtError));
 
+			// Handle user interruption
+			if (error.message === 'SCRIPT_INTERRUPTED') {
+				handleInterruption();
+				return;
+			}
+
 			if (!commitCreated) {
 				throw new Error(`Git commit failed: ${error.message}`);
 			}
@@ -662,7 +674,7 @@ process.on('SIGTERM', handleInterruption);
 				}
 			}
 
-			attemptRevertCommit(commitCreated, publishStarted, publishCount, userCancelled);
+			attemptRevertCommit(commitCreated, publishStarted, publishCount, false);
 
 			throw error;
 		}
