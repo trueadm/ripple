@@ -197,6 +197,9 @@ importers:
       prettier:
         specifier: catalog:default
         version: 3.6.2
+      type-fest:
+        specifier: catalog:default
+        version: 5.1.0
       vitest:
         specifier: catalog:default
         version: 3.2.4(@types/node@24.3.0)(jiti@2.5.1)(jsdom@26.1.0)(lightningcss@1.30.1)

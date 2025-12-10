@@ -1,26 +1,31 @@
 #!/usr/bin/env node
 // @ts-check
 
-/** @typedef {'origin' | 'upstream'} GitRemoteName */
+/**
+@import { ExecException } from 'child_process';
+@import {PackageJson} from 'type-fest';
+ */
 
 import fs from 'node:fs';
 import path from 'node:path';
+import readline from 'node:readline';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+/**
+@typedef {"major" | "minor" | "patch"} BumpType
+@typedef {"all" | "editors"} ScopeType
+@typedef {[number, number, number]} SemverTuple
+@typedef {'origin' | 'upstream'} GitRemoteName
+@typedef {{
+	dirName: string;
+	dir: string;
+	packageJsonPath: string;
+	json: PackageJson }} PackageInfo
+ */
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-/** @typedef {"major" | "minor" | "patch"} BumpType */
-/** @typedef {"all" | "editors"} ScopeType */
-/** @typedef {[number, number, number]} SemverTuple */
-/**
- * @typedef {object} PackageInfo
- * @property {string} dirName directory the package
- * @property {string} dir Absolute path to the package directory.
- * @property {string} packageJsonPath Absolute path to the package.json file.
- * @property {Record<string, any>} json Parsed contents of the package.json file.
- */
 
 /** @type {Set<BumpType>} */
 const ALLOWED_BUMPS = new Set(['major', 'minor', 'patch']);
@@ -41,16 +46,30 @@ const maybeScope = process.argv[3] ?? null;
 /** @type {ScopeType} */
 let scope = 'all';
 let overrideArg = null;
+let useOtp = false;
 
 if (maybeScope && ALLOWED_SCOPES.has(/** @type {ScopeType} */ (maybeScope))) {
 	scope = /** @type {ScopeType} */ (maybeScope);
 	overrideArg = process.argv[4] ?? null;
+	if (process.argv[5] === '--otp') {
+		useOtp = true;
+	}
 } else {
-	overrideArg = maybeScope;
+	if (maybeScope === '--otp') {
+		useOtp = true;
+		overrideArg = null;
+	} else {
+		overrideArg = maybeScope;
+		if (process.argv[4] === '--otp') {
+			useOtp = true;
+		}
+	}
 }
 
 if (!ALLOWED_BUMPS.has(/** @type {BumpType} */ (bumpArg))) {
-	console.error('Usage: node scripts/bump-version.js <major|minor|patch> [scope] [override]');
+	console.error(
+		'Usage: node scripts/bump-version.js <major|minor|patch> [scope] [override] [--otp]',
+	);
 	process.exit(1);
 }
 
@@ -83,7 +102,7 @@ function execSafe(command, args, options = {}) {
 		});
 		return '';
 	} catch (error) {
-		const execError = /** @type {any} */ (error);
+		const execError = /** @type {ExecException} */ (error);
 		if (execError.stdout) process.stdout.write(execError.stdout);
 		if (execError.stderr) process.stderr.write(execError.stderr);
 		throw error;
@@ -149,6 +168,23 @@ function ensureNpmToken() {
 			'npm authentication failed. Please ensure you are logged in with a valid npm token. Run `npm login` to authenticate.',
 		);
 	}
+}
+
+/**
+ * @returns {Promise<string>}
+ */
+function promptForOTP() {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	return new Promise((resolve) => {
+		rl.question('Enter your npm OTP code: ', (answer) => {
+			rl.close();
+			resolve(answer.trim());
+		});
+	});
 }
 
 /**
@@ -229,7 +265,7 @@ function loadPackages(targetScope) {
 		if (!fs.existsSync(packageJsonPath)) continue;
 
 		const raw = fs.readFileSync(packageJsonPath, 'utf8');
-		const json = JSON.parse(raw);
+		const json = /** @type {PackageJson} */ (JSON.parse(raw));
 
 		packages.push({
 			dirName: entry.name,
@@ -306,12 +342,16 @@ function updateAdditionalVersionFiles(pkg, version) {
 /**
  * @param {PackageInfo} pkg
  * @param {string} newVersion
+ * @param {string} [otp]
  */
-function publishPackage(pkg, newVersion) {
+function publishPackage(pkg, newVersion, otp) {
 	console.log(`Publishing ${pkg.json.name}@${newVersion}`);
 	const args = ['publish'];
-	if (pkg.json.publishConfig?.access === 'public' || pkg.json.name.startsWith('@')) {
+	if (pkg.json.publishConfig?.access === 'public' || pkg.json.name?.startsWith('@')) {
 		args.push('--access', 'public');
+	}
+	if (otp) {
+		args.push('--otp', otp);
 	}
 	execSafe('pnpm', args, { cwd: pkg.dir, stdio: 'inherit' });
 }
@@ -328,7 +368,7 @@ function ensureVersionNotPublished(pkg, version) {
 			encoding: 'utf8',
 		});
 	} catch (error) {
-		const err = /** @type {any} */ (error);
+		const err = /** @type {ExecException} */ (error);
 		if (!err || typeof err !== 'object') {
 			throw error;
 		}
@@ -457,7 +497,7 @@ function runEditorsScopePreCheck(packages) {
 	});
 }
 
-(function main() {
+(async function main() {
 	try {
 		const remote = determineRemote();
 		ensureNpmToken();
@@ -476,7 +516,7 @@ function runEditorsScopePreCheck(packages) {
 			throw new Error(`Unable to locate the ${target} package to determine the base version.`);
 		}
 
-		const currentVersion = basePackage.json.version;
+		const currentVersion = /** @type {string} */ (basePackage.json.version);
 		const currentTuple = parseSemver(currentVersion);
 		const newVersion = overrideArg
 			? parseOverride(bumpType, overrideArg, currentTuple)
@@ -518,6 +558,14 @@ function runEditorsScopePreCheck(packages) {
 
 			runPrePublishChecks(packages, newVersion, scope);
 
+			let otp;
+			if (useOtp) {
+				otp = await promptForOTP();
+				if (!otp) {
+					throw new Error('OTP is required but none was provided.');
+				}
+			}
+
 			for (const pkg of packages) {
 				if (EDITOR_PACKAGE_DIRS.has(pkg.dirName)) {
 					console.log(`Skipping publish for editor plugin package '${pkg.dirName}'.`);
@@ -531,11 +579,28 @@ function runEditorsScopePreCheck(packages) {
 					publishStarted = true;
 				}
 
-				publishPackage(pkg, newVersion);
+				try {
+					publishPackage(pkg, newVersion, otp);
+				} catch (error) {
+					const err = /** @type {ExecException} */ (error);
+					const stderr = err.stderr ? err.stderr.toString() : '';
+					const stdout = err.stdout ? err.stdout.toString() : '';
+					const combined = `${stdout}\n${stderr}`;
+
+					if (/E403/i.test(combined) && /two-factor/i.test(combined)) {
+						console.log('\nOTP expired or invalid. Please enter a new OTP code.');
+						otp = await promptForOTP();
+						if (!otp) {
+							throw new Error('OTP is required but none was provided.');
+						}
+						publishPackage(pkg, newVersion, otp);
+					} else {
+						throw error;
+					}
+				}
 				publishCount++;
 			}
 			publishCompleted = true;
-
 			execSafe('git', ['push', remote, 'main'], { stdio: 'inherit' });
 			pushCompleted = true;
 			console.log(`Completed bump to ${newVersion}.`);
