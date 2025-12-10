@@ -433,7 +433,9 @@ function runPrePublishChecks(packages, version, targetScope) {
 
 		for (const pkg of packages) {
 			console.log(`\nVerifying ${pkg.json.name}@${version}`);
-			ensureVersionNotPublished(pkg, version);
+			if (!EXCLUDE_PACKAGE_DIRS_FROM_PUBLISH.has(pkg.dirName)) {
+				ensureVersionNotPublished(pkg, version);
+			}
 			runPackagePack(pkg, packOutputDir);
 		}
 		console.log('\nAll pre-publish checks passed. Proceeding to publish.');
