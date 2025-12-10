@@ -47,28 +47,45 @@ const maybeScope = process.argv[3] ?? null;
 let scope = 'all';
 let overrideArg = null;
 let useOtp = false;
+let otpValue = null;
 
 if (maybeScope && ALLOWED_SCOPES.has(/** @type {ScopeType} */ (maybeScope))) {
 	scope = /** @type {ScopeType} */ (maybeScope);
 	overrideArg = process.argv[4] ?? null;
-	if (process.argv[5] === '--otp') {
-		useOtp = true;
+	const fifthArg = process.argv[5] ?? null;
+	if (fifthArg) {
+		if (fifthArg === '--otp') {
+			useOtp = true;
+		} else if (fifthArg.startsWith('--otp=')) {
+			useOtp = true;
+			otpValue = fifthArg.slice(6);
+		}
 	}
 } else {
 	if (maybeScope === '--otp') {
 		useOtp = true;
 		overrideArg = null;
+	} else if (maybeScope?.startsWith('--otp=')) {
+		useOtp = true;
+		otpValue = maybeScope.slice(6);
+		overrideArg = null;
 	} else {
 		overrideArg = maybeScope;
-		if (process.argv[4] === '--otp') {
-			useOtp = true;
+		const fourthArg = process.argv[4] ?? null;
+		if (fourthArg) {
+			if (fourthArg === '--otp') {
+				useOtp = true;
+			} else if (fourthArg.startsWith('--otp=')) {
+				useOtp = true;
+				otpValue = fourthArg.slice(6);
+			}
 		}
 	}
 }
 
 if (!ALLOWED_BUMPS.has(/** @type {BumpType} */ (bumpArg))) {
 	console.error(
-		'Usage: node scripts/bump-version.js <major|minor|patch> [scope] [override] [--otp]',
+		'Usage: node scripts/bump-version.js <major|minor|patch> [scope] [override] [--otp | --otp=<code>]',
 	);
 	process.exit(1);
 }
@@ -612,8 +629,8 @@ process.on('SIGTERM', handleInterruption);
 
 			runPrePublishChecks(packages, newVersion, scope);
 
-			let otp;
-			if (useOtp) {
+			let otp = otpValue ?? undefined;
+			if (useOtp && !otp) {
 				otp = await promptForOTP();
 				if (!otp) {
 					throw new Error('OTP is required but none was provided.');
