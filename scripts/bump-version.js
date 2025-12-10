@@ -141,6 +141,16 @@ function ensureGitState(remote) {
 	}
 }
 
+function ensureNpmToken() {
+	try {
+		execSafe('npm', ['whoami']);
+	} catch (error) {
+		throw new Error(
+			'npm authentication failed. Please ensure you are logged in with a valid npm token. Run `npm login` to authenticate.',
+		);
+	}
+}
+
 /**
  * @param {string} version
  * @returns {SemverTuple}
@@ -450,6 +460,7 @@ function runEditorsScopePreCheck(packages) {
 (function main() {
 	try {
 		const remote = determineRemote();
+		ensureNpmToken();
 		ensureGitState(remote);
 
 		const packages = loadPackages(scope);
@@ -499,6 +510,7 @@ function runEditorsScopePreCheck(packages) {
 		let publishStarted = false;
 		let publishCompleted = false;
 		let pushCompleted = false;
+		let publishCount = 0;
 
 		try {
 			execSafe('git', ['commit', '-m', commitMessage], { stdio: 'inherit' });
@@ -520,6 +532,7 @@ function runEditorsScopePreCheck(packages) {
 				}
 
 				publishPackage(pkg, newVersion);
+				publishCount++;
 			}
 			publishCompleted = true;
 
@@ -543,10 +556,13 @@ function runEditorsScopePreCheck(packages) {
 				}
 			}
 
-			if (commitCreated && !publishStarted) {
+			if (commitCreated && (!publishStarted || publishCount === 0)) {
 				try {
 					revertLastCommit();
-					console.error('Pre-publish checks failed. The bump commit has been reverted.');
+					const msg = !publishStarted
+						? 'Pre-publish checks failed.'
+						: 'Error while publishing the first package.';
+					console.error(`${msg} The bump commit has been reverted.`);
 				} catch (revertError) {
 					const revertMessage =
 						revertError instanceof Error ? revertError.message : String(revertError);
