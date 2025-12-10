@@ -499,7 +499,51 @@ function runEditorsScopePreCheck(packages) {
 	});
 }
 
+/**
+ *
+ * @param {boolean} commitCreated
+ * @param {boolean} publishStarted
+ * @param {number} publishCount
+ * @param {boolean} [userCancelled]
+ */
+function attemptRevertCommit(commitCreated, publishStarted, publishCount, userCancelled) {
+	if (commitCreated && (!publishStarted || publishCount === 0)) {
+		try {
+			revertLastCommit();
+			const msg = !publishStarted
+				? 'Pre-publish checks failed.'
+				: 'Error while publishing the first package.';
+			console.error(`${msg} The bump commit has been reverted.`);
+		} catch (revertError) {
+			const revertMessage =
+				revertError instanceof Error ? revertError.message : String(revertError);
+			console.error(`Failed to reset bump commit automatically: ${revertMessage}`);
+			console.error(
+				'Please run `git reset --hard HEAD~1` manually to discard the failed bump commit.',
+			);
+		}
+	}
+}
+
 (async function main() {
+	let commitCreated = false;
+	let publishStarted = false;
+	let publishCompleted = false;
+	let pushCompleted = false;
+	let userCancelled = false;
+	let publishCount = 0;
+
+	// Handle user interruption (Ctrl+C)
+	const handleInterruption = () => {
+		userCancelled = true;
+		console.log('\n\nScript interrupted by user.');
+		attemptRevertCommit(commitCreated, publishStarted, publishCount, userCancelled);
+		process.exit(1);
+	};
+
+	process.on('SIGINT', handleInterruption);
+	process.on('SIGTERM', handleInterruption);
+
 	try {
 		const remote = determineRemote();
 		ensureNpmToken();
@@ -548,11 +592,6 @@ function runEditorsScopePreCheck(packages) {
 
 		const scopeLabel = scope;
 		const commitMessage = `chore: bump ${scopeLabel} to v${newVersion}`;
-		let commitCreated = false;
-		let publishStarted = false;
-		let publishCompleted = false;
-		let pushCompleted = false;
-		let publishCount = 0;
 
 		try {
 			execSafe('git', ['commit', '-m', commitMessage], { stdio: 'inherit' });
@@ -623,22 +662,7 @@ function runEditorsScopePreCheck(packages) {
 				}
 			}
 
-			if (commitCreated && (!publishStarted || publishCount === 0)) {
-				try {
-					revertLastCommit();
-					const msg = !publishStarted
-						? 'Pre-publish checks failed.'
-						: 'Error while publishing the first package.';
-					console.error(`${msg} The bump commit has been reverted.`);
-				} catch (revertError) {
-					const revertMessage =
-						revertError instanceof Error ? revertError.message : String(revertError);
-					console.error(`Failed to reset bump commit automatically: ${revertMessage}`);
-					console.error(
-						'Please run `git reset --hard HEAD~1` manually to discard the failed bump commit.',
-					);
-				}
-			}
+			attemptRevertCommit(commitCreated, publishStarted, publishCount, userCancelled);
 
 			throw error;
 		}
