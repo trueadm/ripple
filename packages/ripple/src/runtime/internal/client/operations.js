@@ -48,7 +48,7 @@ export function first_child(node) {
 export function child_frag(node) {
 	var child = /** @type {Text} */ (first_child(node));
 
-	if (child.nodeType === 8 && child.data === '') {
+	if (child.nodeType === Node.COMMENT_NODE && child.data === '') {
 		return next_sibling(child);
 	}
 	return child;

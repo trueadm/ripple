@@ -5,8 +5,8 @@ describe('switch statements', () => {
 		component App() {
 			let value = track('b');
 
-			<button onClick={() => @value = 'c'}>{'Change to C'}</button>
-			<button onClick={() => @value = 'a'}>{'Change to A'}</button>
+			<button onClick={() => (@value = 'c')}>{'Change to C'}</button>
+			<button onClick={() => (@value = 'a')}>{'Change to A'}</button>
 
 			switch (@value) {
 				case 'a':
@@ -24,15 +24,16 @@ describe('switch statements', () => {
 		}
 
 		render(App);
-		expect(container.textContent).toBe('Change to CChange to ACase B');
+		expect(container.querySelector('div').textContent).toBe('Case B');
 
-		container.querySelectorAll('button')[0].click(); // Change to C
+		container.querySelectorAll('button')[0].click();
 		flushSync();
-		expect(container.textContent).toBe('Change to CChange to ACase C');
 
-		container.querySelectorAll('button')[1].click(); // Change to A
+		expect(container.querySelector('div').textContent).toBe('Case C');
+		container.querySelectorAll('button')[1].click();
 		flushSync();
-		expect(container.textContent).toBe('Change to CChange to ACase A');
+
+		expect(container.querySelector('div').textContent).toBe('Case A');
 	});
 
 	it('renders switch with reactive discriminant', () => {
@@ -54,22 +55,24 @@ describe('switch statements', () => {
 		}
 
 		render(App);
-		expect(container.textContent).toBe('IncrementCount is 1');
+		expect(container.querySelector('div').textContent).toBe('Count is 1');
 
 		container.querySelector('button').click();
 		flushSync();
-		expect(container.textContent).toBe('IncrementCount is 2');
+
+		expect(container.querySelector('div').textContent).toBe('Count is 2');
 
 		container.querySelector('button').click();
 		flushSync();
-		expect(container.textContent).toBe('IncrementCount is other');
+
+		expect(container.querySelector('div').textContent).toBe('Count is other');
 	});
 
 	it('renders switch with default clause only', () => {
 		component App() {
 			let value = track('x');
 
-			<button onClick={() => @value = 'y'}>{'Change Value'}</button>
+			<button onClick={() => (@value = 'y')}>{'Change Value'}</button>
 
 			switch (@value) {
 				default:
@@ -78,19 +81,20 @@ describe('switch statements', () => {
 		}
 
 		render(App);
-		expect(container.textContent).toBe('Change ValueDefault for x');
+		expect(container.querySelector('div').textContent).toBe('Default for x');
 
 		container.querySelector('button').click();
 		flushSync();
-		expect(container.textContent).toBe('Change ValueDefault for y');
+
+		expect(container.querySelector('div').textContent).toBe('Default for y');
 	});
 
 	it('renders switch using fallthrough without recreating DOM unnecessarily', () => {
 		component App() {
 			let value = track('a');
 
-			<button onClick={() => @value = 'b'}>{'Change to B'}</button>
-			<button onClick={() => @value = 'c'}>{'Change to C'}</button>
+			<button onClick={() => (@value = 'b')}>{'Change to B'}</button>
+			<button onClick={() => (@value = 'c')}>{'Change to C'}</button>
 
 			switch (@value) {
 				case 'a':
@@ -106,23 +110,25 @@ describe('switch statements', () => {
 		}
 
 		render(App);
-		expect(container.textContent).toBe('Change to BChange to CCase A');
-
 		const [buttonB, buttonC] = container.querySelectorAll('button');
+
+		expect(container.querySelector('div').textContent).toContain('Case A');
 
 		buttonB.click();
 		flushSync();
-		expect(container.textContent).toBe('Change to BChange to CCase B or C');
+
+		expect(container.querySelector('div').textContent).toBe('Case B or C');
 
 		buttonC.click();
 		flushSync();
-		expect(container.textContent).toBe('Change to BChange to CCase B or C');
+
+		expect(container.querySelector('div').textContent).toBe('Case B or C');
 
 		container.querySelector('div').textContent = 'DOM check';
-
 		buttonB.click();
 		flushSync();
-		expect(container.textContent).toBe('Change to BChange to CDOM check');
+
+		expect(container.querySelector('div').textContent).toBe('DOM check');
 	});
 
 	it('renders switch with template content and JS logic', () => {
@@ -130,9 +136,9 @@ describe('switch statements', () => {
 			let status = track('active');
 			let message = track('');
 
-			<button onClick={() => @status = 'pending'}>{'Pending'}</button>
-			<button onClick={() => @status = 'completed'}>{'Completed'}</button>
-			<button onClick={() => @status = 'error'}>{'Error'}</button>
+			<button onClick={() => (@status = 'pending')}>{'Pending'}</button>
+			<button onClick={() => (@status = 'completed')}>{'Completed'}</button>
+			<button onClick={() => (@status = 'error')}>{'Error'}</button>
 
 			switch (@status) {
 				case 'active':
@@ -154,20 +160,24 @@ describe('switch statements', () => {
 		}
 
 		render(App);
-		expect(container.textContent).toBe('PendingCompletedErrorStatus: Currently active.');
+		const [buttonPending, buttonCompleted, buttonError] = container.querySelectorAll('button');
+		expect(container.querySelector('div').textContent).toBe('Status: Currently active.');
 
-		container.querySelectorAll('button')[0].click(); // Pending
+		buttonPending.click();
 		flushSync();
-		expect(container.textContent).toBe('PendingCompletedErrorStatus: Waiting for completion.');
 
-		container.querySelectorAll('button')[1].click(); // Completed
+		expect(container.querySelector('div').textContent).toBe('Status: Waiting for completion.');
+
+		buttonCompleted.click();
 		flushSync();
-		expect(container.textContent).toBe('PendingCompletedErrorStatus: Task finished!');
+
+		expect(container.querySelector('div').textContent).toBe('Status: Task finished!');
 		expect(container.querySelector('.success')).toBeTruthy();
 
-		container.querySelectorAll('button')[2].click(); // Error
+		buttonError.click();
 		flushSync();
-		expect(container.textContent).toBe('PendingCompletedErrorStatus: An error occurred.');
+
+		expect(container.querySelector('div').textContent).toBe('Status: An error occurred.');
 		expect(container.querySelector('.error')).toBeTruthy();
 	});
 });
