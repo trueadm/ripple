@@ -378,7 +378,7 @@ Switch statements in Ripple provide a powerful way to conditionally render conte
 
 **Key Features:**
 - **Reactivity:** Works with both static and reactive (`Tracked`) values.
-- **Strict Control Flow:** Requires explicit `break` statements to prevent fall-through.
+- **Strict Control Flow:** Requires explicit `break` statements to prevent fall-through (except for default and empty cases).
 - **Template Integration:** `case` blocks can contain any valid Ripple template content, including other components, elements, and logic.
 
 **Basic Usage:**
@@ -388,6 +388,7 @@ The `switch` statement evaluates an expression and matches its value against a s
 component StatusIndicator({ status }) {
   // The switch statement evaluates the 'status' prop
   switch (status) {
+		case: 'init':
     case 'loading':
       <p>{'Loading...'}</p>
       break; // break is mandatory
@@ -417,6 +418,7 @@ component InteractiveStatus() {
 
   // This switch block will update automatically when '@status' changes
   switch (@status) {
+		case 'init':
     case 'loading':
       <p>{'Status: Loading...'}</p>
       break;
@@ -434,7 +436,7 @@ component InteractiveStatus() {
 
 **⚠️ Critical: Mandatory `break`**
 
-- **`break` is required:** You **must** include a `break` statement at the end of each `case` block (except for `default`).
+- **`break` is required:** You **must** include a `break` statement at the end of each `case` block (except for `default` and empty cases).
 - **Compilation Error:** If you omit the `break` statement, the Ripple compiler will throw an error.
 
 ```ripple

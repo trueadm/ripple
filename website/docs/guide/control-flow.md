@@ -36,6 +36,7 @@ Switch statements let you conditionally render content based on a value. They wo
 export component StatusIndicator({ status }) {
   <div>
     switch (status) {
+      case: 'init':
       case 'loading':
         <p>{'Loading...'}</p>
         break;
@@ -69,6 +70,7 @@ export component InteractiveStatus() {
 
   <div>
     switch (@status) {
+      case 'init':
       case 'loading':
         <p>{'Loading...'}</p>
         break;
