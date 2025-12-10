@@ -1,7 +1,7 @@
 id = "ripple"
 name = "Ripple"
 description = "Ripple language support with LSP and Tree-sitter syntax highlighting"
-version = "0.0.58"
+version = "0.0.59"
 schema_version = 1
 authors = ["Dominic Gannaway <trueadm@users.noreply.github.com>"]
 repository = "https://github.com/trueadm/ripple"

@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/sublime-text-plugin",
-  "version": "0.0.58",
+  "version": "0.0.59",
   "description": "",
   "scripts": {
     "update-lock": "cd src/language-server && npm install --package-lock-only",

@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/nvim-plugin",
-  "version": "0.0.58",
+  "version": "0.0.59",
   "description": "Neovim plugin that wires Ripple tree-sitter highlights and language server integration.",
   "author": "Dominic Gannaway",
   "license": "MIT",
