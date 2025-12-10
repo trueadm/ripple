@@ -525,25 +525,25 @@ function attemptRevertCommit(commitCreated, publishStarted, publishCount, userCa
 	}
 }
 
+let commitCreated = false;
+let publishStarted = false;
+let publishCompleted = false;
+let pushCompleted = false;
+let userCancelled = false;
+let publishCount = 0;
+
+// Handle user interruption (Ctrl+C)
+const handleInterruption = () => {
+	userCancelled = true;
+	console.log('\n\nScript interrupted by user.');
+	attemptRevertCommit(commitCreated, publishStarted, publishCount, userCancelled);
+	process.exit(1);
+};
+
+process.on('SIGINT', handleInterruption);
+process.on('SIGTERM', handleInterruption);
+
 (async function main() {
-	let commitCreated = false;
-	let publishStarted = false;
-	let publishCompleted = false;
-	let pushCompleted = false;
-	let userCancelled = false;
-	let publishCount = 0;
-
-	// Handle user interruption (Ctrl+C)
-	const handleInterruption = () => {
-		userCancelled = true;
-		console.log('\n\nScript interrupted by user.');
-		attemptRevertCommit(commitCreated, publishStarted, publishCount, userCancelled);
-		process.exit(1);
-	};
-
-	process.on('SIGINT', handleInterruption);
-	process.on('SIGTERM', handleInterruption);
-
 	try {
 		const remote = determineRemote();
 		ensureNpmToken();
