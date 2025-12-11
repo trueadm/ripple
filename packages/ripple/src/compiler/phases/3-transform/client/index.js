@@ -2996,7 +2996,7 @@ function create_tsx_with_typescript_support() {
 					context.write(node.computed ? ']: ' : ': ');
 					context.visit(node.value);
 				} else {
-					base_tsx.Property?.(node, /** @type {ESRap.} */ (context));
+					base_tsx.Property?.(node, context);
 				}
 			} else {
 				// Use default handler for non-component properties
