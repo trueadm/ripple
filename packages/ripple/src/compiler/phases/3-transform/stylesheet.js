@@ -1,20 +1,22 @@
-/** @import * as AST from 'estree' */
-/** @import { Visitors } from 'zimmerframe' */
+/**
+@import * as AST from 'estree';
+@import { Visitors } from '#compiler';
+ */
 
 /**
- * @typedef {{
- *   code: MagicString;
- *   hash: string;
- *   minify: boolean;
- *   selector: string;
- *   keyframes: Record<string, {
- *     indexes: number[];
- *     local: boolean | undefined;
- *   }>;
- *   specificity: {
- *     bumped: boolean
- *   }
- * }} State
+@typedef {{
+  code: MagicString;
+  hash: string;
+  minify: boolean;
+  selector: string;
+  keyframes: Record<string, {
+    indexes: number[];
+    local: boolean | undefined;
+  }>;
+  specificity: {
+    bumped: boolean
+  }
+}} State
  */
 
 import MagicString from 'magic-string';

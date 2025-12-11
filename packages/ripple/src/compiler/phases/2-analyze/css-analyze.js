@@ -41,7 +41,7 @@ function is_global(relative_selector) {
 export function analyze_css(css) {
 	walk(
 		css,
-		{ rule: /** @type {AST.CSS.Rule | null} */ (null) },
+		/** @type {{ rule: AST.CSS.Rule | null }} */ ({ rule: null }),
 		{
 			Rule(node, context) {
 				node.metadata.parent_rule = context.state.rule;
@@ -90,7 +90,7 @@ export function analyze_css(css) {
 				// Set the rule metadata before analyzing children
 				node.metadata.rule = context.state.rule;
 
-				context.next(); // analyse relevant selectors first
+				context.next(); // analyze relevant selectors first
 
 				{
 					const global = node.children.find(is_global);

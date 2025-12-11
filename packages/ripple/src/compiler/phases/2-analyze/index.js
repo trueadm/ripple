@@ -6,7 +6,6 @@
 	AnalysisContext,
 	ScopeInterface,
 	Visitors,
-	Visitor,
 } from '#compiler';
  */
 /** @import * as AST from 'estree' */

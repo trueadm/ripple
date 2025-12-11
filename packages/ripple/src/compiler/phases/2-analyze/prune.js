@@ -5,7 +5,6 @@
 import { walk } from 'zimmerframe';
 import { is_element_dom_element } from '../../utils.js';
 
-const seen = new Set();
 const regex_backslash_and_following_character = /\\(.)/g;
 /** @type {Direction} */
 const FORWARD = 0;
@@ -1016,8 +1015,6 @@ export function prune_css(css, element) {
 		},
 		ComplexSelector(node, context) {
 			const selectors = get_relative_selectors(node);
-
-			seen.clear();
 
 			const rule = /** @type {AST.CSS.Rule} */ (node.metadata.rule);
 
