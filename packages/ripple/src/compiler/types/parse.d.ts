@@ -56,6 +56,12 @@ declare module 'zimmerframe' {
 		state: any,
 		visitors: RippleCompiler.Visitors<AST.Node, any>,
 	): AST.Node;
+
+	export function walk(
+		node: AST.CSS.Node,
+		state: any,
+		visitors: RippleCompiler.Visitors<(AST.CSS.Node), any>,
+	): AST.CSS.Node;
 }
 
 export namespace Parse {
