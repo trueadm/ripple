@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Page Not Found | RippleTS</title>
+		<title>Page Not Found | Ripple TS</title>
 		<link rel="icon" type="image/x-icon" sizes="48x48" href="/favicon.ico" />
 		<link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg" />
 		<link
@@ -29,14 +29,12 @@
 				min-height: 100vh;
 			}
 
-			body::before {
-				content: '';
+			#back {
 				position: absolute;
 				top: 0;
 				left: 0;
 				right: 0;
 				bottom: 0;
-				z-index: -667;
 				background:
 					radial-gradient(
 						1px 1px at 20px 30px,
@@ -70,16 +68,14 @@
 					200px 100px,
 					200px 100px,
 					200px 100px;
-				animation: starTwinkle 8s linear infinite;
 			}
 
-			body::after {
+			#back::before {
 				content: '';
 				position: absolute;
 				top: 0;
 				left: 0;
 				right: 0;
-				z-index: -666;
 				bottom: 0;
 				background:
 					radial-gradient(
@@ -99,40 +95,6 @@
 					);
 			}
 
-			@keyframes starTwinkle {
-				0%,
-				100% {
-					opacity: 1;
-				}
-
-				50% {
-					opacity: 0.7;
-				}
-			}
-
-			@keyframes atmosphericShift {
-				0%,
-				100% {
-					transform: translateX(0) translateY(0) scale(1);
-					opacity: 0.8;
-				}
-
-				25% {
-					transform: translateX(20px) translateY(-15px) scale(1.05);
-					opacity: 0.9;
-				}
-
-				50% {
-					transform: translateX(-10px) translateY(-25px) scale(0.95);
-					opacity: 1;
-				}
-
-				75% {
-					transform: translateX(-15px) translateY(10px) scale(1.02);
-					opacity: 0.85;
-				}
-			}
-
 			h1 {
 				font-size: 3.5rem;
 				font-weight: 700;
@@ -142,7 +104,6 @@
 					'slnt' -15;
 				letter-spacing: -0.02em;
 				color: white;
-				animation: glowFadeOut 3s ease-in-out forwards;
 			}
 
 			p {
@@ -156,7 +117,7 @@
 				text-shadow: 0 0 20px rgba(120, 219, 226, 0.2);
 			}
 
-			.home-link {
+			.button-link {
 				color: rgba(255, 255, 255, 0.7);
 				text-decoration: none;
 				font-weight: 500;
@@ -168,15 +129,14 @@
 				border: 1px solid rgba(120, 219, 226, 0.3);
 				border-radius: 50px;
 				background: rgba(0, 0, 0, 0.2);
-				backdrop-filter: blur(10px);
-				margin-bottom: 1rem;
+				backdrop-filter: blur(5px);
 				box-sizing: border-box;
 				line-height: 1.2;
 				font-size: 1rem;
 				height: 48px;
 			}
 
-			.home-link:hover {
+			.button-link:hover {
 				color: white;
 				transform: translateY(-2px);
 				border-color: rgba(120, 219, 226, 0.6);
@@ -184,7 +144,7 @@
 				background: rgba(120, 219, 226, 0.1);
 			}
 
-			.home-link svg {
+			.button-link svg {
 				width: 20px;
 				height: 20px;
 				fill: currentColor;
@@ -199,9 +159,10 @@
 	</head>
 
 	<body>
+		<div id="back"></div>
 		<h1>404 - Page Not Found</h1>
 		<p>Oops! The page you’re looking for doesn’t exist.</p>
-		<a href="/index.html" class="home-link">
+		<a href="/index.html" class="button-link">
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 24 24"
