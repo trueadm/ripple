@@ -1,13 +1,10 @@
-/** @import * as AST from 'estree' */
-/** @import * as ESTreeJSX from 'estree-jsx' */
-/** @import { Parse } from '#parser' */
-
 /**
- * @import {
- *   RipplePluginConfig
- * } from '#compiler' */
-
-/** @import { ParseOptions } from 'ripple/compiler' */
+@import * as AST from 'estree'
+@import * as ESTreeJSX from 'estree-jsx'
+@import { Parse } from '#parser'
+@import { RipplePluginConfig } from '#compiler';
+@import { ParseOptions } from 'ripple/compiler'
+ */
 
 import * as acorn from 'acorn';
 import { tsPlugin } from '@sveltejs/acorn-typescript';
@@ -2167,6 +2164,7 @@ function RipplePlugin(config) {
  * @param {string} source
  * @param {AST.CommentWithLocation[]} comments
  * @param {number} [index=0] - Starting index
+ * @returns {{onComment: Parse.Options['onComment'], add_comments: (ast: AST.Node) => void}}
  */
 function get_comment_handlers(source, comments, index = 0) {
 	/**
@@ -2230,11 +2228,7 @@ function get_comment_handlers(source, comments, index = 0) {
 					context,
 				}));
 
-			/**
-			 *  @param {AST.Node} ast
-			 */
 			walk(ast, null, {
-				/** @param {AST.Node} node */
 				_(node, { next, path }) {
 					const metadata = node?.metadata;
 
