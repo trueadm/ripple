@@ -4,12 +4,21 @@
 
 const { URI } = require('vscode-uri');
 const { createLogging, DEBUG } = require('@ripple-ts/typescript-plugin/src/utils.js');
+const wordRegex = /\w/;
+
+/**
+ * @param  {...string} contents
+ * @returns string
+ */
+function concatMarkdownContents(...contents) {
+	return contents.join('\n\n<br>\n\n---\n\n<br><br>\n\n');
+}
 
 /**
  * Get virtual code from the encoded document URI
  * @param {LanguageServiceContext} context
  * @param {TextDocument} document
- * @returns {RippleVirtualCode}
+ * @returns {[RippleVirtualCode, URI]}
  */
 function getVirtualCode(document, context) {
 	const uri = URI.parse(document.uri);
@@ -22,7 +31,7 @@ function getVirtualCode(document, context) {
 		sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
 	);
 
-	return virtualCode;
+	return [virtualCode, sourceUri];
 }
 
 /**
@@ -34,10 +43,10 @@ function getVirtualCode(document, context) {
 function getWordFromPosition(text, start) {
 	let wordStart = start;
 	let wordEnd = start;
-	while (wordStart > 0 && /\w/.test(text[wordStart - 1])) {
+	while (wordStart > 0 && wordRegex.test(text[wordStart - 1])) {
 		wordStart--;
 	}
-	while (wordEnd < text.length && /\w/.test(text[wordEnd])) {
+	while (wordEnd < text.length && wordRegex.test(text[wordEnd])) {
 		wordEnd++;
 	}
 
@@ -54,5 +63,6 @@ module.exports = {
 	getVirtualCode,
 	getWordFromPosition,
 	createLogging,
+	concatMarkdownContents,
 	DEBUG,
 };

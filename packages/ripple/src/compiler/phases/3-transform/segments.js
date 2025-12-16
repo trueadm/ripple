@@ -1,22 +1,51 @@
 /**
-@import { CustomMappingData, PluginActionOverrides } from 'ripple/compiler';
-@import { DocumentHighlightKind } from 'vscode-languageserver-types';
 @import * as AST from 'estree';
 @import * as ESTreeJSX from 'estree-jsx';
-@import {MappingData, CodeMapping, VolarMappingsResult} from 'ripple/compiler';
-@import {CodeMapping as VolarCodeMapping} from '@volar/language-core';
-*/
+@import { DocumentHighlightKind } from 'vscode-languageserver-types';
+@import { CodeMapping as VolarCodeMapping } from '@volar/language-core';
+@import { SourceMapMappings } from '@jridgewell/sourcemap-codec';
+@import {
+	CustomMappingData,
+	PluginActionOverrides,
+	MappingData,
+	CodeMapping,
+	VolarMappingsResult,
+} from 'ripple/compiler';
+@import { PostProcessingChanges } from './client/index.js';
+ */
 
 /**
- * @typedef {{
- *	start: number,
- *	end: number,
- *	content: string
- * }} CssSourceRegion
+@typedef {{
+	start: number,
+	end: number,
+	content: string,
+	id: string,
+}} CssSourceRegion;
+@typedef {{
+	source: string | null | undefined;
+	generated: string;
+	is_full_import_statement?: boolean;
+	loc: AST.SourceLocation;
+	end_loc?: AST.SourceLocation;
+	metadata?: PluginActionOverrides;
+}} Token;
+@typedef {{
+	name: string,
+	line: number,
+	column: number,
+	offset: number,
+	length: number,
+	sourceOffset: number,
+}} TokenClass
+@typedef {Map<string, AST.Element['metadata']['css']>} CssElementInfo
  */
 
 import { walk } from 'zimmerframe';
-import { build_source_to_generated_map, get_generated_position } from '../../source-map-utils.js';
+import {
+	build_src_to_gen_map,
+	get_generated_position,
+	offset_to_line_col,
+} from '../../source-map-utils.js';
 
 /** @type {VolarCodeMapping['data']} */
 export const mapping_data = {
@@ -27,6 +56,15 @@ export const mapping_data = {
 	structure: true,
 	format: false,
 };
+
+/**
+ * @param {string} [hash]
+ * @param {string} [fallback]
+ * @returns `style-${hash | fallback}`
+ */
+function get_style_region_id(hash, fallback) {
+	return `style-${hash || fallback}`;
+}
 
 /**
  * Converts line/column positions to byte offsets
@@ -62,47 +100,205 @@ function loc_to_offset(line, column, line_offsets) {
 /**
  * Extract CSS source regions from style elements in the AST
  * @param {AST.Node} ast - The parsed AST
- * @param {string} source - Original source code
- * @param {number[]} source_line_offsets
- * @returns {CssSourceRegion[]}
+ * @param {number[]} src_line_offsets
+ * @param {{
+ * 	regions: CssSourceRegion[],
+ * 	css_element_info: CssElementInfo,
+ * }} param2
+ * @returns {void}
  */
-function extractCssSourceRegions(ast, source, source_line_offsets) {
-	/** @type {CssSourceRegion[]} */
-	const regions = [];
-
+function visit_source_ast(ast, src_line_offsets, { regions, css_element_info }) {
+	let region_id = 0;
 	walk(ast, null, {
-		Element(node) {
+		Element(node, context) {
 			// Check if this is a style element with CSS content
 			if (node.id?.name === 'style' && node.css) {
 				const openLoc = /** @type {ESTreeJSX.JSXOpeningElement & AST.NodeWithLocation} */ (
 					node.openingElement
 				).loc;
-				const cssStart = loc_to_offset(openLoc.end.line, openLoc.end.column, source_line_offsets);
+				const cssStart = loc_to_offset(openLoc.end.line, openLoc.end.column, src_line_offsets);
 
 				const closeLoc = /** @type {ESTreeJSX.JSXClosingElement & AST.NodeWithLocation} */ (
 					node.closingElement
 				).loc;
-				const cssEnd = loc_to_offset(
-					closeLoc.start.line,
-					closeLoc.start.column,
-					source_line_offsets,
-				);
+				const cssEnd = loc_to_offset(closeLoc.start.line, closeLoc.start.column, src_line_offsets);
 
 				regions.push({
 					start: cssStart,
 					end: cssEnd,
 					content: node.css,
+					id: get_style_region_id(node.metadata.styleScopeHash, `head-${region_id}`),
 				});
+			}
+
+			context.next();
+		},
+		Attribute(node, context) {
+			const element = context.path?.find((n) => n.type === 'Element');
+			if (element?.metadata?.css?.scopedClasses) {
+				// we don't need to check is_element_dom_element(node)
+				// since scopedClasses are added during pruning only to DOM elements
+				const css = element.metadata.css;
+				const { line, column } = node.value?.loc?.start ?? {};
+
+				if (line === undefined || column === undefined) {
+					return;
+				}
+
+				css_element_info.set(`${line}:${column}`, css);
 			}
 		},
 	});
-
-	return regions;
 }
 
 /**
- * @import { PostProcessingChanges } from './client/index.js';
+ * Extract individual class names and their offsets from class attribute values
+ * Handles: "foo bar", { foo: true }, ['foo', { bar: true }], etc.
+ *
+ * @param {AST.Node} node - The attribute value node
+ * @param {ReturnType<typeof build_src_to_gen_map>[0]} src_to_gen_map
+ * @param {number[]} gen_line_offsets
+ * @param {number[]} src_line_offsets
+ * @returns {TokenClass[]}
  */
+function extract_classes(node, src_to_gen_map, gen_line_offsets, src_line_offsets) {
+	/** @type {TokenClass[]} */
+	const classes = [];
+
+	switch (node.type) {
+		case 'Literal': {
+			// Static: class="foo bar baz"
+
+			const content = node.raw ?? '';
+			let text = content;
+			let textOffset = 0;
+
+			// Remove quotes
+			if (
+				(content.startsWith(`'`) && content.endsWith(`'`)) ||
+				(content.startsWith(`"`) && content.endsWith(`"`)) ||
+				(content.startsWith('`') && content.endsWith('`'))
+			) {
+				text = content.slice(1, -1);
+				textOffset = 1;
+			}
+
+			// Split by whitespace
+			const classNames = text.split(/\s+/).filter((c) => c.length > 0);
+			const nodeSrcStart = /** @type {AST.Position} */ (node.loc?.start);
+
+			let currentPos = 0;
+			const nodeGenStart = get_generated_position(
+				nodeSrcStart.line,
+				nodeSrcStart.column,
+				src_to_gen_map,
+			);
+			const offset = loc_to_offset(nodeGenStart.line, nodeGenStart.column, gen_line_offsets);
+			const sourceOffset = loc_to_offset(nodeSrcStart.line, nodeSrcStart.column, src_line_offsets);
+
+			for (const name of classNames) {
+				const classStart = text.indexOf(name, currentPos);
+				const classOffset = offset + textOffset + classStart;
+				const classSourceOffset = sourceOffset + textOffset + classStart;
+				const { line, column } = offset_to_line_col(classOffset, gen_line_offsets);
+
+				classes.push({
+					name,
+					line,
+					column,
+					offset: classOffset,
+					length: name.length,
+					sourceOffset: classSourceOffset,
+				});
+
+				currentPos = classStart + name.length;
+			}
+			break;
+		}
+
+		case 'ObjectExpression': {
+			// Dynamic: class={{ foo: true, bar: @show }}
+			for (const prop of node.properties) {
+				if (prop.type === 'Property' && prop.key) {
+					const key = prop.key;
+					if (key.type === 'Identifier' && key.name && key.loc) {
+						const nodeSrcStart = /** @type {AST.Position} */ (key.loc?.start);
+						const nodeGenStart = get_generated_position(
+							nodeSrcStart.line,
+							nodeSrcStart.column,
+							src_to_gen_map,
+						);
+						const offset = loc_to_offset(nodeGenStart.line, nodeGenStart.column, gen_line_offsets);
+						const sourceOffset = loc_to_offset(
+							nodeSrcStart.line,
+							nodeSrcStart.column,
+							src_line_offsets,
+						);
+						const { line, column } = offset_to_line_col(offset, gen_line_offsets);
+
+						classes.push({
+							name: key.name,
+							line,
+							column,
+							offset,
+							length: key.name.length,
+							sourceOffset,
+						});
+					}
+				}
+			}
+			break;
+		}
+
+		case 'ArrayExpression': {
+			// Dynamic: class={['foo', { bar: true }]}
+			for (const el of node.elements) {
+				if (el) {
+					classes.push(...extract_classes(el, src_to_gen_map, gen_line_offsets, src_line_offsets));
+				}
+			}
+			break;
+		}
+
+		case 'ConditionalExpression': {
+			// Conditional: class={@show ? 'active' : 'inactive'}
+			if (node.consequent) {
+				classes.push(
+					...extract_classes(node.consequent, src_to_gen_map, gen_line_offsets, src_line_offsets),
+				);
+			}
+			if (node.alternate) {
+				classes.push(
+					...extract_classes(node.alternate, src_to_gen_map, gen_line_offsets, src_line_offsets),
+				);
+			}
+			break;
+		}
+
+		case 'LogicalExpression': {
+			// Logical: class={[@show && 'active']}
+			if (node.operator === '&&' && node.right) {
+				classes.push(
+					...extract_classes(node.right, src_to_gen_map, gen_line_offsets, src_line_offsets),
+				);
+			} else if (node.operator === '||') {
+				if (node.left) {
+					classes.push(
+						...extract_classes(node.left, src_to_gen_map, gen_line_offsets, src_line_offsets),
+					);
+				}
+				if (node.right) {
+					classes.push(
+						...extract_classes(node.right, src_to_gen_map, gen_line_offsets, src_line_offsets),
+					);
+				}
+			}
+			break;
+		}
+	}
+
+	return classes;
+}
 
 /**
  * Create Volar mappings by walking the transformed AST
@@ -110,7 +306,7 @@ function extractCssSourceRegions(ast, source, source_line_offsets) {
  * @param {AST.Node} ast_from_source - The original AST from source
  * @param {string} source - Original source code
  * @param {string} generated_code - Generated code (returned in output, not used for searching)
- * @param {object} esrap_source_map - Esrap source map for accurate position lookup
+ * @param {SourceMapMappings} source_map - Esrap source map for accurate position lookup
  * @param {PostProcessingChanges } post_processing_changes - Optional post-processing changes
  * @param {number[]} line_offsets - Pre-computed line offsets array for generated code
  * @returns {VolarMappingsResult}
@@ -120,7 +316,7 @@ export function convert_source_map_to_mappings(
 	ast_from_source,
 	source,
 	generated_code,
-	esrap_source_map,
+	source_map,
 	post_processing_changes,
 	line_offsets,
 ) {
@@ -128,7 +324,8 @@ export function convert_source_map_to_mappings(
 	const mappings = [];
 	let isImportDeclarationPresent = false;
 
-	const source_line_offsets = build_line_offsets(source);
+	const src_line_offsets = build_line_offsets(source);
+	const gen_line_offsets = build_line_offsets(generated_code);
 
 	/**
 	 * Convert generated line/column to byte offset using pre-computed line_offsets
@@ -141,25 +338,24 @@ export function convert_source_map_to_mappings(
 		return line_offsets[line - 1] + column;
 	};
 
-	const adjusted_source_map = build_source_to_generated_map(
-		esrap_source_map,
+	const [src_to_gen_map] = build_src_to_gen_map(
+		source_map,
 		post_processing_changes,
 		line_offsets,
+		generated_code,
 	);
 
-	// Collect text tokens from AST nodes
-	// All tokens must have source/generated text and loc property for accurate positioning
-	/**
-	 * @type {Array<{
-	 *		source: string | null | undefined,
-	 *		generated: string,
-	 *		is_full_import_statement?: boolean,
-	 *		loc: AST.SourceLocation,
-	 *		end_loc?: AST.SourceLocation,
-	 *		metadata?: PluginActionOverrides
-	 * }>}
-	 */
+	/** @type {Token[]} */
 	const tokens = [];
+	/** @type {CssSourceRegion[]} */
+	const css_regions = [];
+	/** @type {CssElementInfo} */
+	const css_element_info = new Map();
+
+	visit_source_ast(ast_from_source, src_line_offsets, {
+		regions: css_regions,
+		css_element_info,
+	});
 
 	// We have to visit everything in generated order to maintain correct indices
 
@@ -310,11 +506,65 @@ export function convert_source_map_to_mappings(
 						visit(node.value);
 					}
 				} else {
-					if (node.name) {
-						visit(node.name);
-					}
-					if (node.value) {
-						visit(node.value);
+					const attr =
+						node.name.name === 'class' && node.value?.type === 'JSXExpressionContainer'
+							? node.value.expression
+							: node.value;
+
+					const css = attr
+						? css_element_info.get(`${attr.loc?.start.line}:${attr.loc?.start.column}`)
+						: null;
+
+					if (attr && css) {
+						// Extract class names from the attribute value
+						const classes = extract_classes(
+							attr,
+							src_to_gen_map,
+							gen_line_offsets,
+							src_line_offsets,
+						);
+
+						// For each class name, look up CSS location and create token
+						for (const { name, line, column, offset, sourceOffset, length } of classes) {
+							const cssLocation = css.scopedClasses.get(name);
+
+							if (!cssLocation) {
+								continue;
+							}
+
+							mappings.push({
+								sourceOffsets: [sourceOffset],
+								generatedOffsets: [offset],
+								lengths: [length],
+								data: {
+									...mapping_data,
+									customData: {
+										generatedLengths: [length],
+										hover: {
+											contents:
+												'```css\n.' +
+												name +
+												'\n```\n\nCSS class selector.\n\nUse **Cmd+Click** (macOS) or **Ctrl+Click** (Windows/Linux) to navigate to its definition.',
+										},
+										definition: {
+											description: `CSS class selector for '.${name}'`,
+											location: {
+												embeddedId: get_style_region_id(css.hash),
+												start: cssLocation.start,
+												end: cssLocation.end,
+											},
+										},
+									},
+								},
+							});
+						}
+					} else {
+						if (node.name) {
+							visit(node.name);
+						}
+						if (node.value) {
+							visit(node.value);
+						}
 					}
 				}
 				return;
@@ -1377,7 +1627,7 @@ export function convert_source_map_to_mappings(
 		const source_start = loc_to_offset(
 			token.loc.start.line,
 			token.loc.start.column,
-			source_line_offsets,
+			src_line_offsets,
 		);
 
 		let source_length = source_text.length;
@@ -1389,15 +1639,15 @@ export function convert_source_map_to_mappings(
 
 		if (token.is_full_import_statement) {
 			const end_loc = /** @type {AST.SourceLocation} */ (token.end_loc).end;
-			const source_end = loc_to_offset(end_loc.line, end_loc.column, source_line_offsets);
+			const source_end = loc_to_offset(end_loc.line, end_loc.column, src_line_offsets);
 
 			// Look up where import keyword and source literal map to in generated code
 			const gen_start_pos = get_generated_position(
 				token.loc.start.line,
 				token.loc.start.column,
-				adjusted_source_map,
+				src_to_gen_map,
 			);
-			const gen_end_pos = get_generated_position(end_loc.line, end_loc.column, adjusted_source_map);
+			const gen_end_pos = get_generated_position(end_loc.line, end_loc.column, src_to_gen_map);
 
 			gen_start = gen_loc_to_offset(gen_start_pos.line, gen_start_pos.column);
 			const gen_end = gen_loc_to_offset(gen_end_pos.line, gen_end_pos.column);
@@ -1418,7 +1668,7 @@ export function convert_source_map_to_mappings(
 			const gen_line_col = get_generated_position(
 				token.loc.start.line,
 				token.loc.start.column,
-				adjusted_source_map,
+				src_to_gen_map,
 			);
 			gen_start = gen_loc_to_offset(gen_line_col.line, gen_line_col.column);
 
@@ -1479,10 +1729,11 @@ export function convert_source_map_to_mappings(
 		});
 	}
 
-	/** @type {{ cssMappings: CodeMapping[], cssSources: string[] }} */
-	const cssResult = { cssMappings: [], cssSources: [] };
-	for (const region of extractCssSourceRegions(ast_from_source, source, source_line_offsets)) {
-		cssResult.cssMappings.push({
+	/** @type {CodeMapping[]} */
+	const cssMappings = [];
+	for (let i = 0; i < css_regions.length; i++) {
+		const region = css_regions[i];
+		cssMappings.push({
 			sourceOffsets: [region.start],
 			generatedOffsets: [0],
 			lengths: [region.content.length],
@@ -1490,16 +1741,16 @@ export function convert_source_map_to_mappings(
 				...mapping_data,
 				customData: {
 					generatedLengths: [region.content.length],
+					embeddedId: region.id,
+					content: region.content,
 				},
 			},
 		});
-
-		cssResult.cssSources.push(region.content);
 	}
 
 	return {
 		code: generated_code,
 		mappings,
-		...cssResult,
+		cssMappings,
 	};
 }

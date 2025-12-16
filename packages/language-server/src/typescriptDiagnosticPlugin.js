@@ -56,7 +56,7 @@ function createTypeScriptDiagnosticFilterPlugin() {
 
 					log(`Filtering ${diagnostics.length} TypeScript diagnostics for ${document.uri}`);
 
-					const virtualCode = getVirtualCode(document, context);
+					const [virtualCode] = getVirtualCode(document, context);
 
 					const filtered = diagnostics.filter((diagnostic) => {
 						const range = diagnostic.range;

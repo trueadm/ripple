@@ -1738,6 +1738,7 @@ function RipplePlugin(config) {
 								throw new Error('Components can only have one style tag');
 							}
 							component.css = parsed_css;
+							/** @type {AST.Element} */ (element).metadata.styleScopeHash = parsed_css.hash;
 						}
 
 						const newLines = content.match(regex_newline_characters)?.length;

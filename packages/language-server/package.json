@@ -21,6 +21,9 @@
     "vscode-languageserver-textdocument": "catalog:default",
     "vscode-uri": "catalog:default"
   },
+  "devDependencies": {
+    "ripple": "workspace:*"
+  },
   "peerDependencies": {
     "typescript": "catalog:peer"
   }

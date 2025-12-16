@@ -56,7 +56,7 @@ function createDocumentHighlightPlugin() {
 						return tsHighlights;
 					}
 
-					const virtualCode = getVirtualCode(document, context);
+					const [virtualCode] = getVirtualCode(document, context);
 
 					if (!virtualCode) {
 						return tsHighlights;

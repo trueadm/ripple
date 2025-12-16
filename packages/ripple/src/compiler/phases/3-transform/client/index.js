@@ -1,8 +1,7 @@
-/** @import * as AST from 'estree' */
-/** @import * as ESTreeJSX from 'estree-jsx' */
-/** @import { SourceMapMappings } from '@jridgewell/sourcemap-codec' */
-/** @import * as ESRap from 'esrap' */
 /**
+@import * as AST from 'estree';
+@import * as ESTreeJSX from 'estree-jsx';
+@import { SourceMapMappings } from '@jridgewell/sourcemap-codec';
 @import {
 	AnalysisResult,
 	TransformClientContext,
@@ -14,8 +13,10 @@
 }	from '#compiler';
  */
 
-/** @typedef {Map<number, {offset: number, delta: number}>} PostProcessingChanges */
-/** @typedef {number[]} LineOffsets */
+/**
+@typedef {Map<number, {offset: number, delta: number}>} PostProcessingChanges;
+@typedef {number[]} LineOffsets;
+*/
 
 import { walk } from 'zimmerframe';
 import path from 'node:path';

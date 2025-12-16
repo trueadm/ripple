@@ -64,7 +64,7 @@ function createAutoInsertPlugin() {
 						return null;
 					}
 
-					const virtualCode = getVirtualCode(document, context);
+					const [virtualCode] = getVirtualCode(document, context);
 
 					// Map position back to source
 					const offset = document.offsetAt(position);

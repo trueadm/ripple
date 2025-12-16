@@ -1,5 +1,7 @@
-/** @import { CommonContext, NameSpace, ScopeInterface } from '#compiler' */
-/** @import * as AST from 'estree' */
+/**
+@import * as AST from 'estree';
+@import { CommonContext, NameSpace, ScopeInterface } from '#compiler';
+ */
 
 import { build_assignment_value, extract_paths } from '../utils/ast.js';
 import * as b from '../utils/builders.js';

@@ -16,6 +16,7 @@ catalogs:
     '@types/estree-jsx': ^1.0.5
     '@types/node': ^24.3.0
     '@types/prompts': ^2.4.9
+    '@types/vscode': ^1.107.0
     '@typescript-eslint/parser': *ts_eslint_parser
     '@typescript-eslint/types': ^8.40.0
     '@volar/language-core': ~2.4.23

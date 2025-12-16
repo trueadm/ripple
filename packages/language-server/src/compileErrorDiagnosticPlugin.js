@@ -28,7 +28,7 @@ function createCompileErrorDiagnosticPlugin() {
 					try {
 						log('Providing Ripple diagnostics for:', document.uri);
 
-						const virtualCode = getVirtualCode(document, context);
+						const [virtualCode] = getVirtualCode(document, context);
 
 						if (!virtualCode || !virtualCode.errors || virtualCode.errors.length === 0) {
 							return [];

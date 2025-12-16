@@ -24,6 +24,12 @@ export interface CompileResult {
 	css: string;
 }
 
+export interface DefinitionLocation {
+	embeddedId: string; // e.g., 'style_0', 'style_1'
+	start: number; // start offset
+	end: number; // end offset
+}
+
 export interface PluginActionOverrides {
 	/** Whether to enable word document highlighting for this mapping */
 	wordHighlight?: {
@@ -40,13 +46,17 @@ export interface PluginActionOverrides {
 	/** Custom definition info for this mapping, false to disable */
 	definition?:
 		| {
-				description: string;
+				description?: string; // just for reference
+				// Generic location for embedded content (CSS, etc.)
+				location?: DefinitionLocation;
 		  }
 		| false;
 }
 
 export interface CustomMappingData extends PluginActionOverrides {
 	generatedLengths: number[];
+	embeddedId?: string; // e.g. css regions: 'style_0', 'style_1', etc.
+	content?: string; // (e.g., css code)
 }
 
 export interface MappingData extends VolarCodeInformation {
@@ -61,7 +71,6 @@ export interface VolarMappingsResult {
 	code: string;
 	mappings: CodeMapping[];
 	cssMappings: CodeMapping[];
-	cssSources: string[];
 }
 
 /**

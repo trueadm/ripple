@@ -226,6 +226,28 @@ declare module 'estree' {
 		loc: SourceLocation;
 		metadata: BaseNodeMetaData & {
 			ts_name?: string;
+			// for <style> tag
+			styleScopeHash?: string;
+			// for elements with scoped style classes
+			css?: {
+				scopedClasses: Map<
+					string,
+					{
+						start: number;
+						end: number;
+						selector: CSS.ClassSelector;
+					}
+				>;
+				topScopedClasses: Map<
+					string,
+					{
+						start: number;
+						end: number;
+						selector: CSS.ClassSelector;
+					}
+				>;
+				hash: string;
+			};
 		};
 
 		// currently only for <style> and <script> tags

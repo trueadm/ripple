@@ -341,12 +341,12 @@ class RippleVirtualCode {
 			this.mappings = transpiled.mappings ?? [];
 			this.isErrorMode = false;
 
-			const { cssMappings, cssSources } = transpiled;
+			const cssMappings = transpiled.cssMappings;
 			if (cssMappings.length > 0) {
 				log('Creating', cssMappings.length, 'CSS embedded codes');
 
 				this.embeddedCodes = cssMappings.map((mapping, index) => {
-					const cssContent = cssSources[index];
+					const cssContent = /** @type {string} */ (mapping.data?.customData?.content);
 					log(
 						`CSS region ${index}: \
 						offset ${mapping.sourceOffsets[0]}-${mapping.sourceOffsets[0] + mapping.lengths[0]}, \
@@ -354,7 +354,7 @@ class RippleVirtualCode {
 					);
 
 					return {
-						id: `style_${index}`,
+						id: /** @type {string}  */ (mapping.data?.customData?.embeddedId),
 						languageId: 'css',
 						snapshot: {
 							getText: (start, end) => cssContent.substring(start, end),

@@ -11,6 +11,11 @@ const FORWARD = 0;
 /** @type {Direction} */
 const BACKWARD = 1;
 
+// this will be set for every prune_css call
+// since the code is synchronous, this is safe
+/** @type {string} */
+let css_hash;
+
 // CSS selector constants
 /**
  * @param {number} start
@@ -195,6 +200,47 @@ function apply_selector(relative_selectors, rule, element, direction) {
 	if (matched) {
 		if (!is_outer_global(relative_selector)) {
 			relative_selector.metadata.scoped = true;
+
+			// Store scoped class information on element for language server features
+			if (!relative_selector.metadata.is_global && !relative_selector.metadata.is_global_like) {
+				// Extract class selectors from the relative selector
+				for (const selector of relative_selector.selectors) {
+					if (selector.type === 'ClassSelector') {
+						const name = selector.name.replace(regex_backslash_and_following_character, '$1');
+
+						if (!element.metadata.css) {
+							element.metadata.css = {
+								scopedClasses: new Map(),
+								topScopedClasses: new Map(),
+								hash: css_hash,
+							};
+						}
+
+						// Store class name → CSS location in scopedClasses
+						if (!element.metadata.css.scopedClasses.has(name)) {
+							element.metadata.css.scopedClasses.set(name, {
+								start: selector.start,
+								end: selector.end,
+								selector: selector,
+							});
+						}
+
+						// Also store in topScopedClasses if standalone
+						// Standalone = only this ClassSelector in the RelativeSelector, no pseudo-classes/elements
+						const isStandalone =
+							relative_selector.selectors.length === 1 &&
+							relative_selector.selectors[0] === selector;
+
+						if (isStandalone && !element.metadata.css.topScopedClasses.has(name)) {
+							element.metadata.css.topScopedClasses.set(name, {
+								start: selector.start,
+								end: selector.end,
+								selector: selector,
+							});
+						}
+					}
+				}
+			}
 		}
 
 		element.metadata.scoped = true;
@@ -1004,6 +1050,8 @@ function rule_has_animation(rule) {
  * @return {void}
  */
 export function prune_css(css, element) {
+	css_hash = css.hash;
+
 	/** @type {Visitors<AST.CSS.Node, null>} */
 	const visitors = {
 		Rule(node, context) {
