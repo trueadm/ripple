@@ -25,7 +25,7 @@ describe('SSR: switch statements', () => {
 		expect(body).toBe('<div>Case B</div>');
 	});
 
-	it('renders switch using fallthrough case', async () => {
+	it('renders a fall-through with an empty switch case', async () => {
 		component App() {
 			let value = 'b';
 
@@ -44,5 +44,48 @@ describe('SSR: switch statements', () => {
 
 		const { body } = await render(App);
 		expect(body).toBe('<div>Case B or C</div>');
+	});
+
+	it('renders a fall-through with a case that has elements', async () => {
+		component App() {
+			let value = 'a';
+
+			switch (value) {
+				case 'a':
+					<div>{'Case A'}</div>
+				case 'b':
+					<div>{'Case B'}</div>
+				case 'c':
+					<div>{'Case C'}</div>
+					break;
+				default:
+					<div>{'Default Case'}</div>
+			}
+		}
+
+		const { body } = await render(App);
+		expect(body).toBe('<div>Case A</div><div>Case B</div><div>Case C</div>');
+	});
+
+	it('renders a fall-through with a default case in the middle', async () => {
+		component App() {
+			let value = 'x';
+
+			switch (value) {
+				case 'a':
+					<div>{'Case A'}</div>
+				default:
+					<div>{'Default Case'}</div>
+				case 'b':
+					<div>{'Case B'}</div>
+					break;
+				case 'c':
+					<div>{'Case C'}</div>
+					break;
+			}
+		}
+
+		const { body } = await render(App);
+		expect(body).toBe('<div>Default Case</div><div>Case B</div>');
 	});
 });

@@ -37,6 +37,7 @@ export component StatusIndicator({ status }) {
   <div>
     switch (status) {
       case: 'init':
+        // fall-through to the next
       case 'loading':
         <p>{'Loading...'}</p>
         break;
@@ -71,6 +72,8 @@ export component InteractiveStatus() {
   <div>
     switch (@status) {
       case 'init':
+         <p>{'Init'}</p>
+         // fall-through to the next
       case 'loading':
         <p>{'Loading...'}</p>
         break;

@@ -422,23 +422,9 @@ const visitors = {
 		context.visit(node.discriminant, context.state);
 
 		for (const switch_case of node.cases) {
-			// Fallthrough
+			// Skip empty cases
 			if (switch_case.consequent.length === 0) {
 				continue;
-			}
-
-			// Validate that each cases ends in a break statement, except for the last case
-			const last = switch_case.consequent?.[switch_case.consequent.length - 1];
-
-			if (
-				last.type !== 'BreakStatement' &&
-				node.cases.indexOf(switch_case) !== node.cases.length - 1
-			) {
-				error(
-					'Template switch cases must end with a break statement (with the exception of the last case).',
-					context.state.analysis.module.filename,
-					switch_case,
-				);
 			}
 
 			node.metadata = {
