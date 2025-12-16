@@ -86,7 +86,7 @@ export component App() {
 		}
 
 		button {
-			background-color: rgba(42, 43, 56, 0.9);
+			background-color: rgba(58, 58, 72, 0.9);
 			color: #f2f4f8;
 			font-size: 1.1rem;
 			border: 1px solid rgba(255, 255, 255, 0.1);
@@ -94,10 +94,6 @@ export component App() {
 			padding: 0.5rem 1rem;
 			cursor: pointer;
 			transition: background 0.15s ease;
-		}
-
-		button {
-			background-color: rgba(58, 58, 72, 0.9);
 		}
 
 		.count {
@@ -122,14 +118,10 @@ export component App() {
 			border-radius: 0.75rem;
 			font-weight: 500;
 			font-size: 0.95rem;
-			background-color: rgba(42, 43, 56, 0.9);
+			background-color: rgba(58, 58, 72, 0.9);
 			color: #f2f4f8;
 			border: 1px solid rgba(255, 255, 255, 0.1);
 			transition: background 0.15s ease;
-		}
-
-		.link-btn {
-			background-color: rgba(58, 58, 72, 0.9);
 		}
 
 		.info {
