@@ -389,6 +389,7 @@ component StatusIndicator({ status }) {
   // The switch statement evaluates the 'status' prop
   switch (status) {
 		case: 'init':
+			// fall-through to the next
     case 'loading':
       <p>{'Loading...'}</p>
       break; // break is mandatory
@@ -420,6 +421,7 @@ component InteractiveStatus() {
   switch (@status) {
 		case 'init':
 			<p>{'Status: Init'}</p>
+			// fall-through to the next
     case 'loading':
       <p>{'Status: Loading...'}</p>
       break;

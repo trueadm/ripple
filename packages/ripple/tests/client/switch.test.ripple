@@ -89,7 +89,7 @@ describe('switch statements', () => {
 		expect(container.querySelector('div').textContent).toBe('Default for y');
 	});
 
-	it('renders switch using empty case fallthrough', () => {
+	it('renders switch using empty case fall-through', () => {
 		component App() {
 			let value = track('a');
 
@@ -182,7 +182,7 @@ describe('switch statements', () => {
 	});
 
 	it(
-		'renders switch with multiple non-empty fallthrough cases and reacts to tracked changes without recreating DOM unnecessarily',
+		'renders switch with multiple non-empty fall-through cases and reacts to tracked changes without recreating DOM unnecessarily',
 		() => {
 			component App() {
 				let status = track(0);
@@ -250,7 +250,7 @@ describe('switch statements', () => {
 	);
 
 	it(
-		'renders a fallthrough default in the middle of switch cases and reacts to changes without recreating DOM unnecessarily',
+		'renders a fall-through default in the middle of switch cases and reacts to changes without recreating DOM unnecessarily',
 		() => {
 			component App() {
 				let value = track('x');
