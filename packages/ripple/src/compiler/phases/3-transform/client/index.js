@@ -52,6 +52,7 @@ import {
 	determine_namespace_for_children,
 	index_to_key,
 } from '../../../utils.js';
+import { obfuscate_imported } from '../../../import-utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
 import { render_stylesheets } from '../stylesheet.js';
@@ -314,14 +315,13 @@ function visit_title_element(node, context) {
  * @param {TransformClientContext} context
  * @returns {string}
  */
-function import_from_ripple_if_needed(name, context) {
-	const alias = context.state.ripple_user_imports?.get?.(name);
-
-	if (!alias && !context.state.imports.has(`import { ${name} } from 'ripple'`)) {
-		context.state.imports.add(`import { ${name} } from 'ripple'`);
+function set_hidden_import_from_ripple(name, context) {
+	name = obfuscate_imported(name);
+	if (!context.state.imports.has(`import { ${name} } from 'ripple/compiler/internal/import'`)) {
+		context.state.imports.add(`import { ${name} } from 'ripple/compiler/internal/import'`);
 	}
 
-	return alias ?? name;
+	return name;
 }
 
 /** @type {Visitors<AST.Node, TransformClientState>} */
@@ -531,25 +531,31 @@ const visitors = {
 		}
 
 		// Special handling for TrackedMapExpression and TrackedSetExpression
-		// When source is "new #Map(...)", the callee is TrackedMapExpression with empty arguments
-		// and the actual arguments are in NewExpression.arguments
+		// When source is "new #Map(...)" or "new #Map<K,V>(...)", the callee is TrackedMapExpression
+		// with empty arguments and the actual arguments are in NewExpression.arguments
 		if (callee.type === 'TrackedMapExpression' || callee.type === 'TrackedSetExpression') {
 			// Use NewExpression's arguments (the callee has empty arguments from parser)
 			const argsToUse = node.arguments.length > 0 ? node.arguments : callee.arguments;
 
 			if (context.state.to_ts) {
 				const className = callee.type === 'TrackedMapExpression' ? 'TrackedMap' : 'TrackedSet';
-				const alias = import_from_ripple_if_needed(className, context);
+				const alias = set_hidden_import_from_ripple(className, context);
 				const calleeId = b.id(alias);
 				calleeId.loc = callee.loc;
 				calleeId.metadata = {
 					tracked_shorthand: callee.type === 'TrackedMapExpression' ? '#Map' : '#Set',
 					path: [...context.path],
 				};
-				return b.new(
+				/** @type {AST.NewExpression} */
+				const newExpr = b.new(
 					calleeId,
 					.../** @type {AST.Expression[]} */ (argsToUse.map((arg) => context.visit(arg))),
 				);
+				// Preserve typeArguments for generics syntax like new #Map<string, number>()
+				if (node.typeArguments) {
+					newExpr.typeArguments = node.typeArguments;
+				}
+				return newExpr;
 			}
 
 			const helperName = callee.type === 'TrackedMapExpression' ? 'tracked_map' : 'tracked_set';
@@ -590,7 +596,7 @@ const visitors = {
 
 	TrackedArrayExpression(node, context) {
 		if (context.state.to_ts) {
-			const arrayAlias = import_from_ripple_if_needed('TrackedArray', context);
+			const arrayAlias = set_hidden_import_from_ripple('TrackedArray', context);
 
 			return b.call(
 				b.member(b.id(arrayAlias), b.id('from')),
@@ -615,7 +621,7 @@ const visitors = {
 
 	TrackedObjectExpression(node, context) {
 		if (context.state.to_ts) {
-			const objectAlias = import_from_ripple_if_needed('TrackedObject', context);
+			const objectAlias = set_hidden_import_from_ripple('TrackedObject', context);
 
 			return b.new(
 				b.id(objectAlias),
@@ -2254,7 +2260,7 @@ function transform_ts_child(node, context) {
 				const argument = visit(attr.argument, { ...state, metadata });
 				return b.jsx_spread_attribute(/** @type {AST.Expression} */ (argument));
 			} else if (attr.type === 'RefAttribute') {
-				const createRefKeyAlias = import_from_ripple_if_needed('createRefKey', context);
+				const createRefKeyAlias = set_hidden_import_from_ripple('createRefKey', context);
 				const metadata = { await: false };
 				const argument = visit(attr.argument, { ...state, metadata });
 				const wrapper = b.object([
@@ -3149,7 +3155,15 @@ function create_tsx_with_typescript_support() {
 		},
 		ImportDeclaration(node, context) {
 			// Write 'import' keyword with node location for source mapping
-			context.write('import', node);
+			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			context.location(loc.start.line, loc.start.column);
+			context.write('import');
+
+			// Handle 'import type' syntax (importKind on the declaration itself)
+			if (node.importKind === 'type') {
+				context.write(' type');
+			}
+
 			context.write(' ');
 
 			// Write specifiers - handle default, namespace, and named imports
@@ -3199,6 +3213,28 @@ function create_tsx_with_typescript_support() {
 
 			// Write source
 			context.visit(node.source);
+			// Write semicolon at the end
+			context.write(';');
+			// record the location for the whole node for a full import mapping
+			context.location(loc.end.line, loc.end.column);
+		},
+		ImportDefaultSpecifier(node, context) {
+			context.visit(node.local);
+		},
+		ImportNamespaceSpecifier(node, context) {
+			context.write('* as ');
+			context.visit(node.local);
+		},
+		ImportSpecifier(node, context) {
+			if (node.importKind === 'type') {
+				context.write('type ');
+			}
+			context.visit(node.imported);
+			// Only write 'as local' if imported !== local
+			if (/** @type {AST.Identifier} */ (node.imported).name !== node.local.name) {
+				context.write(' as ');
+				context.visit(node.local);
+			}
 		},
 		JSXOpeningElement(node, context) {
 			// Set location for '<'
@@ -3242,9 +3278,28 @@ function create_tsx_with_typescript_support() {
 				}
 			}
 			context.write('[');
-			// Visit the entire type parameter (TSTypeParameter node)
+			// Handle TSTypeParameter inline - mapped types use 'in' not 'extends'
 			if (node.typeParameter) {
-				context.visit(node.typeParameter);
+				const tp = node.typeParameter;
+				if (tp.loc) {
+					context.location(tp.loc.start.line, tp.loc.start.column);
+				}
+				// Write the parameter name
+				if (typeof tp.name === 'string') {
+					context.write(tp.name);
+				} else if (tp.name && tp.name.name) {
+					context.write(tp.name.name);
+				}
+				// In mapped types, constraint uses 'in' instead of 'extends'
+				if (tp.constraint) {
+					context.write(' in ');
+					context.visit(tp.constraint);
+				}
+				// Handle 'as' clause for key remapping (e.g., { [K in Keys as NewKey]: V })
+				if (node.nameType) {
+					context.write(' as ');
+					context.visit(node.nameType);
+				}
 			}
 			context.write(']');
 			if (node.optional) {
@@ -3255,11 +3310,9 @@ function create_tsx_with_typescript_support() {
 				}
 			}
 			context.write(': ');
-			// Visit the value type - could be either typeAnnotation or nameType
+			// Visit the value type
 			if (node.typeAnnotation) {
 				context.visit(node.typeAnnotation);
-			} else if (node.nameType) {
-				context.visit(node.nameType);
 			}
 			context.write(' }');
 		},
@@ -3391,39 +3444,9 @@ function create_tsx_with_typescript_support() {
  * @returns {{ ast: AST.Program, js: { code: string, map: SourceMapMappings, post_processing_changes?: PostProcessingChanges, line_offsets?: LineOffsets }, css: string }}
  */
 export function transform_client(filename, source, analysis, to_ts, minify_css) {
-	/**
-	 * User's named imports from 'ripple' so we can reuse them in TS output
-	 * when transforming shorthand syntax. E.g., if the user has already imported
-	 * TrackedArray, we want to reuse that import instead of importing it again
-	 * if we encounter `#[]`. It's a Map of export name to local name in case the
-	 * user renamed something when importing.
-	 * @type {Map<string, string>}
-	 */
-	const ripple_user_imports = new Map(); // exported -> local
-	if (analysis && analysis.ast && Array.isArray(analysis.ast.body)) {
-		for (const stmt of analysis.ast.body) {
-			if (
-				stmt &&
-				stmt.type === 'ImportDeclaration' &&
-				stmt.source &&
-				stmt.source.value === 'ripple'
-			) {
-				for (const spec of stmt.specifiers || []) {
-					if (spec.type === 'ImportSpecifier' && spec.imported && spec.local) {
-						ripple_user_imports.set(
-							/** @type {AST.Identifier} */ (spec.imported).name,
-							spec.local.name,
-						);
-					}
-				}
-			}
-		}
-	}
-
 	/** @type {TransformClientState} */
 	const state = {
 		imports: new Set(),
-		ripple_user_imports,
 		events: new Set(),
 		template: null,
 		hoisted: [],

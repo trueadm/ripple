@@ -1,4 +1,4 @@
-/** @import { Program } from 'estree' */
+/** @import * as AST from 'estree' */
 
 import { parse as parse_module } from './phases/1-parse/index.js';
 import { analyze } from './phases/2-analyze/index.js';
@@ -9,7 +9,7 @@ import { convert_source_map_to_mappings } from './phases/3-transform/segments.js
 /**
  * Parse Ripple source code to ESTree AST
  * @param {string} source
- * @returns {Program}
+ * @returns {AST.Program}
  */
 export function parse(source) {
 	return parse_module(source, undefined);

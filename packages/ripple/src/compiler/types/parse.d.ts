@@ -60,7 +60,7 @@ declare module 'zimmerframe' {
 	export function walk(
 		node: AST.CSS.Node,
 		state: any,
-		visitors: RippleCompiler.Visitors<(AST.CSS.Node), any>,
+		visitors: RippleCompiler.Visitors<AST.CSS.Node, any>,
 	): AST.CSS.Node;
 }
 
@@ -611,12 +611,12 @@ export namespace Parse {
 		 * @param type The node type string (e.g., "Identifier", "BinaryExpression")
 		 * @returns The finished node
 		 */
-		finishNode<T extends AST.Node>(node: T, type: string): T;
+		finishNode<T extends AST.Node>(node: T, type: T['type']): T;
 
 		/**
 		 * Finish a node at a specific position
 		 */
-		finishNodeAt<T extends AST.Node>(node: T, type: string, pos: number, loc: AST.Position): T;
+		finishNodeAt<T extends AST.Node>(node: T, type: T['type'], pos: number, loc: AST.Position): T;
 
 		/**
 		 * Start a new node at current position
@@ -925,7 +925,8 @@ export namespace Parse {
 			| AST.TrackedSetExpression
 			| AST.TrackedArrayExpression
 			| AST.TrackedObjectExpression
-			| AST.Component;
+			| AST.Component
+			| AST.Identifier;
 
 		/** Default handler for parseExprAtom when no other case matches */
 		parseExprAtomDefault(): AST.Expression;

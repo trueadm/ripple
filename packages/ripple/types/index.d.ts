@@ -10,18 +10,18 @@ export type CompatOptions = {
 	[key: string]: CompatApi;
 };
 
-export declare function mount(
+export function mount(
 	component: () => void,
 	options: { target: HTMLElement; props?: Record<string, any>; compat?: CompatOptions },
 ): () => void;
 
-export declare function tick(): Promise<void>;
+export function tick(): Promise<void>;
 
-export declare function untrack<T>(fn: () => T): T;
+export function untrack<T>(fn: () => T): T;
 
-export declare function flushSync<T>(fn?: () => T): T;
+export function flushSync<T>(fn?: () => T): T;
 
-export declare function effect(fn: (() => void) | (() => () => void)): void;
+export function effect(fn: (() => void) | (() => () => void)): void;
 
 export interface TrackedArrayConstructor {
 	new <T>(...elements: T[]): TrackedArray<T>; // must be used with `new`
@@ -32,16 +32,16 @@ export interface TrackedArrayConstructor {
 
 export interface TrackedArray<T> extends Array<T> {}
 
-export declare const TrackedArray: TrackedArrayConstructor;
+export const TrackedArray: TrackedArrayConstructor;
 
-export declare class Context<T> {
+export class Context<T> {
 	constructor(initial_value: T);
 	get(): T;
 	set(value: T): void;
 	#private;
 }
 
-export declare class TrackedSet<T> extends Set<T> {
+export class TrackedSet<T> extends Set<T> {
 	isDisjointFrom<U>(other: ReadonlySetLike<U> | TrackedSet<U>): boolean;
 	isSubsetOf<U>(other: ReadonlySetLike<U> | TrackedSet<U>): boolean;
 	isSupersetOf<U>(other: ReadonlySetLike<U> | TrackedSet<U>): boolean;
@@ -53,7 +53,7 @@ export declare class TrackedSet<T> extends Set<T> {
 	#private;
 }
 
-export declare class TrackedMap<K, V> extends Map<K, V> {
+export class TrackedMap<K, V> extends Map<K, V> {
 	toJSON(): [K, V][];
 	#private;
 }
@@ -81,7 +81,7 @@ declare global {
 	};
 }
 
-export declare function createRefKey(): symbol;
+export function createRefKey(): symbol;
 
 // Base Tracked interface - all tracked values have a '#v' property containing the actual value
 export interface Tracked<V> {
@@ -115,24 +115,20 @@ type SplitResult<T extends Props, K extends readonly (keyof T)[]> = [
 	Tracked<RestKeys<T, K>>,
 ];
 
-export declare function get<V>(tracked: Tracked<V>): V;
+export function get<V>(tracked: Tracked<V>): V;
 
-export declare function set<V>(tracked: Tracked<V>, value: V): void;
+export function set<V>(tracked: Tracked<V>, value: V): void;
 
 // Overload for function values - infers the return type of the function
-export declare function track<V>(
+export function track<V>(
 	value: () => V,
 	get?: (v: InferComponent<V>) => InferComponent<V>,
 	set?: (next: InferComponent<V>, prev: InferComponent<V>) => InferComponent<V>,
 ): Tracked<InferComponent<V>>;
 // Overload for non-function values
-export declare function track<V>(
-	value?: V,
-	get?: (v: V) => V,
-	set?: (next: V, prev: V) => V,
-): Tracked<V>;
+export function track<V>(value?: V, get?: (v: V) => V, set?: (next: V, prev: V) => V): Tracked<V>;
 
-export declare function trackSplit<V extends Props, const K extends readonly (keyof V)[]>(
+export function trackSplit<V extends Props, const K extends readonly (keyof V)[]>(
 	value: V,
 	splitKeys: K,
 ): SplitResult<V, K>;
@@ -219,7 +215,7 @@ export interface TrackedObjectConstructor {
 	new <T extends object>(obj: T): TrackedObject<T>;
 }
 
-export declare const TrackedObject: TrackedObjectConstructor;
+export const TrackedObject: TrackedObjectConstructor;
 
 export class TrackedDate extends Date {
 	constructor(...params: any[]);
@@ -252,7 +248,7 @@ export interface MediaQuery extends Tracked<boolean> {
 	_brand: void;
 }
 
-export declare const MediaQuery: {
+export const MediaQuery: {
 	new (query: string, fallback?: boolean | undefined): Tracked<boolean>;
 };
 
@@ -268,7 +264,7 @@ export function Portal<V = HTMLElement>({
  * @param {Tracked<V>} tracked
  * @returns {(node: HTMLInputElement | HTMLSelectElement) => void}
  */
-export declare function bindValue<V>(
+export function bindValue<V>(
 	tracked: Tracked<V>,
 ): (node: HTMLInputElement | HTMLSelectElement) => void;
 
@@ -276,36 +272,34 @@ export declare function bindValue<V>(
  * @param {Tracked<V>} tracked
  * @returns {(node: HTMLInputElement) => void}
  */
-export declare function bindChecked<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;
+export function bindChecked<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;
 
-export declare function bindClientWidth<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindClientWidth<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindClientHeight<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindClientHeight<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindContentRect<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindContentRect<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindContentBoxSize<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindContentBoxSize<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindBorderBoxSize<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindBorderBoxSize<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindDevicePixelContentBoxSize<V>(
-	tracked: Tracked<V>,
-): (node: HTMLElement) => void;
+export function bindDevicePixelContentBoxSize<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindInnerHTML<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindInnerHTML<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindInnerText<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindInnerText<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindTextContent<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindTextContent<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindNode<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindNode<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindGroup<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;
+export function bindGroup<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;
 
-export declare function bindOffsetHeight<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindOffsetHeight<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindOffsetWidth<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
+export function bindOffsetWidth<V>(tracked: Tracked<V>): (node: HTMLElement) => void;
 
-export declare function bindIndeterminate<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;
+export function bindIndeterminate<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;
 
-export declare function bindFiles<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;
+export function bindFiles<V>(tracked: Tracked<V>): (node: HTMLInputElement) => void;

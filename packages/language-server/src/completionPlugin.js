@@ -1,17 +1,209 @@
-/**
- * @import {LanguageServicePlugin} from '@volar/language-server'
- */
+/** @import { LanguageServicePlugin, TextEdit, CompletionItem } from '@volar/language-server'; */
 
 const { CompletionItemKind, InsertTextFormat } = require('@volar/language-server');
-const { getVirtualCode, createLogging } = require('./utils.js');
+const { getVirtualCode, createLogging, isInsideImport, isInsideExport } = require('./utils.js');
 
 const { log } = createLogging('[Ripple Completion Plugin]');
+
+/**
+ * Snippets that require auto-import from 'ripple'
+ * @type {Array<{label: string, filterText: string, detail: string, documentation: string, insertText: string, importName: string | null}>}
+ */
+const TRACKED_COLLECTION_SNIPPETS = [
+	{
+		label: '#Map',
+		filterText: '#Map',
+		detail: 'Create a Shorthand TrackedMap',
+		documentation: 'A reactive Map that triggers updates when modified',
+		insertText: 'new #Map(${1})',
+		importName: null,
+	},
+	{
+		label: '#Set',
+		filterText: '#Set',
+		detail: 'Create a Shorthand TrackedSet',
+		documentation: 'A reactive Set that triggers updates when modified',
+		insertText: 'new #Set(${1})',
+		importName: null,
+	},
+	{
+		label: 'TrackedMap',
+		filterText: 'TrackedMap',
+		detail: 'Create a TrackedMap',
+		documentation: 'A reactive Map that triggers updates when modified',
+		insertText: 'new TrackedMap(${1})',
+		importName: 'TrackedMap',
+	},
+	{
+		label: 'TrackedSet',
+		filterText: 'TrackedSet',
+		detail: 'Create a TrackedSet',
+		documentation: 'A reactive Set that triggers updates when modified',
+		insertText: 'new TrackedSet(${1})',
+		importName: 'TrackedSet',
+	},
+	{
+		label: 'TrackedArray',
+		filterText: 'TrackedArray',
+		detail: 'Create a TrackedArray',
+		documentation: 'A reactive Array that triggers updates when modified',
+		insertText: 'new TrackedArray(${1})',
+		importName: 'TrackedArray',
+	},
+	{
+		label: 'TrackedArray.from',
+		filterText: 'TrackedArray.from',
+		detail: 'Create a TrackedArray.from',
+		documentation: 'A reactive Array that triggers when modified',
+		insertText: 'new TrackedArray.from(${1})',
+		importName: 'TrackedArray',
+	},
+	{
+		label: 'TrackedObject',
+		filterText: 'TrackedObject',
+		detail: 'Create a TrackedObject',
+		documentation: 'A reactive Object that triggers updates when modified',
+		insertText: 'new TrackedObject(${1})',
+		importName: 'TrackedObject',
+	},
+	{
+		label: 'TrackedDate',
+		filterText: 'TrackedDate',
+		detail: 'Create a TrackedDate',
+		documentation: 'A reactive Date that triggers updates when modified',
+		insertText: 'new TrackedDate(${1})',
+		importName: 'TrackedDate',
+	},
+	{
+		label: 'TrackedURL',
+		filterText: 'TrackedURL',
+		detail: 'Create a TrackedURL',
+		documentation: 'A reactive URL that triggers updates when modified',
+		insertText: 'new TrackedURL(${1})',
+		importName: 'TrackedURL',
+	},
+	{
+		label: 'TrackedURLSearchParams',
+		filterText: 'TrackedURLSearchParams',
+		detail: 'Create a TrackedURLSearchParams',
+		documentation: 'A reactive URLSearchParams that triggers updates when modified',
+		insertText: 'new TrackedURLSearchParams(${1})',
+		importName: 'TrackedURLSearchParams',
+	},
+	{
+		label: 'MediaQuery',
+		filterText: 'MediaQuery',
+		detail: 'Create a MediaQuery',
+		documentation: 'A reactive media query that triggers updates when the query match changes',
+		insertText: 'new MediaQuery(${1})',
+		importName: 'MediaQuery',
+	},
+];
+
+/**
+ * Find the ripple import statement in the document
+ * @param {string} text - Full document text
+ * @returns {{line: number, startChar: number, endChar: number, imports: string[], hasSemicolon: boolean, fullMatch: string} | null}
+ */
+function findRippleImport(text) {
+	const lines = text.split('\n');
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		// Match: import { x, y, z } from 'ripple'; (with optional semicolon and trailing whitespace)
+		const match = line.match(/^import\s*\{([^}]+)\}\s*from\s*['"]ripple['"](;?)(\s*)$/);
+		if (match) {
+			const imports = match[1]
+				.split(',')
+				.map((s) => s.trim())
+				.filter(Boolean);
+			return {
+				line: i,
+				startChar: 0,
+				endChar: line.length,
+				imports,
+				hasSemicolon: match[2] === ';',
+				fullMatch: line,
+			};
+		}
+	}
+	return null;
+}
+
+/**
+ * Generate additionalTextEdits to add an import
+ * @param {string} documentText - Full document text
+ * @param {string} importName - Name to import (e.g., 'TrackedMap')
+ * @returns {TextEdit[]}
+ */
+function generateImportEdit(documentText, importName) {
+	const existing = findRippleImport(documentText);
+
+	if (existing) {
+		// Check if already imported
+		if (existing.imports.includes(importName)) {
+			return []; // Already imported, no edit needed
+		}
+		// Add to existing import, preserving semicolon status
+		const newImports = [...existing.imports, importName].sort().join(', ');
+		const semicolon = existing.hasSemicolon ? ';' : '';
+		const newLine = `import { ${newImports} } from 'ripple'${semicolon}`;
+		return [
+			{
+				range: {
+					start: { line: existing.line, character: 0 },
+					end: { line: existing.line, character: existing.endChar },
+				},
+				newText: newLine,
+			},
+		];
+	}
+
+	// No existing ripple import - add new one at the top
+	// Find the best insertion point (after other imports, or at line 0)
+	const lines = documentText.split('\n');
+	let insertLine = 0;
+	for (let i = 0; i < lines.length; i++) {
+		if (lines[i].match(/^import\s/)) {
+			insertLine = i + 1; // Insert after last import
+		} else if (insertLine > 0 && !lines[i].match(/^import\s/) && lines[i].trim() !== '') {
+			break; // Stop if we've passed the import block
+		}
+	}
+
+	return [
+		{
+			range: {
+				start: { line: insertLine, character: 0 },
+				end: { line: insertLine, character: 0 },
+			},
+			newText: `import { ${importName} } from 'ripple';\n`,
+		},
+	];
+}
 
 /**
  * Ripple-specific completion enhancements
  * Adds custom completions for Ripple syntax patterns
  */
 const RIPPLE_SNIPPETS = [
+	{
+		label: '#[]',
+		kind: CompletionItemKind.Snippet,
+		detail: 'Ripple Reactive Array Literal, shorthand for new TrackedArray',
+		documentation: 'Create a new Ripple Array Literal',
+		insertText: '#[${1}]',
+		insertTextFormat: InsertTextFormat.Snippet,
+		sortText: '0-#-array-literal',
+	},
+	{
+		label: '#{}',
+		kind: CompletionItemKind.Snippet,
+		detail: 'Ripple Reactive Object Literal, shorthand for new TrackedObject',
+		documentation: 'Create a new Ripple Object Literal',
+		insertText: '#{${1}}',
+		insertTextFormat: InsertTextFormat.Snippet,
+		sortText: '0-#-object-literal',
+	},
 	{
 		label: 'component',
 		kind: CompletionItemKind.Snippet,
@@ -201,8 +393,9 @@ function createCompletionPlugin() {
 			completionProvider: {
 				// Trigger on Ripple-specific syntax:
 				// '<' - JSX/HTML tags
+				// '#' - TrackedMap/TrackedSet shortcuts
 				// Avoid '.' and ' ' to reduce noise - let manual trigger (Ctrl+Space) handle those
-				triggerCharacters: ['<'],
+				triggerCharacters: ['<', '#'],
 				resolveProvider: false,
 			},
 		},
@@ -231,6 +424,7 @@ function createCompletionPlugin() {
 						end: position,
 					});
 
+					/** @type {CompletionItem[]} */
 					const items = [];
 
 					// Debug: log trigger info with clear marker
@@ -250,9 +444,14 @@ function createCompletionPlugin() {
 						lineEnd: line.substring(Math.max(0, line.length - 30)),
 					});
 
-					// Import completions when line starts with 'import'
-					if (line.trim().startsWith('import')) {
+					const fullText = document.getText();
+					const cursorOffset = document.offsetAt(position);
+
+					if (isInsideImport(fullText, cursorOffset)) {
 						items.push(...RIPPLE_IMPORTS);
+						return { items, isIncomplete: false };
+					} else if (isInsideExport(fullText, cursorOffset)) {
+						return { items, isIncomplete: false };
 					}
 
 					// @ accessor hint when typing after @
@@ -263,6 +462,53 @@ function createCompletionPlugin() {
 							detail: 'Access tracked value',
 							documentation: 'Use @ to read/write tracked values',
 						});
+					}
+
+					// TrackedMap/TrackedSet completions when typing T...
+					// Also detects if 'new' is already typed before it to avoid duplicating
+					const trackedMatch = line.match(/(new\s+)?[T,M,#]([\w\.]*)$/);
+
+					if (trackedMatch) {
+						const hasNew = !!trackedMatch[1];
+						const typed = trackedMatch[2].toLowerCase();
+
+						for (const snippet of TRACKED_COLLECTION_SNIPPETS) {
+							// Match if typing matches start of 'rackedMap', 'rackedSet' (after T)
+							const afterT = snippet.label.slice(1).toLowerCase(); // 'rackedmap' or 'rackedset'
+							if (typed === '' || afterT.startsWith(typed)) {
+								// Determine insert text - skip 'new ' if already present
+								const insertText = hasNew
+									? `${snippet.label}(\${1})`
+									: `new ${snippet.label}(\${1})`;
+
+								items.push({
+									label: snippet.label,
+									filterText: snippet.filterText,
+									kind: CompletionItemKind.Snippet,
+									detail: snippet.detail,
+									documentation: snippet.documentation,
+									insertText: insertText,
+									insertTextFormat: InsertTextFormat.Snippet,
+									sortText: '0-' + snippet.label.toLowerCase(),
+									// Replace 'T...' or 'new T...' depending on what was typed
+									textEdit: {
+										range: {
+											start: {
+												line: position.line,
+												character: position.character - trackedMatch[0].length,
+											},
+											end: position,
+										},
+										newText: insertText,
+									},
+									additionalTextEdits: snippet
+										? snippet.importName != null
+											? generateImportEdit(fullText, snippet.importName)
+											: undefined
+										: undefined,
+								});
+							}
+						}
 					}
 
 					// Ripple keywords - extract the last word being typed

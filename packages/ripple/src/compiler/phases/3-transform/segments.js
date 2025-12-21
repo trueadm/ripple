@@ -327,17 +327,6 @@ export function convert_source_map_to_mappings(
 	const src_line_offsets = build_line_offsets(source);
 	const gen_line_offsets = build_line_offsets(generated_code);
 
-	/**
-	 * Convert generated line/column to byte offset using pre-computed line_offsets
-	 * @param {number} line
-	 * @param {number} column
-	 * @returns {number}
-	 */
-	const gen_loc_to_offset = (line, column) => {
-		if (line === 1) return column;
-		return line_offsets[line - 1] + column;
-	};
-
 	const [src_to_gen_map] = build_src_to_gen_map(
 		source_map,
 		post_processing_changes,
@@ -382,8 +371,19 @@ export function convert_source_map_to_mappings(
 							loc: node.loc,
 						});
 					} else {
+						const token = /** @type {Token} */ ({
+							source: node.name,
+							generated: node.name,
+							loc: node.loc,
+						});
+						if (node.name === '#') {
+							// Suppress 'Invalid character' to allow typing out the shorthands
+							token.metadata = {
+								suppressedDiagnostics: [1127],
+							};
+						}
 						// No transformation - source and generated names are the same
-						tokens.push({ source: node.name, generated: node.name, loc: node.loc });
+						tokens.push(token);
 					}
 				}
 				return; // Leaf node, don't traverse further
@@ -411,13 +411,13 @@ export function convert_source_map_to_mappings(
 
 				// Add import declaration as a special token for full-statement mapping
 				// TypeScript reports unused imports with diagnostics covering the entire statement
-				if (node.loc && node.source?.loc) {
+				if (node.loc) {
 					tokens.push({
 						source: '',
 						generated: '',
 						loc: node.loc,
 						is_full_import_statement: true,
-						end_loc: node.source.loc,
+						end_loc: node.loc,
 					});
 				}
 
@@ -813,10 +813,12 @@ export function convert_source_map_to_mappings(
 							// 		'```ripple\npending\n```\n\nRipple-specific keyword for try/pending blocks.\n\nThe `pending` block executes while async operations inside the `try` block are awaiting. This provides a built-in loading state for async components.',
 							// },
 
-							// TODO: Definition is not implemented yet, leaving for future use
+							// Example of a custom definition and its type definition file
 							// definition: {
-							// 	description:
-							// 		'Ripple pending block - executes during async operations in the try block',
+							// 	typeReplace: {
+							// 		name: 'SomeType',
+							// 		path: 'types/index.d.ts',
+							// 	},
 							// },
 						},
 					});
@@ -1649,8 +1651,8 @@ export function convert_source_map_to_mappings(
 			);
 			const gen_end_pos = get_generated_position(end_loc.line, end_loc.column, src_to_gen_map);
 
-			gen_start = gen_loc_to_offset(gen_start_pos.line, gen_start_pos.column);
-			const gen_end = gen_loc_to_offset(gen_end_pos.line, gen_end_pos.column);
+			gen_start = loc_to_offset(gen_start_pos.line, gen_start_pos.column, gen_line_offsets);
+			const gen_end = loc_to_offset(gen_end_pos.line, gen_end_pos.column, gen_line_offsets);
 
 			source_length = source_end - source_start;
 			gen_length = gen_end - gen_start;
@@ -1670,7 +1672,7 @@ export function convert_source_map_to_mappings(
 				token.loc.start.column,
 				src_to_gen_map,
 			);
-			gen_start = gen_loc_to_offset(gen_line_col.line, gen_line_col.column);
+			gen_start = loc_to_offset(gen_line_col.line, gen_line_col.column, gen_line_offsets);
 
 			/** @type {CustomMappingData} */
 			const customData = {

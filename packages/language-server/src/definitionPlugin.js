@@ -4,8 +4,19 @@
 
 const { TextDocument } = require('vscode-languageserver-textdocument');
 const { getVirtualCode, createLogging, getWordFromPosition } = require('./utils.js');
+const path = require('path');
+const fs = require('fs');
+
+const {
+	normalizeFileNameOrUri,
+	getRippleDirForFile,
+	getCachedTypeDefinitionFile,
+	getCachedTypeMatches,
+} = require('@ripple-ts/typescript-plugin/src/language.js');
 
 const { log } = createLogging('[Ripple Definition Plugin]');
+/** @type {string | undefined} */
+let ripple_dir;
 
 /**
  * @returns {LanguageServicePlugin}
@@ -44,7 +55,78 @@ function createDefinitionPlugin() {
 					log(`Cursor position in generated code for word '${word}':`, position);
 					log(`Cursor offset in generated code for word '${word}':`, offset);
 
-					// If mapping has custom definition metadata with location, handle it
+					// Handle `typeReplace` definitions
+					if (
+						customMapping?.data.customData.definition !== false &&
+						customMapping?.data.customData.definition?.typeReplace
+					) {
+						const { name: typeName, path: typePath } =
+							customMapping.data.customData.definition.typeReplace;
+
+						log(`Found replace definition for ${typeName}`);
+
+						const filePath = sourceUri.fsPath || sourceUri.path;
+						ripple_dir = ripple_dir ?? getRippleDirForFile(normalizeFileNameOrUri(filePath));
+
+						if (!ripple_dir) {
+							log(`Could not determine Ripple source directory for file: ${filePath}`);
+							return;
+						}
+
+						const typesFilePath = path.join(ripple_dir, ...typePath.split('/'));
+
+						const fileContent = getCachedTypeDefinitionFile(typesFilePath);
+
+						if (!fileContent) {
+							// the `getCachedTypeDefinitionFile` already logs the error
+							return;
+						}
+
+						const match = getCachedTypeMatches(typeName, fileContent);
+
+						if (match && match.index !== undefined) {
+							const classStart = match.index + match[0].indexOf(typeName);
+							const classEnd = classStart + typeName.length;
+
+							// Convert offset to line/column
+							const lines = fileContent.substring(0, classStart).split('\n');
+							const line = lines.length - 1;
+							const character = lines[lines.length - 1].length;
+
+							const endLines = fileContent.substring(0, classEnd).split('\n');
+							const endLine = endLines.length - 1;
+							const endCharacter = endLines[endLines.length - 1].length;
+
+							// Create the origin selection range for #Map/#Set
+							const generatedStart = customMapping.generatedOffsets[0];
+							const generatedEnd =
+								generatedStart + customMapping.data.customData.generatedLengths[0];
+							const originStart = document.positionAt(generatedStart);
+							const originEnd = document.positionAt(generatedEnd);
+
+							/** @type {LocationLink} */
+							const locationLink = {
+								targetUri: `file://${typesFilePath}`,
+								targetRange: {
+									start: { line, character },
+									end: { line: endLine, character: endCharacter },
+								},
+								targetSelectionRange: {
+									start: { line, character },
+									end: { line: endLine, character: endCharacter },
+								},
+								originSelectionRange: {
+									start: originStart,
+									end: originEnd,
+								},
+							};
+
+							log(`Created definition link to ${typesFilePath}:${line}:${character}`);
+							return [locationLink];
+						}
+					}
+
+					// Handle embedded code definition location, e.g. CSS class selectors
 					if (
 						customMapping?.data.customData.definition !== false &&
 						customMapping?.data.customData.definition?.location
@@ -115,8 +197,11 @@ function createDefinitionPlugin() {
 						}
 					}
 
-					// Below here we handle adjusting TypeScript definitions for transformed tokens
-					// specifically, when "component" in Ripple maps to "function" in TS
+					// Below here we handle adjusting TS definition for transformed tokens
+					// `originSelectionRange` returned by TS needs its end character adjusted
+					// to account for the source length differing from generated length
+					// e.g. when "component" in Ripple maps to "function" in TS
+					// Or when "#Map" maps to "TrackedMap", etc.
 
 					// If no TypeScript definitions, nothing to modify
 					// Volar will let the next ts plugin handle it
@@ -144,13 +229,15 @@ function createDefinitionPlugin() {
 
 					log('Found mapping for definition at range', 'start: ', rangeStart, 'end: ', rangeEnd);
 
-					// Check if source length is greater than generated length (component -> function)
+					// Check if source length differs from generated length
+					// e.g., "component" -> "function" (source > generated)
+					// e.g., "#Map" -> "TrackedMap" (source < generated)
 					const customData = mapping.data.customData;
 					const sourceLength = mapping.lengths[0];
 					const generatedLength = customData.generatedLengths[0];
 
-					// If no generatedLengths, or source and generated are same length, no transformation
-					if (sourceLength <= generatedLength) {
+					// If source and generated are same length, no transformation needed
+					if (sourceLength === generatedLength) {
 						return tsDefinitions;
 					}
 

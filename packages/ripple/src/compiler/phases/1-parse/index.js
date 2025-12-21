@@ -342,8 +342,12 @@ function RipplePlugin(config) {
 						if (this.input.slice(this.pos, this.pos + 4) === '#Map') {
 							const charAfter =
 								this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
-							if (charAfter === 40) {
-								// ( character
+							if (charAfter === 40 || charAfter === 60) {
+								// ( or < character (for generics like #Map<string, number>)
+								this.pos += 4; // consume '#Map'
+								return this.finishToken(tt.name, '#Map');
+							} else if (this.#loose) {
+								// In loose mode, produce token even without parens (incomplete syntax)
 								this.pos += 4; // consume '#Map'
 								return this.finishToken(tt.name, '#Map');
 							}
@@ -351,8 +355,12 @@ function RipplePlugin(config) {
 						if (this.input.slice(this.pos, this.pos + 4) === '#Set') {
 							const charAfter =
 								this.pos + 4 < this.input.length ? this.input.charCodeAt(this.pos + 4) : -1;
-							if (charAfter === 40) {
-								// ( character
+							if (charAfter === 40 || charAfter === 60) {
+								// ( or < character (for generics like #Set<number>)
+								this.pos += 4; // consume '#Set'
+								return this.finishToken(tt.name, '#Set');
+							} else if (this.#loose) {
+								// In loose mode, produce token even without parens (incomplete syntax)
 								this.pos += 4; // consume '#Set'
 								return this.finishToken(tt.name, '#Set');
 							}
@@ -379,8 +387,9 @@ function RipplePlugin(config) {
 						}
 
 						// Check if this is an invalid #Identifier pattern
-						// Valid patterns: #[, #{, #Map(, #Set(, #server
+						// Valid patterns: #[, #{, #Map(, #Map<, #Set(, #Set<, #server
 						// If we see # followed by an uppercase letter that isn't Map or Set, it's an error
+						// In loose mode, allow incomplete identifiers like #M, #Ma, #S, #Se for autocomplete
 						if (nextChar >= 65 && nextChar <= 90) {
 							// A-Z
 							// Extract the identifier name
@@ -401,12 +410,34 @@ function RipplePlugin(config) {
 							}
 							const identName = this.input.slice(this.pos + 1, identEnd);
 							if (identName !== 'Map' && identName !== 'Set') {
-								this.raise(
-									this.pos,
-									`Invalid tracked syntax '#${identName}'. Only #Map and #Set are currently supported using shorthand tracked syntax.`,
-								);
+								// In loose mode, allow incomplete identifiers (prefixes of Map/Set)
+								// This supports autocomplete scenarios where user is still typing
+								const isIncompleteMap = 'Map'.startsWith(identName);
+								const isIncompleteSet = 'Set'.startsWith(identName);
+
+								if (!this.#loose || (!isIncompleteMap && !isIncompleteSet)) {
+									this.raise(
+										this.pos,
+										`Invalid tracked syntax '#${identName}'. Only #Map and #Set are currently supported using shorthand tracked syntax.`,
+									);
+								} else {
+									// In loose mode with valid prefix, consume the token and return it
+									// This allows the parser to handle incomplete syntax gracefully
+									this.pos = identEnd; // consume '#' + identifier
+									return this.finishToken(tt.name, '#' + identName);
+								}
 							}
 						}
+
+						// In loose mode, handle bare # or # followed by unrecognized characters
+						if (this.#loose) {
+							this.pos++; // consume '#'
+							return this.finishToken(tt.name, '#');
+						}
+					} else if (this.#loose) {
+						// In loose mode, handle bare # at EOF
+						this.pos++; // consume '#'
+						return this.finishToken(tt.name, '#');
 					}
 				}
 				if (code === 64) {
@@ -610,6 +641,20 @@ function RipplePlugin(config) {
 					return this.parseTrackedCollectionExpression(type);
 				}
 
+				// In loose mode, handle incomplete #Map/#Set prefixes (e.g., #M, #Ma, #S, #Se)
+				if (
+					this.#loose &&
+					this.type === tt.name &&
+					typeof this.value === 'string' &&
+					this.value.startsWith('#')
+				) {
+					// Return an Identifier node for incomplete tracked syntax
+					const node = /** @type {AST.Identifier} */ (this.startNode());
+					node.name = this.value;
+					this.next();
+					return this.finishNode(node, 'Identifier');
+				}
+
 				// Check if this is a tuple literal starting with #[
 				if (this.type === tt.bracketL && this.value === '#[') {
 					return this.parseTrackedArrayExpression();
@@ -728,8 +773,10 @@ function RipplePlugin(config) {
 					);
 				}
 
-				if (this.type === tt.parenL) {
-					// Don't consume parens - they belong to NewExpression
+				// Don't consume parens or generics - they belong to NewExpression
+				// When used as "new #Map(...)" the next token is '('
+				// When used as "new #Map<K,V>(...)" the next token is '<' (relational)
+				if (this.type === tt.parenL || (this.type === tt.relational && this.value === '<')) {
 					node.arguments = [];
 					return this.finishNode(node, type);
 				}

@@ -10,6 +10,7 @@ const {
 	createLogging,
 	getWordFromPosition,
 	concatMarkdownContents,
+	deobfuscateImportDefinitions,
 } = require('./utils.js');
 
 const { log, logError } = createLogging('[Ripple Hover Plugin]');
@@ -51,6 +52,12 @@ function createHoverPlugin() {
 					let tsHover = null;
 					if (originalProvideHover) {
 						tsHover = await originalProvideHover.call(originalInstance, document, position, token);
+					}
+
+					if (tsHover && tsHover.contents) {
+						/** @type {MarkupContent} **/ (tsHover.contents).value = deobfuscateImportDefinitions(
+							/** @type {MarkupContent} **/ (tsHover.contents).value,
+						);
 					}
 
 					const [virtualCode] = getVirtualCode(document, context);

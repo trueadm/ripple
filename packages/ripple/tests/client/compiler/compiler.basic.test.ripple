@@ -1,6 +1,8 @@
 import { parse, compile, compile_to_volar_mappings } from 'ripple/compiler';
+import { obfuscate_imported } from 'ripple/compiler/internal/import/utils';
+import type * as AST from 'estree';
 
-function count_occurrences(string, subString) {
+function count_occurrences(string: string, subString: string): number {
 	let count = 0;
 	let pos = string.indexOf(subString);
 
@@ -25,15 +27,21 @@ describe('compiler > basics', () => {
 
 		let input = source.replace('#style', style1);
 		let ast = parse(input);
-		expect(ast.body[0].declaration.css.source).toEqual(style1);
+		expect(
+			((ast.body[0] as AST.ExportNamedDeclaration).declaration as AST.Component).css.source,
+		).toEqual(style1);
 
 		input = source.replace('#style', style2);
 		ast = parse(input);
-		expect(ast.body[0].declaration.css.source).toEqual(style2);
+		expect(
+			((ast.body[0] as AST.ExportNamedDeclaration).declaration as AST.Component).css.source,
+		).toEqual(style2);
 
 		input = source.replace('#style', style3);
 		ast = parse(input);
-		expect(ast.body[0].declaration.css.source).toEqual(style3);
+		expect(
+			((ast.body[0] as AST.ExportNamedDeclaration).declaration as AST.Component).css.source,
+		).toEqual(style3);
 	});
 
 	it('renders without crashing', () => {
@@ -113,7 +121,7 @@ describe('compiler > basics', () => {
 				},
 			};
 
-			const config3: { [key: RecordKey]: RecordValue } = {
+			const config3: { [key: string]: RecordValue } = {
 				test: {
 					a: 'test3',
 					b: 3,
@@ -192,6 +200,10 @@ describe('compiler > basics', () => {
 				method<T>(): T {
 					return this.value;
 				}
+
+				constructor(value: T) {
+					this.value = value;
+				}
 			}
 
 			let flag = true;
@@ -219,8 +231,10 @@ describe('compiler > basics', () => {
 		const result = compile(source, 'test.ripple', { mode: 'client' });
 	});
 
-	it('doesn\'t add duplicate imports when encountering shorthand syntax', () => {
-		const source = `
+	it(
+		'imports and uses only obfuscated Tracked imports when encountering only shorthand syntax',
+		() => {
+			const source = `
 import {
 	TrackedArray,
 	TrackedObject,
@@ -238,17 +252,18 @@ component App() {
 	<div {ref () => {}} />
 }
 `;
-		const result = compile_to_volar_mappings(source, 'test.ripple').code;
+			const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-		expect(count_occurrences(result, 'TrackedArray')).toBe(2);
-		expect(count_occurrences(result, 'TrackedObject')).toBe(2);
-		expect(count_occurrences(result, 'TrackedSet')).toBe(2);
-		expect(count_occurrences(result, 'TrackedMap')).toBe(2);
-		expect(count_occurrences(result, 'createRefKey')).toBe(2);
-	});
+			expect(count_occurrences(result, 'TrackedArray')).toBe(1);
+			expect(count_occurrences(result, 'TrackedObject')).toBe(1);
+			expect(count_occurrences(result, 'TrackedSet')).toBe(1);
+			expect(count_occurrences(result, 'TrackedMap')).toBe(1);
+			expect(count_occurrences(result, 'createRefKey')).toBe(1);
+		},
+	);
 
 	it(
-		'doesn\'t add duplicate imports for renamed imports when encountering shorthand syntax',
+		'adds obfuscated imports and keeps renamed Tracked imports intact when encountering shorthand syntax',
 		() => {
 			const source = `
 import {
@@ -270,20 +285,20 @@ component App() {
 `;
 			const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-			expect(count_occurrences(result, 'TrackedArray')).toBe(1);
-			expect(count_occurrences(result, 'TA')).toBe(2);
-			expect(count_occurrences(result, 'TrackedObject')).toBe(1);
-			expect(count_occurrences(result, 'TO')).toBe(2);
-			expect(count_occurrences(result, 'TrackedSet')).toBe(1);
-			expect(count_occurrences(result, 'TS')).toBe(2);
-			expect(count_occurrences(result, 'TrackedMap')).toBe(1);
-			expect(count_occurrences(result, 'TM')).toBe(2);
-			expect(count_occurrences(result, 'createRefKey')).toBe(1);
-			expect(count_occurrences(result, 'crk')).toBe(2);
+			expect(count_occurrences(result, obfuscate_imported('TrackedArray'))).toBe(2);
+			expect(count_occurrences(result, 'TA')).toBe(1);
+			expect(count_occurrences(result, obfuscate_imported('TrackedObject'))).toBe(2);
+			expect(count_occurrences(result, 'TO')).toBe(1);
+			expect(count_occurrences(result, obfuscate_imported('TrackedSet'))).toBe(2);
+			expect(count_occurrences(result, 'TS')).toBe(1);
+			expect(count_occurrences(result, obfuscate_imported('TrackedMap'))).toBe(2);
+			expect(count_occurrences(result, 'TM')).toBe(1);
+			expect(count_occurrences(result, obfuscate_imported('createRefKey'))).toBe(2);
+			expect(count_occurrences(result, 'crk')).toBe(1);
 		},
 	);
 
-	it('adds missing imports for shorthand syntax', () => {
+	it('adds hidden obfuscated imports for shorthand syntax', () => {
 		const source = `
 component App() {
 	const items = #[1, 2, 3];
@@ -296,34 +311,11 @@ component App() {
 `;
 		const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-		expect(count_occurrences(result, 'TrackedArray')).toBe(2);
-		expect(count_occurrences(result, 'TrackedObject')).toBe(2);
-		expect(count_occurrences(result, 'TrackedSet')).toBe(2);
-		expect(count_occurrences(result, 'TrackedMap')).toBe(2);
-		expect(count_occurrences(result, 'createRefKey')).toBe(2);
-	});
-
-	it('only adds missing imports for shorthand syntax, reusing existing ones', () => {
-		const source = `
-import { TrackedArray, TrackedMap, createRefKey as crk } from 'ripple';
-
-component App() {
-	const items = #[1, 2, 3];
-	const obj = #{ a: 1, b: 2, c: 3 };
-	const set = new #Set([1, 2, 3]);
-	const map = new #Map([['a', 1], ['b', 2], ['c', 3]]);
-
-	<div {ref () => {}} />
-}
-`;
-		const result = compile_to_volar_mappings(source, 'test.ripple').code;
-
-		expect(count_occurrences(result, 'TrackedArray')).toBe(2);
-		expect(count_occurrences(result, 'TrackedObject')).toBe(2);
-		expect(count_occurrences(result, 'TrackedSet')).toBe(2);
-		expect(count_occurrences(result, 'TrackedMap')).toBe(2);
-		expect(count_occurrences(result, 'createRefKey')).toBe(1);
-		expect(count_occurrences(result, 'crk')).toBe(2);
+		expect(count_occurrences(result, obfuscate_imported('TrackedArray'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_imported('TrackedObject'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_imported('TrackedSet'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_imported('TrackedMap'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_imported('createRefKey'))).toBe(2);
 	});
 
 	it('should not error on having js below markup in the same scope', () => {

@@ -1,10 +1,60 @@
 /** @import { TextDocument } from 'vscode-languageserver-textdocument' */
 /** @import { LanguageServiceContext } from '@volar/language-server' */
 /** @import {RippleVirtualCode} from '@ripple-ts/typescript-plugin/src/language.js' */
+// @ts-expect-error: ESM type import is fine
+/** @import {is_imported_obfuscated, deobfuscate_imported, IMPORT_OBFUSCATION_PREFIX} from 'ripple/compiler/internal/import/utils' */
 
 const { URI } = require('vscode-uri');
 const { createLogging, DEBUG } = require('@ripple-ts/typescript-plugin/src/utils.js');
-const wordRegex = /\w/;
+// Matches valid JS/CSS identifier characters: word chars, dashes (CSS), $, and # (Ripple shorthands)
+const charAllowedWordRegex = /[\w\-$#]/;
+const IMPORT_EXPORT_REGEX = {
+	import: {
+		findBefore: /import\s+(?:\{[^}]*|\*\s+as\s+\w*|\w*)$/s,
+		sameLine: /^import\s/,
+	},
+	export: {
+		findBefore: /export\s+(?:\{[^}]*|\*\s+as\s+\w*|\w*)$/s,
+		sameLine: /^export\s/,
+	},
+	from: /from\s*['"][^'"]*['"]\s*;?/,
+};
+
+/** @type {is_imported_obfuscated}  */
+let is_imported_obfuscated;
+/** @type {deobfuscate_imported} */
+let deobfuscate_imported;
+/** @type {IMPORT_OBFUSCATION_PREFIX} */
+let IMPORT_OBFUSCATION_PREFIX;
+/** @type {RegExp} */
+let obfuscatedImportRegex;
+
+import('ripple/compiler/internal/import/utils').then((imports) => {
+	is_imported_obfuscated = imports.is_imported_obfuscated;
+	deobfuscate_imported = imports.deobfuscate_imported;
+	IMPORT_OBFUSCATION_PREFIX = imports.IMPORT_OBFUSCATION_PREFIX;
+	obfuscatedImportRegex = new RegExp(
+		escapeRegExp(IMPORT_OBFUSCATION_PREFIX) + charAllowedWordRegex.source + '+',
+		'gm',
+	);
+});
+
+/**
+ * @param {string} source
+ * @returns {string}
+ */
+function escapeRegExp(source) {
+	// $& means the whole matched source
+	return source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+function deobfuscateImportDefinitions(text) {
+	return text.replace(obfuscatedImportRegex, (match) => deobfuscate_imported(match));
+}
 
 /**
  * @param  {...string} contents
@@ -43,10 +93,10 @@ function getVirtualCode(document, context) {
 function getWordFromPosition(text, start) {
 	let wordStart = start;
 	let wordEnd = start;
-	while (wordStart > 0 && wordRegex.test(text[wordStart - 1])) {
+	while (wordStart > 0 && charAllowedWordRegex.test(text[wordStart - 1])) {
 		wordStart--;
 	}
-	while (wordEnd < text.length && wordRegex.test(text[wordEnd])) {
+	while (wordEnd < text.length && charAllowedWordRegex.test(text[wordEnd])) {
 		wordEnd++;
 	}
 
@@ -59,10 +109,66 @@ function getWordFromPosition(text, start) {
 	};
 }
 
+/**
+ * @param {'import' | 'export'} type
+ * @param {string} text
+ * @param {number} start
+ * @returns {boolean}
+ */
+function isInsideImportOrExport(type, text, start) {
+	const textBeforeCursor = text.slice(0, start);
+
+	// Find the last 'import' keyword before cursor
+	const lastImportMatch = textBeforeCursor.match(IMPORT_EXPORT_REGEX[type].findBefore);
+	if (!lastImportMatch) {
+		// Check if we're on a line that starts with import
+		const lineStart = textBeforeCursor.lastIndexOf('\n') + 1;
+		const lineBeforeCursor = textBeforeCursor.slice(lineStart);
+		return IMPORT_EXPORT_REGEX[type].sameLine.test(lineBeforeCursor.trim());
+	}
+
+	// We found an import - check if it's been closed with 'from'
+	const importStart = textBeforeCursor.lastIndexOf(type);
+	const textFromImport = text.slice(importStart);
+
+	// Find the end of this import statement (semicolon or newline after 'from "..."')
+	const fromMatch = textFromImport.match(IMPORT_EXPORT_REGEX.from);
+	if (!fromMatch || fromMatch.index === undefined) {
+		// No 'from' found yet - we're inside an incomplete import
+		return true;
+	}
+
+	const importEndOffset = importStart + fromMatch.index + fromMatch[0].length;
+
+	// If cursor is before the import ends, we're inside it
+	return start < importEndOffset;
+}
+
+/**
+ * @param {string} text
+ * @param {number} start
+ * @returns {boolean}
+ */
+function isInsideImport(text, start) {
+	return isInsideImportOrExport('import', text, start);
+}
+
+/**
+ * @param {string} text
+ * @param {number} start
+ * @returns {boolean}
+ */
+function isInsideExport(text, start) {
+	return isInsideImportOrExport('export', text, start);
+}
+
 module.exports = {
 	getVirtualCode,
 	getWordFromPosition,
+	isInsideImport,
+	isInsideExport,
 	createLogging,
 	concatMarkdownContents,
+	deobfuscateImportDefinitions,
 	DEBUG,
 };

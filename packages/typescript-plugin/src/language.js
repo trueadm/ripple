@@ -26,15 +26,7 @@ const { log, logWarning, logError } = createLogging('[Ripple Language]');
 function getRippleLanguagePlugin() {
 	log('Creating Ripple language plugin...');
 
-	/** @type {Map<string, string | null>} */
-	const path2RipplePathMap = new Map();
-	/** @type {string | null} */
-	let packaged_path = null;
-
 	return {
-		/**
-		 * @param {ScriptId} fileNameOrUri
-		 */
 		getLanguageId(fileNameOrUri) {
 			const file_name =
 				typeof fileNameOrUri === 'string'
@@ -45,19 +37,10 @@ function getRippleLanguagePlugin() {
 				return 'ripple';
 			}
 		},
-
-		/**
-		 * @param {ScriptId} fileNameOrUri
-		 * @param {string} languageId
-		 * @param {IScriptSnapshot} snapshot
-		 */
 		createVirtualCode(fileNameOrUri, languageId, snapshot) {
 			if (languageId === 'ripple') {
-				const file_name =
-					typeof fileNameOrUri === 'string'
-						? fileNameOrUri
-						: fileNameOrUri.fsPath.replace(/\\/g, '/');
-				const ripple = getRippleForFile(file_name);
+				const file_name = normalizeFileNameOrUri(fileNameOrUri);
+				const ripple = getRippleCompiler(file_name);
 				if (!ripple) {
 					logError(`Ripple compiler not found for file: ${file_name}`);
 					return undefined;
@@ -72,12 +55,6 @@ function getRippleLanguagePlugin() {
 			}
 			return undefined;
 		},
-
-		/**
-		 * @param {ScriptId} fileNameOrUri
-		 * @param {VirtualCode} virtualCode
-		 * @param {IScriptSnapshot} snapshot
-		 */
 		updateVirtualCode(fileNameOrUri, virtualCode, snapshot) {
 			if (virtualCode instanceof RippleVirtualCode) {
 				log('Updating existing virtual code for:', virtualCode.fileName);
@@ -106,68 +83,6 @@ function getRippleLanguagePlugin() {
 			},
 		},
 	};
-
-	/**
-	 * @param {string} normalized_file_name
-	 * @returns {RippleCompiler | undefined}
-	 */
-	function getRippleForFile(normalized_file_name) {
-		const compiler_path = ['node_modules', 'ripple', 'src', 'compiler', 'index.js'];
-
-		const parts = normalized_file_name.split('/');
-
-		// First, try to find ripple in the workspace (user's repo)
-		for (let i = parts.length - 2; i >= 0; i--) {
-			const dir = parts.slice(0, i + 1).join('/');
-
-			if (!path2RipplePathMap.has(dir)) {
-				const full_path = [dir, ...compiler_path].join('/');
-				if (fs.existsSync(full_path)) {
-					path2RipplePathMap.set(dir, full_path);
-					log('Found ripple compiler at:', full_path);
-				} else {
-					path2RipplePathMap.set(dir, null);
-				}
-			}
-
-			const ripple_path = path2RipplePathMap.get(dir);
-			if (ripple_path) {
-				return /** @type {RippleCompiler} */ (require(ripple_path));
-			}
-		}
-
-		const warn_message = `Ripple compiler not found in workspace for ${normalized_file_name}. \
-		Using packaged version`;
-
-		if (packaged_path) {
-			logWarning(`${warn_message} at ${packaged_path}`);
-			return /** @type {RippleCompiler} */ (require(packaged_path));
-		}
-
-		// Fallback: look for the packaged version
-		// Use node's module resolution just in case we move the package location
-		// Start from the plugin's directory and walk up
-		let current_dir = __dirname;
-
-		while (current_dir) {
-			const full_path = path.join(current_dir, ...compiler_path);
-
-			if (fs.existsSync(full_path)) {
-				packaged_path = full_path;
-				logWarning(`${warn_message} at ${packaged_path}`);
-				return /** @type {RippleCompiler} */ (require(full_path));
-			}
-
-			const parent_dir = path.dirname(current_dir);
-			// Stop if we've reached the root
-			if (parent_dir === current_dir) {
-				break;
-			}
-			current_dir = parent_dir;
-		}
-
-		return undefined;
-	}
 }
 
 /**
@@ -527,8 +442,159 @@ const resolveConfig = (config) => {
 	};
 };
 
+/** @type {Map<string, string | null>} */
+const path2RipplePathMap = new Map();
+/** @type {string | null} */
+let packaged_dir = null;
+/** @type {Map<string, string>} */
+const pathToTypesCache = new Map();
+/** @type {Map<string, RegExpMatchArray>} */
+const typeNameMatchCache = new Map();
+
+/**
+ * @param {ScriptId} fileNameOrUri
+ * @returns {string}
+ */
+function normalizeFileNameOrUri(fileNameOrUri) {
+	return typeof fileNameOrUri === 'string'
+		? fileNameOrUri
+		: fileNameOrUri.fsPath.replace(/\\/g, '/');
+}
+
+/**
+ * @param {string} normalized_file_name
+ * @returns {RippleCompiler | undefined}
+ */
+function getRippleCompiler(normalized_file_name) {
+	const dir = getRippleDirForFile(normalized_file_name);
+	const ripple_path = dir ? path.join(dir, 'src', 'compiler', 'index.js') : undefined;
+	if (ripple_path) {
+		return /** @type {RippleCompiler} */ (require(ripple_path));
+	}
+}
+
+/**
+ * @param {string} normalized_file_name
+ * @returns {string | undefined}
+ */
+function getRippleDirForFile(normalized_file_name) {
+	const ripple_src_dir = ['node_modules', 'ripple'];
+
+	const parts = normalized_file_name.split('/');
+
+	// First, try to find ripple in the workspace (user's repo)
+	for (let i = parts.length - 2; i >= 0; i--) {
+		const dir = parts.slice(0, i + 1).join('/');
+
+		if (!path2RipplePathMap.has(dir)) {
+			const full_path = [dir, ...ripple_src_dir].join('/');
+			if (fs.existsSync(full_path)) {
+				path2RipplePathMap.set(dir, full_path);
+				log('Found ripple src directory at:', full_path);
+			} else {
+				path2RipplePathMap.set(dir, null);
+			}
+		}
+
+		const src_dir = path2RipplePathMap.get(dir);
+		if (src_dir) {
+			return src_dir;
+		}
+	}
+
+	const warn_message = `Ripple src directory not found in workspace for ${normalized_file_name}. \
+		Using packaged version`;
+
+	if (packaged_dir) {
+		logWarning(`${warn_message} at ${packaged_dir}`);
+		return packaged_dir;
+	}
+
+	// Fallback: look for the packaged version
+	// Use node's module resolution just in case we move the package location
+	// Start from the plugin's directory and walk up
+	let current_dir = __dirname;
+
+	while (current_dir) {
+		const full_path = path.join(current_dir, ...ripple_src_dir);
+
+		if (fs.existsSync(full_path)) {
+			packaged_dir = full_path;
+			logWarning(`${warn_message} at ${packaged_dir}`);
+			return require(full_path);
+		}
+
+		const parent_dir = path.dirname(current_dir);
+		// Stop if we've reached the root
+		if (parent_dir === current_dir) {
+			break;
+		}
+		current_dir = parent_dir;
+	}
+
+	return undefined;
+}
+
+/**
+ * @param {string} typesFilePath
+ * @returns {string | undefined}
+ */
+function getCachedTypeDefinitionFile(typesFilePath) {
+	const cached = pathToTypesCache.get(typesFilePath);
+	if (cached) {
+		return cached;
+	}
+
+	if (!fs.existsSync(typesFilePath)) {
+		logWarning(`Types file does not exist at path: ${typesFilePath}`);
+		return;
+	}
+
+	log(`Found ripple types at: ${typesFilePath}`);
+
+	// Read the file to find the class definition offset
+	const fileContent = fs.readFileSync(typesFilePath, 'utf8');
+
+	if (!fileContent) {
+		logWarning(`Failed to read content of types file at: ${typesFilePath}`);
+		return;
+	}
+
+	pathToTypesCache.set(typesFilePath, fileContent);
+	return fileContent;
+}
+
+/**
+ * @param {string} typeName
+ * @param {string} text
+ * @returns {RegExpMatchArray | undefined}
+ */
+function getCachedTypeMatches(typeName, text) {
+	const cached = typeNameMatchCache.get(typeName);
+	if (cached) {
+		return cached;
+	}
+
+	const searchPattern = new RegExp(
+		`(?:export\\s+(?:declare\\s+)?|declare\\s+)(class|function)\\s+${typeName}`,
+	);
+
+	const match = text.match(searchPattern);
+
+	if (match && match.index !== undefined) {
+		typeNameMatchCache.set(typeName, match);
+		return match;
+	}
+
+	return;
+}
+
 module.exports = {
+	getRippleDirForFile,
+	normalizeFileNameOrUri,
 	getRippleLanguagePlugin,
+	getCachedTypeDefinitionFile,
+	getCachedTypeMatches,
 	RippleVirtualCode,
 	resolveConfig,
 };

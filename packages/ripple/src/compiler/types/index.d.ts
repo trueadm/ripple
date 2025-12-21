@@ -149,7 +149,7 @@ declare module 'estree' {
 	interface ImportSpecifier {
 		importKind: TSESTree.ImportSpecifier['importKind'];
 	}
-	interface ExportNamedDeclaration {
+	interface ExportNamedDeclaration extends Omit<TSESTree.ExportNamedDeclaration, 'exportKind'> {
 		exportKind: TSESTree.ExportNamedDeclaration['exportKind'];
 	}
 
@@ -1161,7 +1161,6 @@ export interface TransformClientState extends BaseState {
 	init: Array<AST.Statement> | null;
 	metadata: BaseStateMetaData;
 	namespace: NameSpace;
-	ripple_user_imports: Map<string, string>;
 	setup: Array<AST.Statement> | null;
 	stylesheets: Array<AST.CSS.StyleSheet>;
 	template: Array<string | AST.Expression> | null;

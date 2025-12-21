@@ -1,4 +1,4 @@
-import type { Program } from 'estree';
+import type * as AST from 'estree';
 import type {
 	CodeInformation as VolarCodeInformation,
 	Mapping as VolarMapping,
@@ -14,7 +14,7 @@ import type { SourceMapMappings } from '@jridgewell/sourcemap-codec';
  */
 export interface CompileResult {
 	/** The transformed AST */
-	ast: Program;
+	ast: AST.Program;
 	/** The generated JavaScript code with source map */
 	js: {
 		code: string;
@@ -49,6 +49,14 @@ export interface PluginActionOverrides {
 				description?: string; // just for reference
 				// Generic location for embedded content (CSS, etc.)
 				location?: DefinitionLocation;
+				// Replace the type name in hover/definition with a different name
+				// And provide the path to import the type definitions from
+				// the `ripple` package directory, e.g. `types/index.d.ts`
+				// Currently only supported by the definition plugin
+				typeReplace?: {
+					name: string;
+					path: string;
+				};
 		  }
 		| false;
 }
@@ -94,7 +102,7 @@ export interface AnalyzeOptions extends ParseOptions, Pick<CompileOptions, 'mode
 
 export interface VolarCompileOptions extends ParseOptions, SharedCompileOptions {}
 
-export function parse(source: string, options?: ParseOptions): Program;
+export function parse(source: string, options?: ParseOptions): AST.Program;
 
 export function compile(source: string, filename: string, options?: CompileOptions): CompileResult;
 
