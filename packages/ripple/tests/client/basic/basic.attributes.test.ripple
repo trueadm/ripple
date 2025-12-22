@@ -64,7 +64,7 @@ describe('basic client > attribute rendering', () => {
 					[
 						'ccc',
 						'ddd',
-						{eee: true, fff: false},
+						{ eee: true, fff: false },
 					],
 				]}
 			>
@@ -107,7 +107,7 @@ describe('basic client > attribute rendering', () => {
 			>
 				{'Toggle'}
 			</button>
-			<div class={{active: @active, inactive: !@active}}>{'Dynamic Class'}</div>
+			<div class={{ active: @active, inactive: !@active }}>{'Dynamic Class'}</div>
 
 			<style>
 				.active {
@@ -137,6 +137,35 @@ describe('basic client > attribute rendering', () => {
 
 		expect(div.classList.contains('inactive')).toBe(true);
 		expect(div.classList.contains('active')).toBe(false);
+	});
+
+	it('applies scoped ripple classs to multiple elements with dynamic class expressions', () => {
+		component Basic() {
+			let selected = track(1);
+
+			<div class={@selected === 0 ? 'selected' : ''}>{`div 1`}</div>
+			<div class={@selected === 0 ? 'selected' : ''}>{`div 2`}</div>
+
+			<style>
+				div {
+					background: green;
+					color: white;
+				}
+				div.selected {
+					background: indigo;
+				}
+			</style>
+		}
+
+		render(Basic);
+
+		const divs = container.querySelectorAll('div');
+
+		divs.forEach((div) => {
+			expect(Array.from(div.classList).some((className) => className.startsWith('ripple-'))).toBe(
+				true,
+			);
+		});
 	});
 
 	it('render dynamic id attribute', () => {
@@ -211,7 +240,7 @@ describe('basic client > attribute rendering', () => {
 			>
 				{'Change Color'}
 			</button>
-			<div style={{color: @color, fontWeight: 'bold'}}>{'Dynamic Style'}</div>
+			<div style={{ color: @color, fontWeight: 'bold' }}>{'Dynamic Style'}</div>
 		}
 
 		render(Basic);
@@ -265,7 +294,7 @@ describe('basic client > attribute rendering', () => {
 			}
 
 			<button onClick={toggleColor}>{'Change Color'}</button>
-			<div style={{...@style}}>{'Dynamic Style'}</div>
+			<div style={{ ...@style }}>{'Dynamic Style'}</div>
 		}
 
 		render(Basic);

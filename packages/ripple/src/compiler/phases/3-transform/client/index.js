@@ -1288,7 +1288,7 @@ const visitors = {
 								b.stmt(b.call('_$_.set_class', id, key, hash_arg, b.literal(is_html))),
 							expression,
 							identity: attr_value,
-							initial: b.literal(''),
+							initial: b.call(b.id('Symbol')),
 						});
 					} else {
 						state.init?.push(

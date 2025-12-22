@@ -149,7 +149,9 @@ declare module 'estree' {
 	interface ImportSpecifier {
 		importKind: TSESTree.ImportSpecifier['importKind'];
 	}
-	interface ExportNamedDeclaration extends Omit<TSESTree.ExportNamedDeclaration, 'exportKind'> {
+	interface ExportNamedDeclaration
+		// doesn't seem we're using parent and assertions, removing to avoid builders errors
+		extends Omit<TSESTree.ExportNamedDeclaration, 'exportKind' | 'parent' | 'assertions'> {
 		exportKind: TSESTree.ExportNamedDeclaration['exportKind'];
 	}
 
