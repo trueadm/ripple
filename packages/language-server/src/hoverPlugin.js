@@ -86,6 +86,11 @@ function createHoverPlugin() {
 						log(`Cursor offset in generated code for word '${word}':`, offset);
 					}
 
+					if (virtualCode.languageId !== 'ripple') {
+						log(`Skipping hover processing in the '${virtualCode.languageId}' context`);
+						return tsHover;
+					}
+
 					const mapping = virtualCode.findMappingByGeneratedRange(starOffset, endOffset);
 
 					if (!mapping) {

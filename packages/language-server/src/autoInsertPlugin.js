@@ -66,6 +66,11 @@ function createAutoInsertPlugin() {
 
 					const [virtualCode] = getVirtualCode(document, context);
 
+					if (virtualCode.languageId !== 'ripple') {
+						log(`Skipping auto-insert processing in the '${virtualCode.languageId}' context`);
+						return null;
+					}
+
 					// Map position back to source
 					const offset = document.offsetAt(position);
 					const mapping = virtualCode.findMappingByGeneratedRange(lastChange.rangeOffset, offset);

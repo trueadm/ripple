@@ -58,7 +58,8 @@ function createDocumentHighlightPlugin() {
 
 					const [virtualCode] = getVirtualCode(document, context);
 
-					if (!virtualCode) {
+					if (virtualCode.languageId !== 'ripple') {
+						log(`Skipping highlight processing in the '${virtualCode.languageId}' context`);
 						return tsHighlights;
 					}
 

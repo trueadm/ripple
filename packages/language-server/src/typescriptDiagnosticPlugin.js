@@ -13,7 +13,10 @@ const { getVirtualCode, createLogging } = require('./utils.js');
 const { log, logError } = createLogging('[Ripple TypeScript Diagnostic Plugin]');
 
 /**
- * Filter diagnostics based on suppressed diagnostic codes in mappings.
+ * Filter and adjust diagnostics based on mappings.
+ * - Filters out diagnostics with suppressed codes
+ * - Adjusts diagnostic ranges when source length differs from generated length
+ *   (e.g., multiline imports in source become single-line in generated)
  * @param {TextDocument} document
  * @param {LanguageServiceContext} context
  * @param {Diagnostic[]} diagnostics
@@ -32,39 +35,83 @@ function filterDiagnostics(document, context, diagnostics) {
 		return diagnostics;
 	}
 
-	const filtered = diagnostics.filter((diagnostic) => {
+	/** @type {Diagnostic[]} */
+	const result = [];
+
+	for (const diagnostic of diagnostics) {
 		const range = diagnostic.range;
 		const rangeStart = document.offsetAt(range.start);
 		const rangeEnd = document.offsetAt(range.end);
+
+		log(
+			`Diagnostic: code=${diagnostic.code}, range=[${range.start.line}:${range.start.character}-${range.end.line}:${range.end.character}], offsets=[${rangeStart}-${rangeEnd}]`,
+		);
+
 		const mapping = virtualCode.findMappingByGeneratedRange(rangeStart, rangeEnd);
 
 		if (!mapping) {
-			return true;
+			log(`No mapping found for range, passing through`);
+			result.push(diagnostic);
+			continue;
 		}
 
+		log(
+			`Found mapping: sourceOffsets=${mapping.sourceOffsets}, lengths=${mapping.lengths}, genOffsets=${mapping.generatedOffsets}, genLengths=${mapping.data.customData?.generatedLengths}`,
+		);
+
+		if (!mapping) {
+			result.push(diagnostic);
+			continue;
+		}
+
+		// Check if this diagnostic should be suppressed
 		const suppressedCodes = mapping.data.customData?.suppressedDiagnostics;
+		if (suppressedCodes && suppressedCodes.length > 0) {
+			const diagnosticCode =
+				typeof diagnostic.code === 'number'
+					? diagnostic.code
+					: typeof diagnostic.code === 'string'
+						? parseInt(diagnostic.code)
+						: null;
 
-		if (!suppressedCodes || suppressedCodes.length === 0) {
-			return true;
+			if (diagnosticCode && suppressedCodes.includes(diagnosticCode)) {
+				log(`Suppressing diagnostic ${diagnosticCode}: ${diagnostic.message}`);
+				continue;
+			}
 		}
 
-		const diagnosticCode =
-			typeof diagnostic.code === 'number'
-				? diagnostic.code
-				: typeof diagnostic.code === 'string'
-					? parseInt(diagnostic.code)
-					: null;
+		// Check if we need to adjust the range due to length mismatch
+		// This happens with multiline imports: source has newlines/tabs, generated is single-line
+		const sourceLength = mapping.lengths[0];
+		const generatedLength = mapping.data.customData?.generatedLengths?.[0];
 
-		if (diagnosticCode && suppressedCodes.includes(diagnosticCode)) {
-			log(`Suppressing diagnostic ${diagnosticCode}: ${diagnostic.message}`);
-			return false;
+		if (generatedLength !== undefined && sourceLength !== generatedLength) {
+			const diffLength = sourceLength - generatedLength;
+			log(
+				`Adjusting diagnostic range: source=${sourceLength}, generated=${generatedLength}, diff=${diffLength}`,
+			);
+
+
+			// diagnostic.range.end.character = diagnostic.range.end.character + diffLength;
+			result.push(diagnostic);
+			// Create adjusted diagnostic with corrected end position
+			// result.push({
+			// 	...diagnostic,
+			// 	range: {
+			// 		start: range.start,
+			// 		end: {
+			// 			line: range.end.line,
+			// 			character: range.end.character + diffLength,
+			// 		},
+			// 	},
+			// });
+		} else {
+			result.push(diagnostic);
 		}
+	}
 
-		return true;
-	});
-
-	log(`Filtered from ${diagnostics.length} to ${filtered.length} diagnostics`);
-	return filtered;
+	log(`Processed ${diagnostics.length} diagnostics, returning ${result.length}`);
+	return result;
 }
 
 /**

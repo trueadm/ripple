@@ -412,10 +412,10 @@ function createCompletionPlugin() {
 
 					const [virtualCode] = getVirtualCode(document, context);
 
-					// Check if we're inside an embedded code (like CSS in <style> blocks)
-					// If so, don't provide Ripple snippets - let CSS completions take priority
-					if (virtualCode && virtualCode.languageId === 'css') {
-						log('Skipping Ripple completions in CSS context');
+					if (virtualCode.languageId !== 'ripple') {
+						// Check if we're inside an embedded code (like CSS in <style> blocks)
+						// If so, don't provide Ripple snippets - let CSS completions take priority
+						log(`Skipping Ripple completions in the '${virtualCode.languageId}' context`);
 						return { items: [], isIncomplete: false };
 					}
 

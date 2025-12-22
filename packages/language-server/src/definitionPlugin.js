@@ -45,6 +45,12 @@ function createDefinitionPlugin() {
 
 					const [virtualCode, sourceUri] = getVirtualCode(document, context);
 
+					if (virtualCode.languageId !== 'ripple') {
+						// like embedded css
+						log(`Skipping definitions processing in the '${virtualCode.languageId}' context`);
+						return tsDefinitions;
+					}
+
 					// First check for custom definitions (e.g., CSS class selectors)
 					const offset = document.offsetAt(position);
 					const text = document.getText();
