@@ -151,6 +151,10 @@ export function validate_nesting(element, context) {
 						context.state.analysis.module.filename,
 						element,
 					);
+				} else {
+					// if my parent has a set of invalid children
+					// and i'm not in it, then i'm valid
+					return;
 				}
 			}
 		}
