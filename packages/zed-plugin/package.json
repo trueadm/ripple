@@ -1,6 +1,6 @@
 {
   "name": "@ripple-ts/zed-plugin",
-  "version": "0.0.62",
+  "version": "0.0.63",
   "description": "",
   "main": "index.js",
   "scripts": {
