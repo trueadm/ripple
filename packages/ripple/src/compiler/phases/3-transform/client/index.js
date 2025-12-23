@@ -3154,8 +3154,10 @@ function create_tsx_with_typescript_support() {
 			handle_function(node, context);
 		},
 		ImportDeclaration(node, context) {
-			// Write 'import' keyword with node location for source mapping
 			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			// Write 'import' keyword with source location
+			// to mark the beginning of the import statement for a full import mapping
+			// The semicolon at the end with location will mark the end of the import statement
 			context.location(loc.start.line, loc.start.column);
 			context.write('import');
 
@@ -3214,9 +3216,10 @@ function create_tsx_with_typescript_support() {
 			// Write source
 			context.visit(node.source);
 			// Write semicolon at the end
+			// and record its position to mark the end of the import statement
+			// This should work regardless of whether the source has a semi or not
+			context.location(loc.end.line, loc.end.column - 1);
 			context.write(';');
-			// record the location for the whole node for a full import mapping
-			context.location(loc.end.line, loc.end.column);
 		},
 		ImportDefaultSpecifier(node, context) {
 			context.visit(node.local);

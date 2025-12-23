@@ -24,7 +24,6 @@
 @typedef {{
 	source: string | null | undefined;
 	generated: string;
-	is_full_import_statement?: boolean;
 	loc: AST.SourceLocation;
 	end_loc?: AST.SourceLocation;
 	metadata?: PluginActionOverrides;
@@ -409,15 +408,37 @@ export function convert_source_map_to_mappings(
 			} else if (node.type === 'ImportDeclaration') {
 				isImportDeclarationPresent = true;
 
-				// Add import declaration as a special token for full-statement mapping
-				// TypeScript reports unused imports with diagnostics covering the entire statement
+				// Add 'import' keyword token to anchor statement-level diagnostics
+				// And the last character of the statement (semicolon or closing brace)
+				// (e.g., when ALL imports are unused, TS reports on the whole statement)
+				// We only map the 'import' and the last character
+				// to avoid overlapping with individual specifier mappings
+				// which would interfere when only SOME imports are unused.
 				if (node.loc) {
 					tokens.push({
-						source: '',
-						generated: '',
-						loc: node.loc,
-						is_full_import_statement: true,
-						end_loc: node.loc,
+						source: 'import',
+						generated: 'import',
+						loc: {
+							start: node.loc.start,
+							end: {
+								line: node.loc.start.line,
+								column: node.loc.start.column + 'import'.length,
+							},
+						},
+					});
+
+					tokens.push({
+						source:
+							source[loc_to_offset(node.loc.end.line, node.loc.end.column - 1, src_line_offsets)],
+						// we always add `;' in the generated import
+						generated: ';',
+						loc: {
+							start: {
+								line: node.loc.end.line,
+								column: node.loc.end.column - 1,
+							},
+							end: node.loc.end,
+						},
 					});
 				}
 
@@ -536,6 +557,7 @@ export function convert_source_map_to_mappings(
 								sourceOffsets: [sourceOffset],
 								generatedOffsets: [offset],
 								lengths: [length],
+								generatedLengths: [length],
 								data: {
 									...mapping_data,
 									customData: {
@@ -1625,90 +1647,50 @@ export function convert_source_map_to_mappings(
 	for (const token of tokens) {
 		const source_text = token.source ?? '';
 		const gen_text = token.generated;
-
 		const source_start = loc_to_offset(
 			token.loc.start.line,
 			token.loc.start.column,
 			src_line_offsets,
 		);
+		const source_length = source_text.length;
+		const gen_length = gen_text.length;
+		const gen_line_col = get_generated_position(
+			token.loc.start.line,
+			token.loc.start.column,
+			src_to_gen_map,
+		);
+		const gen_start = loc_to_offset(gen_line_col.line, gen_line_col.column, gen_line_offsets);
 
-		let source_length = source_text.length;
-		let gen_length = gen_text.length;
-		/** @type {MappingData} */
-		let data;
-		/** @type {number} */
-		let gen_start;
+		/** @type {CustomMappingData} */
+		const customData = {
+			generatedLengths: [gen_length],
+		};
 
-		if (token.is_full_import_statement) {
-			const end_loc = /** @type {AST.SourceLocation} */ (token.end_loc).end;
-			const source_end = loc_to_offset(end_loc.line, end_loc.column, src_line_offsets);
-
-			// Look up where import keyword and source literal map to in generated code
-			const gen_start_pos = get_generated_position(
-				token.loc.start.line,
-				token.loc.start.column,
-				src_to_gen_map,
-			);
-			const gen_end_pos = get_generated_position(end_loc.line, end_loc.column, src_to_gen_map);
-
-			gen_start = loc_to_offset(gen_start_pos.line, gen_start_pos.column, gen_line_offsets);
-			const gen_end = loc_to_offset(gen_end_pos.line, gen_end_pos.column, gen_line_offsets);
-
-			source_length = source_end - source_start;
-			gen_length = gen_end - gen_start;
-
-			data = {
-				// we only want verification here, like unused imports
-				// since this is synthetic and otherwise we'll get duplicated actions like intellisense
-				// each imported specifier has its own mapping
-				verification: true,
-				customData: {
-					generatedLengths: [gen_length],
-				},
-			};
-		} else {
-			const gen_line_col = get_generated_position(
-				token.loc.start.line,
-				token.loc.start.column,
-				src_to_gen_map,
-			);
-			gen_start = loc_to_offset(gen_line_col.line, gen_line_col.column, gen_line_offsets);
-
-			/** @type {CustomMappingData} */
-			const customData = {
-				generatedLengths: [gen_length],
-			};
-
-			// Add optional metadata from token if present
-			if (token.metadata) {
-				if ('wordHighlight' in token.metadata) {
-					customData.wordHighlight = token.metadata.wordHighlight;
-				}
-
-				if ('suppressedDiagnostics' in token.metadata) {
-					customData.suppressedDiagnostics = token.metadata.suppressedDiagnostics;
-				}
-				if ('hover' in token.metadata) {
-					customData.hover = token.metadata.hover;
-				}
-				if ('definition' in token.metadata) {
-					customData.definition = token.metadata.definition;
-				}
+		// Add optional metadata from token if present
+		if (token.metadata) {
+			if ('wordHighlight' in token.metadata) {
+				customData.wordHighlight = token.metadata.wordHighlight;
 			}
-
-			data = {
-				...mapping_data,
-				customData,
-			};
+			if ('suppressedDiagnostics' in token.metadata) {
+				customData.suppressedDiagnostics = token.metadata.suppressedDiagnostics;
+			}
+			if ('hover' in token.metadata) {
+				customData.hover = token.metadata.hover;
+			}
+			if ('definition' in token.metadata) {
+				customData.definition = token.metadata.definition;
+			}
 		}
 
-		// !IMPORTANT: don't set generatedLengths, otherwise Volar will use that vs our source
-		// We're adding it to our custom metadata instead as we need it for patching positions
 		mappings.push({
 			sourceOffsets: [source_start],
 			generatedOffsets: [gen_start],
 			lengths: [source_length],
-			data,
+			generatedLengths: [gen_length],
+			data: {
+				...mapping_data,
+				customData,
+			},
 		});
 	}
 
@@ -1722,6 +1704,7 @@ export function convert_source_map_to_mappings(
 			sourceOffsets: [0],
 			generatedOffsets: [0],
 			lengths: [1],
+			generatedLengths: [1],
 			data: {
 				...mapping_data,
 				customData: {
@@ -1739,6 +1722,7 @@ export function convert_source_map_to_mappings(
 			sourceOffsets: [region.start],
 			generatedOffsets: [0],
 			lengths: [region.content.length],
+			generatedLengths: [region.content.length],
 			data: {
 				...mapping_data,
 				customData: {
