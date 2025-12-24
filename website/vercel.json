@@ -21,16 +21,16 @@
 				},
 				{
 					"key": "Cache-Control",
-					"value": "public, max-age=3600, immutable"
+					"value": "public, max-age=3600"
 				}
 			]
 		},
 		{
-			"source": "/index.html",
+			"source": "/assets/(.*)",
 			"headers": [
 				{
 					"key": "Cache-Control",
-					"value": "public, max-age=3600"
+					"value": "public, max-age=31536000, immutable"
 				}
 			]
 		}

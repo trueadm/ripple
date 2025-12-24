@@ -66,8 +66,7 @@
 				position: relative;
 			}
 
-			body::before {
-				content: '';
+			#back {
 				position: absolute;
 				top: 0;
 				left: 0;
@@ -106,10 +105,9 @@
 					200px 100px,
 					200px 100px,
 					200px 100px;
-				animation: starTwinkle 8s linear infinite;
 			}
 
-			body::after {
+			#back::before {
 				content: '';
 				position: absolute;
 				top: 0;
@@ -134,33 +132,60 @@
 					);
 			}
 
-			@keyframes starTwinkle {
-				0%,
-				100% {
-					opacity: 1;
-				}
-				50% {
-					opacity: 0.7;
-				}
+			.particle {
+				position: absolute;
+				border-radius: 50%;
+				pointer-events: none;
+				filter: blur(1px);
+				will-change: transform, opacity;
+				animation: pulse ease-in-out infinite;
 			}
 
-			@keyframes atmosphericShift {
+			.particle-1 {
+				width: 4px;
+				height: 4px;
+				background: rgba(120, 219, 226, 0.6);
+				top: 20%;
+				left: 15%;
+				animation-duration: 3s;
+			}
+
+			.particle-2 {
+				width: 6px;
+				height: 6px;
+				background: rgba(255, 119, 198, 0.4);
+				top: 60%;
+				right: 20%;
+				animation-duration: 4s;
+			}
+
+			.particle-3 {
+				width: 5px;
+				height: 5px;
+				background: rgba(120, 219, 226, 0.3);
+				top: 30%;
+				left: 80%;
+				animation-duration: 3.5s;
+			}
+
+			.particle-4 {
+				width: 2px;
+				height: 2px;
+				background: rgba(255, 119, 198, 0.8);
+				top: 10%;
+				right: 30%;
+				animation-duration: 2s;
+			}
+
+			@keyframes pulse {
 				0%,
 				100% {
-					transform: translateX(0) translateY(0) scale(1);
-					opacity: 0.8;
-				}
-				25% {
-					transform: translateX(20px) translateY(-15px) scale(1.05);
-					opacity: 0.9;
+					opacity: 0.3;
+					transform: scale(1);
 				}
 				50% {
-					transform: translateX(-10px) translateY(-25px) scale(0.95);
 					opacity: 1;
-				}
-				75% {
-					transform: translateX(-15px) translateY(10px) scale(1.02);
-					opacity: 0.85;
+					transform: scale(1.5);
 				}
 			}
 
@@ -169,14 +194,26 @@
 				max-width: 720px;
 				padding: 2rem;
 				position: relative;
-				z-index: 10;
-				backdrop-filter: blur(1px);
+			}
+
+			.sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border-width: 0;
 			}
 
 			.logo {
 				width: 100%;
 				max-width: 400px;
-				padding-block: 20px;
+				padding: 20px 0;
+				box-sizing: content-box;
+				aspect-ratio: 800 / 217;
 				filter: drop-shadow(0 0 30px rgba(120, 219, 226, 0.6))
 					drop-shadow(0 0 60px rgba(255, 119, 198, 0.6))
 					drop-shadow(0 0 90px rgba(120, 119, 198, 0.4));
@@ -189,11 +226,83 @@
 						drop-shadow(0 0 60px rgba(255, 119, 198, 0.6))
 						drop-shadow(0 0 90px rgba(120, 119, 198, 0.4));
 				}
-				100% {
+				95% {
 					filter: drop-shadow(0 0 30px rgba(120, 219, 226, 0))
 						drop-shadow(0 0 60px rgba(255, 119, 198, 0))
 						drop-shadow(0 0 90px rgba(120, 119, 198, 0));
 				}
+				100% {
+					filter: none;
+				}
+			}
+
+			.subtitle {
+				font-size: 1.25rem;
+				font-weight: 400;
+				margin-bottom: 3rem;
+				opacity: 0.8;
+				line-height: 1.6;
+				font-variation-settings: 'CASL' 0.5;
+				color: rgba(255, 255, 255, 0.8);
+				text-shadow: 0 0 20px rgba(120, 219, 226, 0.2);
+			}
+
+			.top-links,
+			.bottom-links {
+				display: flex;
+				gap: 1rem;
+				justify-content: center;
+			}
+
+			.top-links {
+				margin-bottom: 2rem;
+			}
+
+			.button-link {
+				color: rgba(255, 255, 255, 0.7);
+				text-decoration: none;
+				font-weight: 500;
+				transition: all 0.3s ease;
+				display: inline-flex;
+				align-items: center;
+				gap: 0.5rem;
+				padding: 0.75rem 1.5rem;
+				border: 1px solid rgba(120, 219, 226, 0.3);
+				border-radius: 50px;
+				background: rgba(0, 0, 0, 0.2);
+				backdrop-filter: blur(5px);
+				box-sizing: border-box;
+				line-height: 1.2;
+				font-size: 1rem;
+				height: 48px;
+			}
+
+			.button-link:hover {
+				color: white;
+				transform: translateY(-2px);
+				border-color: rgba(120, 219, 226, 0.6);
+				box-shadow: 0 10px 30px rgba(120, 219, 226, 0.2);
+				background: rgba(120, 219, 226, 0.1);
+			}
+
+			.button-link svg {
+				width: 20px;
+				height: 20px;
+				fill: currentColor;
+			}
+
+			.editor-mockup {
+				max-width: 700px;
+				margin: 1rem auto;
+				background: rgba(30, 30, 35, 0.95);
+				border-radius: 12px;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				overflow: hidden;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+				text-align: left;
+				opacity: 0;
+				transform: translateY(30px);
+				animation: editorSlideIn 1s ease-out 0.5s forwards;
 			}
 
 			@keyframes editorSlideIn {
@@ -207,41 +316,67 @@
 				}
 			}
 
-			.editor-code {
-				margin: 0;
-				padding: 1.5rem;
-				background: none;
-				color: inherit;
-				font: inherit;
-				white-space: pre;
+			.editor-header {
+				background: rgba(20, 20, 25, 0.9);
+				padding: 0.75rem 1rem 0;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+				display: flex;
+				align-items: flex-start;
+				gap: 1rem;
+			}
+
+			.editor-dots {
+				display: flex;
+				gap: 0.5rem;
+				align-self: center;
+				margin-top: -7px;
+			}
+
+			.editor-dot {
+				width: 12px;
+				height: 12px;
+				border-radius: 50%;
+			}
+
+			.editor-dot.red {
+				background: #ff5f57;
+			}
+
+			.editor-dot.yellow {
+				background: #ffbd2e;
+			}
+
+			.editor-dot.green {
+				background: #28ca42;
+			}
+
+			.editor-tab {
+				background: rgba(25, 25, 30, 0.95);
+				padding: 0.5rem 1rem;
+				border-radius: 6px 6px 0 0;
+				color: rgba(255, 255, 255, 0.9);
+				font-family:
+					'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+				font-size: 0.75rem;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				border-bottom: none;
+				margin-bottom: -1px;
+				align-self: flex-end;
+			}
+
+			.editor-content {
+				background: rgba(25, 25, 30, 0.95);
+				padding: 0;
+				font-family:
+					'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+				font-size: 0.8rem;
+				line-height: 1.5;
+				color: #e1e4e8;
 				overflow-x: auto;
-				overflow-y: auto;
-				height: 100%;
-				box-sizing: border-box;
-			}
-
-			.editor-code::-webkit-scrollbar {
-				width: 8px;
-				height: 8px;
-			}
-
-			.editor-code::-webkit-scrollbar-track {
-				background: rgba(20, 20, 25, 0.3);
-				border-radius: 4px;
-			}
-
-			.editor-code::-webkit-scrollbar-thumb {
-				background: rgba(120, 219, 226, 0.4);
-				border-radius: 4px;
-				transition: background 0.3s ease;
-			}
-
-			.editor-code::-webkit-scrollbar-thumb:hover {
-				background: rgba(120, 219, 226, 0.6);
-			}
-
-			.editor-code::-webkit-scrollbar-corner {
-				background: rgba(20, 20, 25, 0.3);
+				text-align: left;
+				height: 800px;
+				scrollbar-width: thin;
+				scrollbar-color: rgba(120, 219, 226, 0.4) rgba(20, 20, 25, 0.3);
 			}
 
 			.editor-content::-webkit-scrollbar {
@@ -269,49 +404,158 @@
 			}
 
 			.editor-code {
+				margin: 0;
+				padding: 1.5rem;
+				background: none;
+				color: inherit;
+				font: inherit;
+				white-space: pre;
+				overflow-x: auto;
+				overflow-y: auto;
+				height: 100%;
+				box-sizing: border-box;
 				scrollbar-width: thin;
 				scrollbar-color: rgba(120, 219, 226, 0.4) rgba(20, 20, 25, 0.3);
 			}
 
-			.editor-content {
-				scrollbar-width: thin;
-				scrollbar-color: rgba(120, 219, 226, 0.4) rgba(20, 20, 25, 0.3);
+			.editor-code::-webkit-scrollbar {
+				width: 8px;
+				height: 8px;
+			}
+
+			.editor-code::-webkit-scrollbar-track {
+				background: rgba(20, 20, 25, 0.3);
+				border-radius: 4px;
+			}
+
+			.editor-code::-webkit-scrollbar-thumb {
+				background: rgba(120, 219, 226, 0.4);
+				border-radius: 4px;
+				transition: background 0.3s ease;
+			}
+
+			.editor-code::-webkit-scrollbar-thumb:hover {
+				background: rgba(120, 219, 226, 0.6);
+			}
+
+			.editor-code::-webkit-scrollbar-corner {
+				background: rgba(20, 20, 25, 0.3);
 			}
 
 			.typing-cursor {
 				background-color: #78dbe2;
-				animation: blink 1s infinite;
 			}
 
-			@keyframes blink {
-				0%,
-				50% {
-					opacity: 1;
-				}
-				51%,
-				100% {
-					opacity: 0;
-				}
+			.line-number {
+				color: rgba(255, 255, 255, 0.3);
+				display: inline-block;
+				width: 1rem;
+				text-align: right;
+				margin-right: 0.75rem;
+				user-select: none;
 			}
 
-			.subtitle {
-				font-size: 1.25rem;
-				font-weight: 400;
-				margin-bottom: 3rem;
-				opacity: 0.8;
-				line-height: 1.6;
-				font-variation-settings: 'CASL' 0.5;
+			.keyword {
+				color: #569cd6;
+			}
+
+			.export-keyword {
+				color: #c586c0;
+			}
+
+			.string {
+				color: #ce9178;
+			}
+
+			.component {
+				color: #4ec9b0;
+			}
+
+			.function {
+				color: #dcdcaa;
+			}
+
+			.property {
+				color: #9cdcfe;
+			}
+
+			.css-selector {
+				color: #d7ba7d;
+			}
+
+			.control-keyword {
+				color: #c586c0;
+			}
+
+			.block-brace {
+				color: #c586c0;
+			}
+
+			.tag {
+				color: #569cd6;
+			}
+
+			.attribute {
+				color: #92c5f8;
+			}
+
+			.value {
+				color: #b5cea8;
+			}
+
+			.comment {
+				color: #6a9955;
+				font-style: italic;
+			}
+
+			.brace {
+				color: #ffd700;
+			}
+
+			.css-brace {
+				color: #d4d4d4;
+			}
+
+			.template-brace {
+				color: #ffd700;
+			}
+
+			.ripple-syntax {
+				color: #4fc1ff;
+			}
+
+			.bracket {
+				color: #808080;
+			}
+
+			.reactive-var {
+				color: #9cdcfe;
+				font-weight: bold;
+			}
+
+			.early-development {
+				text-align: center;
+				margin: 2rem auto;
+				max-width: 700px;
+				padding: 1.5rem;
+				background: rgba(255, 193, 7, 0.1);
+				border: 1px solid rgba(255, 193, 7, 0.3);
+				border-radius: 8px;
+				backdrop-filter: blur(5px);
+			}
+
+			.early-development p {
+				margin: 0;
+				font-size: 1rem;
 				color: rgba(255, 255, 255, 0.8);
-				text-shadow: 0 0 20px rgba(120, 219, 226, 0.2);
+				line-height: 1.5;
 			}
 
 			.content-section {
 				background: rgba(40, 44, 52, 0.85);
-				backdrop-filter: blur(10px);
 				border-radius: 12px;
 				padding: 2rem;
 				margin: 2rem auto;
-
 				max-width: 700px;
 				border: 1px solid rgba(255, 255, 255, 0.1);
 			}
@@ -362,416 +606,13 @@
 				font-size: 0.9em;
 			}
 
-			.early-development {
-				text-align: center;
-				margin: 2rem auto;
-				max-width: 700px;
-				padding: 1.5rem;
-				background: rgba(255, 193, 7, 0.1);
-				border: 1px solid rgba(255, 193, 7, 0.3);
-				border-radius: 8px;
-				backdrop-filter: blur(5px);
-			}
-
-			.early-development p {
-				margin: 0;
-				font-size: 1rem;
-				color: rgba(255, 255, 255, 0.8);
-				line-height: 1.5;
-			}
-
-			.coming-soon {
-				font-size: 1.1rem;
-				font-weight: 500;
-				background: rgba(255, 255, 255, 0.15);
-				padding: 1rem 2rem;
-				border-radius: 50px;
-				backdrop-filter: blur(10px);
-				border: 1px solid rgba(255, 255, 255, 0.2);
-				display: inline-block;
-				margin-bottom: 2rem;
-			}
-
-			.github-link {
-				color: rgba(255, 255, 255, 0.7);
-				text-decoration: none;
-				font-weight: 500;
-				transition: all 0.3s ease;
-				display: inline-flex;
-				align-items: center;
-				gap: 0.5rem;
-				padding: 0.75rem 1.5rem;
-				border: 1px solid rgba(120, 219, 226, 0.3);
-				border-radius: 50px;
-				background: rgba(0, 0, 0, 0.2);
-				backdrop-filter: blur(10px);
-				margin-bottom: 1rem;
-				box-sizing: border-box;
-				line-height: 1.2;
-				font-size: 1rem;
-				height: 48px;
-			}
-
-			.github-link:hover {
-				color: white;
-				transform: translateY(-2px);
-				border-color: rgba(120, 219, 226, 0.6);
-				box-shadow: 0 10px 30px rgba(120, 219, 226, 0.2);
-				background: rgba(120, 219, 226, 0.1);
-			}
-
-			.github-link svg {
-				width: 20px;
-				height: 20px;
-				fill: currentColor;
-			}
-
-			.social-links {
-				display: flex;
-				gap: 1rem;
-				justify-content: center;
-				margin-bottom: 1rem;
-				align-items: baseline;
-			}
-
-			.social-button {
-				color: rgba(255, 255, 255, 0.7);
-				text-decoration: none;
-				font-weight: 500;
-				transition: all 0.3s ease;
-				display: inline-flex;
-				align-items: center;
-				gap: 0.5rem;
-				padding: 0.75rem 1.5rem;
-				border: 1px solid rgba(120, 219, 226, 0.3);
-				border-radius: 50px;
-				background: rgba(0, 0, 0, 0.2);
-				backdrop-filter: blur(10px);
-				box-sizing: border-box;
-				line-height: 1.2;
-				font-size: 1rem;
-				height: 48px;
-			}
-
-			.discord-link {
-				color: rgba(255, 255, 255, 0.7);
-				text-decoration: none;
-				font-weight: 500;
-				transition: all 0.3s ease;
-				display: inline-flex;
-				align-items: center;
-				gap: 0.5rem;
-				padding: 0.75rem 1.5rem;
-				border: 1px solid rgba(120, 219, 226, 0.3);
-				border-radius: 50px;
-				background: rgba(0, 0, 0, 0.2);
-				backdrop-filter: blur(10px);
-				box-sizing: border-box;
-				line-height: 1.2;
-				font-size: 1rem;
-				height: 48px;
-			}
-
-			.discord-link:hover {
-				color: white;
-				transform: translateY(-2px);
-				border-color: rgba(120, 219, 226, 0.6);
-				box-shadow: 0 10px 30px rgba(120, 219, 226, 0.2);
-				background: rgba(120, 219, 226, 0.1);
-			}
-
-			.discord-link svg {
-				width: 20px;
-				height: 20px;
-				fill: currentColor;
-			}
-
-			.bottom-links {
-				display: flex;
-				flex-direction: row;
-				gap: 1rem;
-				align-items: stretch;
-				justify-content: center;
-			}
-
-			.bottom-links .github-link,
-			.bottom-links .discord-link {
-				display: flex;
-				align-items: center;
-				box-sizing: border-box;
-				height: 48px;
-			}
-
-			/* Mock Editor */
-			.editor-mockup {
-				max-width: 700px;
-				margin: 1rem auto;
-				background: rgba(30, 30, 35, 0.95);
-				border-radius: 12px;
-				border: 1px solid rgba(255, 255, 255, 0.1);
-				backdrop-filter: blur(10px);
-				overflow: hidden;
-				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-				text-align: left;
-				/* Animation: start hidden and below */
-				opacity: 0;
-				transform: translateY(30px);
-				animation: editorSlideIn 1s ease-out 0.5s forwards;
-			}
-
-			.editor-header {
-				background: rgba(20, 20, 25, 0.9);
-				padding: 0.75rem 1rem 0;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-				display: flex;
-				align-items: flex-start;
-				gap: 1rem;
-			}
-
-			.editor-dots {
-				display: flex;
-				gap: 0.5rem;
-				align-self: center;
-				margin-top: -7px;
-			}
-
-			.editor-dot {
-				width: 12px;
-				height: 12px;
-				border-radius: 50%;
-			}
-
-			.editor-dot.red {
-				background: #ff5f57;
-			}
-			.editor-dot.yellow {
-				background: #ffbd2e;
-			}
-			.editor-dot.green {
-				background: #28ca42;
-			}
-
-			.editor-tab {
-				background: rgba(25, 25, 30, 0.95);
-				padding: 0.5rem 1rem;
-				border-radius: 6px 6px 0 0;
-				color: rgba(255, 255, 255, 0.9);
-				font-family:
-					'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-				font-size: 0.75rem;
-				border: 1px solid rgba(255, 255, 255, 0.1);
-				border-bottom: none;
-				margin-bottom: -1px;
-				align-self: flex-end;
-			}
-
-			.editor-content {
-				background: rgba(25, 25, 30, 0.95);
-				padding: 0;
-				font-family:
-					'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-				font-size: 0.8rem;
-				line-height: 1.5;
-				color: #e1e4e8;
-				overflow-x: auto;
-				text-align: left;
-				height: 800px;
-			}
-
-			.editor-code {
-				margin: 0;
-				padding: 1.5rem;
-				background: none;
-				color: inherit;
-				font: inherit;
-				white-space: pre;
-				overflow-x: auto;
-			}
-
-			.editor-line {
-				display: block;
-			}
-
-			.line-number {
-				color: rgba(255, 255, 255, 0.3);
-				display: inline-block;
-				width: 1rem;
-				text-align: right;
-				margin-right: 0.75rem;
-				user-select: none;
-			}
-
-			.keyword {
-				color: #569cd6;
-			}
-			.export-keyword {
-				color: #c586c0;
-			}
-			.string {
-				color: #ce9178;
-			}
-			.component {
-				color: #4ec9b0;
-			}
-			.function {
-				color: #dcdcaa;
-			}
-			.property {
-				color: #9cdcfe;
-			}
-			.css-selector {
-				color: #d7ba7d;
-			}
-			.control-keyword {
-				color: #c586c0;
-			}
-			.block-brace {
-				color: #c586c0;
-			}
-			.tag {
-				color: #569cd6;
-			}
-			.attribute {
-				color: #92c5f8;
-			}
-			.value {
-				color: #b5cea8;
-			}
-			.comment {
-				color: #6a9955;
-				font-style: italic;
-			}
-			.brace {
-				color: #ffd700;
-			}
-			.css-brace {
-				color: #d4d4d4;
-			}
-			.template-brace {
-				color: #ffd700;
-			}
-			.ripple-syntax {
-				color: #4fc1ff;
-			}
-			.bracket {
-				color: #808080;
-			}
-			.reactive-var {
-				color: #9cdcfe;
-				font-weight: bold;
-			}
-
-			/* Atmospheric particles */
-			.particle {
-				position: absolute;
-				border-radius: 50%;
-				pointer-events: none;
-			}
-
-			.particle-1 {
-				width: 4px;
-				height: 4px;
-				background: rgba(120, 219, 226, 0.6);
-				top: 20%;
-				left: 15%;
-				animation:
-					drift 25s linear infinite,
-					pulse 3s ease-in-out infinite;
-			}
-
-			.particle-2 {
-				width: 6px;
-				height: 6px;
-				background: rgba(255, 119, 198, 0.4);
-				top: 60%;
-				right: 20%;
-				animation:
-					drift 30s linear infinite reverse,
-					pulse 4s ease-in-out infinite 1s;
-			}
-
-			.particle-3 {
-				width: 3px;
-				height: 3px;
-				background: rgba(120, 119, 198, 0.7);
-				top: 80%;
-				left: 70%;
-				animation:
-					drift 20s linear infinite,
-					pulse 2.5s ease-in-out infinite 2s;
-			}
-
-			.particle-4 {
-				width: 5px;
-				height: 5px;
-				background: rgba(120, 219, 226, 0.3);
-				top: 30%;
-				left: 80%;
-				animation:
-					drift 35s linear infinite reverse,
-					pulse 3.5s ease-in-out infinite 0.5s;
-			}
-
-			.particle-5 {
-				width: 2px;
-				height: 2px;
-				background: rgba(255, 119, 198, 0.8);
-				top: 10%;
-				right: 30%;
-				animation:
-					drift 22s linear infinite,
-					pulse 2s ease-in-out infinite 1.5s;
-			}
-
-			.sr-only {
-				position: absolute;
-				width: 1px;
-				height: 1px;
-				padding: 0;
-				margin: -1px;
-				overflow: hidden;
-				clip: rect(0, 0, 0, 0);
-				white-space: nowrap;
-				border-width: 0;
-			}
-
-			@keyframes drift {
-				0% {
-					transform: translateX(0) translateY(0) rotate(0deg);
-				}
-				25% {
-					transform: translateX(100px) translateY(-50px) rotate(90deg);
-				}
-				50% {
-					transform: translateX(-50px) translateY(-100px) rotate(180deg);
-				}
-				75% {
-					transform: translateX(-100px) translateY(50px) rotate(270deg);
-				}
-				100% {
-					transform: translateX(0) translateY(0) rotate(360deg);
-				}
-			}
-
-			@keyframes pulse {
-				0%,
-				100% {
-					opacity: 0.3;
-					transform: scale(1);
-				}
-				50% {
-					opacity: 1;
-					transform: scale(1.5);
-				}
-			}
-
 			@media (max-width: 768px) {
-				h1 {
-					font-size: 2.5rem;
+				.particle {
+					display: none;
 				}
 
-				.subtitle {
-					font-size: 1.1rem;
+				main {
+					width: 100%;
 				}
 
 				.container {
@@ -780,10 +621,47 @@
 					overflow-x: hidden;
 				}
 
+				h1 {
+					font-size: 2.5rem;
+				}
+
+				.subtitle {
+					font-size: 1.1rem;
+				}
+
+				.top-links,
+				.bottom-links {
+					flex-wrap: wrap;
+					col-gap: 0.75rem;
+					row-gap: 2rem;
+				}
+
+				.bottom-links {
+					margin: 1.5rem 1rem;
+				}
+
+				.button-link {
+					flex: 1;
+					max-width: 180px;
+					min-width: 140px;
+					justify-content: center;
+					font-size: 0.85rem;
+					padding: 0.6rem 1rem;
+					height: 44px;
+					display: flex;
+					align-items: center;
+					box-sizing: border-box;
+				}
+
 				.editor-mockup {
 					margin: 1rem auto;
 					max-width: calc(100% - 2rem);
 					width: 100%;
+				}
+
+				.editor-tab {
+					font-size: 0.7rem;
+					padding: 0.3rem 0.6rem;
 				}
 
 				.editor-content {
@@ -800,6 +678,7 @@
 					font-size: 0.65rem;
 					line-height: 1.4;
 					min-width: max-content;
+					min-height: max-content;
 				}
 
 				.line-number {
@@ -809,42 +688,14 @@
 					flex-shrink: 0;
 				}
 
-				.editor-tab {
-					font-size: 0.7rem;
-					padding: 0.3rem 0.6rem;
-				}
-
-				.social-links {
-					flex-direction: row;
-					flex-wrap: wrap;
-					gap: 0.75rem;
-					align-items: stretch;
-					justify-content: center;
-					margin-bottom: 2rem;
-				}
-
-				.github-link,
-				.discord-link {
-					flex: 1;
-					max-width: 180px;
-					min-width: 140px;
-					justify-content: center;
-					font-size: 0.85rem;
-					padding: 0.6rem 1rem;
-					height: 44px;
-					display: flex;
-					align-items: center;
-					box-sizing: border-box;
-				}
-
-				.content-section {
-					padding: 1.5rem;
+				.early-development {
 					margin: 1.5rem 1rem;
 					max-width: none;
 					width: auto;
 				}
 
-				.early-development {
+				.content-section {
+					padding: 1.5rem;
 					margin: 1.5rem 1rem;
 					max-width: none;
 					width: auto;
@@ -862,40 +713,17 @@
 					font-size: 0.9rem;
 					padding: 0.4rem 0;
 				}
-
-				.bottom-links {
-					flex-direction: row;
-					flex-wrap: wrap;
-					gap: 0.75rem;
-					justify-content: center;
-					margin: 1.5rem 1rem;
-				}
-
-				.bottom-links .github-link,
-				.bottom-links .discord-link {
-					flex: 1;
-					max-width: 180px;
-					min-width: 140px;
-					justify-content: center;
-					font-size: 0.85rem;
-					padding: 0.6rem 1rem;
-					height: 44px;
-					display: flex;
-					align-items: center;
-					box-sizing: border-box;
-					margin-bottom: 0;
-				}
 			}
 		</style>
 	</head>
 	<body>
-		<main>
+		<div id="back">
 			<div class="particle particle-1"></div>
 			<div class="particle particle-2"></div>
 			<div class="particle particle-3"></div>
 			<div class="particle particle-4"></div>
-			<div class="particle particle-5"></div>
-
+		</div>
+		<main>
 			<div class="container">
 				<h1 class="sr-only">Ripple</h1>
 				<img
@@ -906,10 +734,10 @@
 				/>
 				<p class="subtitle">the elegant TypeScript UI framework</p>
 
-				<div class="social-links">
+				<div class="top-links">
 					<a
 						href="https://github.com/Ripple-TS/ripple"
-						class="github-link"
+						class="button-link"
 						target="_blank"
 						rel="noopener noreferrer"
 					>
@@ -923,7 +751,7 @@
 
 					<a
 						href="https://discord.gg/JBF2ySrh2W"
-						class="discord-link"
+						class="button-link"
 						target="_blank"
 						rel="noopener noreferrer"
 					>
@@ -935,7 +763,7 @@
 						Discord
 					</a>
 
-					<a href="/docs/introduction" class="github-link">
+					<a href="/docs/introduction" class="button-link">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							width="24"
@@ -957,7 +785,7 @@
 						Docs
 					</a>
 
-					<a href="/playground" class="discord-link">
+					<a href="/playground" class="button-link">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							width="24"
@@ -1030,7 +858,8 @@
 						</li>
 						<li>
 							<strong>Control Flow</strong> - Native <code>if</code>,
-							<code>for</code>, and <code>try</code> in templates
+							<code>switch</code>, <code>for</code>, and <code>try</code> in
+							templates
 						</li>
 						<li>
 							<strong>Scoped Styling</strong> - Component-local CSS with
@@ -1050,7 +879,7 @@
 				<div class="bottom-links">
 					<a
 						href="https://github.com/Ripple-TS/ripple"
-						class="github-link"
+						class="button-link"
 						target="_blank"
 						rel="noopener noreferrer"
 					>
@@ -1064,7 +893,7 @@
 
 					<a
 						href="https://discord.gg/JBF2ySrh2W"
-						class="discord-link"
+						class="button-link"
 						target="_blank"
 						rel="noopener noreferrer"
 					>
@@ -1125,21 +954,37 @@
 					const element = document.getElementById('typewriter-code')
 					if (!element) return
 
-					let charIndex = 0
+					const parts = codeContent.match(/<[^>]+>|./gs)
+					const rate = 350
 
-					function addChar() {
-						if (charIndex < codeContent.length) {
-							element.innerHTML =
-								codeContent.substring(0, charIndex + 20) +
-								'<span class="typing-cursor">|</span>'
-							charIndex += 20
-							setTimeout(addChar, 10)
-						} else {
-							element.innerHTML = codeContent
+					let partIndex = 0
+					let start
+
+					const write = (timestamp) => {
+						const expected = Math.min(
+							Math.floor(((timestamp - start) / 1000) * rate),
+							parts.length,
+						)
+
+						if (partIndex !== expected) {
+							partIndex = expected
+
+							const currentParts = parts.slice(0, partIndex)
+							if (partIndex < parts.length)
+								currentParts.push('<span class="typing-cursor">|</span>')
+
+							element.innerHTML = currentParts.join('')
 						}
+
+						if (partIndex < parts.length) requestAnimationFrame(write)
 					}
 
-					setTimeout(addChar, 1000)
+					setTimeout(() => {
+						requestAnimationFrame((timestamp) => {
+							start = timestamp
+							write(timestamp)
+						})
+					}, 1000)
 				}
 
 				window.addEventListener('load', typeWriter)
