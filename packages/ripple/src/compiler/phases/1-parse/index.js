@@ -217,14 +217,31 @@ function RipplePlugin(config) {
 			 * @type {Parse.Parser['getElementName']}
 			 */
 			getElementName(node) {
-				if (!node) return null;
-				if (node.type === 'Identifier' || node.type === 'JSXIdentifier') {
-					return node.name;
-				} else if (node.type === 'MemberExpression' || node.type === 'JSXMemberExpression') {
-					// For components like <Foo.Bar>, return "Foo.Bar"
-					return this.getElementName(node.object) + '.' + this.getElementName(node.property);
+				if (!node) return null; // Use iterative approach instead of recursive for deep member expressions without memory overflow
+				const parts = /** @type {string[]} */ ([]);
+				let current = node;
+				while (current) {
+					if (current.type === 'Identifier' || current.type === 'JSXIdentifier') {
+						parts.push(current.name);
+						break;
+					} else if (
+						current.type === 'MemberExpression' ||
+						current.type === 'JSXMemberExpression'
+					) {
+						if (
+							current.property.type === 'Identifier' ||
+							current.property.type === 'JSXIdentifier'
+						) {
+							parts.push(current.property.name);
+						} else {
+							return null;
+						}
+						current = current.object;
+					} else {
+						return null;
+					}
 				}
-				return null;
+				return parts.reverse().join('.');
 			}
 
 			/**
