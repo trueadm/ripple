@@ -227,7 +227,7 @@ export function is_top_level_await(context) {
  * Returns true if context is inside a Component node
  * @param {CommonContext} context
  * @param {boolean} [includes_functions=false]
- * @returns {boolean}
+ * @returns {AST.Component | undefined}
  */
 export function is_inside_component(context, includes_functions = false) {
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
@@ -240,13 +240,13 @@ export function is_inside_component(context, includes_functions = false) {
 				type === 'ArrowFunctionExpression' ||
 				type === 'FunctionDeclaration')
 		) {
-			return false;
+			return;
 		}
 		if (context_node.type === 'Component') {
-			return true;
+			return context_node;
 		}
 	}
-	return false;
+	return;
 }
 
 /**

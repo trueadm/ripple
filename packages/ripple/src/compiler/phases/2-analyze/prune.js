@@ -1,5 +1,5 @@
 /** @import * as AST from 'estree' */
-/** @import { Visitors } from '#compiler' */
+/** @import { Visitors, TopScopedClasses, StyleClasses } from '#compiler' */
 /** @typedef {0 | 1} Direction */
 
 import { walk } from 'zimmerframe';
@@ -15,6 +15,10 @@ const BACKWARD = 1;
 // since the code is synchronous, this is safe
 /** @type {string} */
 let css_hash;
+/** @type {StyleClasses} */
+let style_identifier_classes;
+/** @type {TopScopedClasses} */
+let top_scoped_classes;
 
 // CSS selector constants
 /**
@@ -27,6 +31,15 @@ function create_descendant_combinator(start, end) {
 }
 
 /**
+ * @param {AST.CSS.RelativeSelector} relative_selector
+ * @param {AST.CSS.ClassSelector} selector
+ * @returns {boolean}
+ */
+function is_standalone_class_selector(relative_selector, selector) {
+	return relative_selector.selectors.length === 1 && relative_selector.selectors[0] === selector;
+}
+
+/**`
  * @param {number} start
  * @param {number} end
  * @returns {AST.CSS.RelativeSelector}
@@ -211,7 +224,6 @@ function apply_selector(relative_selectors, rule, element, direction) {
 						if (!element.metadata.css) {
 							element.metadata.css = {
 								scopedClasses: new Map(),
-								topScopedClasses: new Map(),
 								hash: css_hash,
 							};
 						}
@@ -225,14 +237,12 @@ function apply_selector(relative_selectors, rule, element, direction) {
 							});
 						}
 
-						// Also store in topScopedClasses if standalone
-						// Standalone = only this ClassSelector in the RelativeSelector, no pseudo-classes/elements
-						const isStandalone =
-							relative_selector.selectors.length === 1 &&
-							relative_selector.selectors[0] === selector;
-
-						if (isStandalone && !element.metadata.css.topScopedClasses.has(name)) {
-							element.metadata.css.topScopedClasses.set(name, {
+						// Also store in top_scoped_classes if standalone selector
+						if (
+							is_standalone_class_selector(relative_selector, selector) &&
+							!top_scoped_classes.has(name)
+						) {
+							top_scoped_classes.set(name, {
 								start: selector.start,
 								end: selector.end,
 								selector: selector,
@@ -939,7 +949,11 @@ function relative_selector_might_apply_to_node(relative_selector, rule, element,
 			}
 
 			case 'ClassSelector': {
-				if (!attribute_matches(element, 'class', name, '~=', false)) {
+				if (
+					!attribute_matches(element, 'class', name, '~=', false) &&
+					(!style_identifier_classes.has(name) ||
+						!is_standalone_class_selector(relative_selector, selector))
+				) {
 					return false;
 				}
 
@@ -1047,10 +1061,14 @@ function rule_has_animation(rule) {
 /**
  * @param {AST.CSS.StyleSheet} css
  * @param {AST.Element} element
+ * @param {StyleClasses} styleClasses
+ * @param {TopScopedClasses} topScopedClasses
  * @return {void}
  */
-export function prune_css(css, element) {
+export function prune_css(css, element, styleClasses, topScopedClasses) {
 	css_hash = css.hash;
+	style_identifier_classes = styleClasses;
+	top_scoped_classes = topScopedClasses;
 
 	/** @type {Visitors<AST.CSS.Node, null>} */
 	const visitors = {

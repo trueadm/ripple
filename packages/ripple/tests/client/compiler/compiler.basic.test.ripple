@@ -1,5 +1,5 @@
 import { parse, compile, compile_to_volar_mappings } from 'ripple/compiler';
-import { obfuscate_imported } from 'ripple/compiler/internal/import/utils';
+import { obfuscate_identifier } from 'ripple/compiler/internal/identifier/utils';
 import type * as AST from 'estree';
 
 function count_occurrences(string: string, subString: string): number {
@@ -285,15 +285,15 @@ component App() {
 `;
 			const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-			expect(count_occurrences(result, obfuscate_imported('TrackedArray'))).toBe(2);
+			expect(count_occurrences(result, obfuscate_identifier('TrackedArray'))).toBe(2);
 			expect(count_occurrences(result, 'TA')).toBe(1);
-			expect(count_occurrences(result, obfuscate_imported('TrackedObject'))).toBe(2);
+			expect(count_occurrences(result, obfuscate_identifier('TrackedObject'))).toBe(2);
 			expect(count_occurrences(result, 'TO')).toBe(1);
-			expect(count_occurrences(result, obfuscate_imported('TrackedSet'))).toBe(2);
+			expect(count_occurrences(result, obfuscate_identifier('TrackedSet'))).toBe(2);
 			expect(count_occurrences(result, 'TS')).toBe(1);
-			expect(count_occurrences(result, obfuscate_imported('TrackedMap'))).toBe(2);
+			expect(count_occurrences(result, obfuscate_identifier('TrackedMap'))).toBe(2);
 			expect(count_occurrences(result, 'TM')).toBe(1);
-			expect(count_occurrences(result, obfuscate_imported('createRefKey'))).toBe(2);
+			expect(count_occurrences(result, obfuscate_identifier('createRefKey'))).toBe(2);
 			expect(count_occurrences(result, 'crk')).toBe(1);
 		},
 	);
@@ -311,11 +311,11 @@ component App() {
 `;
 		const result = compile_to_volar_mappings(source, 'test.ripple').code;
 
-		expect(count_occurrences(result, obfuscate_imported('TrackedArray'))).toBe(2);
-		expect(count_occurrences(result, obfuscate_imported('TrackedObject'))).toBe(2);
-		expect(count_occurrences(result, obfuscate_imported('TrackedSet'))).toBe(2);
-		expect(count_occurrences(result, obfuscate_imported('TrackedMap'))).toBe(2);
-		expect(count_occurrences(result, obfuscate_imported('createRefKey'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_identifier('TrackedArray'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_identifier('TrackedObject'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_identifier('TrackedSet'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_identifier('TrackedMap'))).toBe(2);
+		expect(count_occurrences(result, obfuscate_identifier('createRefKey'))).toBe(2);
 	});
 
 	it('should not error on having js below markup in the same scope', () => {

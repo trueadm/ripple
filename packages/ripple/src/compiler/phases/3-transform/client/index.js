@@ -52,7 +52,7 @@ import {
 	determine_namespace_for_children,
 	index_to_key,
 } from '../../../utils.js';
-import { obfuscate_imported } from '../../../import-utils.js';
+import { obfuscate_identifier } from '../../../identifier-utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
 import { render_stylesheets } from '../stylesheet.js';
@@ -316,7 +316,7 @@ function visit_title_element(node, context) {
  * @returns {string}
  */
 function set_hidden_import_from_ripple(name, context) {
-	name = obfuscate_imported(name);
+	name = obfuscate_identifier(name);
 	if (!context.state.imports.has(`import { ${name} } from 'ripple/compiler/internal/import'`)) {
 		context.state.imports.add(`import { ${name} } from 'ripple/compiler/internal/import'`);
 	}
@@ -395,7 +395,15 @@ const visitors = {
 	},
 
 	ServerIdentifier(node, context) {
-		return b.id('_$_server_$_');
+		const id = b.id('_$_server_$_');
+		id.loc = node.loc;
+		return id;
+	},
+
+	StyleIdentifier(node, context) {
+		const id = b.id(obfuscate_identifier('style'));
+		id.loc = node.loc;
+		return id;
 	},
 
 	/** @type {Visitor<AST.ImportDeclaration, TransformClientState, AST.Node>} */
@@ -1588,6 +1596,29 @@ const visitors = {
 		let prop_statements;
 		const metadata = { await: false };
 
+		/** @type {AST.Statement[]} */
+		const style_statements = [];
+
+		if (node.css !== null && node.metadata.styleIdentifierPresent) {
+			/** @type {AST.Property[]} */
+			const properties = [];
+			const style_const_name = obfuscate_identifier('style');
+			if (node.metadata.topScopedClasses && node.metadata.topScopedClasses.size > 0) {
+				const hash = b.const(b.id('hash'), b.literal(node.css.hash));
+				style_statements.push(hash);
+				for (const [className] of node.metadata.topScopedClasses) {
+					properties.push(
+						b.prop(
+							'init',
+							b.key(className),
+							b.template([b.quasi('', false), b.quasi(` ${className}`, true)], [b.id('hash')]),
+						),
+					);
+				}
+			}
+			style_statements.push(b.const(b.id(style_const_name), b.object(properties)));
+		}
+
 		if (context.state.to_ts) {
 			const body_statements = [
 				...transform_body(node.body, {
@@ -1602,7 +1633,7 @@ const visitors = {
 					(param) =>
 						/** @type {AST.Pattern} */ (context.visit(param, { ...context.state, metadata })),
 				),
-				b.block(body_statements),
+				b.block([...style_statements, ...body_statements]),
 			);
 			// Mark that this function was originally a component
 			func.metadata = /** @type {AST.FunctionExpression['metadata']} */ ({
@@ -1645,6 +1676,7 @@ const visitors = {
 				? [b.id('__anchor'), props, b.id('__block')]
 				: [b.id('__anchor'), b.id('_'), b.id('__block')],
 			b.block([
+				...style_statements,
 				...(prop_statements ?? []),
 				...(metadata.await
 					? [b.stmt(b.call('_$_.async', b.thunk(b.block(body_statements), true)))]

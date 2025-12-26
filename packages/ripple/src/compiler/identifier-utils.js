@@ -1,10 +1,10 @@
-export const IMPORT_OBFUSCATION_PREFIX = '_$_';
+export const IDENTIFIER_OBFUSCATION_PREFIX = '_$_';
 
 /**
  * @param {string} name
  * @returns {string}
  */
-export function obfuscate_imported(name) {
+export function obfuscate_identifier(name) {
 	let start = 0;
 	if (name[0] === name[0].toUpperCase()) {
 		start = 1;
@@ -14,23 +14,25 @@ export function obfuscate_imported(name) {
 	const first_part = name.slice(0, index);
 	const second_part = name.slice(index);
 
-	return IMPORT_OBFUSCATION_PREFIX + (second_part ? second_part + '__' + first_part : first_part);
+	return (
+		IDENTIFIER_OBFUSCATION_PREFIX + (second_part ? second_part + '__' + first_part : first_part)
+	);
 }
 
 /**
  * @param {string} name
  * @returns {boolean}
  */
-export function is_imported_obfuscated(name) {
-	return name.startsWith(IMPORT_OBFUSCATION_PREFIX);
+export function is_identifier_obfuscated(name) {
+	return name.startsWith(IDENTIFIER_OBFUSCATION_PREFIX);
 }
 
 /**
  * @param {string} name
  * @returns {string}
  */
-export function deobfuscate_imported(name) {
-	name = name.replace(IMPORT_OBFUSCATION_PREFIX, '');
+export function deobfuscate_identifier(name) {
+	name = name.replace(IDENTIFIER_OBFUSCATION_PREFIX, '');
 	const parts = name.split('__');
 	return (parts[1] ? parts[1] : '') + parts[0];
 }

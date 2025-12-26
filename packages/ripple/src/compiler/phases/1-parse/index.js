@@ -386,8 +386,27 @@ function RipplePlugin(config) {
 							}
 						}
 
+						if (this.input.slice(this.pos, this.pos + 6) === '#style') {
+							// Check that next char after 'style' is . (dot), [, whitespace, or EOF
+							const charAfter =
+								this.pos + 6 < this.input.length ? this.input.charCodeAt(this.pos + 6) : -1;
+							if (
+								charAfter === 46 || // . (dot)
+								charAfter === 91 || // [
+								charAfter === 32 || // space
+								charAfter === 9 || // tab
+								charAfter === 10 || // newline
+								charAfter === 13 || // carriage return
+								charAfter === -1 // EOF
+							) {
+								// { or . or whitespace or EOF
+								this.pos += 6; // consume '#style'
+								return this.finishToken(tt.name, '#style');
+							}
+						}
+
 						// Check if this is an invalid #Identifier pattern
-						// Valid patterns: #[, #{, #Map(, #Map<, #Set(, #Set<, #server
+						// Valid patterns: #[, #{, #Map(, #Map<, #Set(, #Set<, #server, #style
 						// If we see # followed by an uppercase letter that isn't Map or Set, it's an error
 						// In loose mode, allow incomplete identifiers like #M, #Ma, #S, #Se for autocomplete
 						if (nextChar >= 65 && nextChar <= 90) {
@@ -633,6 +652,12 @@ function RipplePlugin(config) {
 					const node = this.startNode();
 					this.next();
 					return /** @type {AST.ServerIdentifier} */ (this.finishNode(node, 'ServerIdentifier'));
+				}
+
+				if (this.type === tt.name && this.value === '#style') {
+					const node = this.startNode();
+					this.next();
+					return /** @type {AST.StyleIdentifier} */ (this.finishNode(node, 'StyleIdentifier'));
 				}
 
 				// Check if this is #Map( or #Set(

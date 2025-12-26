@@ -41,8 +41,8 @@
     "./compiler/internal/import": {
       "types": "./src/compiler/types/import.d.ts"
     },
-    "./compiler/internal/import/utils": {
-      "default": "./src/compiler/import-utils.js"
+    "./compiler/internal/identifier/utils": {
+      "default": "./src/compiler/identifier-utils.js"
     },
     "./validator": {
       "types": "./types/index.d.ts",

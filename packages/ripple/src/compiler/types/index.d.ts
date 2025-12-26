@@ -99,6 +99,7 @@ declare module 'estree' {
 		Text: TextNode;
 		ServerBlock: ServerBlock;
 		ServerIdentifier: ServerIdentifier;
+		StyleIdentifier: StyleIdentifier;
 		TrackedExpression: TrackedExpression;
 		Attribute: Attribute;
 		RefAttribute: RefAttribute;
@@ -112,6 +113,7 @@ declare module 'estree' {
 		TrackedMapExpression: TrackedMapExpression;
 		TrackedSetExpression: TrackedSetExpression;
 		TrackedExpression: TrackedExpression;
+		StyleIdentifier: StyleIdentifier;
 		Text: TextNode;
 	}
 
@@ -141,6 +143,10 @@ declare module 'estree' {
 
 	interface ServerIdentifier extends AST.BaseNode {
 		type: 'ServerIdentifier';
+	}
+
+	interface StyleIdentifier extends AST.BaseNode {
+		type: 'StyleIdentifier';
 	}
 
 	interface ImportDeclaration {
@@ -200,6 +206,9 @@ declare module 'estree' {
 		css: CSS.StyleSheet | null;
 		metadata: BaseNodeMetaData & {
 			inherited_css?: boolean;
+			topScopedClasses?: TopScopedClasses;
+			styleClasses?: StyleClasses;
+			styleIdentifierPresent?: boolean;
 		};
 		default: boolean;
 	}
@@ -233,14 +242,6 @@ declare module 'estree' {
 			// for elements with scoped style classes
 			css?: {
 				scopedClasses: Map<
-					string,
-					{
-						start: number;
-						end: number;
-						selector: CSS.ClassSelector;
-					}
-				>;
-				topScopedClasses: Map<
 					string,
 					{
 						start: number;
@@ -528,6 +529,10 @@ declare module 'estree' {
 declare module 'estree-jsx' {
 	interface JSXAttribute {
 		shorthand: boolean;
+	}
+
+	interface JSXIdentifier {
+		tracked?: boolean;
 	}
 
 	interface JSXEmptyExpression {
@@ -1131,7 +1136,9 @@ export interface AnalysisState extends BaseState {
 	function_depth?: number;
 	inside_server_block?: boolean;
 	loose?: boolean;
-	metadata: BaseStateMetaData;
+	metadata: BaseStateMetaData & {
+		styleClasses?: StyleClasses;
+	};
 }
 
 export interface TransformServerState extends BaseState {
@@ -1206,3 +1213,14 @@ export type VisitorClientContext = TransformClientContext & { root?: boolean };
 export interface DelegatedEventResult {
 	function?: AST.FunctionExpression | AST.FunctionDeclaration | AST.ArrowFunctionExpression;
 }
+
+export type TopScopedClasses = Map<
+	string,
+	{
+		start: number;
+		end: number;
+		selector: AST.CSS.ClassSelector;
+	}
+>;
+
+export type StyleClasses = Map<string, AST.MemberExpression['property']>;

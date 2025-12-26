@@ -920,6 +920,7 @@ export namespace Parse {
 			forNew?: boolean,
 		):
 			| AST.ServerIdentifier
+			| AST.StyleIdentifier
 			| AST.TrackedExpression
 			| AST.TrackedMapExpression
 			| AST.TrackedSetExpression

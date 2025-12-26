@@ -2,7 +2,7 @@
 /** @import { LanguageServiceContext } from '@volar/language-server' */
 /** @import {RippleVirtualCode} from '@ripple-ts/typescript-plugin/src/language.js' */
 // @ts-expect-error: ESM type import is fine
-/** @import {is_imported_obfuscated, deobfuscate_imported, IMPORT_OBFUSCATION_PREFIX} from 'ripple/compiler/internal/import/utils' */
+/** @import {is_identifier_obfuscated, deobfuscate_identifier, IDENTIFIER_OBFUSCATION_PREFIX} from 'ripple/compiler/internal/identifier/utils' */
 
 const { URI } = require('vscode-uri');
 const { createLogging, DEBUG } = require('@ripple-ts/typescript-plugin/src/utils.js');
@@ -20,21 +20,21 @@ const IMPORT_EXPORT_REGEX = {
 	from: /from\s*['"][^'"]*['"]\s*;?/,
 };
 
-/** @type {is_imported_obfuscated}  */
-let is_imported_obfuscated;
-/** @type {deobfuscate_imported} */
-let deobfuscate_imported;
-/** @type {IMPORT_OBFUSCATION_PREFIX} */
-let IMPORT_OBFUSCATION_PREFIX;
+/** @type {is_identifier_obfuscated}  */
+let is_identifier_obfuscated;
+/** @type {deobfuscate_identifier} */
+let deobfuscate_identifier;
+/** @type {IDENTIFIER_OBFUSCATION_PREFIX} */
+let IDENTIFIER_OBFUSCATION_PREFIX;
 /** @type {RegExp} */
 let obfuscatedImportRegex;
 
-import('ripple/compiler/internal/import/utils').then((imports) => {
-	is_imported_obfuscated = imports.is_imported_obfuscated;
-	deobfuscate_imported = imports.deobfuscate_imported;
-	IMPORT_OBFUSCATION_PREFIX = imports.IMPORT_OBFUSCATION_PREFIX;
+import('ripple/compiler/internal/identifier/utils').then((imports) => {
+	is_identifier_obfuscated = imports.is_identifier_obfuscated;
+	deobfuscate_identifier = imports.deobfuscate_identifier;
+	IDENTIFIER_OBFUSCATION_PREFIX = imports.IDENTIFIER_OBFUSCATION_PREFIX;
 	obfuscatedImportRegex = new RegExp(
-		escapeRegExp(IMPORT_OBFUSCATION_PREFIX) + charAllowedWordRegex.source + '+',
+		escapeRegExp(IDENTIFIER_OBFUSCATION_PREFIX) + charAllowedWordRegex.source + '+',
 		'gm',
 	);
 });
@@ -53,7 +53,7 @@ function escapeRegExp(source) {
  * @returns {string}
  */
 function deobfuscateImportDefinitions(text) {
-	return text.replace(obfuscatedImportRegex, (match) => deobfuscate_imported(match));
+	return text.replace(obfuscatedImportRegex, (match) => deobfuscate_identifier(match));
 }
 
 /**

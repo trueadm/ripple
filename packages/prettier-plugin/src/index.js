@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { parse } from 'ripple/compiler';
+import { obfuscate_identifier } from 'ripple/compiler/internal/identifier/utils';
 import { doc } from 'prettier';
 
 const { builders, utils } = doc;
@@ -1250,6 +1251,16 @@ function printRippleNode(node, path, options, print, args) {
 				const args = path.map(print, 'arguments');
 				nodeContent = concat(['#Set(', join(concat([',', line]), args), ')']);
 			}
+			break;
+		}
+
+		case 'StyleIdentifier': {
+			nodeContent = '#style';
+			break;
+		}
+
+		case 'ServerIdentifier': {
+			nodeContent = '#server';
 			break;
 		}
 

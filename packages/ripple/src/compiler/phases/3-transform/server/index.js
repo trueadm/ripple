@@ -30,6 +30,7 @@ import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';
 import { createHash } from 'node:crypto';
+import { obfuscate_identifier } from '../../../identifier-utils.js';
 
 /**
  * @param {AST.Node[]} children
@@ -127,7 +128,32 @@ const visitors = {
 		}
 
 		const metadata = { await: false };
+
+		/** @type {AST.Statement[]} */
+		const style_statements = [];
+
+		if (node.css !== null && node.metadata.styleIdentifierPresent) {
+			/** @type {AST.Property[]} */
+			const properties = [];
+			const style_const_name = obfuscate_identifier('style');
+			if (node.metadata.topScopedClasses && node.metadata.topScopedClasses.size > 0) {
+				const hash = b.const(b.id('hash'), b.literal(node.css.hash));
+				style_statements.push(hash);
+				for (const [className] of node.metadata.topScopedClasses) {
+					properties.push(
+						b.prop(
+							'init',
+							b.key(className),
+							b.template([b.quasi('', false), b.quasi(` ${className}`, true)], [b.id('hash')]),
+						),
+					);
+				}
+			}
+			style_statements.push(b.const(b.id(style_const_name), b.object(properties)));
+		}
+
 		const body_statements = [
+			...style_statements,
 			b.stmt(b.call('_$_.push_component')),
 			...transform_body(node.body, {
 				...context,
@@ -809,6 +835,10 @@ const visitors = {
 
 	ServerIdentifier(node, context) {
 		return b.id('_$_server_$_');
+	},
+
+	StyleIdentifier(node, context) {
+		return b.id(obfuscate_identifier('style'));
 	},
 
 	/** @type {Visitor<AST.ImportDeclaration, TransformServerState, AST.Node>} */
