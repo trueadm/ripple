@@ -396,16 +396,17 @@ export function object_pattern(properties) {
  * @param {AST.Expression } key
  * @param {Value} value
  * @param {boolean} computed
+ * @param {boolean} shorthand
  * @returns {AST.Property}
  */
-export function prop(kind, key, value, computed = false) {
+export function prop(kind, key, value, computed = false, shorthand = false) {
 	return {
 		type: 'Property',
 		kind,
 		key,
 		value,
 		method: false,
-		shorthand: false,
+		shorthand,
 		computed,
 		metadata: { path: [] },
 	};

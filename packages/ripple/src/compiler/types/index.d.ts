@@ -16,7 +16,7 @@ interface BaseNodeMetaData {
 	scoped?: boolean;
 	path: AST.Node[];
 	has_template?: boolean;
-	original_name?: string;
+	source_name?: string | '#Map' | '#Set' | '#server' | '#style';
 	is_capitalized?: boolean;
 	has_await?: boolean;
 	commentContainerId?: number;
@@ -78,11 +78,7 @@ declare module 'estree' {
 		implements?: AST.TSClassImplements[];
 	}
 
-	interface Identifier extends TrackedNode {
-		metadata: BaseNode['metadata'] & {
-			tracked_shorthand?: '#Map' | '#Set';
-		};
-	}
+	interface Identifier extends TrackedNode {}
 
 	interface MemberExpression extends AST.TrackedNode {}
 
@@ -98,6 +94,7 @@ declare module 'estree' {
 		Element: Element;
 		Text: TextNode;
 		ServerBlock: ServerBlock;
+		ServerBlockStatement: ServerBlockStatement;
 		ServerIdentifier: ServerIdentifier;
 		StyleIdentifier: StyleIdentifier;
 		TrackedExpression: TrackedExpression;
@@ -114,6 +111,7 @@ declare module 'estree' {
 		TrackedSetExpression: TrackedSetExpression;
 		TrackedExpression: TrackedExpression;
 		StyleIdentifier: StyleIdentifier;
+		ServerIdentifier: ServerIdentifier;
 		Text: TextNode;
 	}
 
@@ -155,9 +153,7 @@ declare module 'estree' {
 	interface ImportSpecifier {
 		importKind: TSESTree.ImportSpecifier['importKind'];
 	}
-	interface ExportNamedDeclaration
-		// doesn't seem we're using parent and assertions, removing to avoid builders errors
-		extends Omit<TSESTree.ExportNamedDeclaration, 'exportKind' | 'parent' | 'assertions'> {
+	interface ExportNamedDeclaration {
 		exportKind: TSESTree.ExportNamedDeclaration['exportKind'];
 	}
 
@@ -272,9 +268,13 @@ declare module 'estree' {
 		loc?: AST.SourceLocation;
 	}
 
+	interface ServerBlockStatement extends Omit<BlockStatement, 'body'> {
+		body: (AST.Statement | AST.ExportNamedDeclaration)[];
+	}
+
 	interface ServerBlock extends AST.BaseNode {
 		type: 'ServerBlock';
-		body: BlockStatement;
+		body: ServerBlockStatement;
 		metadata: BaseNodeMetaData & {
 			exports: string[];
 		};
@@ -969,6 +969,9 @@ export interface AnalysisResult {
 	scopes: Map<AST.Node, ScopeInterface>;
 	scope: ScopeInterface;
 	component_metadata: Array<{ id: string; async: boolean }>;
+	metadata: {
+		serverIdentifierPresent: boolean;
+	};
 }
 
 /**
@@ -1116,6 +1119,8 @@ export interface BaseState {
 	/** For utils */
 	scope: ScopeInterface;
 	scopes: Map<AST.Node | AST.Node[], ScopeInterface>;
+	serverIdentifierPresent: boolean;
+	inside_server_block: boolean;
 	inside_head?: boolean;
 
 	/** Common For All */
@@ -1134,7 +1139,6 @@ export interface AnalysisState extends BaseState {
 	};
 	elements?: AST.Element[];
 	function_depth?: number;
-	inside_server_block?: boolean;
 	loose?: boolean;
 	metadata: BaseStateMetaData & {
 		styleClasses?: StyleClasses;
@@ -1146,7 +1150,6 @@ export interface TransformServerState extends BaseState {
 	init: Array<AST.Statement> | null;
 	stylesheets: AST.CSS.StyleSheet[];
 	component_metadata: AnalysisResult['component_metadata'];
-	inside_server_block: boolean;
 	filename: string;
 	metadata: BaseStateMetaData;
 	namespace: NameSpace;

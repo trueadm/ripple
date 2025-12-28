@@ -746,7 +746,7 @@ function RipplePlugin(config) {
 				const node = /** @type {AST.ServerBlock} */ (this.startNode());
 				this.next();
 
-				const body = /** @type {AST.BlockStatement} */ (this.startNode());
+				const body = /** @type {AST.ServerBlockStatement} */ (this.startNode());
 				node.body = body;
 				body.body = [];
 

@@ -1,4 +1,25 @@
 export const IDENTIFIER_OBFUSCATION_PREFIX = '_$_';
+export const STYLE_IDENTIFIER = IDENTIFIER_OBFUSCATION_PREFIX + encode_utf16_char('#') + 'style';
+export const SERVER_IDENTIFIER = IDENTIFIER_OBFUSCATION_PREFIX + encode_utf16_char('#') + 'server';
+export const CSS_HASH_IDENTIFIER = IDENTIFIER_OBFUSCATION_PREFIX + 'hash';
+
+const DECODE_UTF16_REGEX = /_u([0-9a-fA-F]{4})_/g;
+
+/**
+ * @param {string} char
+ * @returns {string}
+ */
+function encode_utf16_char(char) {
+	return `_u${('0000' + char.charCodeAt(0).toString(16)).slice(-4)}_`;
+}
+
+/**
+ * @param {string} encoded
+ * @returns {string}
+ */
+function decoded_utf16_string(encoded) {
+	return encoded.replace(DECODE_UTF16_REGEX, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
 
 /**
  * @param {string} name
@@ -32,9 +53,9 @@ export function is_identifier_obfuscated(name) {
  * @returns {string}
  */
 export function deobfuscate_identifier(name) {
-	name = name.replace(IDENTIFIER_OBFUSCATION_PREFIX, '');
+	name = name.replaceAll(IDENTIFIER_OBFUSCATION_PREFIX, '');
 	const parts = name.split('__');
-	return (parts[1] ? parts[1] : '') + parts[0];
+	return decoded_utf16_string((parts[1] ? parts[1] : '') + parts[0]);
 }
 
 /**

@@ -243,6 +243,8 @@ const visitors = {
 			}
 
 			return context.next();
+		} else if (node.object.type === 'ServerIdentifier') {
+			context.state.analysis.metadata.serverIdentifierPresent = true;
 		}
 
 		if (node.object.type === 'Identifier' && !node.object.tracked) {
@@ -748,13 +750,13 @@ const visitors = {
 
 		// Store capitalized name for dynamic components/elements
 		if (node.id.tracked) {
-			const original_name = node.id.name;
-			const capitalized_name = original_name.charAt(0).toUpperCase() + original_name.slice(1);
+			const source_name = node.id.name;
+			const capitalized_name = source_name.charAt(0).toUpperCase() + source_name.slice(1);
 			node.metadata.ts_name = capitalized_name;
-			node.metadata.original_name = original_name;
+			node.metadata.source_name = source_name;
 
 			// Mark the binding as a dynamic component so we can capitalize it everywhere
-			const binding = context.state.scope.get(original_name);
+			const binding = context.state.scope.get(source_name);
 			if (binding) {
 				if (!binding.metadata) {
 					binding.metadata = {};
@@ -960,13 +962,16 @@ export function analyze(ast, filename, options = {}) {
 
 	const { scope, scopes } = create_scopes(ast, scope_root, null);
 
-	const analysis = {
+	const analysis = /** @type {AnalysisResult} */ ({
 		module: { ast, scope, scopes, filename },
 		ast,
 		scope,
 		scopes,
 		component_metadata: [],
-	};
+		metadata: {
+			serverIdentifierPresent: false,
+		},
+	});
 
 	walk(
 		ast,

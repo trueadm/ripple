@@ -30,7 +30,7 @@ import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';
 import { createHash } from 'node:crypto';
-import { obfuscate_identifier } from '../../../identifier-utils.js';
+import { STYLE_IDENTIFIER, CSS_HASH_IDENTIFIER } from '../../../identifier-utils.js';
 
 /**
  * @param {AST.Node[]} children
@@ -130,45 +130,45 @@ const visitors = {
 		const metadata = { await: false };
 
 		/** @type {AST.Statement[]} */
-		const style_statements = [];
+		const body_statements = [];
 
-		if (node.css !== null && node.metadata.styleIdentifierPresent) {
-			/** @type {AST.Property[]} */
-			const properties = [];
-			const style_const_name = obfuscate_identifier('style');
-			if (node.metadata.topScopedClasses && node.metadata.topScopedClasses.size > 0) {
-				const hash = b.const(b.id('hash'), b.literal(node.css.hash));
-				style_statements.push(hash);
-				for (const [className] of node.metadata.topScopedClasses) {
-					properties.push(
-						b.prop(
-							'init',
-							b.key(className),
-							b.template([b.quasi('', false), b.quasi(` ${className}`, true)], [b.id('hash')]),
-						),
-					);
+		if (node.css !== null) {
+			const hash_id = b.id(CSS_HASH_IDENTIFIER);
+			const hash = b.var(hash_id, b.literal(node.css.hash));
+			context.state.stylesheets.push(node.css);
+
+			// Register CSS hash during rendering
+			body_statements.push(
+				hash,
+				b.stmt(b.call(b.member(b.id('__output'), b.id('register_css')), hash_id)),
+			);
+
+			if (node.metadata.styleIdentifierPresent) {
+				/** @type {AST.Property[]} */
+				const properties = [];
+				if (node.metadata.topScopedClasses && node.metadata.topScopedClasses.size > 0) {
+					for (const [className] of node.metadata.topScopedClasses) {
+						properties.push(
+							b.prop(
+								'init',
+								b.key(className),
+								b.template([b.quasi('', false), b.quasi(` ${className}`, true)], [hash_id]),
+							),
+						);
+					}
 				}
+				body_statements.push(b.var(b.id(STYLE_IDENTIFIER), b.object(properties)));
 			}
-			style_statements.push(b.const(b.id(style_const_name), b.object(properties)));
 		}
 
-		const body_statements = [
-			...style_statements,
+		body_statements.push(
 			b.stmt(b.call('_$_.push_component')),
 			...transform_body(node.body, {
 				...context,
 				state: { ...context.state, component: node, metadata },
 			}),
 			b.stmt(b.call('_$_.pop_component')),
-		];
-
-		if (node.css !== null && node.css) {
-			context.state.stylesheets.push(node.css);
-			// Register CSS hash during rendering
-			body_statements.unshift(
-				b.stmt(b.call(b.member(b.id('__output'), b.id('register_css')), b.literal(node.css.hash))),
-			);
-		}
+		);
 
 		let component_fn = b.function(
 			node.id,
@@ -838,7 +838,7 @@ const visitors = {
 	},
 
 	StyleIdentifier(node, context) {
-		return b.id(obfuscate_identifier('style'));
+		return b.id(STYLE_IDENTIFIER);
 	},
 
 	/** @type {Visitor<AST.ImportDeclaration, TransformServerState, AST.Node>} */
@@ -945,8 +945,7 @@ const visitors = {
 
 	AwaitExpression(node, context) {
 		const { state } = context;
-		state.scope.server_block = true;
-		state.inside_server_block = true;
+
 		if (state.to_ts) {
 			return context.next();
 		}
@@ -1089,6 +1088,7 @@ export function transform_server(filename, source, analysis, minify_css) {
 		init: null,
 		scope: analysis.scope,
 		scopes: analysis.scopes,
+		serverIdentifierPresent: analysis.metadata.serverIdentifierPresent,
 		stylesheets: [],
 		component_metadata,
 		inside_server_block: false,

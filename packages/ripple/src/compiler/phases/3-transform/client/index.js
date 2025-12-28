@@ -52,7 +52,12 @@ import {
 	determine_namespace_for_children,
 	index_to_key,
 } from '../../../utils.js';
-import { obfuscate_identifier } from '../../../identifier-utils.js';
+import {
+	CSS_HASH_IDENTIFIER,
+	STYLE_IDENTIFIER,
+	SERVER_IDENTIFIER,
+	obfuscate_identifier,
+} from '../../../identifier-utils.js';
 import is_reference from 'is-reference';
 import { object } from '../../../../utils/ast.js';
 import { render_stylesheets } from '../stylesheet.js';
@@ -359,7 +364,7 @@ const visitors = {
 							name: capitalized_name,
 							metadata: {
 								...node.metadata,
-								original_name: node.name,
+								source_name: node.name,
 								is_capitalized: true,
 							},
 						};
@@ -395,13 +400,15 @@ const visitors = {
 	},
 
 	ServerIdentifier(node, context) {
-		const id = b.id('_$_server_$_');
+		const id = b.id(SERVER_IDENTIFIER);
+		id.metadata.source_name = '#server';
 		id.loc = node.loc;
 		return id;
 	},
 
 	StyleIdentifier(node, context) {
-		const id = b.id(obfuscate_identifier('style'));
+		const id = b.id(STYLE_IDENTIFIER);
+		id.metadata.source_name = '#style';
 		id.loc = node.loc;
 		return id;
 	},
@@ -551,7 +558,7 @@ const visitors = {
 				const calleeId = b.id(alias);
 				calleeId.loc = callee.loc;
 				calleeId.metadata = {
-					tracked_shorthand: callee.type === 'TrackedMapExpression' ? '#Map' : '#Set',
+					source_name: callee.type === 'TrackedMapExpression' ? '#Map' : '#Set',
 					path: [...context.path],
 				};
 				/** @type {AST.NewExpression} */
@@ -740,7 +747,7 @@ const visitors = {
 							name: capitalized_name,
 							metadata: {
 								...pattern.metadata,
-								original_name: pattern.name,
+								source_name: pattern.name,
 								is_capitalized: true,
 							},
 						};
@@ -1599,24 +1606,32 @@ const visitors = {
 		/** @type {AST.Statement[]} */
 		const style_statements = [];
 
+		/** @type {'const' | 'var'} */
+		let var_method_type = 'var';
+		if (context.state.to_ts) {
+			var_method_type = 'const';
+		}
+
 		if (node.css !== null && node.metadata.styleIdentifierPresent) {
 			/** @type {AST.Property[]} */
 			const properties = [];
-			const style_const_name = obfuscate_identifier('style');
 			if (node.metadata.topScopedClasses && node.metadata.topScopedClasses.size > 0) {
-				const hash = b.const(b.id('hash'), b.literal(node.css.hash));
+				const hash = b[var_method_type](b.id(CSS_HASH_IDENTIFIER), b.literal(node.css.hash));
 				style_statements.push(hash);
 				for (const [className] of node.metadata.topScopedClasses) {
 					properties.push(
 						b.prop(
 							'init',
 							b.key(className),
-							b.template([b.quasi('', false), b.quasi(` ${className}`, true)], [b.id('hash')]),
+							b.template(
+								[b.quasi('', false), b.quasi(` ${className}`, true)],
+								[b.id(CSS_HASH_IDENTIFIER)],
+							),
 						),
 					);
 				}
 			}
-			style_statements.push(b.const(b.id(style_const_name), b.object(properties)));
+			style_statements.push(b[var_method_type](b.id(STYLE_IDENTIFIER), b.object(properties)));
 		}
 
 		if (context.state.to_ts) {
@@ -2030,6 +2045,17 @@ const visitors = {
 			return b.empty;
 		}
 
+		if (context.state.to_ts && context.state.inside_server_block) {
+			const declaration = node.declaration;
+
+			if (declaration && declaration.type === 'FunctionDeclaration') {
+				return context.visit(declaration);
+			} else {
+				// TODO
+				throw new Error('Not implemented');
+			}
+		}
+
 		return context.next();
 	},
 
@@ -2133,15 +2159,53 @@ const visitors = {
 	},
 
 	ServerBlock(node, context) {
+		if (context.state.to_ts) {
+			const block = /** @type {AST.BlockStatement} */ (
+				context.visit(node.body, { ...context.state, inside_server_block: true })
+			);
+
+			/** @type {AST.Property[]} */
+			const properties = [];
+
+			// Extract and preserve original function declarations
+			for (const stmt of node.body.body) {
+				if (
+					stmt.type === 'ExportNamedDeclaration' &&
+					stmt.declaration?.type === 'FunctionDeclaration' &&
+					stmt.declaration.id
+				) {
+					// create new nodes to avoid same node.loc issue
+					// that would result in double definitions
+					const id = b.id(stmt.declaration.id.name);
+					properties.push(b.prop('init', id, id, false, true));
+				}
+			}
+
+			const value = b.call(b.thunk(b.block([...block.body, b.return(b.object(properties))])));
+			value.loc = node.loc;
+
+			const server_identifier = b.id(SERVER_IDENTIFIER);
+			server_identifier.loc = node.loc;
+			// Add source_name to properly map longer generated back to '#server'
+			server_identifier.metadata.source_name = '#server';
+
+			const server_const = b.const(server_identifier, value);
+			server_const.loc = node.loc;
+
+			return server_const;
+		}
+
 		const exports = node.metadata.exports;
 
-		if (exports.length === 0) {
+		if (!context.state.serverIdentifierPresent) {
+			// no point printing the client-side block if #server.func is not used
 			return b.empty;
 		}
+
 		const file_path = context.state.filename;
 
-		return b.const(
-			'_$_server_$_',
+		return b.var(
+			SERVER_IDENTIFIER,
 			b.object(
 				/** @type {AST.ServerBlock['metadata']['exports']} */ (exports).map((name) => {
 					const func_path = file_path + '#' + name;
@@ -2166,6 +2230,7 @@ const visitors = {
 	Program(node, context) {
 		/** @type {Array<AST.Statement | AST.Directive | AST.ModuleDeclaration>} */
 		const statements = [];
+		const { state } = context;
 
 		for (const statement of node.body) {
 			statements.push(
@@ -2350,9 +2415,9 @@ function transform_ts_child(node, context) {
 					end: node.id.loc.end,
 				};
 				// Add metadata if this was capitalized
-				if (node.metadata?.ts_name && node.metadata?.original_name) {
+				if (node.metadata?.ts_name && node.metadata?.source_name) {
 					opening_name_element.metadata = {
-						original_name: node.metadata.original_name,
+						source_name: node.metadata.source_name,
 						is_capitalized: true,
 						path: [...node.metadata.path],
 					};
@@ -2389,14 +2454,14 @@ function transform_ts_child(node, context) {
 							column:
 								closing_tag_start +
 								3 +
-								(node.metadata?.original_name?.length ||
+								(node.metadata?.source_name?.length ||
 									/** @type {string} */ (type_expression).length),
 						},
 					};
 					// Add metadata if this was capitalized
-					if (node.metadata?.ts_name && node.metadata?.original_name) {
+					if (node.metadata?.ts_name && node.metadata?.source_name) {
 						closing_name_element.metadata = {
-							original_name: node.metadata.original_name,
+							source_name: node.metadata.source_name,
 							is_capitalized: true,
 							path: [...node.metadata.path],
 						};
@@ -2431,8 +2496,7 @@ function transform_ts_child(node, context) {
 			// - '<' is at node.loc.end.column - type_expression.length - 3
 			// - '>' is at node.loc.end.column - 1
 			const tag_name_length = node.id.tracked
-				? (node.metadata?.original_name?.length || /** @type {string} */ (type_expression).length) +
-					1 // +1 for '@'
+				? (node.metadata?.source_name?.length || /** @type {string} */ (type_expression).length) + 1 // +1 for '@'
 				: /** @type {string} */ (type_expression).length;
 
 			jsxElement.closingElement.loc = {
@@ -2448,10 +2512,10 @@ function transform_ts_child(node, context) {
 		}
 
 		// Preserve metadata from Element node for mapping purposes
-		if (node.metadata && (node.metadata.ts_name || node.metadata.original_name)) {
+		if (node.metadata && (node.metadata.ts_name || node.metadata.source_name)) {
 			jsxElement.metadata = {
 				ts_name: node.metadata.ts_name,
-				original_name: node.metadata.original_name,
+				source_name: node.metadata.source_name,
 				path: [...node.metadata.path],
 			};
 		}
@@ -2960,13 +3024,17 @@ function create_tsx_with_typescript_support() {
 	 * @param {TransformClientContext} context
 	 */
 	const handle_function = (node, context) => {
+		const loc = /** @type {AST.SourceLocation} */ (node.loc);
+
 		if (node.async) {
+			context.location(loc.start.line, loc.start.column);
 			context.write('async ');
+			context.location(loc.start.line, loc.start.column + 6);
+			context.write('function');
+		} else {
+			context.write('function', node);
 		}
-		// Write 'function' keyword with node location for source mapping
-		// This creates a mapping from the source position (which may have 'component')
-		// to the generated 'function' keyword
-		context.write('function', node);
+
 		if (node.generator) {
 			context.write('*');
 		}
@@ -3493,6 +3561,8 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		flush_node: null,
 		scope: analysis.scope,
 		scopes: analysis.scopes,
+		inside_server_block: false,
+		serverIdentifierPresent: analysis.metadata.serverIdentifierPresent,
 		stylesheets: [],
 		to_ts,
 		filename,

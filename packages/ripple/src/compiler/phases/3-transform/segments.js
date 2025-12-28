@@ -354,18 +354,11 @@ export function convert_source_map_to_mappings(
 				// Only create mappings for identifiers with location info (from source)
 				// Synthesized identifiers (created by builders) don't have .loc and are skipped
 				if (node.name && node.loc) {
-					// Check if this identifier has tracked_shorthand metadata (e.g., TrackedMap -> #Map)
-					if (node.metadata?.tracked_shorthand) {
+					// Check if this identifier was changed in metadata (e.g., #Map -> TrackedMap)
+					// Or if it was capitalized during transformation
+					if (node.metadata?.source_name) {
 						tokens.push({
-							source: node.metadata.tracked_shorthand,
-							generated: node.name,
-							loc: node.loc,
-						});
-					} else if (node.metadata?.is_capitalized) {
-						// This identifier was capitalized during transformation
-						// Map the original lowercase name to the capitalized generated name
-						tokens.push({
-							source: node.metadata.original_name,
+							source: node.metadata.source_name,
 							generated: node.name,
 							loc: node.loc,
 						});
@@ -391,7 +384,7 @@ export function convert_source_map_to_mappings(
 				if (node.loc && node.name) {
 					if (node.metadata?.is_capitalized) {
 						tokens.push({
-							source: node.metadata.original_name,
+							source: node.metadata.source_name,
 							generated: node.name,
 							loc: node.loc,
 						});
@@ -657,7 +650,7 @@ export function convert_source_map_to_mappings(
 					);
 					if (closingNameNode.metadata?.is_capitalized) {
 						tokens.push({
-							source: closingNameNode.metadata.original_name,
+							source: closingNameNode.metadata.source_name,
 							generated: closingNameNode.name,
 							loc: closingNameNode.loc,
 						});
@@ -679,16 +672,35 @@ export function convert_source_map_to_mappings(
 				// Add function/component keyword token
 				if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
 					const node_fn = /** @type (typeof node) & AST.NodeWithLocation */ (node);
-					const source_keyword = node.metadata?.was_component ? 'component' : 'function';
-					// Add token for the keyword - esrap already mapped it via context.write('function', node)
+					const source_func_keyword = node.metadata?.was_component ? 'component' : 'function';
+					let start_col = node_fn.loc.start.column;
+					const async_keyword = 'async';
+
+					// We explicitly mapped async and function in esrap
+					if (node_fn.async) {
+						tokens.push({
+							source: async_keyword,
+							generated: async_keyword,
+							loc: {
+								start: { line: node_fn.loc.start.line, column: start_col },
+								end: {
+									line: node_fn.loc.start.line,
+									column: start_col + async_keyword.length,
+								},
+							},
+						});
+
+						start_col += async_keyword.length + 1; // +1 for space
+					}
+
 					tokens.push({
-						source: source_keyword,
+						source: source_func_keyword,
 						generated: 'function',
 						loc: {
-							start: { line: node_fn.loc.start.line, column: node_fn.loc.start.column },
+							start: { line: node_fn.loc.start.line, column: start_col },
 							end: {
 								line: node_fn.loc.start.line,
-								column: node_fn.loc.start.column + source_keyword.length,
+								column: start_col + source_func_keyword.length,
 							},
 						},
 					});
