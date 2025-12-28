@@ -485,20 +485,43 @@ function RipplePlugin(config) {
 							// In JSX expressions, inside parentheses, assignments, etc.
 							// we want to treat @ as an identifier prefix rather than decorator
 							const currentType = this.type;
-							const inExpression =
-								this.exprAllowed ||
-								currentType === tt.braceL || // Inside { }
-								currentType === tt.parenL || // Inside ( )
-								currentType === tt.eq || // After =
-								currentType === tt.comma || // After ,
-								currentType === tt.colon || // After :
-								currentType === tt.question || // After ?
-								currentType === tt.logicalOR || // After ||
-								currentType === tt.logicalAND || // After &&
-								currentType === tt.dot || // After . (for member expressions like obj.@prop)
-								currentType === tt.questionDot; // After ?. (for optional chaining like obj?.@prop)
+							/**
+							 * @param {Parse.TokenType} type
+							 * @param {Parse.Parser} parser
+							 * @param {Parse.TokTypes} tt
+							 * @returns {boolean}
+							 */
+							function inExpression(type, parser, tt) {
+								return (
+									parser.exprAllowed ||
+									type === tt.braceL || // Inside { }
+									type === tt.parenL || // Inside ( )
+									type === tt.eq || // After =
+									type === tt.comma || // After ,
+									type === tt.colon || // After :
+									type === tt.question || // After ?
+									type === tt.logicalOR || // After ||
+									type === tt.logicalAND || // After &&
+									type === tt.dot || // After . (for member expressions like obj.@prop)
+									type === tt.questionDot // After ?. (for optional chaining like obj?.@prop)
+								);
+							}
 
-							if (inExpression) {
+							/**
+							 * @param {Parse.Parser} parser
+							 * @param {Parse.TokTypes} tt
+							 * @returns {boolean}
+							 */
+							function inAwait(parser, tt) {
+								return currentType === tt.name &&
+									parser.value === 'await' &&
+									parser.canAwait &&
+									parser.preToken
+									? inExpression(parser.preToken, parser, tt)
+									: false;
+							}
+
+							if (inExpression(currentType, this, tt) || inAwait(this, tt)) {
 								return this.readAtIdentifier();
 							}
 						}

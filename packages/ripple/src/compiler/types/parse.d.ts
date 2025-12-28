@@ -499,6 +499,10 @@ export namespace Parse {
 		potentialArrowAt: number;
 		/** Potential arrow in for-await position */
 		potentialArrowInForAwait: boolean;
+		/** Previous token type */
+		preToken: TokenType | null;
+		/** Previous token value */
+		preValue: string | number | RegExp | bigint | null;
 		/** Private name stack for class private fields validation */
 		privateNameStack: Array<{ declared: Record<string, string>; used: Array<AST.Node> }>;
 		/** Undefined exports for module validation */
