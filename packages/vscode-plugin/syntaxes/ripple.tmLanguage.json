@@ -6603,6 +6603,9 @@
           "include": "#server-member-expression"
         },
         {
+          "include": "#style-member-expression"
+        },
+        {
           "include": "#jsx-ref-modifier"
         },
         {
@@ -6655,6 +6658,9 @@
         },
         {
           "include": "#server-member-expression"
+        },
+        {
+          "include": "#style-member-expression"
         },
         {
           "include": "#jsx-html-modifier"
@@ -6829,6 +6835,48 @@
           "name": "entity.name.function.js"
         }
       }
+    },
+    "style-member-expression": {
+      "patterns": [
+        {
+          "name": "meta.style-member-expression.dot.js",
+          "match": "(#style)(\\.)([_$[:alpha:]][_$[:alnum:]]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.style.js"
+            },
+            "2": {
+              "name": "punctuation.accessor.js"
+            },
+            "3": {
+              "name": "variable.other.property.js"
+            }
+          }
+        },
+        {
+          "name": "meta.style-member-expression.computed.js",
+          "begin": "(#style)(\\[)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.style.js"
+            },
+            "2": {
+              "name": "meta.brace.square.js"
+            }
+          },
+          "end": "\\]",
+          "endCaptures": {
+            "0": {
+              "name": "meta.brace.square.js"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string"
+            }
+          ]
+        }
+      ]
     },
     "jsx-ref-modifier": {
       "name": "storage.modifier.js",
@@ -7104,6 +7152,9 @@
         },
         {
           "include": "#server-member-expression"
+        },
+        {
+          "include": "#style-member-expression"
         },
         {
           "include": "#jsx-ref-modifier"

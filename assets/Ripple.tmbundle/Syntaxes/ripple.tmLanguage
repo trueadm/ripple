@@ -10779,6 +10779,10 @@
 					</dict>
 					<dict>
 						<key>include</key>
+						<string>#style-member-expression</string>
+					</dict>
+					<dict>
+						<key>include</key>
 						<string>#jsx-ref-modifier</string>
 					</dict>
 					<dict>
@@ -10857,6 +10861,10 @@
 					<dict>
 						<key>include</key>
 						<string>#server-member-expression</string>
+					</dict>
+					<dict>
+						<key>include</key>
+						<string>#style-member-expression</string>
 					</dict>
 					<dict>
 						<key>include</key>
@@ -11132,6 +11140,72 @@
 						<string>entity.name.function.js</string>
 					</dict>
 				</dict>
+			</dict>
+			<key>style-member-expression</key>
+			<dict>
+				<key>patterns</key>
+				<array>
+					<dict>
+						<key>name</key>
+						<string>meta.style-member-expression.dot.js</string>
+						<key>match</key>
+						<string>(#style)(\.)([_$[:alpha:]][_$[:alnum:]]*)</string>
+						<key>captures</key>
+						<dict>
+							<key>1</key>
+							<dict>
+								<key>name</key>
+								<string>storage.type.style.js</string>
+							</dict>
+							<key>2</key>
+							<dict>
+								<key>name</key>
+								<string>punctuation.accessor.js</string>
+							</dict>
+							<key>3</key>
+							<dict>
+								<key>name</key>
+								<string>variable.other.property.js</string>
+							</dict>
+						</dict>
+					</dict>
+					<dict>
+						<key>name</key>
+						<string>meta.style-member-expression.computed.js</string>
+						<key>begin</key>
+						<string>(#style)(\[)</string>
+						<key>beginCaptures</key>
+						<dict>
+							<key>1</key>
+							<dict>
+								<key>name</key>
+								<string>storage.type.style.js</string>
+							</dict>
+							<key>2</key>
+							<dict>
+								<key>name</key>
+								<string>meta.brace.square.js</string>
+							</dict>
+						</dict>
+						<key>end</key>
+						<string>\]</string>
+						<key>endCaptures</key>
+						<dict>
+							<key>0</key>
+							<dict>
+								<key>name</key>
+								<string>meta.brace.square.js</string>
+							</dict>
+						</dict>
+						<key>patterns</key>
+						<array>
+							<dict>
+								<key>include</key>
+								<string>#string</string>
+							</dict>
+						</array>
+					</dict>
+				</array>
 			</dict>
 			<key>jsx-ref-modifier</key>
 			<dict>
@@ -11564,6 +11638,10 @@
 					<dict>
 						<key>include</key>
 						<string>#server-member-expression</string>
+					</dict>
+					<dict>
+						<key>include</key>
+						<string>#style-member-expression</string>
 					</dict>
 					<dict>
 						<key>include</key>
