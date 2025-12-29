@@ -71,7 +71,7 @@ mount(App, {
 
 ## 🔧 VSCode Extension
 
-Install the [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=ripple-ts.vscode-plugin) for:
+Install the [Ripple VSCode extension](https://marketplace.visualstudio.com/items?itemName=Ripple-TS.ripple-ts-vscode-plugin) for:
 
 - Syntax highlighting
 - TypeScript integration

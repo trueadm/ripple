@@ -1290,7 +1290,7 @@ src/
 
 ### VSCode Extension
 - **Name**: "Ripple for VS Code"
-- **ID**: `ripple-ts.vscode-plugin`
+- **ID**: `Ripple-TS.ripple-ts-vscode-plugin`
 - **Features**: Syntax highlighting, diagnostics, TypeScript integration, IntelliSense
 
 ### Vite Plugin
@@ -1350,7 +1350,7 @@ export default defineConfig({
 
 - **Website**: https://ripplejs.com
 - **GitHub**: https://github.com/Ripple-TS/ripple
-- **VSCode Extension**: https://marketplace.visualstudio.com/items?itemName=ripple-ts.vscode-plugin
+- **VSCode Extension**: https://marketplace.visualstudio.com/items?itemName=Ripple-TS.ripple-ts-vscode-plugin
 
 ---
 
