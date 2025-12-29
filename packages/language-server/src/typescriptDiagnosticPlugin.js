@@ -8,9 +8,18 @@
 @import {TextDocument} from 'vscode-languageserver-textdocument';
  */
 
-const { getVirtualCode, createLogging } = require('./utils.js');
+const { getVirtualCode, createLogging, deobfuscateIdentifiers } = require('./utils.js');
 
 const { log, logError } = createLogging('[Ripple TypeScript Diagnostic Plugin]');
+
+/**
+ * @param {Diagnostic} diagnostic
+ * @param {Diagnostic[]} items
+ */
+function process(diagnostic, items) {
+	diagnostic.message = deobfuscateIdentifiers(diagnostic.message);
+	items.push(diagnostic);
+}
 
 /**
  * Filter diagnostics based on suppressed diagnostic codes in mappings.
@@ -19,7 +28,7 @@ const { log, logError } = createLogging('[Ripple TypeScript Diagnostic Plugin]')
  * @param {Diagnostic[]} diagnostics
  * @returns {Diagnostic[]}
  */
-function filterDiagnostics(document, context, diagnostics) {
+function processDiagnostics(document, context, diagnostics) {
 	if (!diagnostics || diagnostics.length === 0) {
 		return diagnostics;
 	}
@@ -32,20 +41,25 @@ function filterDiagnostics(document, context, diagnostics) {
 		return diagnostics;
 	}
 
-	const filtered = diagnostics.filter((diagnostic) => {
+	/** @type {Diagnostic[]} */
+	const result = [];
+
+	for (const diagnostic of diagnostics) {
 		const range = diagnostic.range;
 		const rangeStart = document.offsetAt(range.start);
 		const rangeEnd = document.offsetAt(range.end);
 		const mapping = virtualCode.findMappingByGeneratedRange(rangeStart, rangeEnd);
 
 		if (!mapping) {
-			return true;
+			process(diagnostic, result);
+			continue;
 		}
 
 		const suppressedCodes = mapping.data.customData?.suppressedDiagnostics;
 
 		if (!suppressedCodes || suppressedCodes.length === 0) {
-			return true;
+			process(diagnostic, result);
+			continue;
 		}
 
 		const diagnosticCode =
@@ -57,14 +71,14 @@ function filterDiagnostics(document, context, diagnostics) {
 
 		if (diagnosticCode && suppressedCodes.includes(diagnosticCode)) {
 			log(`Suppressing diagnostic ${diagnosticCode}: ${diagnostic.message}`);
-			return false;
+			continue;
 		}
 
-		return true;
-	});
+		process(diagnostic, result);
+	}
 
-	log(`Filtered from ${diagnostics.length} to ${filtered.length} diagnostics`);
-	return filtered;
+	log(`Filtered from ${diagnostics.length} to ${result.length} diagnostics`);
+	return result;
 }
 
 /**
@@ -96,7 +110,7 @@ function createTypeScriptDiagnosticFilterPlugin() {
 					// This maintains the plugin association for code actions
 					instance.provideDiagnostics = async function (document, token) {
 						const diagnostics = await originalProvider?.call(originalInstance, document, token);
-						return filterDiagnostics(document, context, diagnostics ?? []);
+						return processDiagnostics(document, context, diagnostics ?? []);
 					};
 
 					log('Successfully wrapped typescript-semantic provideDiagnostics');

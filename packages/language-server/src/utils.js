@@ -27,13 +27,13 @@ let deobfuscate_identifier;
 /** @type {IDENTIFIER_OBFUSCATION_PREFIX} */
 let IDENTIFIER_OBFUSCATION_PREFIX;
 /** @type {RegExp} */
-let obfuscatedImportRegex;
+let obfuscated_identifier_regex;
 
 import('ripple/compiler/internal/identifier/utils').then((imports) => {
 	is_identifier_obfuscated = imports.is_identifier_obfuscated;
 	deobfuscate_identifier = imports.deobfuscate_identifier;
 	IDENTIFIER_OBFUSCATION_PREFIX = imports.IDENTIFIER_OBFUSCATION_PREFIX;
-	obfuscatedImportRegex = new RegExp(
+	obfuscated_identifier_regex = new RegExp(
 		escapeRegExp(IDENTIFIER_OBFUSCATION_PREFIX) + charAllowedWordRegex.source + '+',
 		'gm',
 	);
@@ -52,8 +52,8 @@ function escapeRegExp(source) {
  * @param {string} text
  * @returns {string}
  */
-function deobfuscateImportDefinitions(text) {
-	return text.replace(obfuscatedImportRegex, (match) => deobfuscate_identifier(match));
+function deobfuscateIdentifiers(text) {
+	return text.replace(obfuscated_identifier_regex, (match) => deobfuscate_identifier(match));
 }
 
 /**
@@ -169,6 +169,6 @@ module.exports = {
 	isInsideExport,
 	createLogging,
 	concatMarkdownContents,
-	deobfuscateImportDefinitions,
+	deobfuscateIdentifiers,
 	DEBUG,
 };
