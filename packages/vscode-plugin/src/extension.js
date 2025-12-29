@@ -408,7 +408,7 @@ async function configurePrettier() {
 		await config.update(
 			'[ripple]',
 			{
-				'editor.defaultFormatter': 'esbenp.prettier-vscode',
+				'editor.defaultFormatter': 'prettier.prettier-vscode',
 			},
 			vscode.ConfigurationTarget.Global,
 		);
