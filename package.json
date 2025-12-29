@@ -36,10 +36,5 @@
   },
   "dependencies": {
     "@types/eslint": "catalog:default"
-  },
-  "pnpm": {
-    "overrides": {
-      "@volar/source-map": "file:../volar.js/packages/source-map"
-    }
   }
 }
