@@ -1154,7 +1154,6 @@ export interface TransformServerState extends BaseState {
 	metadata: BaseStateMetaData;
 	namespace: NameSpace;
 	server_block_locals: AST.VariableDeclaration[];
-	server_import_counter: number;
 }
 
 type UpdateList = Array<{
@@ -1173,7 +1172,6 @@ export interface TransformClientState extends BaseState {
 	hoisted: Array<AST.Statement>;
 	imports: Set<string | AST.ImportDeclaration>;
 	server_block_locals: AST.VariableDeclaration[];
-	server_import_counter: number;
 	init: Array<AST.Statement> | null;
 	metadata: BaseStateMetaData;
 	namespace: NameSpace;

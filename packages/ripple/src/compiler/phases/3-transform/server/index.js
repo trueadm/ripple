@@ -30,7 +30,11 @@ import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
 import { render_stylesheets } from '../stylesheet.js';
 import { createHash } from 'node:crypto';
-import { STYLE_IDENTIFIER, CSS_HASH_IDENTIFIER } from '../../../identifier-utils.js';
+import {
+	STYLE_IDENTIFIER,
+	CSS_HASH_IDENTIFIER,
+	obfuscate_identifier,
+} from '../../../identifier-utils.js';
 
 /**
  * @param {AST.Node[]} children
@@ -857,12 +861,9 @@ const visitors = {
 			/** @type {AST.VariableDeclaration[]} */
 			const locals = state.server_block_locals;
 			for (const spec of node.specifiers) {
-				state.server_import_counter++;
-				const name = `_$_import_${state.server_import_counter}`;
 				const original_name = spec.local.name;
-
+				const name = obfuscate_identifier(original_name);
 				spec.local = b.id(name);
-
 				locals.push(b.const(original_name, b.id(name)));
 			}
 			state.imports.add(node);
@@ -1068,7 +1069,6 @@ const visitors = {
 				...context.state,
 				inside_server_block: true,
 				server_block_locals,
-				server_import_counter: 0,
 			})
 		);
 
@@ -1131,7 +1131,6 @@ export function transform_server(filename, source, analysis, minify_css) {
 		component_metadata,
 		inside_server_block: false,
 		server_block_locals: [],
-		server_import_counter: 0,
 		filename,
 		namespace: 'html',
 		// TODO: should we remove all `to_ts` usages we use the client rendering for that?

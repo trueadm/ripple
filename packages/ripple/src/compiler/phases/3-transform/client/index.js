@@ -423,7 +423,6 @@ const visitors = {
 			/** @type {AST.VariableDeclaration[]} */
 			const locals = state.server_block_locals;
 			for (const spec of node.specifiers) {
-				state.server_import_counter++;
 				const original_name = spec.local.name;
 				const name = obfuscate_identifier(original_name);
 				if (
@@ -2188,7 +2187,6 @@ const visitors = {
 					...context.state,
 					inside_server_block: true,
 					server_block_locals,
-					server_import_counter: 0,
 				})
 			);
 
@@ -3592,7 +3590,6 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		inside_server_block: false,
 		serverIdentifierPresent: analysis.metadata.serverIdentifierPresent,
 		server_block_locals: [],
-		server_import_counter: 0,
 		stylesheets: [],
 		to_ts,
 		filename,
