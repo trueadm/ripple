@@ -420,9 +420,23 @@ const visitors = {
 		}
 
 		if (state.to_ts && state.inside_server_block) {
-			// In ts mode, we just need to move the imports to the module level
-			// as imports can only be declared at the module level
-			// All generated to source mappings will work as expected
+			/** @type {AST.VariableDeclaration[]} */
+			const locals = state.server_block_locals;
+			for (const spec of node.specifiers) {
+				state.server_import_counter++;
+				const original_name = spec.local.name;
+				const name = obfuscate_identifier(original_name);
+				if (
+					spec.type !== 'ImportSpecifier' ||
+					(spec.imported && /** @type {AST.Identifier} */ (spec.imported).name !== spec.local.name)
+				) {
+					spec.local.name = name;
+				} else {
+					spec.local = b.id(name);
+				}
+				spec.local.metadata.source_name = original_name;
+				locals.push(b.const(original_name, b.id(name)));
+			}
 			state.imports.add(node);
 			return b.empty;
 		}
@@ -2164,8 +2178,18 @@ const visitors = {
 
 	ServerBlock(node, context) {
 		if (context.state.to_ts) {
+			// Convert Imports inside ServerBlock to local variables
+			// ImportDeclaration() visitor will add imports to the top of the module
+			/** @type {AST.VariableDeclaration[]} */
+			const server_block_locals = [];
+
 			const block = /** @type {AST.BlockStatement} */ (
-				context.visit(node.body, { ...context.state, inside_server_block: true })
+				context.visit(node.body, {
+					...context.state,
+					inside_server_block: true,
+					server_block_locals,
+					server_import_counter: 0,
+				})
 			);
 
 			/** @type {AST.Property[]} */
@@ -2185,7 +2209,9 @@ const visitors = {
 				}
 			}
 
-			const value = b.call(b.thunk(b.block([...block.body, b.return(b.object(properties))])));
+			const value = b.call(
+				b.thunk(b.block([...server_block_locals, ...block.body, b.return(b.object(properties))])),
+			);
 			value.loc = node.loc;
 
 			const server_identifier = b.id(SERVER_IDENTIFIER);
@@ -3565,6 +3591,8 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		scopes: analysis.scopes,
 		inside_server_block: false,
 		serverIdentifierPresent: analysis.metadata.serverIdentifierPresent,
+		server_block_locals: [],
+		server_import_counter: 0,
 		stylesheets: [],
 		to_ts,
 		filename,

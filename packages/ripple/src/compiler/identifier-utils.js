@@ -36,7 +36,8 @@ export function obfuscate_identifier(name) {
 	const second_part = name.slice(index);
 
 	return (
-		IDENTIFIER_OBFUSCATION_PREFIX + (second_part ? second_part + '__' + first_part : first_part)
+		IDENTIFIER_OBFUSCATION_PREFIX +
+		(second_part ? second_part + '__' + first_part : first_part + '__')
 	);
 }
 
