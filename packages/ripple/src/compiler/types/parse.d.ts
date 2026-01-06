@@ -1017,6 +1017,12 @@ export namespace Parse {
 		 */
 		parseImportMeta(node: AST.Node): AST.MetaProperty;
 
+		/** Check if an import exists in current module scope
+		 * @param name Import name to check
+		 * @param allowShadow Whether to allow shadowed imports
+		 */
+		hasImport(name: string, allowShadow?: boolean): boolean;
+
 		/** Parse yield expression */
 		parseYield(forInit?: ForInit): AST.YieldExpression;
 
@@ -1529,6 +1535,14 @@ export namespace Parse {
 			bindingType?: BindingType[keyof BindingType],
 			checkClashes?: Record<string, boolean>,
 		): void;
+
+		/**
+		 * Check if a local export refers to a defined variable.
+		 * Acorn's default implementation only checks the top-level module scope,
+		 * but Ripple overrides this to check all scopes (for server blocks).
+		 * @param id The identifier being exported
+		 */
+		checkLocalExport(id: AST.Identifier): void;
 
 		/**
 		 * Check expression errors

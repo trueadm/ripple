@@ -4,6 +4,7 @@ import type { TSESTree } from '@typescript-eslint/types';
 import type { NAMESPACE_URI } from '../../runtime/internal/client/constants.js';
 import type { Parse } from '#parser';
 import type * as ESRap from 'esrap';
+import type { RippleCompileError } from 'ripple/compiler';
 
 export type RpcModules = Map<string, [string, string]>;
 
@@ -24,6 +25,7 @@ interface BaseNodeMetaData {
 	openingTagEndLoc?: AST.Position;
 	parenthesized?: boolean;
 	elementLeadingComments?: AST.Comment[];
+	inside_component_top_level?: boolean;
 }
 
 interface FunctionMetaData extends BaseNodeMetaData {
@@ -972,6 +974,7 @@ export interface AnalysisResult {
 	metadata: {
 		serverIdentifierPresent: boolean;
 	};
+	errors: RippleCompileError[];
 }
 
 /**
@@ -1154,6 +1157,7 @@ export interface TransformServerState extends BaseState {
 	metadata: BaseStateMetaData;
 	namespace: NameSpace;
 	server_block_locals: AST.VariableDeclaration[];
+	server_exported_names: string[];
 }
 
 type UpdateList = Array<{
@@ -1179,6 +1183,7 @@ export interface TransformClientState extends BaseState {
 	stylesheets: Array<AST.CSS.StyleSheet>;
 	template: Array<string | AST.Expression> | null;
 	update: UpdateList | null;
+	errors: RippleCompileError[];
 }
 
 /** Override zimmerframe types and provide our own */

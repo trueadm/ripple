@@ -1,16 +1,15 @@
-/** @type {import('typescript')} */
 // @ts-expect-error type-only import from ESM module into CJS is fine
 /** @import { CodeMapping } from 'ripple/compiler' */
+// @ts-expect-error type-only import from ESM module into CJS is fine
+/** @import {RippleCompiler, RippleCompileError, VolarMappingsResult} from 'ripple/compiler' */
+
 /** @typedef {Map<string, CodeMapping>} CachedMappings */
 /** @typedef {import('typescript').CompilerOptions} CompilerOptions */
-/** @typedef {Error & { pos?: number }} RippleError */
 /** @typedef {import('@volar/language-core').IScriptSnapshot} IScriptSnapshot */
 /** @typedef {import('@volar/language-core').VirtualCode} VirtualCode */
 /** @typedef {string | { fsPath: string }} ScriptId */
 /** @typedef {import('@volar/typescript')} */
 /** @typedef {import('@volar/language-core').LanguagePlugin<ScriptId, VirtualCode>} RippleLanguagePlugin */
-// @ts-expect-error type-only import from ESM module into CJS is fine
-/** @typedef {import('ripple/compiler')} RippleCompiler */
 
 const ts = require('typescript');
 const { forEachEmbeddedCode } = require('@volar/language-core');
@@ -103,10 +102,10 @@ class RippleVirtualCode {
 	embeddedCodes = [];
 	/** @type {CodeMapping[]} */
 	mappings = [];
-	/** @type {boolean} */
-	isErrorMode = false;
-	/** @type {RippleError[]} */
-	errors = [];
+	/** @type {RippleCompileError[]} */
+	fatalErrors = [];
+	/** @type {RippleCompileError[]} */
+	usageErrors = [];
 	/** @type {IScriptSnapshot} */
 	snapshot;
 	/** @type {IScriptSnapshot} */
@@ -158,7 +157,10 @@ class RippleVirtualCode {
 		this.#mappingGenToSource = null;
 		this.#mappingSourceToGen = null;
 
-		/** @type {ReturnType<RippleCompiler['compile_to_volar_mappings']> | undefined} */
+		this.fatalErrors = [];
+		this.usageErrors = [];
+
+		/** @type {VolarMappingsResult | undefined} */
 		let transpiled;
 
 		// Check if a single "." was typed using changeRange
@@ -234,7 +236,6 @@ class RippleVirtualCode {
 						log('Replaced placeholder at position', placeholderPosInGenerated, 'with dot');
 					}
 				}
-				this.errors = [];
 			} else {
 				// Normal compilation
 				log('Compiling Ripple code...');
@@ -242,11 +243,12 @@ class RippleVirtualCode {
 					loose: true,
 				});
 				log('Compilation successful, generated code length:', transpiled?.code?.length || 0);
-				this.errors = [];
 			}
-		} catch (error) {
+		} catch (e) {
+			const error = /** @type {RippleCompileError} */ (e);
 			logError('Ripple compilation failed for', this.fileName, ':', error);
-			this.errors.push(/** @type {Error & { pos?: number }} */ (error));
+			error.type = 'fatal';
+			this.fatalErrors.push(error);
 		}
 
 		if (transpiled && transpiled.code) {
@@ -254,7 +256,7 @@ class RippleVirtualCode {
 			this.originalCode = newCode;
 			this.generatedCode = transpiled.code;
 			this.mappings = transpiled.mappings ?? [];
-			this.isErrorMode = false;
+			this.usageErrors = transpiled.errors;
 
 			const cssMappings = transpiled.cssMappings;
 			if (cssMappings.length > 0) {
@@ -312,21 +314,24 @@ class RippleVirtualCode {
 			log('Compilation failed, only display where the compilation error occurred.');
 
 			this.originalCode = newCode;
-			this.generatedCode = 'export {};\n';
-			this.isErrorMode = true;
+			this.generatedCode = newCode;
 
 			// Create 1:1 mappings for the entire content
 			this.mappings = [
 				{
-					sourceOffsets: [this.errors[0]?.pos ?? 0],
+					sourceOffsets: [0],
 					generatedOffsets: [0],
 					lengths: [newCode.length],
+					generatedLengths: [newCode.length],
 					data: {
-						verification: true,
+						verification: true, // disable TS since we're using source code as generated code
 						customData: { generatedLengths: [newCode.length] },
 					},
 				},
 			];
+
+			// Extract CSS from <style>...</style> tags for embedded codes
+			this.embeddedCodes = extractCssFromSource(newCode);
 
 			this.snapshot = /** @type {IScriptSnapshot} */ ({
 				getText: (start, end) => this.generatedCode.substring(start, end),
@@ -384,6 +389,71 @@ class RippleVirtualCode {
 		this.#buildMappingCache();
 		return /** @type {CachedMappings} */ (this.#mappingSourceToGen).get(`${start}-${end}`) ?? null;
 	}
+}
+
+/**
+ * Extract CSS content from <style>...</style> tags in source code
+ * @param {string} code - The source code to extract CSS from
+ * @returns {VirtualCode[]} Array of embedded CSS virtual codes
+ */
+function extractCssFromSource(code) {
+	/** @type {VirtualCode[]} */
+	const embeddedCodes = [];
+	const styleRegex = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
+	let match;
+	let index = 0;
+
+	while ((match = styleRegex.exec(code)) !== null) {
+		const fullMatch = match[0];
+		const cssContent = match[1];
+		const styleTagStart = match.index;
+		const openTagEnd = fullMatch.indexOf('>') + 1;
+		const cssStart = styleTagStart + openTagEnd;
+		const cssLength = cssContent.length;
+
+		log(`Extracted CSS region ${index}: offset ${cssStart}, length ${cssLength}`);
+
+		/** @type {CodeMapping} */
+		const mapping = {
+			sourceOffsets: [cssStart],
+			generatedOffsets: [0],
+			lengths: [cssLength],
+			generatedLengths: [cssLength],
+			data: {
+				verification: true,
+				completion: true,
+				semantic: true,
+				navigation: true,
+				structure: true,
+				format: false,
+				customData: {
+					generatedLengths: [cssLength],
+					content: cssContent,
+					embeddedId: `style_${index}`,
+				},
+			},
+		};
+
+		embeddedCodes.push({
+			id: `style_${index}`,
+			languageId: 'css',
+			snapshot: {
+				getText: (start, end) => cssContent.substring(start, end),
+				getLength: () => cssLength,
+				getChangeRange: () => undefined,
+			},
+			mappings: [mapping],
+			embeddedCodes: [],
+		});
+
+		index++;
+	}
+
+	if (embeddedCodes.length > 0) {
+		log(`Extracted ${embeddedCodes.length} CSS embedded codes from style tags`);
+	}
+
+	return embeddedCodes;
 }
 
 /**

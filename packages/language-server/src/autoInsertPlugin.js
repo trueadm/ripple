@@ -64,7 +64,7 @@ function createAutoInsertPlugin() {
 						return null;
 					}
 
-					const [virtualCode] = getVirtualCode(document, context);
+					const { virtualCode } = getVirtualCode(document, context);
 
 					if (virtualCode.languageId !== 'ripple') {
 						log(`Skipping auto-insert processing in the '${virtualCode.languageId}' context`);

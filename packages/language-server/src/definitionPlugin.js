@@ -43,7 +43,7 @@ function createDefinitionPlugin() {
 						}
 					}
 
-					const [virtualCode, sourceUri] = getVirtualCode(document, context);
+					const { virtualCode, sourceUri } = getVirtualCode(document, context);
 
 					if (virtualCode.languageId !== 'ripple') {
 						// like embedded css

@@ -79,6 +79,16 @@ export interface VolarMappingsResult {
 	code: string;
 	mappings: CodeMapping[];
 	cssMappings: CodeMapping[];
+	errors: RippleCompileError[];
+}
+
+export interface RippleCompileError extends Error {
+	pos: number | undefined;
+	raisedAt: number | undefined;
+	end: number | undefined;
+	loc: AST.SourceLocation | undefined;
+	fileName: string | undefined;
+	type: 'fatal' | 'usage';
 }
 
 /**

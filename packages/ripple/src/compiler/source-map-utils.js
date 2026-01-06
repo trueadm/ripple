@@ -1,13 +1,13 @@
-import { decode } from '@jridgewell/sourcemap-codec';
+/**
+ @import { PostProcessingChanges, LineOffsets } from './phases/3-transform/client/index.js';
+ @import * as AST from 'estree';
+ @import { CodeMapping } from 'ripple/compiler';
+ @import { CodeMapping as VolarCodeMapping } from '@volar/language-core';
+ */
 
 /**
-@import { PostProcessingChanges, LineOffsets } from './phases/3-transform/client/index.js';
-@import * as AST from 'estree';
-*/
-
-/**
-@typedef {{
-	line: number,
+ @typedef {{
+	 line: number,
 	column: number,
 	end_line: number,
 	end_column: number,
@@ -20,6 +20,23 @@ import { decode } from '@jridgewell/sourcemap-codec';
 @typedef {Map<string, CodePosition[]>} CodeToGeneratedMap
 @typedef {Map<string, {line: number, column: number}[]>} GeneratedToSourceMap
 */
+
+import { decode } from '@jridgewell/sourcemap-codec';
+
+/** @type {VolarCodeMapping['data']} */
+export const mapping_data = {
+	verification: true,
+	completion: true,
+	semantic: true,
+	navigation: true,
+	structure: true,
+	format: false,
+};
+
+/** @type {Partial<VolarCodeMapping['data']>} */
+export const mapping_data_verify_only = {
+	verification: true,
+};
 
 /**
  * Convert byte offset to line/column
@@ -204,4 +221,76 @@ export function get_generated_position(src_line, src_column, src_to_gen_map) {
 
 	// If multiple generated positions map to same source, return the first
 	return positions[0];
+}
+
+/**
+ * Convert line/column to byte offset
+ * @param {number} line
+ * @param {number} column
+ * @param {number[]} line_offsets
+ * @returns {number}
+ */
+export function loc_to_offset(line, column, line_offsets) {
+	if (line < 1 || line > line_offsets.length) {
+		throw new Error(
+			`Location line or line offsets length is out of bounds, line: ${line}, line offsets length: ${line_offsets.length}`,
+		);
+	}
+	return line_offsets[line - 1] + column;
+}
+
+/**
+ * Converts line/column positions to byte offsets
+ * @param {string} text
+ * @returns {number[]}
+ */
+export function build_line_offsets(text) {
+	const offsets = [0]; // Line 1 starts at offset 0
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '\n') {
+			offsets.push(i + 1);
+		}
+	}
+	return offsets;
+}
+
+/**
+ * @param {AST.Node} node
+ * @param {CodeToGeneratedMap} src_to_gen_map
+ * @param {number[]} gen_line_offsets
+ * @param {Partial<VolarCodeMapping['data']>} [filtered_data]
+ * @param {number} [src_max_len]
+ * @param {number} [gen_max_len]
+ * @returns {CodeMapping}
+ */
+export function get_mapping_from_node(
+	node,
+	src_to_gen_map,
+	gen_line_offsets,
+	filtered_data,
+	src_max_len,
+	gen_max_len,
+) {
+	const src_start_offset = /** @type {number} */ (node.start);
+	const src_end_offset = /** @type {number} */ (node.end);
+	const src_length = src_max_len || src_end_offset - src_start_offset;
+	const loc = /** @type {AST.SourceLocation} */ (node.loc);
+
+	const gen_loc = get_generated_position(loc.start.line, loc.start.column, src_to_gen_map);
+	const gen_start_offset = loc_to_offset(gen_loc.line, gen_loc.column, gen_line_offsets);
+	const gen_end_loc = get_generated_position(loc.end.line, loc.end.column, src_to_gen_map);
+	const gen_end_offset = loc_to_offset(gen_end_loc.line, gen_end_loc.column, gen_line_offsets);
+	const gen_length = gen_max_len || gen_end_offset - gen_start_offset;
+	return {
+		sourceOffsets: [src_start_offset],
+		lengths: [src_length],
+		generatedOffsets: [gen_start_offset],
+		generatedLengths: [gen_length],
+		data: {
+			...(filtered_data || mapping_data),
+			customData: {
+				generatedLengths: [gen_length],
+			},
+		},
+	};
 }

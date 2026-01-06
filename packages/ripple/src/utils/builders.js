@@ -5,6 +5,22 @@ import { regex_is_valid_identifier } from './patterns.js';
 import { sanitize_template_string } from './sanitize_template_string.js';
 
 /**
+ * @template {AST.Node} T
+ * @param {T} node
+ * @param {AST.NodeWithLocation | undefined} loc_info
+ * @returns {T}
+ */
+function set_location(node, loc_info) {
+	if (loc_info) {
+		node.start = loc_info.start;
+		node.end = loc_info.end;
+		node.loc = loc_info.loc;
+	}
+
+	return node;
+}
+
+/**
  * @param {Array<AST.Expression | AST.SpreadElement | null>} elements
  * @returns {AST.ArrayExpression}
  */
@@ -103,19 +119,14 @@ export function binary(operator, left, right) {
 
 /**
  * @param {AST.Statement[]} body
+ * @param {AST.NodeWithLocation} [loc_info]
  * @returns {AST.BlockStatement}
  */
-export function block(body) {
-	return { type: 'BlockStatement', body, metadata: { path: [] } };
-}
+export function block(body, loc_info) {
+	/** @type {AST.BlockStatement} */
+	const node = { type: 'BlockStatement', body, metadata: { path: [] } };
 
-/**
- * @param {AST.Statement[]} body
- * @param {AST.SourceLocation | null} [loc]
- * @returns {AST.BlockStatement}
- */
-export function try_item_block(body, loc) {
-	return { type: 'BlockStatement', body, loc, metadata: { path: [] } };
+	return set_location(node, loc_info);
 }
 
 /**
@@ -337,10 +348,13 @@ export function init(name, value) {
 
 /**
  * @param {boolean | string | number | bigint | false | RegExp | null | undefined} value
+ * @param {AST.NodeWithLocation} [loc_info]
  * @returns {AST.Literal}
  */
-export function literal(value) {
-	return /** @type {AST.Literal} */ ({ type: 'Literal', value, metadata: { path: [] } });
+export function literal(value, loc_info) {
+	const node = /** @type {AST.Literal} */ ({ type: 'Literal', value, metadata: { path: [] } });
+
+	return set_location(node, loc_info);
 }
 
 /**
@@ -486,10 +500,14 @@ export function stmt(expression) {
 /**
  * @param {AST.TemplateElement[]} elements
  * @param {AST.Expression[]} expressions
+ * @param {AST.NodeWithLocation} [loc_info]
  * @returns {AST.TemplateLiteral}
  */
-export function template(elements, expressions) {
-	return { type: 'TemplateLiteral', quasis: elements, expressions, metadata: { path: [] } };
+export function template(elements, expressions, loc_info) {
+	/** @type {AST.TemplateLiteral} */
+	const node = { type: 'TemplateLiteral', quasis: elements, expressions, metadata: { path: [] } };
+
+	return set_location(node, loc_info);
 }
 
 /**
@@ -528,18 +546,22 @@ export function unthunk(expression) {
 /**
  *
  * @param {string | AST.Expression} expression
+ * @param {AST.NodeWithLocation | undefined} loc_info
  * @param  {...AST.Expression} args
  * @returns {AST.NewExpression}
  */
-function new_builder(expression, ...args) {
+function new_builder(expression, loc_info, ...args) {
 	if (typeof expression === 'string') expression = id(expression);
 
-	return {
+	/** @type {AST.NewExpression} */
+	const node = {
 		callee: expression,
 		arguments: args,
 		type: 'NewExpression',
 		metadata: { path: [] },
 	};
+
+	return set_location(node, loc_info);
 }
 
 /**
@@ -621,10 +643,21 @@ function for_builder(init, test, update, body) {
  * @param {AST.Expression} right
  * @param {AST.Statement} body
  * @param {boolean} [await_flag]
+ * @param {AST.NodeWithLocation} [loc_info]
  * @returns {AST.ForOfStatement}
  */
-export function for_of(left, right, body, await_flag = false) {
-	return { type: 'ForOfStatement', left, right, body, await: await_flag, metadata: { path: [] } };
+export function for_of(left, right, body, await_flag = false, loc_info) {
+	/** @type {AST.ForOfStatement} */
+	const node = {
+		type: 'ForOfStatement',
+		left,
+		right,
+		body,
+		await: await_flag,
+		metadata: { path: [] },
+	};
+
+	return set_location(node, loc_info);
 }
 
 /**
@@ -655,10 +688,12 @@ export function method(kind, key, params, body, computed = false, is_static = fa
  * @param {AST.Pattern[]} params
  * @param {AST.BlockStatement} body
  * @param {boolean} async
+ * @param {AST.NodeWithLocation} [loc_info]
  * @returns {AST.FunctionExpression}
  */
-function function_builder(id, params, body, async = false) {
-	return {
+function function_builder(id, params, body, async = false, loc_info) {
+	/** @type {AST.FunctionExpression} */
+	const node = {
 		type: 'FunctionExpression',
 		id,
 		params,
@@ -667,6 +702,8 @@ function function_builder(id, params, body, async = false) {
 		async,
 		metadata: { path: [] },
 	};
+
+	return set_location(node, loc_info);
 }
 
 /**
@@ -736,7 +773,7 @@ function return_builder(argument = null) {
 export function throw_error(str) {
 	return {
 		type: 'ThrowStatement',
-		argument: new_builder('Error', literal(str)),
+		argument: new_builder('Error', undefined, literal(str)),
 		metadata: { path: [] },
 	};
 }
@@ -762,15 +799,19 @@ export function try_builder(block, handler = null, finalizer = null, pending = n
 /**
  * @param {AST.Pattern | null} param
  * @param {AST.BlockStatement} body
+ * @param {AST.NodeWithLocation} [loc_info]
  * @return {AST.CatchClause}
  */
-export function catch_clause_builder(param, body) {
-	return {
+export function catch_clause_builder(param, body, loc_info) {
+	/** @type {AST.CatchClause} */
+	const node = {
 		type: 'CatchClause',
 		param,
 		body,
 		metadata: { path: [] },
 	};
+
+	return set_location(node, loc_info);
 }
 
 export { catch_clause_builder as catch_clause };
@@ -814,6 +855,8 @@ export function jsx_element(name, node, attributes = [], children = [], closing_
 		attributes,
 		selfClosing: node.selfClosing ?? false,
 		loc: node.loc,
+		start: node.start,
+		end: node.end,
 		metadata: { path: [] },
 	};
 
@@ -912,15 +955,19 @@ export function jsx_spread_attribute(argument) {
 /**
  * @param {AST.Expression} discriminant
  * @param {AST.SwitchCase[]} cases
+ * @param {AST.NodeWithLocation} [loc_info]
  * @returns {AST.SwitchStatement}
  */
-export function switch_builder(discriminant, cases) {
-	return {
+export function switch_builder(discriminant, cases, loc_info) {
+	/** @type {AST.SwitchStatement} */
+	const node = {
 		type: 'SwitchStatement',
 		discriminant,
 		cases,
 		metadata: { path: [] },
 	};
+
+	return set_location(node, loc_info);
 }
 
 /**

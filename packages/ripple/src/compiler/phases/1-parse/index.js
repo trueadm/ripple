@@ -763,6 +763,29 @@ function RipplePlugin(config) {
 			}
 
 			/**
+			 * Override checkLocalExport to check all scopes in the scope stack.
+			 * This is needed because server blocks create nested scopes, but exports
+			 * from within server blocks should still be valid if the identifier is
+			 * declared in the server block's scope (not just the top-level module scope).
+			 * @type {Parse.Parser['checkLocalExport']}
+			 */
+			checkLocalExport(id) {
+				const { name } = id;
+				if (this.hasImport(name)) return;
+				// Check all scopes in the scope stack, not just the top-level scope
+				for (let i = this.scopeStack.length - 1; i >= 0; i--) {
+					const scope = this.scopeStack[i];
+					if (scope.lexical.indexOf(name) !== -1 || scope.var.indexOf(name) !== -1) {
+						// Found in a scope, remove from undefinedExports if it was added
+						delete this.undefinedExports[name];
+						return;
+					}
+				}
+				// Not found in any scope, add to undefinedExports for later error
+				this.undefinedExports[name] = id;
+			}
+
+			/**
 			 * @type {Parse.Parser['parseServerBlock']}
 			 */
 			parseServerBlock() {
@@ -2106,6 +2129,7 @@ function RipplePlugin(config) {
 						body.push(node);
 					}
 				} else {
+					skipWhitespace(this);
 					const node = this.parseStatement(null);
 					body.push(node);
 

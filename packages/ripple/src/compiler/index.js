@@ -54,14 +54,16 @@ export function compile_to_volar_mappings(source, filename, options) {
 		options?.minify_css ?? false,
 	);
 
-	// Create volar mappings with esrap source map for accurate positioning
-	return convert_source_map_to_mappings(
-		transformed.ast,
-		ast,
-		source,
-		transformed.js.code,
-		transformed.js.map,
-		/** @type {PostProcessingChanges} */ (transformed.js.post_processing_changes),
-		/** @type {LineOffsets} */ (transformed.js.line_offsets),
-	);
+	return {
+		...convert_source_map_to_mappings(
+			transformed.ast,
+			ast,
+			source,
+			transformed.js.code,
+			transformed.js.map,
+			/** @type {PostProcessingChanges} */ (transformed.js.post_processing_changes),
+			/** @type {LineOffsets} */ (transformed.js.line_offsets),
+		),
+		errors: transformed.errors,
+	};
 }

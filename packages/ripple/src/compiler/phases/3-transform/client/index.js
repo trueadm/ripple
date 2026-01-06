@@ -10,6 +10,7 @@
 	ScopeInterface,
 	Visitors
 }	from '#compiler';
+@import { RippleCompileError } from 'ripple/compiler';
  */
 
 /**
@@ -583,6 +584,7 @@ const visitors = {
 				/** @type {AST.NewExpression} */
 				const newExpr = b.new(
 					calleeId,
+					/** @type {AST.NodeWithLocation} */ (node),
 					.../** @type {AST.Expression[]} */ (argsToUse.map((arg) => context.visit(arg))),
 				);
 				// Preserve typeArguments for generics syntax like new #Map<string, number>()
@@ -659,6 +661,7 @@ const visitors = {
 
 			return b.new(
 				b.id(objectAlias),
+				/** @type {AST.NodeWithLocation} */ (node),
 				b.object(
 					/** @type {(AST.Property | AST.SpreadElement)[]} */ (
 						node.properties.map((prop) => context.visit(prop))
@@ -1659,6 +1662,13 @@ const visitors = {
 				}),
 			];
 
+			/** @type {AST.NodeWithLocation} */
+			const loc_node = {
+				start: /** @type {AST.NodeWithLocation } */ (node).start,
+				end: /** @type {AST.NodeWithLocation } */ (node).end,
+				loc: /** @type {AST.SourceLocation} */ (node.loc),
+			};
+
 			const func = b.function(
 				node.id,
 				node.params.map(
@@ -1666,13 +1676,15 @@ const visitors = {
 						/** @type {AST.Pattern} */ (context.visit(param, { ...context.state, metadata })),
 				),
 				b.block([...style_statements, ...body_statements]),
+				false,
+				loc_node,
 			);
 			// Mark that this function was originally a component
 			func.metadata = /** @type {AST.FunctionExpression['metadata']} */ ({
 				...func.metadata,
 				was_component: true,
 			});
-			func.loc = node.loc; // Copy source location for Volar mappings
+
 			return func;
 		}
 
@@ -1892,6 +1904,10 @@ const visitors = {
 
 	SwitchStatement(node, context) {
 		if (!is_inside_component(context)) {
+			if (context.state.to_ts) {
+				return transform_ts_child(node, context);
+			}
+
 			return context.next();
 		}
 		context.state.template?.push('<!>');
@@ -1963,6 +1979,10 @@ const visitors = {
 
 	IfStatement(node, context) {
 		if (!is_inside_component(context)) {
+			if (context.state.to_ts) {
+				return transform_ts_child(node, context);
+			}
+
 			return context.next();
 		}
 		context.state.template?.push('<!>');
@@ -2063,13 +2083,15 @@ const visitors = {
 		}
 
 		if (context.state.to_ts && context.state.inside_server_block) {
-			const declaration = node.declaration;
-
-			if (declaration && declaration.type === 'FunctionDeclaration') {
-				return context.visit(declaration);
-			} else {
-				// TODO
-				throw new Error('Not implemented');
+			// All validation errors will be handled in the analysis phase
+			// So we can safely print these
+			if (node.declaration) {
+				return context.visit(node.declaration);
+			} else if (node.specifiers) {
+				for (const specifier of node.specifiers) {
+					context.visit(specifier);
+				}
+				return;
 			}
 		}
 
@@ -2089,6 +2111,10 @@ const visitors = {
 
 	TryStatement(node, context) {
 		if (!is_inside_component(context)) {
+			if (context.state.to_ts) {
+				return transform_ts_child(node, context);
+			}
+
 			return context.next();
 		}
 		context.state.template?.push('<!>');
@@ -2128,7 +2154,17 @@ const visitors = {
 	},
 
 	AwaitExpression(node, context) {
-		if (!is_top_level_await(context) || context.state.to_ts) {
+		const { state } = context;
+
+		if (state.to_ts) {
+			if (is_inside_component(context)) {
+				node.metadata.inside_component_top_level = true;
+			}
+
+			return context.next();
+		}
+
+		if (!is_top_level_await(context)) {
 			return context.next();
 		}
 
@@ -2154,14 +2190,23 @@ const visitors = {
 	TemplateLiteral(node, context) {
 		const parent = context.path.at(-1);
 
-		if (node.expressions.length === 0 && parent?.type !== 'TaggedTemplateExpression') {
-			return b.literal(node.quasis[0].value.cooked);
+		if (
+			!context.state.to_ts &&
+			node.expressions.length === 0 &&
+			parent?.type !== 'TaggedTemplateExpression'
+		) {
+			const literal = b.literal(
+				node.quasis[0].value.cooked,
+				/** @type {AST.NodeWithLocation} */ (node),
+			);
+			literal.metadata.source_name = '`' + node.quasis[0].value.raw + '`';
+			return literal;
 		}
 
 		const expressions = /** @type {AST.Expression[]} */ (
 			node.expressions.map((expr) => context.visit(expr))
 		);
-		return b.template(node.quasis, expressions);
+		return b.template(node.quasis, expressions, /** @type {AST.NodeWithLocation} */ (node));
 	},
 
 	BlockStatement(node, context) {
@@ -2192,19 +2237,9 @@ const visitors = {
 
 			/** @type {AST.Property[]} */
 			const properties = [];
-
-			// Extract and preserve original function declarations
-			for (const stmt of node.body.body) {
-				if (
-					stmt.type === 'ExportNamedDeclaration' &&
-					stmt.declaration?.type === 'FunctionDeclaration' &&
-					stmt.declaration.id
-				) {
-					// create new nodes to avoid same node.loc issue
-					// that would result in double definitions
-					const id = b.id(stmt.declaration.id.name);
-					properties.push(b.prop('init', id, id, false, true));
-				}
+			for (const name of node.metadata.exports) {
+				const id = b.id(name);
+				properties.push(b.prop('init', id, id, false, true));
 			}
 
 			const value = b.call(
@@ -2561,6 +2596,7 @@ function transform_ts_child(node, context) {
 				...context,
 				state: { ...context.state, scope: consequent_scope },
 			}),
+			/** @type {AST.NodeWithLocation} */ (node.consequent),
 		);
 
 		let alternate;
@@ -2575,6 +2611,7 @@ function transform_ts_child(node, context) {
 					...context,
 					state: { ...context.state, scope: alternate_scope },
 				}),
+				/** @type {AST.NodeWithLocation} */ (alternate_node),
 			);
 		}
 
@@ -2598,9 +2635,16 @@ function transform_ts_child(node, context) {
 			);
 		}
 
-		context.state.init?.push(
-			b.switch(/** @type {AST.Expression} */ (context.visit(node.discriminant)), cases),
+		const switch_stmt = b.switch(
+			/** @type {AST.Expression} */ (context.visit(node.discriminant)),
+			cases,
+			/** @type {AST.NodeWithLocation} */ (node),
 		);
+
+		switch_stmt.start = node.start;
+		switch_stmt.end = node.end;
+		switch_stmt.loc = node.loc;
+		context.state.init?.push(switch_stmt);
 	} else if (node.type === 'ForOfStatement') {
 		const body_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node.body));
 		const block_body = transform_body(/** @type {AST.BlockStatement} */ (node.body).body, {
@@ -2615,14 +2659,15 @@ function transform_ts_child(node, context) {
 		}
 		const body = b.block(block_body);
 
-		state.init?.push(
-			b.for_of(
-				/** @type {AST.Pattern} */ (visit(node.left)),
-				/** @type {AST.Expression} */ (visit(node.right)),
-				body,
-				node.await,
-			),
+		const for_of = b.for_of(
+			/** @type {AST.Pattern} */ (visit(node.left)),
+			/** @type {AST.Expression} */ (visit(node.right)),
+			body,
+			node.await,
+			/** @type {AST.NodeWithLocation} */ (node),
 		);
+
+		state.init?.push(for_of);
 	} else if (node.type === 'TryStatement') {
 		const try_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node.block));
 		const try_body = b.block(
@@ -2630,6 +2675,7 @@ function transform_ts_child(node, context) {
 				...context,
 				state: { ...context.state, scope: try_scope },
 			}),
+			/** @type {AST.NodeWithLocation} */ (node.block),
 		);
 
 		let catch_handler = null;
@@ -2642,19 +2688,24 @@ function transform_ts_child(node, context) {
 					...context,
 					state: { ...context.state, scope: catch_scope },
 				}),
+				/** @type {AST.NodeWithLocation} */ (node.handler),
 			);
-			catch_handler = b.catch_clause(node.handler.param || null, catch_body);
+			catch_handler = b.catch_clause(
+				node.handler.param || null,
+				catch_body,
+				/** @type {AST.NodeWithLocation} */ (node.handler),
+			);
 		}
 
 		let pending_block = null;
 		if (node.pending) {
 			const pending_scope = /** @type {ScopeInterface} */ (context.state.scopes.get(node.pending));
-			pending_block = b.try_item_block(
+			pending_block = b.block(
 				transform_body(node.pending.body, {
 					...context,
 					state: { ...context.state, scope: pending_scope },
 				}),
-				node.pending.loc,
+				/** @type {AST.NodeWithLocation} */ (node.pending),
 			);
 		}
 
@@ -2668,6 +2719,7 @@ function transform_ts_child(node, context) {
 					...context,
 					state: { ...context.state, scope: finally_scope },
 				}),
+				/** @type {AST.NodeWithLocation} */ (node.finalizer),
 			);
 		}
 
@@ -3094,6 +3146,66 @@ function create_tsx_with_typescript_support() {
 
 	return /** @type {Visitors<AST.Node, TransformClientState>} */ ({
 		...base_tsx,
+		AssignmentPattern(node, context) {
+			// We need to make sure that the whole AssignmentPattern has a start and end mapping
+			// Acorn only maps pieces but not the whole thing
+			// So we need to cover the start and end source positions manually
+			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			// node.left already covers the start
+			base_tsx.AssignmentPattern?.(node, context);
+			// cover the end
+			context.location(loc.end.line, loc.end.column);
+		},
+		TemplateLiteral(node, context) {
+			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			context.location(loc.start.line, loc.start.column);
+			base_tsx.TemplateLiteral?.(node, context);
+			context.location(loc.end.line, loc.end.column);
+		},
+		SwitchStatement(node, context) {
+			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			// the start needs to be covered as we don't cover it in visitors
+			context.location(loc.start.line, loc.start.column);
+			base_tsx.SwitchStatement?.(node, context);
+			// cover the end
+			context.location(loc.end.line, loc.end.column);
+		},
+		ForOfStatement(node, context) {
+			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			// the start needs to be covered as we don't cover it in visitors
+			context.location(loc.start.line, loc.start.column);
+			base_tsx.ForOfStatement?.(node, context);
+			// cover the end
+			context.location(loc.end.line, loc.end.column);
+		},
+		ForStatement(node, context) {
+			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			// the start needs to be covered as we don't cover it in visitors
+			context.location(loc.start.line, loc.start.column);
+			base_tsx.ForStatement?.(node, context);
+			// cover the end
+			context.location(loc.end.line, loc.end.column);
+		},
+		ForInStatement(node, context) {
+			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			// the start needs to be covered as we don't cover it in visitors
+			context.location(loc.start.line, loc.start.column);
+			base_tsx.ForInStatement?.(node, context);
+			// cover the end
+			context.location(loc.end.line, loc.end.column);
+		},
+		AwaitExpression(node, context) {
+			const loc = /** @type {AST.SourceLocation} */ (node.loc);
+			// the start needs to be covered as we don't cover it in visitors
+			context.location(loc.start.line, loc.start.column);
+			context.write('await');
+			// cover the 'await' end
+			context.location(loc.start.line, loc.start.column + 'await'.length);
+			context.write(' ');
+			context.visit(node.argument);
+			// cover the end of the expression
+			context.location(loc.end.line, loc.end.column);
+		},
 		Property(node, context) {
 			// Check if the value is a function that was originally a component
 			const isComponent =
@@ -3570,7 +3682,7 @@ function create_tsx_with_typescript_support() {
  * @param {AnalysisResult} analysis - Analysis result
  * @param {boolean} to_ts - Whether to generate TypeScript output
  * @param {boolean} minify_css - Whether to minify CSS output
- * @returns {{ ast: AST.Program, js: { code: string, map: SourceMapMappings, post_processing_changes?: PostProcessingChanges, line_offsets?: LineOffsets }, css: string }}
+ * @returns {{ ast: AST.Program, js: { code: string, map: SourceMapMappings, post_processing_changes?: PostProcessingChanges, line_offsets?: LineOffsets }, css: string, errors:  RippleCompileError[]}}
  */
 export function transform_client(filename, source, analysis, to_ts, minify_css) {
 	/** @type {TransformClientState} */
@@ -3595,6 +3707,7 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		filename,
 		namespace: 'html',
 		metadata: {},
+		errors: analysis.errors,
 	};
 
 	// Add ripple internal import once for the entire module
@@ -3715,5 +3828,6 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		ast: program,
 		js,
 		css,
+		errors: state.errors,
 	};
 }

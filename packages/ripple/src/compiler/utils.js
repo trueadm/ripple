@@ -1,6 +1,6 @@
 /**
 @import * as AST from 'estree';
-@import { CommonContext, NameSpace, ScopeInterface } from '#compiler';
+@import { CommonContext, NameSpace, ScopeInterface, Binding } from '#compiler';
  */
 
 import { build_assignment_value, extract_paths } from '../utils/ast.js';
@@ -195,15 +195,11 @@ export function is_delegated_event(event_name, handler, context) {
 }
 
 /**
- * Returns true if context is inside a top-level await
+ * Returns true if context is inside a top-level await: inside component or module
  * @param {CommonContext} context
  * @returns {boolean}
  */
 export function is_top_level_await(context) {
-	if (!is_inside_component(context)) {
-		return false;
-	}
-
 	for (let i = context.path.length - 1; i >= 0; i -= 1) {
 		const context_node = context.path[i];
 		const type = context_node.type;
@@ -739,4 +735,42 @@ export function index_to_key(index) {
 	} while (index >= 0);
 
 	return key;
+}
+
+/**
+ * Check if a binding ultimately refers to a function, following reference chains
+ * @param {Binding} binding
+ * @param {ScopeInterface} scope
+ * @param {Set<Binding>} visited
+ * @returns {boolean}
+ */
+export function is_binding_function(binding, scope, visited = new Set()) {
+	if (!binding || visited.has(binding)) {
+		return false;
+	}
+	visited.add(binding);
+
+	const initial = binding.initial;
+	if (!initial) {
+		return false;
+	}
+
+	// Direct function
+	if (
+		initial.type === 'FunctionDeclaration' ||
+		initial.type === 'FunctionExpression' ||
+		initial.type === 'ArrowFunctionExpression'
+	) {
+		return true;
+	}
+
+	// Follow identifier references (e.g., const alias = myFunc)
+	if (initial.type === 'Identifier') {
+		const nextBinding = scope.get(initial.name);
+		if (nextBinding) {
+			return is_binding_function(nextBinding, scope, visited);
+		}
+	}
+
+	return false;
 }

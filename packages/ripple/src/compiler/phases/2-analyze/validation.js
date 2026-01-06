@@ -1,5 +1,8 @@
-/** @import * as AST from 'estree' */
-/** @import {AnalysisContext} from '#compiler' */
+/**
+@import * as AST from 'estree';
+@import {AnalysisContext} from '#compiler';
+@import { RippleCompileError } from 'ripple/compiler';
+ */
 
 import { error } from '../../errors.js';
 
@@ -126,8 +129,9 @@ function get_element_tag(element) {
 /**
  * @param {AST.Element} element
  * @param {AnalysisContext} context
+ * @param {RippleCompileError[]} [errors]
  */
-export function validate_nesting(element, context) {
+export function validate_nesting(element, context, errors) {
 	const tag = get_element_tag(element);
 
 	if (tag === null) {
@@ -150,6 +154,7 @@ export function validate_nesting(element, context) {
 						`Invalid HTML nesting: <${tag}> cannot be a descendant of <${parent_tag}>.`,
 						context.state.analysis.module.filename,
 						element,
+						errors,
 					);
 				} else {
 					// if my parent has a set of invalid children

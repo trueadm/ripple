@@ -1,5 +1,5 @@
 /** @import { TextDocument } from 'vscode-languageserver-textdocument' */
-/** @import { LanguageServiceContext } from '@volar/language-server' */
+/** @import { LanguageServiceContext, Mapper, SourceScript } from '@volar/language-server' */
 /** @import {RippleVirtualCode} from '@ripple-ts/typescript-plugin/src/language.js' */
 // @ts-expect-error: ESM type import is fine
 /** @import {is_identifier_obfuscated, deobfuscate_identifier, IDENTIFIER_OBFUSCATION_PREFIX} from 'ripple/compiler/internal/identifier/utils' */
@@ -68,7 +68,13 @@ function concatMarkdownContents(...contents) {
  * Get virtual code from the encoded document URI
  * @param {LanguageServiceContext} context
  * @param {TextDocument} document
- * @returns {[RippleVirtualCode, URI]}
+ * @returns
+	{{
+ 		virtualCode: RippleVirtualCode;
+		sourceUri: URI;
+		sourceScript: SourceScript<URI> | undefined;
+		sourceMap: Mapper | undefined;
+	}}
  */
 function getVirtualCode(document, context) {
 	const uri = URI.parse(document.uri);
@@ -81,7 +87,10 @@ function getVirtualCode(document, context) {
 		sourceScript?.generated?.embeddedCodes.get(virtualCodeId)
 	);
 
-	return [virtualCode, sourceUri];
+	const sourceMap =
+		sourceScript && virtualCode ? context.language.maps.get(virtualCode, sourceScript) : undefined;
+
+	return { virtualCode, sourceUri, sourceScript, sourceMap };
 }
 
 /**

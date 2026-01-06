@@ -23,6 +23,7 @@ import {
 	is_ripple_track_call,
 	is_void_element,
 	normalize_children,
+	is_binding_function,
 } from '../../utils.js';
 import { extract_paths } from '../../../utils/ast.js';
 import is_reference from 'is-reference';
@@ -127,7 +128,10 @@ const visitors = {
 			...node.metadata,
 			exports: [],
 		};
-		context.visit(node.body, { ...context.state, inside_server_block: true });
+		context.visit(node.body, {
+			...context.state,
+			inside_server_block: true,
+		});
 	},
 
 	Identifier(node, context) {
@@ -138,25 +142,27 @@ const visitors = {
 			is_reference(node, /** @type {AST.Node} */ (parent)) &&
 			binding &&
 			context.state.inside_server_block &&
-			context.state.scope.server_block
+			binding.node !== node // Don't check the declaration itself
 		) {
 			/** @type {ScopeInterface | null} */
 			let current_scope = binding.scope;
+			let found_server_block = false;
 
 			while (current_scope !== null) {
 				if (current_scope.server_block) {
+					found_server_block = true;
 					break;
 				}
-				/** @type {ScopeInterface | null} */
-				const parent_scope = current_scope.parent;
-				if (parent_scope === null) {
-					error(
-						`Cannot reference client-side variable "${node.name}" from a server block`,
-						context.state.analysis.module.filename,
-						node,
-					);
-				}
-				current_scope = parent_scope;
+				current_scope = current_scope.parent;
+			}
+
+			if (!found_server_block) {
+				error(
+					`Cannot reference client-side "${node.name}" from a server block. Server blocks can only access variables and imports declared inside them.`,
+					context.state.analysis.module.filename,
+					node,
+					context.state.loose ? context.state.analysis.errors : undefined,
+				);
 			}
 		}
 
@@ -207,10 +213,11 @@ const visitors = {
 			const component = is_inside_component(context, true);
 
 			if (!component) {
-				return error(
+				error(
 					'`#style` can only be used within a component',
 					context.state.analysis.module.filename,
 					node,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			} else {
 				component.metadata.styleIdentifierPresent = true;
@@ -235,6 +242,7 @@ const visitors = {
 					'`#style` property access must use a dot property or static string for css class name, not a dynamic expression',
 					context.state.analysis.module.filename,
 					node.property,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 
@@ -265,6 +273,7 @@ const visitors = {
 						`Directly accessing internal property "${propertyName}" of a tracked object is not allowed. Use \`get(${node.object.name})\` or \`@${node.object.name}\` instead.`,
 						context.state.analysis.module.filename,
 						node.property,
+						context.state.loose ? context.state.analysis.errors : undefined,
 					);
 				}
 			}
@@ -277,7 +286,8 @@ const visitors = {
 				error(
 					`Accessing a tracked object directly is not allowed, use the \`@\` prefix to read the value inside a tracked object - for example \`@${node.object.name}${node.property.type === 'Identifier' ? `.${node.property.name}` : ''}\``,
 					context.state.analysis.module.filename,
-					node,
+					node.object,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 		}
@@ -301,7 +311,8 @@ const visitors = {
 			error(
 				'`track` can only be used within a reactive context, such as a component, function or class that is used or created from a component',
 				context.state.analysis.module.filename,
-				node,
+				node.callee,
+				context.state.loose ? context.state.analysis.errors : undefined,
 			);
 		}
 
@@ -324,7 +335,8 @@ const visitors = {
 				error(
 					'`var` declarations are not allowed in components, use let or const instead',
 					state.analysis.module.filename,
-					declarator,
+					declarator.id,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 			const metadata = { tracking: false, await: false };
@@ -354,6 +366,7 @@ const visitors = {
 							'Variables cannot be reactively referenced using @',
 							state.analysis.module.filename,
 							path.node,
+							context.state.loose ? context.state.analysis.errors : undefined,
 						);
 					}
 				}
@@ -412,6 +425,7 @@ const visitors = {
 					'Props are always an object, use destructured props with default values instead',
 					context.state.analysis.module.filename,
 					props,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 		}
@@ -451,15 +465,14 @@ const visitors = {
 			if (metadata.styleClasses.size > 0) {
 				node.metadata.styleClasses = metadata.styleClasses;
 
-				if (!context.state.loose) {
-					for (const [className, property] of metadata.styleClasses) {
-						if (!topScopedClasses?.has(className)) {
-							return error(
-								`CSS class ".${className}" does not exist in ${node.id?.name ? node.id.name : "this component's"} <style> block`,
-								context.state.analysis.module.filename,
-								property,
-							);
-						}
+				for (const [className, property] of metadata.styleClasses) {
+					if (!topScopedClasses?.has(className)) {
+						error(
+							`CSS class ".${className}" does not exist as a stand-alone class in ${node.id?.name ? node.id.name : "this component's"} <style> block`,
+							context.state.analysis.module.filename,
+							property,
+							context.state.loose ? context.state.analysis.errors : undefined,
+						);
 					}
 				}
 			}
@@ -477,6 +490,8 @@ const visitors = {
 
 	ForStatement(node, context) {
 		if (is_inside_component(context)) {
+			// TODO: it's a fatal error for now but
+			// we could implement the for loop for the ts mode only
 			error(
 				'For loops are not supported in components. Use for...of instead.',
 				context.state.analysis.module.filename,
@@ -512,7 +527,8 @@ const visitors = {
 				error(
 					'Component switch statements must contain a template or an await expression in each of their cases. Move the switch statement into an effect if it does not render anything.',
 					context.state.analysis.module.filename,
-					node,
+					switch_case,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 		}
@@ -584,7 +600,8 @@ const visitors = {
 			error(
 				'Component for...of loops must contain a template or an await expression in their body. Move the for loop into an effect if it does not render anything.',
 				context.state.analysis.module.filename,
-				node,
+				node.body,
+				context.state.loose ? context.state.analysis.errors : undefined,
 			);
 		}
 	},
@@ -593,21 +610,67 @@ const visitors = {
 		if (!context.state.inside_server_block) {
 			return context.next();
 		}
+
 		const server_block = /** @type {AST.ServerBlock} */ (
 			context.path.find((n) => n.type === 'ServerBlock')
 		);
+		const exports = server_block.metadata.exports;
 		const declaration = /** @type {AST.RippleExportNamedDeclaration} */ (node).declaration;
 
 		if (declaration && declaration.type === 'FunctionDeclaration') {
-			server_block.metadata.exports.push(declaration.id.name);
+			if (!exports.includes(declaration.id.name)) {
+				exports.push(declaration.id.name);
+			}
 		} else if (declaration && declaration.type === 'Component') {
-			// Handle exported components in server blocks
-			if (server_block) {
-				server_block.metadata.exports.push(/** @type {AST.Identifier} */ (declaration.id).name);
+			error(
+				'Not implemented: Exported component declaration not supported in server blocks.',
+				context.state.analysis.module.filename,
+				/** @type {AST.Identifier} */ (declaration.id),
+				context.state.loose ? context.state.analysis.errors : undefined,
+			);
+			// TODO: the client and server rendering doesn't currently support components
+			// If we're going to support this, we need to account also for anonymous object declaration
+			// and specifiers
+			// if (!exports.includes(/** @type {AST.Identifier} */ (declaration.id).name)) {
+			// 	exports.push(/** @type {AST.Identifier} */ (declaration.id).name);
+			// }
+		} else if (declaration && declaration.type === 'VariableDeclaration') {
+			// TODO: allow exporting consts when hydration is supported
+			for (const decl of declaration.declarations) {
+				error(
+					'Not implemented: Exported variable declaration not supported in server blocks.',
+					context.state.analysis.module.filename,
+					decl,
+					context.state.loose ? context.state.analysis.errors : undefined,
+				);
+			}
+		} else if (node.specifiers) {
+			for (const specifier of node.specifiers) {
+				const name = /** @type {AST.Identifier} */ (specifier.local).name;
+				const binding = context.state.scope.get(name);
+				const is_function = binding && is_binding_function(binding, context.state.scope);
+
+				if (is_function) {
+					if (!exports.includes(name)) {
+						exports.push(name);
+					}
+					continue;
+				}
+
+				error(
+					`Not implemented: Exported specifier type not supported in server blocks.`,
+					context.state.analysis.module.filename,
+					specifier,
+					context.state.loose ? context.state.analysis.errors : undefined,
+				);
 			}
 		} else {
-			// TODO
-			throw new Error('Not implemented: Exported declaration type not supported in server blocks.');
+			error(
+				'Not implemented: Exported declaration type not supported in server blocks.',
+				context.state.analysis.module.filename,
+				node,
+				context.state.loose ? context.state.analysis.errors : undefined,
+			);
 		}
 
 		return context.next();
@@ -638,11 +701,12 @@ const visitors = {
 
 		context.visit(node.consequent, context.state);
 
-		if (!node.metadata.has_template && !node.metadata.has_await) {
+		if (!node.metadata.has_template) {
 			error(
-				'Component if statements must contain a template or an await expression in their "then" body. Move the if statement into an effect if it does not render anything.',
+				'Component if statements must contain a template in their "then" body. Move the if statement into an effect if it does not render anything.',
 				context.state.analysis.module.filename,
-				node,
+				node.consequent,
+				context.state.loose ? context.state.analysis.errors : undefined,
 			);
 		}
 
@@ -651,11 +715,12 @@ const visitors = {
 			node.metadata.has_await = false;
 			context.visit(node.alternate, context.state);
 
-			if (!node.metadata.has_template && !node.metadata.has_await) {
+			if (!node.metadata.has_template) {
 				error(
-					'Component if statements must contain a template or an await expression in their "else" body. Move the if statement into an effect if it does not render anything.',
+					'Component if statements must contain a template in their "else" body. Move the if statement into an effect if it does not render anything.',
 					context.state.analysis.module.filename,
-					node,
+					node.alternate,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 		}
@@ -680,11 +745,12 @@ const visitors = {
 
 			context.visit(node.block, state);
 
-			if (!node.metadata.has_template && !state.loose) {
+			if (!node.metadata.has_template) {
 				error(
 					'Component try statements must contain a template in their main body. Move the try statement into an effect if it does not render anything.',
 					state.analysis.module.filename,
-					node,
+					node.block,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 
@@ -695,11 +761,12 @@ const visitors = {
 
 			context.visit(node.pending, state);
 
-			if (!node.metadata.has_template && !state.loose) {
+			if (!node.metadata.has_template) {
 				error(
 					'Component try statements must contain a template in their "pending" body. Rendering a pending fallback is required to have a template.',
 					state.analysis.module.filename,
-					node,
+					node.pending,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 		}
@@ -711,6 +778,8 @@ const visitors = {
 
 	ForInStatement(node, context) {
 		if (is_inside_component(context)) {
+			// TODO: it's a fatal error for now but
+			// we could implement the for in loop for the ts mode only to make it a usage error
 			error(
 				'For...in loops are not supported in components. Use for...of instead.',
 				context.state.analysis.module.filename,
@@ -727,6 +796,7 @@ const visitors = {
 		if (inside_tsx_compat) {
 			return context.next();
 		}
+		// TODO: could compile it as something to avoid a fatal error
 		error(
 			'Elements cannot be used as generic expressions, only as statements within a component',
 			context.state.analysis.module.filename,
@@ -777,9 +847,11 @@ const visitors = {
 			if (node.id.name === 'head') {
 				// head validation
 				if (node.attributes.length > 0) {
+					// TODO: could transform attributes as something, e.g. Text Node, and avoid a fatal error
 					error('<head> cannot have any attributes', state.analysis.module.filename, node);
 				}
 				if (node.children.length === 0) {
+					// TODO: could transform children as something, e.g. Text Node, and avoid a fatal error
 					error('<head> must have children', state.analysis.module.filename, node);
 				}
 
@@ -794,6 +866,7 @@ const visitors = {
 					const children = normalize_children(node.children, context);
 
 					if (children.length !== 1 || children[0].type !== 'Text') {
+						// TODO: could transform children as something, e.g. Text Node, and avoid a fatal error
 						error(
 							'<title> must have only contain text nodes',
 							state.analysis.module.filename,
@@ -804,6 +877,7 @@ const visitors = {
 
 				// check for invalid elements in head
 				if (!valid_in_head.has(node.id.name)) {
+					// TODO: could transform invalid elements as something, e.g. Text Node, and avoid a fatal error
 					error(`<${node.id.name}> cannot be used in <head>`, state.analysis.module.filename, node);
 				}
 			}
@@ -824,6 +898,7 @@ const visitors = {
 								'The `key` attribute is not a thing in Ripple, and cannot be used on DOM elements. If you are using a for loop, then use the `for (let item of items; key item.id)` syntax.',
 								state.analysis.module.filename,
 								attr,
+								context.state.loose ? context.state.analysis.errors : undefined,
 							);
 						}
 
@@ -850,6 +925,7 @@ const visitors = {
 					`The <${node.id.name}> element is a void element and cannot have children`,
 					state.analysis.module.filename,
 					node,
+					context.state.loose ? context.state.analysis.errors : undefined,
 				);
 			}
 		} else {
@@ -867,30 +943,31 @@ const visitors = {
 					visit(attr.argument, state);
 				}
 			}
-			let implicit_children = false;
-			let explicit_children = false;
+			/** @type {(AST.Node | AST.Expression)[]} */
+			let implicit_children = [];
+			/** @type {AST.Identifier[]} */
+			let explicit_children = [];
 
 			for (const child of node.children) {
 				if (child.type === 'Component') {
 					if (child.id?.name === 'children') {
-						explicit_children = true;
-						if (implicit_children) {
-							error(
-								'Cannot have both implicit and explicit children',
-								state.analysis.module.filename,
-								node,
-							);
-						}
+						explicit_children.push(child.id);
 					}
 				} else if (child.type !== 'EmptyStatement') {
-					implicit_children = true;
-					if (explicit_children) {
-						error(
-							'Cannot have both implicit and explicit children',
-							state.analysis.module.filename,
-							node,
-						);
-					}
+					implicit_children.push(
+						child.type === 'Text' || child.type === 'Html' ? child.expression : child,
+					);
+				}
+			}
+
+			if (implicit_children.length > 0 && explicit_children.length > 0) {
+				for (const item of [...explicit_children, ...implicit_children]) {
+					error(
+						'Cannot have both implicit and explicit children',
+						state.analysis.module.filename,
+						item,
+						context.state.loose ? context.state.analysis.errors : undefined,
+					);
 				}
 			}
 		}
@@ -904,6 +981,7 @@ const visitors = {
 						'Cannot have a `children` prop on an element',
 						state.analysis.module.filename,
 						attribute,
+						context.state.loose ? context.state.analysis.errors : undefined,
 					);
 				}
 			}
@@ -930,10 +1008,16 @@ const visitors = {
 
 			if (parent_block !== null && parent_block.type !== 'Component') {
 				if (context.state.inside_server_block === false) {
+					// we want the error to live on the `await` keyword vs the whole expression
+					const adjusted_node /** @type {AST.AwaitExpression} */ = {
+						...node,
+						end: /** @type {AST.NodeWithLocation} */ (node).start + 'await'.length,
+					};
 					error(
 						'`await` is not allowed in client-side control-flow statements',
 						context.state.analysis.module.filename,
-						node,
+						adjusted_node,
+						context.state.loose ? context.state.analysis.errors : undefined,
 					);
 				}
 			}
@@ -971,6 +1055,7 @@ export function analyze(ast, filename, options = {}) {
 		metadata: {
 			serverIdentifierPresent: false,
 		},
+		errors: [],
 	});
 
 	walk(
@@ -981,7 +1066,7 @@ export function analyze(ast, filename, options = {}) {
 			scopes,
 			analysis,
 			inside_head: false,
-			inside_server_block: options.mode === 'server',
+			inside_server_block: false,
 			to_ts: options.to_ts ?? false,
 			loose: options.loose ?? false,
 			metadata: {},

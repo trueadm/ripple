@@ -1,26 +1,45 @@
-/** @import * as AST from 'estree' */
+/**
+@import * as AST from 'estree';
+@import { RippleCompileError } from 'ripple/compiler';
+*/
 
 /**
  *
  * @param {string} message
  * @param {string} filename
  * @param {AST.Node} node
+ * @param {RippleCompileError[]} [errors]
+ * @returns {void}
  */
-export function error(message, filename, node) {
-	let errorMessage = message;
+export function error(message, filename, node, errors) {
+	const error = /** @type {RippleCompileError} */ (new Error(message));
 
-	if (node && node.loc) {
-		// Use GitHub-style range format: filename#L39C24-L39C32
-		const startLine = node.loc.start.line;
-		const startColumn = node.loc.start.column;
-		const endLine = node.loc.end.line;
-		const endColumn = node.loc.end.column;
+	// same as the acorn compiler error
+	error.pos = node.start ?? undefined;
+	error.raisedAt = node.end ?? undefined;
 
-		const rangeInfo = `${filename}#L${startLine}C${startColumn}-L${endLine}C${endColumn}`;
-		errorMessage += ` (${rangeInfo})`;
-	} else {
-		errorMessage += ` (${filename})`;
+	// custom properties
+	error.fileName = filename;
+	error.end = node.end ?? undefined;
+	error.loc = !node.loc
+		? undefined
+		: {
+				start: {
+					line: node.loc.start.line,
+					column: node.loc.start.column,
+				},
+				end: {
+					line: node.loc.end.line,
+					column: node.loc.end.column,
+				},
+			};
+
+	if (errors) {
+		error.type = 'usage';
+		errors.push(error);
+		return;
 	}
 
-	throw new Error(errorMessage);
+	error.type = 'fatal';
+	throw error;
 }

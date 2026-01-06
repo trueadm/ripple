@@ -35,9 +35,9 @@ function processDiagnostics(document, context, diagnostics) {
 
 	log(`Filtering ${diagnostics.length} TypeScript diagnostics for ${document.uri}`);
 
-	const [virtualCode] = getVirtualCode(document, context);
+	const { virtualCode } = getVirtualCode(document, context);
 
-	if (!virtualCode) {
+	if (!virtualCode || virtualCode.languageId !== 'ripple') {
 		return diagnostics;
 	}
 
@@ -45,6 +45,11 @@ function processDiagnostics(document, context, diagnostics) {
 	const result = [];
 
 	for (const diagnostic of diagnostics) {
+		if (virtualCode.fatalErrors.length > 0 && diagnostic.code !== 'ripple-compile-error') {
+			// skip all TS diagnostics since we're dealing directly with the source code
+			continue;
+		}
+
 		const range = diagnostic.range;
 		const rangeStart = document.offsetAt(range.start);
 		const rangeEnd = document.offsetAt(range.end);

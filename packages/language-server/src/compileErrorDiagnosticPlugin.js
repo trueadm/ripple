@@ -1,11 +1,14 @@
 /**
- * @import {Diagnostic, LanguageServicePlugin, LanguageServiceContext} from '@volar/language-server'
- * @import {TextDocument} from 'vscode-languageserver-textdocument'
+ * @import {Diagnostic, Range, LanguageServicePlugin, LanguageServiceContext, Position, Mapper} from '@volar/language-server';
+ * @import {TextDocument} from 'vscode-languageserver-textdocument';
+ * @import {RippleVirtualCode} from '@ripple-ts/typescript-plugin/src/language.js';
  */
+// @ts-expect-error: ESM type import is fine
+/** @import {RippleCompileError} from 'ripple/compiler'; */
 
 const { getVirtualCode, createLogging } = require('./utils.js');
 
-const { log, logError } = createLogging('[Ripple Compile Error Diagnostic Plugin]');
+const { log } = createLogging('[Ripple Compile Error Diagnostic Plugin]');
 const { DiagnosticSeverity } = require('@volar/language-server');
 
 /**
@@ -25,154 +28,134 @@ function createCompileErrorDiagnosticPlugin() {
 		create(/** @type {LanguageServiceContext} */ context) {
 			return {
 				provideDiagnostics(document, _token) {
-					try {
-						log('Providing Ripple diagnostics for:', document.uri);
+					log('Providing Ripple diagnostics for:', document.uri);
 
-						const [virtualCode] = getVirtualCode(document, context);
+					/** @type {Diagnostic[]} */
+					const diagnostics = [];
+					const { virtualCode, sourceMap } = getVirtualCode(document, context);
 
-						if (!virtualCode || !virtualCode.errors || virtualCode.errors.length === 0) {
-							return [];
-						}
-
-						const diagnostics = [];
-
-						log('Processing', virtualCode.errors.length, 'errors');
-
-						// Convert each stored error to a diagnostic
-						for (const error of virtualCode.errors) {
-							try {
-								// Use the actual snapshot text that Volar is working with
-								const snapshotText = virtualCode.snapshot.getText(
-									0,
-									virtualCode.snapshot.getLength(),
-								);
-								const diagnostic = parseCompilationErrorWithDocument(
-									error,
-									virtualCode.fileName,
-									snapshotText,
-									document,
-								);
-								diagnostics.push(diagnostic);
-							} catch (parseError) {
-								logError('Failed to parse compilation error:', parseError);
-							}
-						}
-
-						log('Generated', diagnostics.length, 'diagnostics');
+					if (!virtualCode || virtualCode.languageId !== 'ripple') {
+						// skip if it's like embedded css
 						return diagnostics;
-					} catch (err) {
-						logError('Failed to provide diagnostics:', err);
-						return [];
 					}
+
+					if (!virtualCode.fatalErrors.length && !virtualCode.usageErrors.length) {
+						return diagnostics;
+					}
+
+					for (const error of [...virtualCode.fatalErrors, ...virtualCode.usageErrors]) {
+						const diagnostic = parseCompilationErrorWithDocument(
+							error,
+							virtualCode,
+							sourceMap,
+							document,
+						);
+						diagnostics.push(diagnostic);
+					}
+
+					log('Generated', diagnostics.length, 'diagnostics');
+					return diagnostics;
 				},
 			};
 		},
 	};
 }
 
-// Helper function to parse compilation errors using document.positionAt (Glint style)
 /**
- * @param {unknown} error
- * @param {string} fallbackFileName
- * @param {string} sourceText
+ * @param {RippleCompileError} error
+ * @param {RippleVirtualCode} virtualCode
+ * @param {Mapper | undefined} sourceMap
  * @param {TextDocument} document
  * @returns {Diagnostic}
  */
-function parseCompilationErrorWithDocument(error, fallbackFileName, sourceText, document) {
-	const errorObject = /** @type {{ message?: string }} */ (error);
-	const message = errorObject.message || String(error);
-
-	try {
-		// First check if there's a GitHub-style range in the error
-		// Format: filename#L39C24-L39C32
-		const githubRangeMatch = message.match(/\(([^#]+)#L(\d+)C(\d+)-L(\d+)C(\d+)\)/);
-
-		if (githubRangeMatch) {
-			// Use the GitHub range data directly
-			const startLine = parseInt(githubRangeMatch[2]);
-			const startColumn = parseInt(githubRangeMatch[3]);
-			const endLine = parseInt(githubRangeMatch[4]);
-			const endColumn = parseInt(githubRangeMatch[5]);
-
-			// Convert to zero-based
-			const zeroBasedStartLine = Math.max(0, startLine - 1);
-			const zeroBasedStartColumn = Math.max(0, startColumn);
-			const zeroBasedEndLine = Math.max(0, endLine - 1);
-			const zeroBasedEndColumn = Math.max(0, endColumn);
-
-			return {
-				severity: DiagnosticSeverity.Error,
-				range: {
-					start: { line: zeroBasedStartLine, character: zeroBasedStartColumn },
-					end: { line: zeroBasedEndLine, character: zeroBasedEndColumn },
-				},
-				message: message.replace(/\s*\([^#]+#L\d+C\d+-L\d+C\d+\)/, '').trim(), // Remove the range part from message
-				source: 'Ripple',
-				code: 'ripple-compile-error',
-			};
-		}
-
-		// Fallback to old parsing method if no range found
-		// Try to parse location from error message
-		// Format: "Error message (filename:line:column)"
-		const locationMatch = message.match(/\(([^:]+):(\d+):(\d+)\)$/);
-
-		if (locationMatch) {
-			const [, fileName, lineStr, columnStr] = locationMatch;
-			const line = parseInt(lineStr, 10);
-			const column = parseInt(columnStr, 10);
-
-			// Extract the main error message (without location)
-			const cleanMessage = message.replace(/\s*\([^:]+:\d+:\d+\)$/, '');
-
-			// Convert 1-based line/column to 0-based for VS Code
-			const zeroBasedLine = Math.max(0, line - 1);
-			const actualColumn = Math.max(0, column - 1);
-
-			// Use the original error coordinates from the Ripple compiler
-			// Just use the compiler's position as-is, with a simple 1-character highlight
-			let length = Math.min(1, sourceText.split('\n')[zeroBasedLine]?.length - actualColumn || 1);
-
-			return {
-				severity: DiagnosticSeverity.Error,
-				range: {
-					start: { line: zeroBasedLine, character: actualColumn },
-					end: { line: zeroBasedLine, character: actualColumn + length },
-				},
-				message: cleanMessage,
-				source: 'Ripple',
-				code: 'ripple-compile-error',
-			};
-		} else {
-			// Fallback for errors without location information
-			const startPosition = document.positionAt(0);
-			const endPosition = document.positionAt(Math.min(1, sourceText.length));
-
-			return {
-				severity: DiagnosticSeverity.Error,
-				range: {
-					start: startPosition,
-					end: endPosition,
-				},
-				message: `Ripple compilation error: ${message}`,
-				source: 'Ripple',
-				code: 'ripple-compile-error',
-			};
-		}
-	} catch (parseError) {
-		logError('Error parsing compilation error:', parseError);
-
+function parseCompilationErrorWithDocument(error, virtualCode, sourceMap, document) {
+	if (error.type === 'fatal') {
 		return {
 			severity: DiagnosticSeverity.Error,
-			range: {
-				start: { line: 0, character: 0 },
-				end: { line: 0, character: 1 },
-			},
-			message: `Ripple compilation error: ${message}`,
+			range: get_error_range_from_source(error, document),
+			message: error.message,
 			source: 'Ripple',
-			code: 'ripple-parse-error',
+			code: 'ripple-compile-error',
 		};
 	}
+
+	/** @type {Position | null} */
+	let start = null;
+	/** @type {Position | null} */
+	let end = null;
+
+	if (error.pos) {
+		const start_offset = get_start_offset_from_error(error);
+		const end_offset = get_end_offset_from_error(error, start_offset);
+		// try to find exact mapping
+		// TODO: perhaps it's best to just switch to sourceMap entirely?
+		const mapping = virtualCode.findMappingBySourceRange(start_offset, end_offset);
+
+		if (mapping) {
+			start = document.positionAt(mapping.generatedOffsets[0]);
+			end = document.positionAt(
+				mapping.generatedOffsets[0] +
+					(mapping.generatedLengths || mapping.data.customData.generatedLengths)[0],
+			);
+		} else if (sourceMap) {
+			// try to find the match even across multiple mappings
+			const result = sourceMap.toGeneratedRange(start_offset, end_offset, true).next().value;
+
+			if (result) {
+				const [gen_start_offset, gen_end_offset] = result;
+				start = document.positionAt(gen_start_offset);
+				end = document.positionAt(gen_end_offset);
+			}
+		}
+	}
+
+	if (!start || !end) {
+		start = { line: 0, character: 0 };
+		end = { line: 0, character: 1 };
+	}
+
+	return {
+		severity: DiagnosticSeverity.Error,
+		range: { start, end },
+		message: error.message,
+		source: 'Ripple',
+		code: 'ripple-usage-error',
+	};
+}
+
+/**
+ * @param {RippleCompileError} error
+ * @param {TextDocument} document
+ * @returns {Range}
+ */
+function get_error_range_from_source(error, document) {
+	const start_offset = get_start_offset_from_error(error);
+	return {
+		start: document.positionAt(start_offset),
+		end: document.positionAt(get_end_offset_from_error(error, start_offset)),
+	};
+}
+
+/**
+ * @param {RippleCompileError} error
+ * @param {number} [start_offset]
+ * @returns {number}
+ */
+function get_end_offset_from_error(error, start_offset) {
+	start_offset = start_offset ?? get_start_offset_from_error(error);
+	return error.end
+		? error.end
+		: error.raisedAt && (error.raisedAt ?? 0) > start_offset
+			? error.raisedAt
+			: start_offset + 1;
+}
+
+/**
+ * @param {RippleCompileError} error
+ * @returns {number}
+ */
+function get_start_offset_from_error(error) {
+	return error.pos ?? 0;
 }
 
 module.exports = {

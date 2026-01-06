@@ -688,6 +688,10 @@ function printRippleNode(node, path, options, print, args) {
 			nodeContent = printForStatement(node, path, options, print);
 			break;
 
+		case 'ForInStatement':
+			nodeContent = printForInStatement(node, path, options, print);
+			break;
+
 		case 'WhileStatement':
 			nodeContent = printWhileStatement(node, path, options, print);
 			break;
@@ -2345,7 +2349,8 @@ function printVariableDeclaration(node, path, options, print) {
 	const parentNode = path.getParentNode();
 	const isForLoopInit =
 		(parentNode && parentNode.type === 'ForStatement' && parentNode.init === node) ||
-		(parentNode && parentNode.type === 'ForOfStatement' && parentNode.left === node);
+		(parentNode && parentNode.type === 'ForOfStatement' && parentNode.left === node) ||
+		(parentNode && parentNode.type === 'ForInStatement' && parentNode.left === node);
 
 	const declarations = path.map(print, 'declarations');
 	const declarationParts = join(', ', declarations);
@@ -2878,6 +2883,19 @@ function printIfStatement(node, path, options, print) {
 	}
 
 	return concat(parts);
+}
+
+function printForInStatement(node, path, options, print) {
+	const parts = [];
+	parts.push('for (');
+	parts.push(path.call(print, 'left'));
+	parts.push(' in ');
+	parts.push(path.call(print, 'right'));
+
+	parts.push(') ');
+	parts.push(path.call(print, 'body'));
+
+	return parts;
 }
 
 function printForOfStatement(node, path, options, print) {
@@ -4404,6 +4422,14 @@ function createElementLevelCommentParts(comments) {
 	return parts;
 }
 
+function createElementLevelCommentPartsTrimmed(comments) {
+	const parts = createElementLevelCommentParts(comments);
+	if (parts.length > 0 && parts[parts.length - 1] === hardline) {
+		parts.pop();
+	}
+	return parts;
+}
+
 function printTsxCompat(node, path, options, print) {
 	const tagName = `<tsx:${node.kind}>`;
 	const closingTagName = `</tsx:${node.kind}>`;
@@ -4701,10 +4727,37 @@ function printElement(node, path, options, print) {
 	const tagName = printMemberExpressionSimple(node.id, options);
 
 	const elementLeadingComments = getElementLeadingComments(node);
+	const openingTagEndIndex =
+		node?.metadata && typeof node.metadata.openingTagEnd === 'number'
+			? node.metadata.openingTagEnd
+			: null;
+	const nodeStartIndex = typeof node.start === 'number' ? node.start : null;
+	const nodeEndIndex = typeof node.end === 'number' ? node.end : null;
+
+	// `metadata.elementLeadingComments` may include comments that actually appear *inside* the element
+	// body (after the opening tag). Those must not be hoisted before the element.
+	const outerElementLeadingComments =
+		openingTagEndIndex == null || nodeStartIndex == null
+			? elementLeadingComments
+			: elementLeadingComments.filter(
+				(comment) => typeof comment.start !== 'number' || comment.start < nodeStartIndex,
+			);
+	const innerElementBodyComments =
+		openingTagEndIndex != null && nodeEndIndex != null
+			? elementLeadingComments.filter(
+				(comment) =>
+					typeof comment.start === 'number' &&
+					comment.start >= openingTagEndIndex &&
+					comment.start < nodeEndIndex,
+			)
+			: [];
+
 	const metadataCommentParts =
-		elementLeadingComments.length > 0 ? createElementLevelCommentParts(elementLeadingComments) : [];
+		outerElementLeadingComments.length > 0
+			? createElementLevelCommentParts(outerElementLeadingComments)
+			: [];
 	const fallbackElementComments = [];
-	const shouldLiftTextLevelComments = elementLeadingComments.length === 0;
+	const shouldLiftTextLevelComments = outerElementLeadingComments.length === 0;
 
 	const hasChildren = Array.isArray(node.children) && node.children.length > 0;
 	const hasInnerComments = Array.isArray(node.innerComments) && node.innerComments.length > 0;
@@ -4787,10 +4840,41 @@ function printElement(node, path, options, print) {
 	// Has children - use unified children processing
 	// Build children with whitespace preservation
 	const finalChildren = [];
+	const sortedInnerElementBodyComments =
+		innerElementBodyComments.length > 0
+			? innerElementBodyComments
+					.slice()
+					.sort((a, b) => (a.start ?? 0) - (b.start ?? 0))
+			: [];
+	let innerElementBodyCommentIndex = 0;
 
 	for (let i = 0; i < node.children.length; i++) {
 		const currentChild = node.children[i];
 		const nextChild = node.children[i + 1];
+
+		// Insert any element-body comments that appear before this child.
+		if (innerElementBodyCommentIndex < sortedInnerElementBodyComments.length) {
+			const currentChildStart = typeof currentChild.start === 'number' ? currentChild.start : null;
+			if (currentChildStart != null) {
+				const commentsBefore = [];
+				while (innerElementBodyCommentIndex < sortedInnerElementBodyComments.length) {
+					const comment = sortedInnerElementBodyComments[innerElementBodyCommentIndex];
+					if (typeof comment.start !== 'number' || comment.start >= currentChildStart) {
+						break;
+					}
+					commentsBefore.push(comment);
+					innerElementBodyCommentIndex++;
+				}
+				if (commentsBefore.length > 0) {
+					if (finalChildren.length > 0) {
+						finalChildren.push(hardline);
+					}
+					finalChildren.push(...createElementLevelCommentPartsTrimmed(commentsBefore));
+					finalChildren.push(hardline);
+				}
+			}
+		}
+
 		const isTextLikeChild = currentChild.type === 'Text' || currentChild.type === 'Html';
 		const hasTextLeadingComments =
 			shouldLiftTextLevelComments &&
@@ -4827,7 +4911,58 @@ function printElement(node, path, options, print) {
 				: printedChild;
 		finalChildren.push(childDoc);
 
+		// Insert element-body comments that fall between this child and the next child (or the closing tag).
+		let insertedBodyCommentsBetween = false;
+		if (innerElementBodyCommentIndex < sortedInnerElementBodyComments.length) {
+			const currentChildEnd = getNodeEndIndex(currentChild);
+			const nextChildStart = nextChild && typeof nextChild.start === 'number' ? nextChild.start : null;
+			if (typeof currentChildEnd === 'number') {
+				const commentsBetween = [];
+				while (innerElementBodyCommentIndex < sortedInnerElementBodyComments.length) {
+					const comment = sortedInnerElementBodyComments[innerElementBodyCommentIndex];
+					if (typeof comment.start !== 'number') {
+						innerElementBodyCommentIndex++;
+						continue;
+					}
+					if (comment.start < currentChildEnd) {
+						break;
+					}
+					if (nextChildStart != null && comment.start >= nextChildStart) {
+						break;
+					}
+					commentsBetween.push(comment);
+					innerElementBodyCommentIndex++;
+				}
+				if (commentsBetween.length > 0) {
+					const firstComment = commentsBetween[0];
+					const lastComment = commentsBetween[commentsBetween.length - 1];
+
+					// Preserve any blank line(s) that existed between the previous child and the comment block.
+					const blankLinesBefore = getBlankLinesBetweenNodes(currentChild, firstComment);
+					finalChildren.push(hardline);
+					if (blankLinesBefore > 0) {
+						finalChildren.push(hardline);
+					}
+
+					finalChildren.push(...createElementLevelCommentPartsTrimmed(commentsBetween));
+
+					if (nextChild) {
+						// Preserve any blank line(s) that existed between the comment block and the next child.
+						const blankLinesAfter = getBlankLinesBetweenNodes(lastComment, nextChild);
+						finalChildren.push(hardline);
+						if (blankLinesAfter > 0) {
+							finalChildren.push(hardline);
+						}
+					}
+					insertedBodyCommentsBetween = true;
+				}
+			}
+		}
+
 		if (nextChild) {
+			if (insertedBodyCommentsBetween) {
+				continue;
+			}
 			const whitespaceLinesCount = getBlankLinesBetweenNodes(currentChild, nextChild);
 			const isTextOrHtmlChild =
 				currentChild.type === 'Text' ||

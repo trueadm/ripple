@@ -25,6 +25,7 @@ import {
 	is_inside_component,
 	is_void_element,
 	normalize_children,
+	is_binding_function,
 } from '../../../utils.js';
 import { escape } from '../../../../utils/escaping.js';
 import { is_event_attribute } from '../../../../utils/events.js';
@@ -251,6 +252,7 @@ const visitors = {
 			const constructorName = callee.type === 'TrackedMapExpression' ? 'Map' : 'Set';
 			return b.new(
 				b.id(constructorName),
+				undefined,
 				.../** @type {AST.Expression[]} */ (argsToUse.map((arg) => context.visit(arg))),
 			);
 		}
@@ -352,14 +354,41 @@ const visitors = {
 		const declaration = node.declaration;
 
 		if (declaration && declaration.type === 'FunctionDeclaration') {
+			const name = declaration.id.name;
+			if (context.state.server_exported_names.includes(name)) {
+				return b.empty;
+			}
+			context.state.server_exported_names.push(name);
 			return b.stmt(
 				b.assignment(
 					'=',
-					b.member(b.id('_$_server_$_'), b.id(declaration.id.name)),
+					b.member(b.id('_$_server_$_'), b.id(name)),
 					/** @type {AST.Expression} */
 					(context.visit(declaration)),
 				),
 			);
+		} else if (node.specifiers) {
+			/** @type {AST.Statement[]} */
+			const statements = [];
+			for (const specifier of node.specifiers) {
+				const name = /** @type {AST.Identifier} */ (specifier.local).name;
+				if (context.state.server_exported_names.includes(name)) {
+					continue;
+				}
+				context.state.server_exported_names.push(name);
+
+				const binding = context.state.scope.get(name);
+
+				if (!binding || !is_binding_function(binding, context.state.scope)) {
+					continue;
+				}
+
+				statements.push(
+					b.stmt(b.assignment('=', b.member(b.id('_$_server_$_'), b.id(name)), specifier.local)),
+				);
+			}
+
+			return statements.length ? b.block(statements) : b.empty;
 		} else {
 			// TODO
 			throw new Error('Not implemented');
@@ -1069,6 +1098,7 @@ const visitors = {
 				...context.state,
 				inside_server_block: true,
 				server_block_locals,
+				server_exported_names: [],
 			})
 		);
 
@@ -1131,6 +1161,7 @@ export function transform_server(filename, source, analysis, minify_css) {
 		component_metadata,
 		inside_server_block: false,
 		server_block_locals: [],
+		server_exported_names: [],
 		filename,
 		namespace: 'html',
 		// TODO: should we remove all `to_ts` usages we use the client rendering for that?

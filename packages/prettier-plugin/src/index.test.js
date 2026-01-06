@@ -17,11 +17,15 @@ expect.extend({
 			message: () => {
 				const { matcherHint, EXPECTED_COLOR, RECEIVED_COLOR } = this.utils;
 
-				// Just apply color without modifying the string
+				/**
+				 * @param {string} str
+				 * @param {(str: string) => string} colorFn
+				 */
 				const formatWithColor = (str, colorFn) => {
 					return colorFn(str);
 				};
 
+				// Just apply color without modifying the string
 				return (
 					matcherHint('toBeWithNewline') +
 					'\n\nExpected:\n' +
@@ -1897,6 +1901,53 @@ message.push(/* Some test comment */ greet(/* Some text */ \`Ripple\`));`;
 function test() {
   const something = 5;
   // comment
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve the exact order with a commented out component a text literal sibling', async () => {
+		const expected = `component Something({ children }) {
+  const test = 'yo';
+  <Another>
+    {\`Content inside \${test} Another component\`}
+    // component children() {
+    // 	<span>{'Child Component'}</span>
+    // }
+  </Another>
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve the blank line between a commented out component and text literal sibling', async () => {
+		const expected = `component Something({ children }) {
+  const test = 'yo';
+  <Another>
+    {\`Content inside \${test} Another component\`}
+
+    // component children() {
+    // 	<span>{'Child Component'}</span>
+    // }
+  </Another>
+}`;
+
+		const result = await format(expected, { singleQuote: true });
+		expect(result).toBeWithNewline(expected);
+	});
+
+	it('should preserve the blank line between a component and text literal sibling inside element', async () => {
+		const expected = `component Something({ children }) {
+  const test = 'yo';
+  <Another>
+    {\`Content inside \${test} Another component\`}
+
+    component children() {
+      <span>{'Child Component'}</span>
+    }
+  </Another>
 }`;
 
 		const result = await format(expected, { singleQuote: true });

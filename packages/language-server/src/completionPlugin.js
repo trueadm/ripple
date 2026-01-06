@@ -410,7 +410,7 @@ function createCompletionPlugin() {
 						return { items: [], isIncomplete: false };
 					}
 
-					const [virtualCode] = getVirtualCode(document, context);
+					const { virtualCode } = getVirtualCode(document, context);
 
 					if (virtualCode.languageId !== 'ripple') {
 						// Check if we're inside an embedded code (like CSS in <style> blocks)

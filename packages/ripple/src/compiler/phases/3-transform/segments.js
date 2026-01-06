@@ -2,12 +2,10 @@
 @import * as AST from 'estree';
 @import * as ESTreeJSX from 'estree-jsx';
 @import { DocumentHighlightKind } from 'vscode-languageserver-types';
-@import { CodeMapping as VolarCodeMapping } from '@volar/language-core';
 @import { SourceMapMappings } from '@jridgewell/sourcemap-codec';
 @import {
 	CustomMappingData,
 	PluginActionOverrides,
-	MappingData,
 	CodeMapping,
 	VolarMappingsResult,
 } from 'ripple/compiler';
@@ -44,17 +42,12 @@ import {
 	build_src_to_gen_map,
 	get_generated_position,
 	offset_to_line_col,
+	loc_to_offset,
+	mapping_data,
+	mapping_data_verify_only,
+	build_line_offsets,
+	get_mapping_from_node,
 } from '../../source-map-utils.js';
-
-/** @type {VolarCodeMapping['data']} */
-export const mapping_data = {
-	verification: true,
-	completion: true,
-	semantic: true,
-	navigation: true,
-	structure: true,
-	format: false,
-};
 
 /**
  * @param {string} [hash]
@@ -63,37 +56,6 @@ export const mapping_data = {
  */
 function get_style_region_id(hash, fallback) {
 	return `style-${hash || fallback}`;
-}
-
-/**
- * Converts line/column positions to byte offsets
- * @param {string} text
- * @returns {number[]}
- */
-function build_line_offsets(text) {
-	const offsets = [0]; // Line 1 starts at offset 0
-	for (let i = 0; i < text.length; i++) {
-		if (text[i] === '\n') {
-			offsets.push(i + 1);
-		}
-	}
-	return offsets;
-}
-
-/**
- * Convert line/column to byte offset
- * @param {number} line
- * @param {number} column
- * @param {number[]} line_offsets
- * @returns {number}
- */
-function loc_to_offset(line, column, line_offsets) {
-	if (line < 1 || line > line_offsets.length) {
-		throw new Error(
-			`Location line or line offsets length is out of bounds, line: ${line}, line offsets length: ${line_offsets.length}`,
-		);
-	}
-	return line_offsets[line - 1] + column;
 }
 
 /**
@@ -308,7 +270,7 @@ function extract_classes(node, src_to_gen_map, gen_line_offsets, src_line_offset
  * @param {SourceMapMappings} source_map - Esrap source map for accurate position lookup
  * @param {PostProcessingChanges } post_processing_changes - Optional post-processing changes
  * @param {number[]} line_offsets - Pre-computed line offsets array for generated code
- * @returns {VolarMappingsResult}
+ * @returns {Omit<VolarMappingsResult, 'errors'>}
  */
 export function convert_source_map_to_mappings(
 	ast,
@@ -393,9 +355,11 @@ export function convert_source_map_to_mappings(
 					}
 				}
 				return; // Leaf node, don't traverse further
-			} else if (node.type === 'Literal' && node.raw) {
+			} else if (node.type === 'Literal') {
 				if (node.loc) {
-					tokens.push({ source: node.raw, generated: node.raw, loc: node.loc });
+					mappings.push(
+						get_mapping_from_node(node, src_to_gen_map, gen_line_offsets, mapping_data_verify_only),
+					);
 				}
 				return; // Leaf node, don't traverse further
 			} else if (node.type === 'ImportDeclaration') {
@@ -749,11 +713,28 @@ export function convert_source_map_to_mappings(
 					visit(node.test);
 				}
 				if (node.consequent) {
+					mappings.push(
+						get_mapping_from_node(
+							node.consequent,
+							src_to_gen_map,
+							gen_line_offsets,
+							mapping_data_verify_only,
+						),
+					);
 					visit(node.consequent);
 				}
 				if (node.alternate) {
+					mappings.push(
+						get_mapping_from_node(
+							node.alternate,
+							src_to_gen_map,
+							gen_line_offsets,
+							mapping_data_verify_only,
+						),
+					);
 					visit(node.alternate);
 				}
+
 				return;
 			} else if (node.type === 'ForStatement') {
 				// Visit in source order: init, test, update, body
@@ -769,6 +750,10 @@ export function convert_source_map_to_mappings(
 				if (node.body) {
 					visit(node.body);
 				}
+
+				mappings.push(
+					get_mapping_from_node(node, src_to_gen_map, gen_line_offsets, mapping_data_verify_only),
+				);
 				return;
 			} else if (node.type === 'ForOfStatement' || node.type === 'ForInStatement') {
 				// Visit in source order: left, right, index (Ripple-specific), body
@@ -785,6 +770,11 @@ export function convert_source_map_to_mappings(
 				if (node.body) {
 					visit(node.body);
 				}
+
+				mappings.push(
+					get_mapping_from_node(node, src_to_gen_map, gen_line_offsets, mapping_data_verify_only),
+				);
+
 				return;
 			} else if (node.type === 'WhileStatement' || node.type === 'DoWhileStatement') {
 				// Visit in source order: test, body (while) or body, test (do-while)
@@ -807,9 +797,26 @@ export function convert_source_map_to_mappings(
 			} else if (node.type === 'TryStatement') {
 				// Visit in source order: block, pending, handler, finalizer
 				if (node.block) {
+					mappings.push(
+						get_mapping_from_node(
+							node.block,
+							src_to_gen_map,
+							gen_line_offsets,
+							mapping_data_verify_only,
+						),
+					);
 					visit(node.block);
 				}
 				if (node.pending) {
+					mappings.push(
+						get_mapping_from_node(
+							node.pending,
+							src_to_gen_map,
+							gen_line_offsets,
+							mapping_data_verify_only,
+						),
+					);
+
 					// Add a special token for the 'pending' keyword with customData
 					// to suppress TypeScript diagnostics and provide custom hover/definition
 					const pending = /** @type {(typeof node.pending) & AST.NodeWithLocation} */ (
@@ -875,7 +882,7 @@ export function convert_source_map_to_mappings(
 				}
 				return;
 			} else if (node.type === 'CallExpression' || node.type === 'NewExpression') {
-				// Visit in source order: callee, arguments
+				// Visit in source order: callee, arguments`
 				if (node.callee) {
 					visit(node.callee);
 				}
@@ -935,6 +942,16 @@ export function convert_source_map_to_mappings(
 				if (node.right) {
 					visit(node.right);
 				}
+
+				if (node.type === 'AssignmentPattern') {
+					// We need a mapping for the whole AssignmentPattern for diagnostics
+					// Only enable diagnostic verification here to avoid duplicate mappings
+					// that can cause things like double definitions
+					mappings.push(
+						get_mapping_from_node(node, src_to_gen_map, gen_line_offsets, mapping_data_verify_only),
+					);
+				}
+
 				return;
 			} else if (node.type === 'ObjectExpression' || node.type === 'ObjectPattern') {
 				// Visit properties in order
@@ -987,6 +1004,10 @@ export function convert_source_map_to_mappings(
 				}
 				return;
 			} else if (node.type === 'TemplateLiteral') {
+				mappings.push(
+					get_mapping_from_node(node, src_to_gen_map, gen_line_offsets, mapping_data_verify_only),
+				);
+
 				// Visit quasis and expressions in order
 				for (let i = 0; i < node.quasis.length; i++) {
 					if (node.quasis[i]) {
@@ -1013,7 +1034,6 @@ export function convert_source_map_to_mappings(
 				}
 				return;
 			} else if (node.type === 'ExpressionStatement') {
-				// Visit expression
 				if (node.expression) {
 					visit(node.expression);
 				}
@@ -1036,6 +1056,11 @@ export function convert_source_map_to_mappings(
 						visit(caseNode);
 					}
 				}
+
+				mappings.push(
+					get_mapping_from_node(node, src_to_gen_map, gen_line_offsets, mapping_data_verify_only),
+				);
+
 				return;
 			} else if (node.type === 'SwitchCase') {
 				// Visit in source order: test, consequent
@@ -1103,6 +1128,28 @@ export function convert_source_map_to_mappings(
 				// Visit the argument if present
 				if (node.argument) {
 					visit(node.argument);
+				}
+
+				if (node.type === 'AwaitExpression') {
+					const max_len = 'await'.length;
+					// We need a mapping for diagnostics but only on the 'await' keyword
+					const mapping = get_mapping_from_node(
+						node,
+						src_to_gen_map,
+						gen_line_offsets,
+						mapping_data_verify_only,
+						max_len,
+						max_len,
+					);
+
+					if (node.metadata?.inside_component_top_level) {
+						// Since we don't print component with async,
+						// we need to suppress the ts diagnostic on the 'await' keyword
+						// about being inside a non-async function
+						mapping.data.customData.suppressedDiagnostics = [1308];
+					}
+
+					mappings.push(mapping);
 				}
 				return;
 			} else if (node.type === 'ChainExpression') {
@@ -1188,9 +1235,6 @@ export function convert_source_map_to_mappings(
 				return;
 			} else if (node.type === 'TemplateElement') {
 				// Leaf node, no children to visit
-				return;
-			} else if (node.type === 'Literal') {
-				// Leaf node - literals have no children to visit
 				return;
 			} else if (node.type === 'PrivateIdentifier') {
 				// Leaf node
@@ -1726,8 +1770,37 @@ export function convert_source_map_to_mappings(
 		});
 	}
 
-	// Sort mappings by source offset	// Sort mappings by source offset
-	mappings.sort((a, b) => a.sourceOffsets[0] - b.sourceOffsets[0]);
+	// Sort mappings by start position, but prioritize narrower ranges that are fully contained
+	// within wider ones. This ensures that specific tokens (like identifiers) take precedence
+	// over broader ranges (like `if` consequent blocks) during language server lookups.
+	// Otherwise, volar may pick the wrong mapping for diagnostics or other features.
+	mappings.sort((a, b) => {
+		const aStart = a.sourceOffsets[0];
+		const aEnd = aStart + a.lengths[0];
+		const bStart = b.sourceOffsets[0];
+		const bEnd = bStart + b.lengths[0];
+
+		if (aStart === bStart && aEnd === bEnd) {
+			// ranges are identical
+			return 0;
+		}
+
+		// Check if one range is fully contained within the other
+		const bInsideA = bStart >= aStart && bEnd <= aEnd;
+		const aInsideB = aStart >= bStart && aEnd <= bEnd;
+
+		if (bInsideA) {
+			// B (narrower) should come first
+			return 1;
+		}
+		if (aInsideB) {
+			// A (narrower) should come first
+			return -1;
+		}
+
+		// Neither contains the other - sort by start position
+		return aStart - bStart;
+	});
 
 	// Add a mapping for the very beginning of the file to handle import additions
 	// This ensures that code actions adding imports at the top work correctly
