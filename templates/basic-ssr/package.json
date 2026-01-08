@@ -17,10 +17,10 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "eslint": "^9.0.0",
+    "eslint": "catalog:default",
     "@ripple-ts/eslint-plugin": "latest",
     "prettier": "^3.6.2",
-    "@ripple-ts/prettier-plugin": "latest",
+    "@ripple-ts/prettier-plugin": "workspace:*",
     "@ripple-ts/eslint-parser": "latest",
     "typescript": "^5.9.2",
     "@typescript-eslint/parser": "^8.20.0",
@@ -30,6 +30,6 @@
     "@ripple-ts/cli": "latest"
   },
   "dependencies": {
-    "ripple": "latest"
+    "ripple": "workspace:*"
   }
 }

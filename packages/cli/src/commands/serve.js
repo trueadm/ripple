@@ -4,7 +4,7 @@
 
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { green, cyan, red, dim } from 'kleur/colors';
+import { cyan, red, dim } from 'kleur/colors';
 import { createServer } from '../lib/serve/index.js';
 
 /**

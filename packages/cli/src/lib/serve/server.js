@@ -25,6 +25,34 @@ export { validateOptions, readTemplate };
  */
 
 /**
+ * Create a cached template reader with file watching for invalidation
+ * @param {string} templatePath - Full path to the template file
+ * @returns {{ getContent: () => string; close: () => void }}
+ */
+function createTemplateCache(templatePath) {
+	/** @type {string | null} */
+	let cachedContent = fs.readFileSync(templatePath, 'utf-8');
+
+	// Watch for changes and invalidate cache
+	const watcher = fs.watch(templatePath, (eventType) => {
+		if (eventType === 'change') {
+			cachedContent = null;
+		}
+	});
+
+	return {
+		getContent: () => {
+			if (cachedContent === null) {
+				cachedContent = fs.readFileSync(templatePath, 'utf-8');
+			}
+
+			return cachedContent;
+		},
+		close: () => watcher.close(),
+	};
+}
+
+/**
  * Create and start the SSR development server
  * @param {Partial<ServerOptions>} options - Server options
  * @returns {Promise<ServerInstance>} - The server instance
@@ -50,6 +78,10 @@ export async function createServer(options = {}) {
 	/** @type {Map<string, [string, string]>} */
 	const rpcModules = new Map();
 
+	// Create cached template reader with file watching
+	const templatePath = path.resolve(root, template);
+	const templateCache = createTemplateCache(templatePath);
+
 	// Create Polka server
 	const app = polka()
 		.use(vite.middlewares)
@@ -63,8 +95,8 @@ export async function createServer(options = {}) {
 					return;
 				}
 
-				// Read and transform the HTML template
-				const templateContent = fs.readFileSync(path.resolve(root, template), 'utf-8');
+				// Read template from cache (invalidated on file change)
+				const templateContent = templateCache.getContent();
 				const transformedTemplate = await vite.transformIndexHtml(url, templateContent);
 
 				// Render SSR content
@@ -97,6 +129,7 @@ export async function createServer(options = {}) {
 
 			resolve({
 				close: () => {
+					templateCache.close();
 					vite.close();
 					server.server.close();
 				},

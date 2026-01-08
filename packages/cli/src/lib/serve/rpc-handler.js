@@ -61,6 +61,13 @@ export function extractRpcHash(url) {
  * @returns {Promise<void>}
  */
 export async function handleRpcRequest(req, res, vite, rpcModules) {
+	// Validate HTTP method - RPC requests must be POST to prevent CSRF attacks
+	if (req.method !== 'POST') {
+		res.writeHead(405, { 'Content-Type': 'application/json', Allow: 'POST' });
+		res.end(JSON.stringify({ error: 'Method not allowed. RPC requests must use POST.' }));
+		return;
+	}
+
 	const url = req.url || '';
 	const hash = extractRpcHash(url);
 	const moduleInfo = rpcModules.get(hash);
