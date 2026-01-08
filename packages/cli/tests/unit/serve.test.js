@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { validateOptions } from '../../src/lib/serve/server.js';
+// Import from config.js to avoid loading vite (which causes esbuild issues in tests)
+import { validateOptions } from '../../src/lib/serve/config.js';
 import { parseRequestBody, isRpcRequest, extractRpcHash } from '../../src/lib/serve/rpc-handler.js';
 import { generateCssTags, injectSSRContent } from '../../src/lib/serve/ssr-renderer.js';
 
