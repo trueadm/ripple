@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { compile } from 'ripple/compiler';
 
-describe('compiler success tests', () => {
+describe('compiler typescript tests', () => {
 	it('compiles TSInstantiationExpression', () => {
 		const source = `function makeBox<T,>(value: T) {
 	return { value };
@@ -11,7 +11,7 @@ const stringBox = makeStringBox('abc');
 const ErrorMap = Map<string, Error>;
 const errorMap = new ErrorMap();`;
 
-		const result = compile(source, 'test.ripple', { mode: 'client' });
+		const result = compile(source, 'test.ripple', { mode: 'server' });
 
 		expect(result.js.code).toMatchSnapshot();
 	});
@@ -39,8 +39,92 @@ function getString(e: string = 'test') {
 	return e;
 }`;
 
-		const result = compile(source, 'test.ripple', { mode: 'client' });
+		const result = compile(source, 'test.ripple', { mode: 'server' });
 
 		expect(result.js.code).toMatchSnapshot();
+	});
+});
+
+describe('compiler server block tests', () => {
+	it('compiles server block with with only supported types', () => {
+		const source = `
+#server {
+	function something() {
+		return 'unexported function';
+	}
+
+	export async function fetchUser(id) {
+		const response = await fetch(\`/api/user/\${id}\`);
+		const data = await response.json();
+		return data;
+	}
+
+	const fetchUserAlias = fetchUser;
+
+	const AliasForFetchUserAlias = fetchUserAlias;
+
+	export const AnotherAlias = AliasForFetchUserAlias;
+
+	export const func = function test() {
+		return 'test';
+	};
+
+	export const func2 = function () {
+		return 'test';
+	};
+
+	export const func3 = () => {
+		return 'test';
+	};
+
+	export { fetchUserAlias, AliasForFetchUserAlias };
+}`;
+
+		const result = compile(source, 'test.ripple', { mode: 'server' });
+		expect(result.js.code).toMatchSnapshot();
+	});
+
+	it('throws error for unsupported exported object pattern in server block', () => {
+		const source = `
+#server {
+		const obj = { fn1: () => {}, fn2: () => {} };
+
+		export const { fn1, fn2 } = obj;
+}`;
+
+		expect(() => compile(source, 'test.ripple', { mode: 'server' })).toThrowError();
+	});
+
+	it('throws error for unsupported exported array pattern in server block', () => {
+		const source = `
+#server {
+		const arr = [() => {}, () => {}];
+
+		export const [fnarr1, fnarr2] = arr;
+}`;
+
+		expect(() => compile(source, 'test.ripple', { mode: 'server' })).toThrowError();
+	});
+
+	it('throws error for unsupported exported member expression via object in server block', () => {
+		const source = `
+#server {
+		const obj = { fn1: () => {}, fn2: () => {} };
+
+		export const objProp = obj.fn1;
+}`;
+
+		expect(() => compile(source, 'test.ripple', { mode: 'server' })).toThrowError();
+	});
+
+	it('throws error for unsupported exported member expression via array in server block', () => {
+		const source = `
+#server {
+		const arr = [() => {}, () => {}];
+
+		export const arrIndex0 = arr[0];
+}`;
+
+		expect(() => compile(source, 'test.ripple', { mode: 'server' })).toThrowError();
 	});
 });

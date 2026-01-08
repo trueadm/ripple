@@ -348,10 +348,12 @@ const visitors = {
 		if (!context.state.to_ts && node.exportKind === 'type') {
 			return b.empty;
 		}
-		if (!context.state.inside_server_block) {
+		if (!context.state.ancestor_server_block) {
 			return context.next();
 		}
 		const declaration = node.declaration;
+		/** @type {AST.Statement[]} */
+		const statements = [];
 
 		if (declaration && declaration.type === 'FunctionDeclaration') {
 			const name = declaration.id.name;
@@ -367,9 +369,59 @@ const visitors = {
 					(context.visit(declaration)),
 				),
 			);
+		} else if (declaration && declaration.type === 'VariableDeclaration') {
+			for (const decl of declaration.declarations) {
+				if (decl.init !== undefined && decl.init !== null) {
+					if (decl.id.type === 'Identifier') {
+						const name = decl.id.name;
+						if (
+							decl.init.type === 'FunctionExpression' ||
+							decl.init.type === 'ArrowFunctionExpression'
+						) {
+							if (context.state.server_exported_names.includes(name)) {
+								continue;
+							}
+							context.state.server_exported_names.push(name);
+							statements.push(
+								b.stmt(
+									b.assignment(
+										'=',
+										b.member(b.id('_$_server_$_'), b.id(name)),
+										/** @type {AST.Expression} */
+										(context.visit(decl.init)),
+									),
+								),
+							);
+						} else if (decl.init.type === 'Identifier') {
+							if (context.state.server_exported_names.includes(name)) {
+								continue;
+							}
+							context.state.server_exported_names.push(name);
+
+							statements.push(
+								b.stmt(
+									b.assignment(
+										'=',
+										b.member(b.id('_$_server_$_'), b.id(name)),
+										b.id(decl.init.name),
+									),
+								),
+							);
+						} else {
+							// TODO allow exporting variables that are not functions
+							throw new Error('Not implemented');
+						}
+					} else {
+						// TODO allow exporting variables that are not functions
+						throw new Error('Not implemented');
+					}
+				} else {
+					// TODO allow exporting uninitialized variables
+					throw new Error('Not implemented');
+				}
+				// TODO: allow exporting consts when hydration is supported
+			}
 		} else if (node.specifiers) {
-			/** @type {AST.Statement[]} */
-			const statements = [];
 			for (const specifier of node.specifiers) {
 				const name = /** @type {AST.Identifier} */ (specifier.local).name;
 				if (context.state.server_exported_names.includes(name)) {
@@ -387,12 +439,12 @@ const visitors = {
 					b.stmt(b.assignment('=', b.member(b.id('_$_server_$_'), b.id(name)), specifier.local)),
 				);
 			}
-
-			return statements.length ? b.block(statements) : b.empty;
 		} else {
 			// TODO
 			throw new Error('Not implemented');
 		}
+
+		return statements.length ? b.block(statements) : b.empty;
 	},
 
 	VariableDeclaration(node, context) {
@@ -882,7 +934,7 @@ const visitors = {
 			return b.empty;
 		}
 
-		if (state.inside_server_block) {
+		if (state.ancestor_server_block) {
 			if (!node.specifiers.length) {
 				return b.empty;
 			}
@@ -1096,13 +1148,13 @@ const visitors = {
 		const block = /** @type {AST.BlockStatement} */ (
 			context.visit(node.body, {
 				...context.state,
-				inside_server_block: true,
+				ancestor_server_block: node,
 				server_block_locals,
 				server_exported_names: [],
 			})
 		);
 
-		if (exports.length === 0) {
+		if (exports.size === 0) {
 			return {
 				...block,
 				body: [...server_block_locals, ...block.body],
@@ -1159,7 +1211,7 @@ export function transform_server(filename, source, analysis, minify_css) {
 		serverIdentifierPresent: analysis.metadata.serverIdentifierPresent,
 		stylesheets: [],
 		component_metadata,
-		inside_server_block: false,
+		ancestor_server_block: undefined,
 		server_block_locals: [],
 		server_exported_names: [],
 		filename,

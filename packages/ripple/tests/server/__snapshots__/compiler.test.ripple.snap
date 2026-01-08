@@ -1,7 +1,58 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`compiler success tests > compiles TSInstantiationExpression 1`] = `
-"import * as _$_ from 'ripple/internal/client';
+exports[`compiler server block tests > compiles server block with with only supported types 1`] = `
+"import * as _$_ from 'ripple/internal/server';
+
+export const _$_server_$_ = (() => {
+	var _$_server_$_ = {};
+
+	function something() {
+		return 'unexported function';
+	}
+
+	_$_server_$_.fetchUser = async function fetchUser(id) {
+		const response = await fetch(\`/api/user/\${id}\`);
+		const data = await response.json();
+
+		return data;
+	};
+
+	const fetchUserAlias = fetchUser;
+	const AliasForFetchUserAlias = fetchUserAlias;
+
+	{
+		_$_server_$_.AnotherAlias = AliasForFetchUserAlias;
+	}
+
+	{
+		_$_server_$_.func = function test() {
+			return 'test';
+		};
+	}
+
+	{
+		_$_server_$_.func2 = function () {
+			return 'test';
+		};
+	}
+
+	{
+		_$_server_$_.func3 = () => {
+			return 'test';
+		};
+	}
+
+	{
+		_$_server_$_.fetchUserAlias = fetchUserAlias;
+		_$_server_$_.AliasForFetchUserAlias = AliasForFetchUserAlias;
+	}
+
+	return _$_server_$_;
+})();"
+`;
+
+exports[`compiler typescript tests > compiles TSInstantiationExpression 1`] = `
+"import * as _$_ from 'ripple/internal/server';
 
 function makeBox(value) {
 	return { value };
@@ -13,7 +64,7 @@ const ErrorMap = (Map);
 const errorMap = new ErrorMap();"
 `;
 
-exports[`compiler success tests > compiles imported component with conditional async in SSR 1`] = `
+exports[`compiler typescript tests > compiles imported component with conditional async in SSR 1`] = `
 "import * as _$_ from 'ripple/internal/server';
 
 import { ChildComponent } from './Child.ripple';
@@ -36,8 +87,8 @@ export async function App(__output) {
 }"
 `;
 
-exports[`compiler success tests > removes type assertions from function parameters and leaves default values 1`] = `
-"import * as _$_ from 'ripple/internal/client';
+exports[`compiler typescript tests > removes type assertions from function parameters and leaves default values 1`] = `
+"import * as _$_ from 'ripple/internal/server';
 
 function getString(e = 'test') {
 	return e;

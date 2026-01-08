@@ -126,11 +126,11 @@ const visitors = {
 	ServerBlock(node, context) {
 		node.metadata = {
 			...node.metadata,
-			exports: [],
+			exports: new Set(),
 		};
 		context.visit(node.body, {
 			...context.state,
-			inside_server_block: true,
+			ancestor_server_block: node,
 		});
 	},
 
@@ -141,7 +141,7 @@ const visitors = {
 		if (
 			is_reference(node, /** @type {AST.Node} */ (parent)) &&
 			binding &&
-			context.state.inside_server_block &&
+			context.state.ancestor_server_block &&
 			binding.node !== node // Don't check the declaration itself
 		) {
 			/** @type {ScopeInterface | null} */
@@ -607,20 +607,17 @@ const visitors = {
 	},
 
 	ExportNamedDeclaration(node, context) {
-		if (!context.state.inside_server_block) {
+		const server_block = context.state.ancestor_server_block;
+
+		if (!server_block) {
 			return context.next();
 		}
 
-		const server_block = /** @type {AST.ServerBlock} */ (
-			context.path.find((n) => n.type === 'ServerBlock')
-		);
 		const exports = server_block.metadata.exports;
 		const declaration = /** @type {AST.RippleExportNamedDeclaration} */ (node).declaration;
 
 		if (declaration && declaration.type === 'FunctionDeclaration') {
-			if (!exports.includes(declaration.id.name)) {
-				exports.push(declaration.id.name);
-			}
+			exports.add(declaration.id.name);
 		} else if (declaration && declaration.type === 'Component') {
 			error(
 				'Not implemented: Exported component declaration not supported in server blocks.',
@@ -631,14 +628,48 @@ const visitors = {
 			// TODO: the client and server rendering doesn't currently support components
 			// If we're going to support this, we need to account also for anonymous object declaration
 			// and specifiers
-			// if (!exports.includes(/** @type {AST.Identifier} */ (declaration.id).name)) {
-			// 	exports.push(/** @type {AST.Identifier} */ (declaration.id).name);
-			// }
+			// 	exports.add(/** @type {AST.Identifier} */ (declaration.id).name);
 		} else if (declaration && declaration.type === 'VariableDeclaration') {
-			// TODO: allow exporting consts when hydration is supported
 			for (const decl of declaration.declarations) {
+				if (decl.init !== undefined && decl.init !== null) {
+					if (decl.id.type === 'Identifier') {
+						if (
+							decl.init.type === 'FunctionExpression' ||
+							decl.init.type === 'ArrowFunctionExpression'
+						) {
+							exports.add(decl.id.name);
+							continue;
+						} else if (decl.init.type === 'Identifier') {
+							const name = decl.init.name;
+							const binding = context.state.scope.get(name);
+							if (binding && is_binding_function(binding, context.state.scope)) {
+								exports.add(decl.id.name);
+								continue;
+							}
+						} else if (decl.init.type === 'MemberExpression') {
+							error(
+								'Not implemented: Exported member expressions are not supported in server blocks.',
+								context.state.analysis.module.filename,
+								decl.init,
+								context.state.loose ? context.state.analysis.errors : undefined,
+							);
+							continue;
+						}
+					} else if (decl.id.type === 'ObjectPattern' || decl.id.type === 'ArrayPattern') {
+						const paths = extract_paths(decl.id);
+						for (const path of paths) {
+							error(
+								'Not implemented: Exported object or array patterns are not supported in server blocks.',
+								context.state.analysis.module.filename,
+								path.node,
+								context.state.loose ? context.state.analysis.errors : undefined,
+							);
+						}
+					}
+				}
+				// TODO: allow exporting consts when hydration is supported
 				error(
-					'Not implemented: Exported variable declaration not supported in server blocks.',
+					`Not implemented: Exported '${decl.id.type}' type is not supported in server blocks.`,
 					context.state.analysis.module.filename,
 					decl,
 					context.state.loose ? context.state.analysis.errors : undefined,
@@ -651,9 +682,7 @@ const visitors = {
 				const is_function = binding && is_binding_function(binding, context.state.scope);
 
 				if (is_function) {
-					if (!exports.includes(name)) {
-						exports.push(name);
-					}
+					exports.add(name);
 					continue;
 				}
 
@@ -1007,7 +1036,7 @@ const visitors = {
 			}
 
 			if (parent_block !== null && parent_block.type !== 'Component') {
-				if (context.state.inside_server_block === false) {
+				if (!context.state.ancestor_server_block) {
 					// we want the error to live on the `await` keyword vs the whole expression
 					const adjusted_node /** @type {AST.AwaitExpression} */ = {
 						...node,
@@ -1066,7 +1095,7 @@ export function analyze(ast, filename, options = {}) {
 			scopes,
 			analysis,
 			inside_head: false,
-			inside_server_block: false,
+			ancestor_server_block: undefined,
 			to_ts: options.to_ts ?? false,
 			loose: options.loose ?? false,
 			metadata: {},

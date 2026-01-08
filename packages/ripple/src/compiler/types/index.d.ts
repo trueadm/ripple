@@ -278,7 +278,7 @@ declare module 'estree' {
 		type: 'ServerBlock';
 		body: ServerBlockStatement;
 		metadata: BaseNodeMetaData & {
-			exports: string[];
+			exports: Set<string>;
 		};
 	}
 
@@ -1123,7 +1123,7 @@ export interface BaseState {
 	scope: ScopeInterface;
 	scopes: Map<AST.Node | AST.Node[], ScopeInterface>;
 	serverIdentifierPresent: boolean;
-	inside_server_block: boolean;
+	ancestor_server_block: AST.ServerBlock | undefined;
 	inside_head?: boolean;
 
 	/** Common For All */

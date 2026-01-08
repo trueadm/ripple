@@ -766,9 +766,9 @@ export function is_binding_function(binding, scope, visited = new Set()) {
 
 	// Follow identifier references (e.g., const alias = myFunc)
 	if (initial.type === 'Identifier') {
-		const nextBinding = scope.get(initial.name);
-		if (nextBinding) {
-			return is_binding_function(nextBinding, scope, visited);
+		const next_binding = scope.get(initial.name);
+		if (next_binding) {
+			return is_binding_function(next_binding, scope, visited);
 		}
 	}
 

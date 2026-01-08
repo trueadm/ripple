@@ -420,7 +420,7 @@ const visitors = {
 			return b.empty;
 		}
 
-		if (state.to_ts && state.inside_server_block) {
+		if (state.to_ts && state.ancestor_server_block) {
 			/** @type {AST.VariableDeclaration[]} */
 			const locals = state.server_block_locals;
 			for (const spec of node.specifiers) {
@@ -2082,7 +2082,7 @@ const visitors = {
 			return b.empty;
 		}
 
-		if (context.state.to_ts && context.state.inside_server_block) {
+		if (context.state.to_ts && context.state.ancestor_server_block) {
 			// All validation errors will be handled in the analysis phase
 			// So we can safely print these
 			if (node.declaration) {
@@ -2230,7 +2230,7 @@ const visitors = {
 			const block = /** @type {AST.BlockStatement} */ (
 				context.visit(node.body, {
 					...context.state,
-					inside_server_block: true,
+					ancestor_server_block: node,
 					server_block_locals,
 				})
 			);
@@ -3699,7 +3699,7 @@ export function transform_client(filename, source, analysis, to_ts, minify_css) 
 		flush_node: null,
 		scope: analysis.scope,
 		scopes: analysis.scopes,
-		inside_server_block: false,
+		ancestor_server_block: undefined,
 		serverIdentifierPresent: analysis.metadata.serverIdentifierPresent,
 		server_block_locals: [],
 		stylesheets: [],
