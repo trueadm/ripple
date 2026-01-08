@@ -246,7 +246,7 @@ describe('Serve Command Integration Tests', () => {
 			const templatePkgPath = join(TEMPLATES_PATH, 'basic-ssr', 'package.json');
 			if (existsSync(templatePkgPath)) {
 				const pkg = JSON.parse(require('node:fs').readFileSync(templatePkgPath, 'utf-8'));
-				expect(pkg.scripts.dev).toContain('ripple serve');
+				expect(pkg.scripts.dev).toContain('@ripple-ts/cli serve');
 				expect(pkg.devDependencies).toHaveProperty('@ripple-ts/cli');
 			}
 		});
