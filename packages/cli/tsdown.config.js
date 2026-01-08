@@ -12,4 +12,5 @@ export default defineConfig({
 	target: 'node20',
 	outDir: 'dist',
 	noExternal: /.+/,
+	external: ['vite', 'polka'],
 });

@@ -7,6 +7,11 @@ export const TEMPLATES = [
 		display: 'Basic Ripple App',
 		description: 'A minimal Ripple application with Vite and TypeScript',
 	},
+	{
+		name: 'basic-ssr',
+		display: 'Basic Ripple App (SSR)',
+		description: 'A Ripple application with server-side rendering',
+	},
 ];
 
 /**
