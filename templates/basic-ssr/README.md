@@ -9,6 +9,8 @@ A Ripple application template with server-side rendering (SSR), TypeScript, and 
 - TypeScript support
 - ESLint and Prettier configured
 
+> **Note:** Hydration is not yet fully implemented. Currently, the client re-renders the entire app after receiving the server-rendered HTML. True hydration (attaching event handlers without re-rendering) is coming soon.
+
 ## Getting Started
 
 1. Install dependencies:
@@ -46,9 +48,11 @@ The `index.html` file contains special SSR placeholders:
 - `<!--ssr-head-->` - Server-rendered head content (styles, meta tags)
 - `<!--ssr-body-->` - Server-rendered body content
 
-### Hydration
+### Hydration (Coming Soon)
 
-The client-side entry (`src/index.ts`) calls `mount()` with `hydrate: true` to attach event handlers to the server-rendered HTML without re-rendering.
+> **Note:** True hydration is not yet implemented. The `hydrate: true` option is a placeholder for future support.
+
+The client-side entry (`src/index.ts`) calls `mount()` with `hydrate: true`. Currently this re-renders the app, but once hydration is implemented, it will attach event handlers to the server-rendered HTML without re-rendering.
 
 ## Scripts
 
