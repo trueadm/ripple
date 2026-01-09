@@ -78,12 +78,12 @@ describe('CLI Integration Tests', () => {
 		const result = await runCLI(['--help']);
 
 		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('Interactive CLI tool for creating Ripple applications');
-		expect(result.stdout).toContain('Usage: create-ripple');
-		expect(result.stdout).toContain('Arguments:');
+		expect(result.stdout).toContain('CLI tool for creating and serving Ripple applications');
+		expect(result.stdout).toContain('Usage: ripple');
+		expect(result.stdout).toContain('Commands:');
 		expect(result.stdout).toContain('Options:');
-		expect(result.stdout).toContain('--template');
-		expect(result.stdout).toContain('--package-manager');
+		expect(result.stdout).toContain('create');
+		expect(result.stdout).toContain('serve');
 	});
 
 	it('should show version when --version flag is used', async () => {

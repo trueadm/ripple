@@ -10,7 +10,8 @@
     "cli",
     "scaffold",
     "template",
-    "create-app"
+    "create-app",
+    "ssr"
   ],
   "repository": {
     "type": "git",
@@ -40,6 +41,10 @@
     "test:ui": "vitest --ui",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "polka": "catalog:default",
+    "vite": "catalog:default"
   },
   "devDependencies": {
     "@types/prompts": "catalog:default",
