@@ -56,7 +56,7 @@ declare global {
 		type Element = void;
 
 		interface IntrinsicElements {
-			// HTML elements with basic attributes
+			// HTML elements with basic attributes (lowercase)
 			div: HTMLAttributes;
 			span: HTMLAttributes;
 			p: HTMLAttributes;
@@ -87,6 +87,47 @@ declare global {
 				width?: string | number;
 				height?: string | number;
 			};
+
+			// Capitalized versions for dynamic elements (e.g., <@div /> becomes <Div />)
+			// These are used when the compiler transforms tracked elements in TypeScript mode
+			Div: HTMLAttributes;
+			Span: HTMLAttributes;
+			P: HTMLAttributes;
+			H1: HTMLAttributes;
+			H2: HTMLAttributes;
+			H3: HTMLAttributes;
+			H4: HTMLAttributes;
+			H5: HTMLAttributes;
+			H6: HTMLAttributes;
+			Button: HTMLAttributes & {
+				type?: 'button' | 'submit' | 'reset';
+				disabled?: boolean;
+			};
+			Input: HTMLAttributes & {
+				type?: string;
+				value?: string | number;
+				placeholder?: string;
+				disabled?: boolean;
+			};
+			Form: HTMLAttributes;
+			A: HTMLAttributes & {
+				href?: string;
+				target?: string;
+			};
+			Img: HTMLAttributes & {
+				src?: string;
+				alt?: string;
+				width?: string | number;
+				height?: string | number;
+			};
+			Section: HTMLAttributes;
+			Article: HTMLAttributes;
+			Header: HTMLAttributes;
+			Footer: HTMLAttributes;
+			Nav: HTMLAttributes;
+			Main: HTMLAttributes;
+			Aside: HTMLAttributes;
+
 			// Add more as needed...
 			[elemName: string]: HTMLAttributes;
 		}
