@@ -7,3 +7,5 @@ declare module '@ripple-ts/vite-plugin' {
 		excludeRippleExternalModules?: boolean;
 	}
 }
+
+export function ripple(options?: RipplePluginOptions): Plugin[];

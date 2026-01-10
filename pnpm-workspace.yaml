@@ -6,6 +6,7 @@ packages:
   - packages/*
   - playground
   - website
+  - templates/*
 catalogs:
   default:
     '@jridgewell/sourcemap-codec': ^1.5.5
