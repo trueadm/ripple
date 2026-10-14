@@ -11,8 +11,9 @@ import type {
 } from '@ripple-ts/vite-plugin';
 
 /**
- * Renders every render route marked `prerender` to a full HTML document,
- * keyed by route path. Buffered, every boundary settled.
+ * Renders every render route marked `prerender` to a full HTML document, one
+ * per `entries` record for a parameterized path plus the pages a `crawl` route
+ * links to, keyed by concrete pathname. Buffered, every boundary settled.
  */
 export function prerenderRoutes(
 	manifest: ServerManifest,

@@ -13,7 +13,13 @@ import { createRouter } from './router.js';
 import { createContext, runMiddlewareChain } from './middleware.js';
 import { buildStreamTemplate, createStreamingResponse } from './stream-response.js';
 import { createLayoutWrapper, createPropsWrapper } from './component-wrappers.js';
-import { get_route_entry_id, get_route_entry_path } from '../routes.js';
+import {
+	fill_route_path,
+	get_route_entry_id,
+	get_route_entry_path,
+	validate_route_entries,
+} from '../routes.js';
+import { get_linked_pathnames } from './links.js';
 import {
 	patch_global_fetch,
 	build_rpc_lookup,
@@ -127,41 +133,123 @@ export function createHandler(manifest, options) {
 }
 
 /**
+ * Whether a pathname carries an empty segment, which the entry values a build
+ * may name never produce. The root is the one pathname that is only a
+ * separator.
+ * @param {string} pathname
+ * @returns {boolean}
+ */
+function has_empty_segment(pathname) {
+	return pathname !== '/' && pathname.split('/').slice(1).includes('');
+}
+
+/**
  * Renders the render routes marked `prerender` to static HTML, buffered with
  * every boundary settled, as the build-time counterpart of the request
  * handler: the same template, assets, route data and hydration script, so the
  * written page hydrates exactly like a server-rendered one.
+ *
+ * A static route renders its own path. A parameterized route renders one page
+ * per record of its `entries`, resolved at this point when they are a
+ * function. Every pathname, and every same-origin link found in the pages of a
+ * `crawl` route, is normalized like a request URL and then served by the
+ * production request handler itself, so route precedence, middleware, the
+ * params a page is given, a missing route and an error all behave the way they
+ * will on the built site, and each pathname renders once.
  * @param {ServerManifest} manifest
  * @param {HandlerOptions} options
  * @param {string} origin the URL origin the pages are rendered under
- * @returns {Promise<Map<string, string>>} route path → HTML document
+ * @returns {Promise<Map<string, string>>} pathname → HTML document
  */
 export async function prerenderRoutes(manifest, options, origin = 'http://localhost') {
-	const { render, getCss, htmlTemplate } = options;
 	/** @type {Map<string, string>} */
 	const pages = new Map();
 	// Buffered: a streamed shell is not a document.
-	const buffered = { ...manifest, streaming: false };
+	const handler = createHandler({ ...manifest, streaming: false }, options);
+	const router = createRouter(manifest.routes);
+
+	/** @type {Array<{ pathname: string, listed: boolean }>} */
+	const queue = [];
+	const queued = new Set();
+
+	/**
+	 * A concrete pathname is a path rather than a reference, so it is
+	 * normalized through the `pathname` setter, which collapses dot segments
+	 * as a request URL does while a leading `//` stays a path instead of
+	 * becoming another host.
+	 * @param {string} pathname
+	 * @returns {URL}
+	 */
+	const to_url = (pathname) => {
+		const url = new URL(origin);
+		url.pathname = pathname;
+		return url;
+	};
+
+	/**
+	 * @param {string} pathname
+	 * @param {boolean} listed whether `entries` named this page, which must render
+	 * @returns {void}
+	 */
+	const enqueue = (pathname, listed) => {
+		const resolved = to_url(pathname).pathname;
+		// A pathname only a percent escape can spell, or one carrying an empty
+		// segment, is not one a path holds as written; `entries` rejects both
+		// outright, and a link to one points at something this build does not
+		// make a page of.
+		if (!listed && (resolved.includes('%') || has_empty_segment(resolved))) return;
+		if (queued.has(resolved)) return;
+		queued.add(resolved);
+		queue.push({ pathname: resolved, listed });
+	};
 
 	for (const route of manifest.routes) {
 		if (route.type !== 'render' || !route.prerender) continue;
-		const request = new Request(new URL(route.path, origin));
-		const context = createContext(request, {});
-		const response = await handleRenderRoute(
-			route,
-			context,
-			buffered,
-			manifest.middlewares,
-			render,
-			getCss,
-			htmlTemplate,
-			manifest.clientAssets || {},
-			undefined,
-		);
-		if (response.status !== 200) {
-			throw new Error(`[ripple] Prerendering ${route.path} failed with status ${response.status}`);
+		if (route.entries === undefined) {
+			enqueue(route.path, true);
+			continue;
 		}
-		pages.set(route.path, await response.text());
+		const entries = typeof route.entries === 'function' ? await route.entries() : route.entries;
+		validate_route_entries(route.path, entries);
+		for (const record of entries) {
+			enqueue(fill_route_path(route.path, record), true);
+		}
+	}
+
+	for (let i = 0; i < queue.length; i++) {
+		const { pathname, listed } = queue[i];
+		let match;
+		try {
+			match = router.match('GET', pathname);
+		} catch (error) {
+			throw new Error(`[ripple] Prerendering ${pathname} failed`, { cause: error });
+		}
+		const route =
+			match && match.route.type === 'render' && match.route.prerender
+				? /** @type {RenderRoute} */ (match.route)
+				: null;
+		// A link can point at anything; a page `entries` named is answered
+		// whatever it now resolves to, so a page it silently loses is a failure.
+		if (route === null && !listed) continue;
+
+		const url = to_url(pathname);
+		let response;
+		try {
+			response = await handler(new Request(url));
+		} catch (error) {
+			throw new Error(`[ripple] Prerendering ${pathname} failed`, { cause: error });
+		}
+		if (response.status !== 200) {
+			throw new Error(`[ripple] Prerendering ${pathname} failed with status ${response.status}`);
+		}
+		const html = await response.text();
+		pages.set(pathname, html);
+
+		if (route !== null && route.crawl) {
+			for (const linked of get_linked_pathnames(html, url)) {
+				enqueue(linked, false);
+			}
+		}
 	}
 
 	return pages;

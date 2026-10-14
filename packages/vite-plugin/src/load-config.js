@@ -25,6 +25,8 @@ import {
 	get_component_export,
 	get_route_entry_export_name,
 	get_route_entry_path,
+	get_route_param_names,
+	validate_route_entries,
 } from './routes.js';
 
 const RIPPLE_EXTENSION_PATTERN = /\.tsrx$/;
@@ -58,7 +60,7 @@ function validate_render_route(route) {
 	}
 
 	const render_route =
-		/** @type {{ path?: unknown, entry?: unknown, layout?: unknown, prerender?: unknown }} */ (
+		/** @type {{ path?: unknown, entry?: unknown, layout?: unknown, prerender?: unknown, entries?: unknown, crawl?: unknown }} */ (
 			route
 		);
 	if (!is_module_entry(render_route.entry)) {
@@ -72,7 +74,31 @@ function validate_render_route(route) {
 	if (render_route.prerender !== undefined && typeof render_route.prerender !== 'boolean') {
 		throw new Error('[@ripple-ts/vite-plugin] RenderRoute `prerender` must be a boolean.');
 	}
-	if (render_route.prerender === true && !is_static_route_path(render_route.path)) {
+	if (render_route.crawl !== undefined && typeof render_route.crawl !== 'boolean') {
+		throw new Error('[@ripple-ts/vite-plugin] RenderRoute `crawl` must be a boolean.');
+	}
+	if (render_route.crawl === true && render_route.prerender !== true) {
+		throw new Error(
+			`[@ripple-ts/vite-plugin] RenderRoute \`${render_route.path}\` sets \`crawl\` but is not marked \`prerender\`: only a prerendered page is crawled for links.`,
+		);
+	}
+
+	const has_params = !is_static_route_path(render_route.path);
+	if (render_route.entries !== undefined) {
+		if (render_route.prerender !== true) {
+			throw new Error(
+				`[@ripple-ts/vite-plugin] RenderRoute \`${render_route.path}\` declares \`entries\` but is not marked \`prerender\`.`,
+			);
+		}
+		if (!has_params) {
+			throw new Error(
+				`[@ripple-ts/vite-plugin] RenderRoute \`${render_route.path}\` declares \`entries\` but its path has no \`:param\` or \`*\` segment to fill.`,
+			);
+		}
+		if (typeof render_route.entries !== 'function') {
+			validate_route_entries(/** @type {string} */ (render_route.path), render_route.entries);
+		}
+	} else if (render_route.prerender === true && has_params) {
 		throw new Error(
 			`[@ripple-ts/vite-plugin] RenderRoute \`${render_route.path}\` cannot be prerendered: only a static path (no \`:param\` or \`*\` segment) can be rendered to a file at build time.`,
 		);
@@ -80,12 +106,13 @@ function validate_render_route(route) {
 }
 
 /**
- * Whether a route path names exactly one page.
+ * Whether a route path names exactly one page, by the same rule the router
+ * uses: only a segment that starts with `:` or `*` is a parameter.
  * @param {unknown} path
  * @returns {boolean}
  */
 export function is_static_route_path(path) {
-	return typeof path === 'string' && !/[:*]/.test(path);
+	return typeof path === 'string' && get_route_param_names(path).length === 0;
 }
 
 /**

@@ -359,10 +359,35 @@ After the server build, the plugin renders each marked route through the
 production server entry and writes `<outDir>/client<path>/index.html`. The
 node and bun adapters serve that file for the route before the server renders
 anything, with a cache policy that revalidates on every request, and the page
-hydrates exactly like a server-rendered one. Only a static path can be
-prerendered: a `:param` or `*` segment is a configuration error. Routes
-without the flag keep rendering per request, so static and dynamic pages mix
-freely in one app.
+hydrates exactly like a server-rendered one. Routes without the flag keep
+rendering per request, so static and dynamic pages mix freely in one app.
+
+A path with a `:param` or `*` segment names its pages with `entries`: an array
+of records giving every parameter a string, or a function (sync or async) that
+returns one and runs once at build time. A value goes into the pathname as
+written, so it has to be one a path can hold: a value percent-encoding would
+change is a configuration error, and only a `*` value may span segments. Each
+pathname is then normalized like a request URL, with dot segments
+collapsed, and routed like a request,
+so a more specific route renders the pathnames it claims and every pathname
+renders once. `crawl` follows
+the same-origin links of a route's prerendered pages into any other prerendered
+route, and keeps going through routes that also set `crawl`, so a blog index
+can pull in posts its `entries` never listed:
+
+```ts
+new RenderRoute({
+  path: '/posts/:slug',
+  entry: './src/Post.tsrx',
+  prerender: true,
+  entries: async () => (await listPosts()).map((post) => ({ slug: post.slug })),
+}),
+new RenderRoute({ path: '/', entry: './src/Home.tsrx', prerender: true, crawl: true }),
+```
+
+A prerendered parameterized route without `entries`, or `entries` or `crawl` on
+a route that does not fit them, is a configuration error, and a page that does
+not render with status 200 fails the build with its pathname.
 
 ### Cleanup
 

@@ -831,8 +831,13 @@ const html = template
 Apps built on `@ripple-ts/vite-plugin` mark render routes instead. The build
 renders each marked route through the production server entry and writes
 `<outDir>/client<path>/index.html`, which the adapter's static file handler
-serves before the server renders anything; the page still hydrates. Only a
-static path (no `:param` or `*` segment) can be prerendered.
+serves before the server renders anything; the page still hydrates. A path
+with `:param` or `*` segments needs `entries`: records giving every parameter
+a string, or a function returning them at build time; a value goes in as
+written, so a value percent-encoding would change is a configuration error and
+only a `*` value may span segments. `crawl` on a
+prerendered route follows its pages' same-origin links into other prerendered
+routes. Every pathname is matched like a request and rendered once.
 
 ```ts
 import { defineConfig, RenderRoute } from '@ripple-ts/vite-plugin';

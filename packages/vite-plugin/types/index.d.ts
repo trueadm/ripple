@@ -40,6 +40,8 @@ export class RenderRoute {
 	layout?: string;
 	before: Middleware[];
 	prerender: boolean;
+	entries?: RenderRouteEntries;
+	crawl: boolean;
 	constructor(options: RenderRouteOptions);
 }
 
@@ -70,13 +72,32 @@ export interface RenderRouteOptions {
 	before?: Middleware[];
 	/**
 	 * Render the page to static HTML at build time and serve that file. The
-	 * path must be static (no `:param` or `*` segments); the build renders it
-	 * buffered with every boundary settled and writes `<outDir>/client<path>/index.html`,
-	 * which the adapter's static file handler serves before the server renders
-	 * anything. The page still hydrates like a server-rendered one.
+	 * build renders it buffered with every boundary settled and writes
+	 * `<outDir>/client<path>/index.html`, which the adapter's static file
+	 * handler serves before the server renders anything. The page still
+	 * hydrates like a server-rendered one. A path with `:param` or `*`
+	 * segments needs `entries` naming the pages to render.
 	 * @default false
 	 */
 	prerender?: boolean;
+	/**
+	 * The pages of a parameterized path to prerender: one record per page
+	 * mapping every `:param` and `*catch-all` of the path to a non-empty
+	 * string, or a function (sync or async) returning that array, called once
+	 * at build time. Required with `prerender` on a path with parameters and
+	 * only allowed there. A value goes into the pathname as written, so one
+	 * that percent-encoding would change is a configuration error, and only a
+	 * `*` value may span segments. Every resulting pathname is matched like a
+	 * request, so a more specific route renders the pathnames it claims.
+	 */
+	entries?: RenderRouteEntries;
+	/**
+	 * Follow the same-origin anchors of this route's prerendered pages and
+	 * prerender every linked page that matches a `prerender` render route, and
+	 * so on through routes that also set `crawl`. Only valid with `prerender`.
+	 * @default false
+	 */
+	crawl?: boolean;
 }
 
 export interface ServerRouteOptions {
@@ -154,6 +175,10 @@ export type Component<T = Record<string, any>> = (props: T) => void;
 export type ModuleEntry = string | readonly [exportName: string, path: string];
 
 export type RenderRouteEntry = ModuleEntry;
+
+/** The pages of a parameterized render route to prerender, or a function producing them at build time. */
+export type RenderRouteEntries =
+	Record<string, string>[] | (() => Record<string, string>[] | Promise<Record<string, string>[]>);
 
 export interface RootBoundaryOptions {
 	pending?: Component<Record<string, never>>;

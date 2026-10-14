@@ -33,9 +33,30 @@ After the server build the plugin renders each marked route through the built
 server entry, buffered with every boundary settled, and writes
 `<outDir>/client<path>/index.html`. The node and bun adapters serve that file for
 the route before the server renders anything, and the page hydrates like a
-server-rendered one. Only a static path can be prerendered; a `:param` or `*`
-segment is a config error. `prerender()` from `ripple/server` does the same for a
-component outside the plugin.
+server-rendered one. A path with `:param` or `*` segments names its pages with
+`entries`, an array of records giving every parameter a string or a function
+returning one at build time, and `crawl` follows the same-origin links of a
+route's prerendered pages into other prerendered routes:
+
+```ts
+new RenderRoute({
+  path: '/posts/:slug',
+  entry: './src/Post.tsrx',
+  prerender: true,
+  entries: [{ slug: 'hello' }, { slug: 'world' }],
+});
+new RenderRoute({
+  path: '/',
+  entry: './src/Home.tsrx',
+  prerender: true,
+  crawl: true,
+});
+```
+
+Crawled links resolve as a browser reading the page would, including through a
+`<base>` element. Each pathname is normalized and matched like a request URL, and
+rendered once. `prerender()` from `ripple/server` does the same for a component
+outside the plugin.
 
 ## Client-only builds
 
