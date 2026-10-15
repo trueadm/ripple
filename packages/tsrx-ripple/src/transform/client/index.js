@@ -3701,10 +3701,13 @@ const visitors = {
 			// value of a slot (`const v = @if (…)`) still collapses — `is_combined_expression_position`
 			// excludes those slots — and a nested authored fragment collapses outer→inner via
 			// `wrap_to_ts_value_in_fragment`'s short-circuit.
-			return is_authored_native_fragment(node) ||
-				is_combined_expression_position(context.path, node)
-				? wrap_to_ts_value_in_fragment(expression, node)
-				: expression;
+			const value =
+				is_authored_native_fragment(node) || is_combined_expression_position(context.path, node)
+					? wrap_to_ts_value_in_fragment(expression, node)
+					: expression;
+			return is_ts_statement_slot(context.path, node)
+				? b.stmt(/** @type {AST.Expression} */ (value))
+				: value;
 		}
 
 		const children_filtered = lower_code_block_children(
@@ -3800,6 +3803,9 @@ const visitors = {
 			return context.next();
 		}
 
+		// Read before `node` is replaced by its lowered form, which the parent doesn't hold.
+		const in_ts_statement_slot = state.to_ts && is_ts_statement_slot(context.path, node);
+
 		// The TS view needs the `<TsrxDynamic is={expr}>` component shape for type
 		// checking; production codegen keeps `node.id` as the dynamic expression
 		// and renders it directly via `_$_.composite` in the component branch.
@@ -3824,7 +3830,8 @@ const visitors = {
 					metadata: { path: [], tsrx_render_fragment: true },
 				})
 			);
-			return build_tsrx_to_ts_expression(fragment, context);
+			const expression = build_tsrx_to_ts_expression(fragment, context);
+			return in_ts_statement_slot ? b.stmt(/** @type {AST.Expression} */ (expression)) : expression;
 		}
 
 		if (
@@ -6980,6 +6987,36 @@ function is_regular_js_statement_position(path) {
 	return (
 		parent?.type === 'BlockStatement' || parent?.type === 'Program' || parent?.type === 'SwitchCase'
 	);
+}
+
+/**
+ * Whether `node` takes the place of a statement: in a statement list, or as the body of an
+ * `if`, `else` or loop. The TS view prints a template there as an `ExpressionStatement`, so
+ * it keeps its `;` (#1517).
+ * @param {AST.Node[]} path
+ * @param {AST.Node} node
+ * @returns {boolean}
+ */
+function is_ts_statement_slot(path, node) {
+	const parent = /** @type {any} */ (path.at(-1));
+	switch (parent?.type) {
+		case 'BlockStatement':
+		case 'Program':
+			return true;
+		case 'SwitchCase':
+			return parent.consequent.includes(node);
+		case 'IfStatement':
+			return parent.consequent === node || parent.alternate === node;
+		case 'ForStatement':
+		case 'ForInStatement':
+		case 'ForOfStatement':
+		case 'WhileStatement':
+		case 'DoWhileStatement':
+		case 'LabeledStatement':
+			return parent.body === node;
+		default:
+			return false;
+	}
 }
 
 /**
